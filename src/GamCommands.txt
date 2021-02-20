@@ -1603,31 +1603,34 @@ Print activity for selected CrOS devices; use these options to select CrOS devic
 If none of these options are chosen, all CrOS devices are selected.
 
 gam print crosactivity [todrive <ToDriveAttribute>*]
-        [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
-        (querytime.* <Time>)*
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+        [querytime.* <Time>] [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [recentusers] [timeranges] [both] [devicefiles] [all]
-        [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+        [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
+        [listlimit <Number>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson [quotechar <Character>]]
 
 Print activity for specified CrOS devices.
 
 gam print crosactivity [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
+        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [recentusers] [timeranges] [both] [devicefiles] [all]
-        [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+        [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
+        [listlimit <Number>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson [quotechar <Character>]]
 
 gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
+        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [recentusers] [timeranges] [both] [devicefiles] [all]
-        [listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+        [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
+        [listlimit <Number>] [timerangeorder ascending|descending]
         [delimiter <Character>] [formatjson [quotechar <Character>]]
 
 The basic column headers are: deviceId,annotatedAssetId,annotatedLocation,serialNumber,orgUnitPath.
 
 If recentusers is specified, all of the recent users email addresses, separated by the delimiter <Character>,
-with header recentUsers.email, are output with the basic headers.
+with header recentUsers.email, are output with the basic headers. If oneuserperrow is specified, each recent user
+is output on a separate row with the basic headers.
 
 If timeranges is specified, for each time range entry, activeTimeRanges.date, activeTimeRanges.duration and activeTimeRanges.minutes
 are output on a separate row with the basic headers.

@@ -1,3 +1,8 @@
+5.31.28
+
+Added option `oneuserperrow` to `gam print crosactivity recentusers` to make the output of the recent users
+easier to process.
+
 5.31.27
 
 Upgraded to Python 3.9.2.

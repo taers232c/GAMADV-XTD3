@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.31.27'
+__version__ = '5.31.28'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17619,14 +17619,17 @@ CROS_ACTIVITY_TIME_OBJECTS = {'createTime'}
 
 # gam print crosactivity [todrive <ToDriveAttribute>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
-#	[querytime.* <Time>]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
-#	[listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+#	[querytime.* <Time>] [start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]]
+#	[recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
+#	[listlimit <Number>] [timerangeorder ascending|descending]
 #	[delimiter <Character>] [formatjson [quotechar <Character>]]
 #
 # gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]] [recentusers] [timeranges] [both] [devicefiles] [all]
-#	[listlimit <Number>] [start <Date>] [end <Date>] [timerangeorder ascending|descending]
+#	[start <Date>] [end <Date>]
+#	[orderby <CrOSOrderByFieldName> [ascending|descending]]
+#	[recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
+#	[listlimit <Number>] [timerangeorder ascending|descending]
 #	[delimiter <Character>] [formatjson [quotechar <Character>]]
 def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
@@ -17647,9 +17650,15 @@ def doPrintCrOSActivity(entityList=None):
       csvPF.WriteRow(new_row)
     recentUsers = _filterRecentUsers(cros, selectRecentUsers, listLimit)
     if recentUsers:
-      new_row = row.copy()
-      new_row['recentUsers.email'] = delimiter.join([recentUser['email'] for recentUser in recentUsers])
-      csvPF.WriteRow(new_row)
+      if not oneUserPerRow:
+        new_row = row.copy()
+        new_row['recentUsers.email'] = delimiter.join([recentUser['email'] for recentUser in recentUsers])
+        csvPF.WriteRow(new_row)
+      else:
+        for recentUser in recentUsers:
+          new_row = row.copy()
+          new_row['recentUsers.email'] = recentUser['email']
+          csvPF.WriteRow(new_row)
     for deviceFile in _filterDeviceFiles(cros, selectDeviceFiles, listLimit, startTime, endTime):
       new_row = row.copy()
       for key in ['type', 'createTime']:
@@ -17679,7 +17688,7 @@ def doPrintCrOSActivity(entityList=None):
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   queryTimes = {}
-  selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  oneUserPerRow = selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
   activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -17693,6 +17702,8 @@ def doPrintCrOSActivity(entityList=None):
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
     elif entityList is None and myarg == 'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
+    elif myarg == 'oneuserperrow':
+      oneUserPerRow = True
     elif myarg == 'listlimit':
       listLimit = getInteger(minVal=0)
     elif myarg in CROS_START_ARGUMENTS:
