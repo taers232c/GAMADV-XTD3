@@ -76,59 +76,9 @@ jobs:
         - DIST_UPGRADE=true
       filter_secrets: false
     - os: osx
-      name: "MacOS 10.10"
-      language: generic
-      env: 
-        - PYFILE=build
-      osx_image: xcode6.4
-    - os: osx
-      name: "MacOS 10.11"
-      language: generic
-      env: 
-        - PYFILE=build
-      osx_image: xcode8
-    - os: osx
-      name: "MacOS 10.12"
-      language: generic
-      env: 
-        - PYFILE=build
-      osx_image: xcode9.2
-    - os: osx
-      name: "MacOS 10.13"
-      language: generic
-      env: 
-        - PYFILE=build
-      osx_image: xcode10.1
-    - os: osx
-      name: "MacOS 10.14"
-      language: generic
-      env: 
-        - PYFILE=build
-      osx_image: xcode11.3
-    - os: osx
-      name: "MacOS 10.15"
-      language: generic
-      env: 
-        - PYFILE=build
-      osx_image: xcode12.2
-    - os: osx
-      name: "MacOS 11.0"
-      language: generic
-      osx_image: xcode12.3
-      env: 
-        - PYFILE=build
-    - os: osx
-      name: "MacOS 11.1"
-      language: generic
-      osx_image: xcode12.4
-      env: 
-        - PYFILE=build
-    - os: osx
       name: "MacOS"
       language: generic
       osx_image: xcode12.4
-      env: 
-        - PYFILE=package
     - os: windows
       name: "Windows 64-bit"
       language: shell
@@ -139,15 +89,10 @@ jobs:
 before_install:
 - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     export GAMOS="macos";
-    if [ "${PYFILE}" != "package" ]; then
-      export SCRIPT_OS_NAME="${TRAVIS_OS_NAME}";
-    else
-      export SCRIPT_OS_NAME="${GAMOS}";
-    fi
   else
     export GAMOS="${TRAVIS_OS_NAME}";
-    export SCRIPT_OS_NAME="${GAMOS}";
   fi
+  export SCRIPT_OS_NAME="${GAMOS}";
 - if [ "${TRAVIS_JOB_NAME}" == "Windows 32-bit" ]; then
     export PLATFORM="x86";
   elif [ "${TRAVIS_CPU_ARCH}" == "amd64" ]; then

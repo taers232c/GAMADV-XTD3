@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.33.00'
+__version__ = '5.34.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -99,7 +99,6 @@ from gamlib import glskus as SKU
 from gamlib import gluprop as UProp
 
 import atom
-import gdata.apps.audit.service
 import gdata.apps.service
 import gdata.apps.contacts
 import gdata.apps.contacts.service
@@ -4544,9 +4543,6 @@ def getContactsQuery(**kwargs):
   if GC.Values[GC.NO_VERIFY_SSL]:
     ssl._create_default_https_context = ssl._create_unverified_context
   return gdata.apps.contacts.service.ContactsQuery(**kwargs)
-
-def getEmailAuditObject():
-  return initGDataObject(gdata.apps.audit.service.AuditService(), API.EMAIL_AUDIT)
 
 def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
   if entityType == Ent.DOMAIN:
@@ -13741,322 +13737,6 @@ def doPrintAliases():
         if aliasMatchPattern.match(alias):
           csvPF.WriteRow({'NonEditableAlias': alias, 'Target': group['email'], 'TargetType': 'Group'})
   csvPF.writeCSVfile('Aliases')
-
-# gam audit uploadkey [<FileName>]
-def doUploadAuditKey():
-  auditObject = getEmailAuditObject()
-  if Cmd.ArgumentsRemaining():
-    filename = getString(Cmd.OB_FILE_NAME)
-    auditkey = readFile(filename, mode='rb')
-  else:
-    filename = 'Read from stdin'
-    auditkey = sys.stdin.read().encode(UTF8)
-  checkForExtraneousArguments()
-  callGData(auditObject, 'updatePGPKey',
-            pgpkey=auditkey)
-  entityActionPerformed([Ent.PUBLIC_KEY, filename])
-
-# Audit activity/export command utilities
-def checkDownloadResults(results):
-  if results['status'] != 'COMPLETED':
-    printWarningMessage(REQUEST_NOT_COMPLETED_RC, Msg.REQUEST_NOT_COMPLETE.format(results['status']))
-    return False
-  if int(results.get('numberOfFiles', '0')) >= 1:
-    return True
-  printWarningMessage(REQUEST_COMPLETED_NO_RESULTS_RC, Msg.REQUEST_COMPLETED_NO_FILES)
-  return False
-
-# Audit command utilities
-def getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False):
-  auditObject = getEmailAuditObject()
-  emailAddress = getEmailAddress(noUid=True, optional=not emailAddressRequired)
-  parameters = {}
-  if emailAddress:
-    parameters['auditUser'] = emailAddress
-    parameters['auditUserName'], auditObject.domain = splitEmailAddress(emailAddress)
-    if requestIdRequired:
-      parameters['requestId'] = getString(Cmd.OB_REQUEST_ID)
-    if destUserRequired:
-      destEmailAddress = getEmailAddress(noUid=True)
-      parameters['auditDestUser'] = destEmailAddress
-      parameters['auditDestUserName'], destDomain = splitEmailAddress(destEmailAddress)
-      if auditObject.domain != destDomain:
-        Cmd.Backup()
-        invalidArgumentExit(f'{parameters["auditDestUserName"]}@{auditObject.domain}')
-  return (auditObject, parameters)
-
-def _showFileURLs(request):
-  if 'numberOfFiles' in request:
-    printKeyValueList(['Number Of Files', request['numberOfFiles']])
-    Ind.Increment()
-    for i in range(int(request['numberOfFiles'])):
-      printKeyValueList([f'Url{i}', request['fileUrl'+str(i)]])
-    Ind.Decrement()
-
-# Audit export command utilities
-def _showMailboxExportRequestStatus(request, i, count, showFilter=False, showDates=False, showFiles=False):
-  printEntity([Ent.REQUEST_ID, request['requestId']], i, count)
-  Ind.Increment()
-  printEntity([Ent.USER, request['userEmailAddress']])
-  printKeyValueList(['Status', request['status']])
-  printKeyValueList(['Request Date', request['requestDate']])
-  printKeyValueList(['Requested By', request['adminEmailAddress']])
-  printKeyValueList(['Requested Parts', request['packageContent']])
-  if showFilter:
-    printKeyValueList(['Request Filter', request.get('searchQuery', 'None')])
-  printKeyValueList(['Include Deleted', request['includeDeleted']])
-  if showDates:
-    printKeyValueList(['Begin', request.get('beginDate', 'Account creation date')])
-    printKeyValueList(['End', request.get('endDate', 'Export request date')])
-  if showFiles:
-    _showFileURLs(request)
-  Ind.Decrement()
-
-# gam audit export request <EmailAddress> [begin <DateTime>] [end <DateTime>] [search <QueryGmail>] [headersonly] [includedeleted]
-def doSubmitExportRequest():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=False, destUserRequired=False)
-  begin_date = end_date = search_query = None
-  headers_only = include_deleted = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'begin':
-      begin_date = getYYYYMMDD_HHMM()
-    elif myarg == 'end':
-      end_date = getYYYYMMDD_HHMM()
-    elif myarg == 'search':
-      search_query = getString(Cmd.OB_QUERY)
-    elif myarg == 'headersonly':
-      headers_only = True
-    elif myarg == 'includedeleted':
-      include_deleted = True
-    else:
-      unknownArgumentExit()
-  try:
-    request = callGData(auditObject, 'createMailboxExportRequest',
-                        throwErrors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
-                        user=parameters['auditUserName'], begin_date=begin_date, end_date=end_date, include_deleted=include_deleted,
-                        search_query=search_query, headers_only=headers_only)
-    entityActionPerformed([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, None])
-    Ind.Increment()
-    _showMailboxExportRequestStatus(request, 0, 0, showFilter=False, showDates=True, showFiles=False)
-    Ind.Decrement()
-  except (GDATA.invalidDomain, GDATA.doesNotExist):
-    entityUnknownWarning(Ent.USER, parameters['auditUser'])
-  except GDATA.invalidValue as e:
-    entityActionFailedWarning([Ent.USER, parameters['auditUser']], str(e))
-
-# gam audit export delete <EmailAddress> <RequestID>
-def doDeleteExportRequest():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False)
-  checkForExtraneousArguments()
-  try:
-    callGData(auditObject, 'deleteMailboxExportRequest',
-              throwErrors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
-              user=parameters['auditUserName'], request_id=parameters['requestId'])
-    entityActionPerformed([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']])
-  except (GDATA.invalidDomain, GDATA.doesNotExist):
-    entityUnknownWarning(Ent.USER, parameters['auditUser'])
-  except GDATA.invalidValue:
-    entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']], Msg.INVALID_REQUEST)
-
-# gam audit export download <EmailAddress> <RequestID> [targetfolder <FilePath>]
-def doDownloadExportRequest():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False)
-  targetFolder = GC.Values[GC.DRIVE_DIR]
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'targetfolder':
-      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
-      if not os.path.isdir(targetFolder):
-        os.makedirs(targetFolder)
-    else:
-      unknownArgumentExit()
-  try:
-    results = callGData(auditObject, 'getMailboxExportRequestStatus',
-                        throwErrors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
-                        user=parameters['auditUserName'], request_id=parameters['requestId'])
-    if not checkDownloadResults(results):
-      return
-    count = int(results['numberOfFiles'])
-    for i in range(count):
-      filename = os.path.join(targetFolder, f'export-{parameters["auditUserName"]}-{parameters["requestId"]}-{i}.mbox.gpg')
-      #don't download existing files. This does not check validity of existing local
-      #file so partial/corrupt downloads will need to be deleted manually.
-      if not os.path.isfile(filename):
-        entityPerformActionInfo([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']], filename, i+1, count)
-        _, data = getHttpObj().request(results['fileUrl'+str(i)], 'GET')
-        writeFile(filename, data, mode='wb')
-      else:
-        entityActionNotPerformedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']],
-                                        f'{filename} {Msg.EXISTS}', i+1, count)
-  except (GDATA.invalidDomain, GDATA.doesNotExist):
-    entityUnknownWarning(Ent.USER, parameters['auditUser'])
-  except GDATA.invalidValue:
-    entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']], Msg.INVALID_REQUEST)
-
-# gam audit export status [<EmailAddress> <RequestID>]
-def doStatusExportRequests():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=False, requestIdRequired=True, destUserRequired=False)
-  checkForExtraneousArguments()
-  if parameters:
-    try:
-      results = [callGData(auditObject, 'getMailboxExportRequestStatus',
-                           throwErrors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
-                           user=parameters['auditUserName'], request_id=parameters['requestId'])]
-      jcount = 1 if (results) else 0
-      entityPerformActionNumItems([Ent.USER, parameters['auditUser']], jcount, Ent.AUDIT_EXPORT_REQUEST)
-    except (GDATA.invalidDomain, GDATA.doesNotExist):
-      entityUnknownWarning(Ent.USER, parameters['auditUser'])
-      return
-    except GDATA.invalidValue:
-      entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']], Msg.INVALID_REQUEST)
-      return
-  else:
-    results = callGData(auditObject, 'getAllMailboxExportRequestsStatus')
-    jcount = len(results) if (results) else 0
-    entityPerformActionNumItems([Ent.DOMAIN, GC.Values[GC.DOMAIN]], jcount, Ent.AUDIT_EXPORT_REQUEST)
-  if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
-    return
-  Ind.Increment()
-  j = 0
-  for request in results:
-    j += 1
-    _showMailboxExportRequestStatus(request, j, jcount, showFilter=True, showDates=False, showFiles=True)
-  Ind.Decrement()
-
-# gam audit export watch <EmailAddress> <RequestID>
-def doWatchExportRequest():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False)
-  checkForExtraneousArguments()
-  while True:
-    try:
-      results = callGData(auditObject, 'getMailboxExportRequestStatus',
-                          throwErrors=[GDATA.INVALID_DOMAIN, GDATA.DOES_NOT_EXIST, GDATA.INVALID_VALUE],
-                          user=parameters['auditUserName'], request_id=parameters['requestId'])
-    except (GDATA.invalidDomain, GDATA.doesNotExist):
-      entityUnknownWarning(Ent.USER, parameters['auditUser'])
-      break
-    except GDATA.invalidValue:
-      entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_EXPORT_REQUEST, parameters['requestId']], Msg.INVALID_REQUEST)
-      break
-    if results['status'] != 'PENDING':
-      printKeyValueList(['Status is', results['status'], 'Sending email.'])
-      msg_txt = '\n'
-      msg_txt += f'  {Ent.Singular(Ent.REQUEST_ID)}: {results["requestId"]}\n'
-      msg_txt += f'  {Ent.Singular(Ent.USER)}: {results["userEmailAddress"]}\n'
-      msg_txt += f'  Status: {results["status"]}\n'
-      msg_txt += f'  Request Date: {results["requestDate"]}\n'
-      msg_txt += f'  Requested By: {results["adminEmailAddress"]}\n'
-      msg_txt += f'  Requested Parts: {results["packageContent"]}\n'
-      msg_txt += f'  Request Filter: {results.get("searchQuery", "None")}\n'
-      msg_txt += f'  Include Deleted: {results["includeDeleted"]}\n'
-      if 'numberOfFiles' in results:
-        msg_txt += f'  Number Of Files: {results["numberOfFiles"]}\n'
-        for i in range(int(results['numberOfFiles'])):
-          msg_txt += f'  Url{i}: {results["fileUrl"+str(i)]}\n'
-      msg_subj = f'Export #{results["requestId"]} for {results["userEmailAddress"]} status is {results["status"]}'
-      send_email(msg_subj, msg_txt, _getAdminEmail())
-      break
-    printKeyValueList(['Status still PENDING, will check again in 5 minutes...'])
-    time.sleep(300)
-
-# Audit monitor command utilities
-def _showMailboxMonitorRequestStatus(request, i=0, count=0):
-  printKeyValueListWithCount(['Destination', normalizeEmailAddressOrUID(request['destUserName'])], i, count)
-  Ind.Increment()
-  printKeyValueList(['Begin', request.get('beginDate', 'immediately')])
-  printKeyValueList(['End', request['endDate']])
-  printKeyValueList(['Monitor Incoming', request['outgoingEmailMonitorLevel']])
-  printKeyValueList(['Monitor Outgoing', request['incomingEmailMonitorLevel']])
-  printKeyValueList(['Monitor Chats', request['chatMonitorLevel']])
-  printKeyValueList(['Monitor Drafts', request['draftMonitorLevel']])
-  Ind.Decrement()
-
-# gam audit monitor create <EmailAddress> <DestEmailAddress> [begin <DateTime>] [end <DateTime>] [incoming_headers] [outgoing_headers] [nochats] [nodrafts] [chat_headers] [draft_headers]
-def doCreateMonitor():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=False, destUserRequired=True)
-  #end_date defaults to 30 days in the future...
-  end_date = (GM.Globals[GM.DATETIME_NOW]+datetime.timedelta(days=30)).strftime(YYYYMMDD_HHMM_FORMAT)
-  begin_date = None
-  incoming_headers_only = outgoing_headers_only = drafts_headers_only = chats_headers_only = False
-  drafts = chats = True
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'begin':
-      begin_date = getYYYYMMDD_HHMM()
-    elif myarg == 'end':
-      end_date = getYYYYMMDD_HHMM()
-    elif myarg == 'incomingheaders':
-      incoming_headers_only = True
-    elif myarg == 'outgoingheaders':
-      outgoing_headers_only = True
-    elif myarg == 'nochats':
-      chats = False
-    elif myarg == 'nodrafts':
-      drafts = False
-    elif myarg == 'chatheaders':
-      chats_headers_only = True
-    elif myarg == 'draftheaders':
-      drafts_headers_only = True
-    else:
-      unknownArgumentExit()
-  try:
-    request = callGData(auditObject, 'createEmailMonitor',
-                        throwErrors=[GDATA.INVALID_VALUE, GDATA.INVALID_INPUT, GDATA.DOES_NOT_EXIST, GDATA.INVALID_DOMAIN],
-                        source_user=parameters['auditUserName'], destination_user=parameters['auditDestUserName'], end_date=end_date, begin_date=begin_date,
-                        incoming_headers_only=incoming_headers_only, outgoing_headers_only=outgoing_headers_only,
-                        drafts=drafts, drafts_headers_only=drafts_headers_only, chats=chats, chats_headers_only=chats_headers_only)
-    entityActionPerformed([Ent.USER, parameters['auditUser'], Ent.AUDIT_MONITOR_REQUEST, None])
-    Ind.Increment()
-    _showMailboxMonitorRequestStatus(request)
-    Ind.Decrement()
-  except (GDATA.invalidValue, GDATA.invalidInput) as e:
-    entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_MONITOR_REQUEST, None], str(e))
-  except (GDATA.doesNotExist, GDATA.invalidDomain) as e:
-    if str(e).find(parameters['auditUser']) != -1:
-      entityUnknownWarning(Ent.USER, parameters['auditUser'])
-    else:
-      entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_MONITOR_REQUEST, None], str(e))
-
-# gam audit monitor delete <EmailAddress> <DestEmailAddress>
-def doDeleteMonitor():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=False, destUserRequired=True)
-  checkForExtraneousArguments()
-  try:
-    callGData(auditObject, 'deleteEmailMonitor',
-              throwErrors=[GDATA.INVALID_INPUT, GDATA.DOES_NOT_EXIST, GDATA.INVALID_DOMAIN],
-              source_user=parameters['auditUserName'], destination_user=parameters['auditDestUserName'])
-    entityActionPerformed([Ent.USER, parameters['auditUser'], Ent.AUDIT_MONITOR_REQUEST, parameters['auditDestUser']])
-  except GDATA.invalidInput as e:
-    entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_MONITOR_REQUEST, None], str(e))
-  except (GDATA.doesNotExist, GDATA.invalidDomain) as e:
-    if str(e).find(parameters['auditUser']) != -1:
-      entityUnknownWarning(Ent.USER, parameters['auditUser'])
-    else:
-      entityActionFailedWarning([Ent.USER, parameters['auditUser'], Ent.AUDIT_MONITOR_REQUEST, None], str(e))
-
-# gam audit monitor list <EmailAddress>
-def doShowMonitors():
-  auditObject, parameters = getAuditParameters(emailAddressRequired=True, requestIdRequired=False, destUserRequired=False)
-  checkForExtraneousArguments()
-  try:
-    results = callGData(auditObject, 'getEmailMonitors',
-                        throwErrors=[GDATA.DOES_NOT_EXIST, GDATA.INVALID_DOMAIN],
-                        user=parameters['auditUserName'])
-    jcount = len(results) if (results) else 0
-    entityPerformActionNumItems([Ent.USER, parameters['auditUser']], jcount, Ent.AUDIT_MONITOR_REQUEST)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
-      return
-    Ind.Increment()
-    j = 0
-    for request in results:
-      j += 1
-      _showMailboxMonitorRequestStatus(request, j, jcount)
-    Ind.Decrement()
-  except (GDATA.doesNotExist, GDATA.invalidDomain):
-    entityUnknownWarning(Ent.USER, parameters['auditUser'])
 
 # Contact commands utilities
 #
@@ -50634,37 +50314,6 @@ def processOauthCommands():
     systemErrorExit(USAGE_ERROR_RC, Msg.COMMAND_NOT_COMPATIBLE_WITH_ENABLE_DASA.format('oauth', CL_subCommand))
   OAUTH2_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION]()
 
-# Audit command sub-commands
-AUDIT_SUBCOMMANDS = {
-  'uploadkey': (Act.UPLOAD, doUploadAuditKey),
-  }
-
-# Audit command sub-commands with objects
-AUDIT_SUBCOMMANDS_WITH_OBJECTS = {
-  'export':
-    {'request': (Act.SUBMIT, doSubmitExportRequest),
-     'delete': (Act.DELETE, doDeleteExportRequest),
-     'download': (Act.DOWNLOAD, doDownloadExportRequest),
-     'status': (Act.LIST, doStatusExportRequests),
-     'watch': (Act.WATCH, doWatchExportRequest),
-    },
-  'monitor':
-    {'create': (Act.CREATE, doCreateMonitor),
-     'delete': (Act.DELETE, doDeleteMonitor),
-     'list': (Act.LIST, doShowMonitors),
-    },
-  }
-
-def processAuditCommands():
-  CL_subCommand = getChoice(list(AUDIT_SUBCOMMANDS)+list(AUDIT_SUBCOMMANDS_WITH_OBJECTS))
-  if CL_subCommand in AUDIT_SUBCOMMANDS:
-    Act.Set(AUDIT_SUBCOMMANDS[CL_subCommand][CMD_ACTION])
-    AUDIT_SUBCOMMANDS[CL_subCommand][CMD_FUNCTION]()
-  else:
-    CL_objectName = getChoice(AUDIT_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand])
-    Act.Set(AUDIT_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CL_objectName][CMD_ACTION])
-    AUDIT_SUBCOMMANDS_WITH_OBJECTS[CL_subCommand][CL_objectName][CMD_FUNCTION]()
-
 # Calendar command sub-commands
 CALENDAR_SUBCOMMANDS = {
   'showacl': (Act.SHOW, doCalendarsPrintShowACLs),
@@ -50797,7 +50446,6 @@ def processResourcesCommands():
 # Commands
 COMMANDS_MAP = {
   'oauth':	processOauthCommands,
-  'audit':	processAuditCommands,
   'calendars':	processCalendarsCommands,
   'course':	processCourseCommands,
   'courses':	processCoursesCommands,

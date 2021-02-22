@@ -1,11 +1,25 @@
+5.34.00
+
+Eliminated all `gam audit` commands that used the Email Audit API; use `vault` commands as replacements.
+
+The Mac OS version specific builds (gamadv-xtd3-5.xy.wz-macos-10.vv-x86_64.tar) have been eliminated;
+the all version build (gamadv-xtd3-5.xy.wz-macos-x86_64.tar) is now the only Mac OS build.
+You can download the new executable with (the -b allmacos option is no longer required):
+```
+bash <(curl -s -S -L https://git.io/fhZWP) -l
+```
+
 5.33.00
 
-Eliminated automatic checking for a new GAM version, `no_update_check` in `gam.cfg` is ignored.
+Eliminated automatic checking for a new GAM version, `no_update_check` in `gam.cfg` is now ignored.
 Previously, when `no_update_check` was `false`, a file was opened and read on every execution of GAM.
 You can check for a new version with `gam version check`.
 
 A new GAM executable (gamadv-xtd3-5.xy.wz-macos-x86_64.tar) that should run on all versions of Mac OS from 10.10 on is now being built.
-For now, the version specific executables will still be built.
+For now, the version specific executables will still be built. You can download the new executable with:
+```
+bash <(curl -s -S -L https://git.io/fhZWP) -l -b allmacos
+```
 
 5.31.28
 

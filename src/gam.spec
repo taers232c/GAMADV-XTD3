@@ -8,7 +8,6 @@ extra_files = [
     ('cbcm-v1.1beta1.json', '.'),
     ('contacts-v3.json', '.'),
     ('contactdelegation-v1.json', '.'),
-    ('email-audit-v1.json', '.'),
     ('sites-v1.json', '.')
     ]
 

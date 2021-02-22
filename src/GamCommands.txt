@@ -1053,24 +1053,6 @@ gam print alias|aliases [todrive <ToDriveAttribute>*]
 
 gam whatis <EmailItem> [noinfo]
 
-# Auditing
-
-<DestEmailAddress> ::= <EmailAddress>
-
-gam audit uploadkey [<FileName>]
-
-gam audit export request <EmailAddress> [begin <DateTime>] [end <DateTime>]
-        [search <QueryGmail>] [headersonly] [includedeleted]
-gam audit export delete <EmailAddress> <RequestID>
-gam audit export download <EmailAddress> <RequestID> [targetfolder <FilePath>]
-gam audit export status [<EmailAddress> <RequestID>]
-gam audit export watch <EmailAddress> <RequestID>
-
-gam audit monitor create <EmailAddress> <DestEmailAddress> [begin <DateTime>] [end <DateTime>]
-        [incoming_headers] [outgoing_headers] [nochats] [nodrafts] [chat_headers] [draft_headers]
-gam audit monitor delete <EmailAddress> <DestEmailAddress>
-gam audit monitor list <EmailAddress>
-
 # Calendars
 
 <CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
