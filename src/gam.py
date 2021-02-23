@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.34.00'
+__version__ = '5.34.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3604,15 +3604,17 @@ def doGAMCheckForUpdates(forceCheck):
     if not isinstance(release_data, dict) or 'tag_name' not in release_data:
       _gamLatestVersionNotAvailable()
       return
+    current_version = __version__
     latest_version = release_data['tag_name']
     if latest_version[0].lower() == 'v':
+      latest_version = latest_version[1:]
       printKeyValueList(['Version Check', None])
       Ind.Increment()
-      printKeyValueList(['Current', __version__])
-      printKeyValueList([' Latest', latest_version[1:]])
+      printKeyValueList(['Current', current_version])
+      printKeyValueList([' Latest', latest_version])
       Ind.Decrement()
     if forceCheck < 0:
-      setSysExitRC(1)
+      setSysExitRC(1 if latest_version > current_version else 0)
       return
   except (httplib2.HttpLib2Error, OSError, google.auth.exceptions.TransportError, RuntimeError) as e:
     if forceCheck:
