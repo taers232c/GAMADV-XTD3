@@ -185,7 +185,6 @@ If an item contains spaces, it should be surrounded by ".
         101037 |
         Google-Apps |
         Google-Chrome-Device-Management |
-        Google-Coordinate |
         Google-Drive-storage |
         Google-Vault
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
@@ -1088,8 +1087,8 @@ gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [formatjson
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventSelectProperty> ::=
-        (after|starttime|timemin <Time>)|
-        (before|endtime|timemax <Time>)|
+        (after|start|starttime|timemin <Time>)|
+        (before|end|endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
         (sharedextendedproperty <Syting>)|
@@ -3870,8 +3869,8 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventSelectProperty> ::=
-        (after|starttime|timemin <Time>)|
-        (before|endtime|timemax <Time>)|
+        (after|start|starttime|timemin <Time>)|
+        (before|end|endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
         (sharedextendedproperty <Syting>)|

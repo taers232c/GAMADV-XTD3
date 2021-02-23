@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.34.01'
+__version__ = '5.34.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -24875,6 +24875,7 @@ LIST_EVENTS_DISPLAY_PROPERTIES = {
 LIST_EVENTS_SELECT_PROPERTIES = {
   'after': ('timeMin', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
   'before': ('timeMax', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
+  'end': ('timeMax', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
   'endtime': ('timeMax', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
   'includedeleted': ('showDeleted', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}),
   'includehidden': ('showHiddenInvitations', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}),
@@ -24883,6 +24884,7 @@ LIST_EVENTS_SELECT_PROPERTIES = {
   'showdeletedevents': ('showDeleted', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}),
   'showhiddeninvitations': ('showHiddenInvitations', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}),
   'singleevents': ('singleEvents', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}),
+  'start': ('timeMin', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
   'starttime': ('timeMin', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
   'timemax': ('timeMax', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
   'timemin': ('timeMin', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
@@ -35264,10 +35266,14 @@ def updateCalendarAttendees(users):
       for row in csvFile:
         updAddr = row['addr']
         updOp = row['op'].lower()
-        updOptional = row['optional'].lower()
-        updStatus = row['status'].lower()
+        updOptional = row['optional']
+        updStatus = row['status']
         if not updAddr and not updOp:
           continue
+        if updOptional:
+          updOptional = updOptional.lower()
+        if updStatus:
+          updStatus = updStatus.lower()
         if (not updAddr or not updOp or
             (updOptional and updOptional not in CALENDAR_ATTENDEE_OPTIONAL_CHOICE_MAP) or
             (updStatus and updStatus not in CALENDAR_ATTENDEE_STATUS_CHOICE_MAP)):
