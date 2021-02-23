@@ -182,6 +182,7 @@ If an item contains spaces, it should be surrounded by ".
         101031 |
         101033 |
         101034 |
+        101037 |
         Google-Apps |
         Google-Chrome-Device-Management |
         Google-Coordinate |
@@ -211,6 +212,13 @@ If an item contains spaces, it should be surrounded by ".
         gsuiteenterpriseeducationstudent | gsefes | e4es | 1010310003 |
         gsuitegov | gafg | gsuitegovernment | Google-Apps-For-Government |
         gsuitelite | gal | gsl | lite | Google-Apps-Lite |
+        gwep | workspaceeducationplus | 1010310008 |
+        gwepstaff | workspaceeducationplusstaff | 1010310009 |
+        gwepstudent | workspaceeducationplusstudent | 1010310010 |
+        gwes | workspaceeducationstandard | 1010310005 |
+        gwesstaff | workspaceeducationstandardstaff | 1010310006 |
+        gwesstudent | workspaceeducationstandardstudent | 1010310007 |
+        gwetlu | workspaceeducationupgrade | 1010370001 |
         postini | gams | gsuitegams | gsuitepostini | gsuitemessagesecurity | Google-Apps-For-Postini |
         standard | free | Google-Apps |
         vault | googlevault | Google-Vault |

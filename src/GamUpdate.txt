@@ -3,6 +3,8 @@
 Fixed bug introduced in 5.33.00 where `gam version checkrc` incorrectly set the return code to 1
 even when you have the current version of GAM.
 
+Added new Google Workspace for Edutation products and SKUs.
+
 5.34.00
 
 Eliminated all `gam audit` commands that used the Email Audit API; use `vault` commands as replacements.

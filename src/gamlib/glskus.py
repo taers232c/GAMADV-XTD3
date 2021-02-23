@@ -26,9 +26,10 @@ import re
 _PRODUCTS = {
   '101001': 'Cloud Identity Free',
   '101005': 'Cloud Identity Premium',
-  '101031': 'G Suite Enterprise for Education',
+  '101031': 'G Suite Workspace for Education',
   '101033': 'Google Voice',
   '101034': 'G Suite Archived',
+  '101037': 'G Suite Workspace for Education',
   'Google-Apps': 'Google Workspace',
   'Google-Chrome-Device-Management': 'Google Chrome Device Management',
   'Google-Drive-storage': 'Google Drive Storage',
@@ -40,15 +41,29 @@ _SKUS = {
   '1010050001': {
     'product': '101005', 'aliases': ['identitypremium', 'cloudidentitypremium'], 'displayName': 'Cloud Identity Premium'},
   '1010310002': {
-    'product': '101031', 'aliases': ['gsefe', 'e4e', 'gsuiteenterpriseeducation'], 'displayName': 'G Suite Enterprise for Education'},
+    'product': '101031', 'aliases': ['gsefe', 'e4e', 'gsuiteenterpriseeducation'], 'displayName': 'Google Workspace for Education Plus - Legacy'},
   '1010310003': {
-    'product': '101031', 'aliases': ['gsefes', 'e4es', 'gsuiteenterpriseeducationstudent'], 'displayName': 'G Suite Enterprise for Education (Student)'},
+    'product': '101031', 'aliases': ['gsefes', 'e4es', 'gsuiteenterpriseeducationstudent'], 'displayName': 'Google Workspace for Education Plus - Legacy (Student)'},
+  '1010310005': {
+    'product': '101031', 'aliases': ['gwes', 'workspaceeducationstandard'], 'displayName': 'Google Workspace for Education Standard'},
+  '1010310006': {
+    'product': '101031', 'aliases': ['gwesstaff', 'workspaceeducationstandardstaff'], 'displayName': 'Google Workspace for Education Standard (Staff)'},
+  '1010310007': {
+    'product': '101031', 'aliases': ['gwesstudent', 'workspaceeducationstandardstudent'], 'displayName': 'Google Workspace for Education Standard (Extra Student)'},
+  '1010310008': {
+    'product': '101031', 'aliases': ['gwep', 'workspaceeducationplus'], 'displayName': 'Google Workspace for Education Plus'},
+  '1010310009': {
+    'product': '101031', 'aliases': ['gwepstaff', 'workspaceeducationplusstaff'], 'displayName': 'Google Workspace for Education Plus (Staff)'},
+  '1010310010': {
+    'product': '101031', 'aliases': ['gwepstudent', 'workspaceeducationplusstudent'], 'displayName': 'Google Workspace for Education Plus (Extra Student)'},
   '1010330003': {
     'product': '101033', 'aliases': ['gvstarter', 'voicestarter', 'googlevoicestarter'], 'displayName': 'Google Voice Starter'},
   '1010330004': {
     'product': '101033', 'aliases': ['gvstandard', 'voicestandard', 'googlevoicestandard'], 'displayName': 'Google Voice Standard'},
   '1010330002': {
     'product': '101033', 'aliases': ['gvpremier', 'voicepremier', 'googlevoicepremier'], 'displayName': 'Google Voice Premier'},
+  '1010370001': {
+    'product': '101037', 'aliases': ['gwetlu', 'workspaceeducationupgrade'], 'displayName': 'Google Workspace for Education: Teaching and Learning Upgrade'},
   'Google-Apps': {
     'product': 'Google-Apps', 'aliases': ['standard', 'free'], 'displayName': 'G Suite Free/Standard'},
   'Google-Apps-For-Business': {
