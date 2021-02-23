@@ -1327,7 +1327,7 @@ gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 <QueryBrowserList> ::= "<QueryBrowser>(,<QueryBrowser>)*"
 
 <BrowserEntity> ::=
-        <DeviceIDList> | 
+        <DeviceIDList> |
         (query:<QueryBrowser>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryBrowser>) |
         (browserou <OrgUnitItem>) | (browserous <OrgUnitList>) |
         <FileSelector> | <CSVFileSelector>
@@ -2548,7 +2548,7 @@ gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|all
         useremail
 <DeviceUserFieldNameList> ::= "<DeviceUserFieldName>(,<DeviceUserFieldName>)*"
 
-<DeviceOrderbyFieldName> ::= 
+<DeviceOrderbyFieldName> ::=
         createtime|devicetype|lastsynctime|model|osversion|serialnumber
 
 <DeviceAction> ::=
@@ -2605,8 +2605,8 @@ gam print deviceusers [todrive <ToDriveAttribute>*]
         [orderby <DeviceOrderByFieldName> [ascending|descending]]
         [formatjson [quotechar <Character>]]
 
-gam info deviceuserstate <DeviceUserEntity> [clientid <String>] 
-gam update deviceuserstate <DeviceUserEntity> [clientid <String>] 
+gam info deviceuserstate <DeviceUserEntity> [clientid <String>]
+gam update deviceuserstate <DeviceUserEntity> [clientid <String>]
         [customid <String>] [assettags clear|<AssetTagList>]
         [compliantstate|compliancestate compliant|noncompliant] [managedstate clear|managed|unmanaged]
         [healthscore very_poor|poor|neutral|good|very_good] [scorereason clear|<String>]
@@ -5121,7 +5121,7 @@ gam <UserTypeEntity> print sheetrange <DriveFileEntity> [todrive <ToDriveAttribu
         (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
         [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [formatjson [quotechar <Character>] [valuerangesonly [<Boolean>]]]
-gam <UserTypeEntity> show sheetrange <DriveFileEntity> 
+gam <UserTypeEntity> show sheetrange <DriveFileEntity>
         (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
         [rows|columns] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
         [formatjson [valuerangesonly [<Boolean>]]]

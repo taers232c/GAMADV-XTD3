@@ -271,7 +271,7 @@ In previous versions, you had to surround `<FieldNameFilter>` with `^$` to get t
 
 5.25.19
 
-Fixed bug introduced in 5.25.18  where using `todrive_noemail false` or `tdnoemail false` caused a trap. 
+Fixed bug introduced in 5.25.18  where using `todrive_noemail false` or `tdnoemail false` caused a trap.
 
 5.25.18
 
@@ -958,7 +958,7 @@ This is Beta software from Google, use with caution.
 
 5.11.00
 
-Added options `ciallfields` and `cifields <CIGroupFieldNameList>` to `gam info|print groups`. 
+Added options `ciallfields` and `cifields <CIGroupFieldNameList>` to `gam info|print groups`.
 These allow display of `Cloud Identity Groups` information.
 * https://cloud.google.com/identity/docs/groups
 * https://gsuiteupdates.googleblog.com/2020/08/new-api-cloud-identity-groups-google.html
@@ -1052,7 +1052,7 @@ Improved error handling in `gam create vaultexport matter <MatterItem>` of `quot
 5.08.16
 
 Updated code in `gam <UserTypeEntity> get drivefile <DriveFileEntity> csvsheet <SheetEntity>` and `gsheet(:<FieldName>)+ <UserGoogleSheet>`
-to handle unexpected data in Spreadsheet URL. 
+to handle unexpected data in Spreadsheet URL.
 
 5.08.15
 
@@ -1877,7 +1877,7 @@ Added `csv_output_header_drop_filter` to `gam.cfg` to allow CSV header filtering
 Thanks to @bousquf for the following enhancement. You want to send a message from an authorized group
 but a group email address can't be used in the Gmail API as the sender.
 
-Added the option `mailbox <EmailAddress>` to `gam sendemail` to allow specifying the sender email address used in the Gmail API as different from `from <EmailAddress>`. 
+Added the option `mailbox <EmailAddress>` to `gam sendemail` to allow specifying the sender email address used in the Gmail API as different from `from <EmailAddress>`.
 
 For example:
 ```
@@ -2193,7 +2193,7 @@ Added `showcmds` option to `gam csv` to allow monitoring of execution processing
 
 Instruct user to perform `gam update project` when permission is denied to access service account keys.
 
-4.99.14 
+4.99.14
 
 Improve error handling in `gam check serviceaccount` when checking the age of the private key in `oauth2service.json`.
 
@@ -2369,7 +2369,7 @@ equivalent to the old forms; the old forms are still defined.
 ```
 New
 gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
-gam update svcacct <UserTypeEntity> 
+gam update svcacct <UserTypeEntity>
 
 Old
 gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)*
@@ -2778,7 +2778,7 @@ gam user user@domain.com print filelist corpora onlyteamdrives allfields showdri
 When you execute a `gam print filelist` command with a query or permission match, there may be no files output;
 in this case, there is only a header row: `Owner'. Subsequent gam commands to process the file will fail.
 
-$ gam redirect csv ./Files.csv user user@domain.com print filelist query "name contains 'abcd'" fields id,name 
+$ gam redirect csv ./Files.csv user user@domain.com print filelist query "name contains 'abcd'" fields id,name
 Getting all Drive Files/Folders that match query ('me' in owners and name contains 'abcd') for user@domain.com
 Got 0 Drive Files/Folders that matched query ('me' in owners and name contains 'abcd') for user@domain.com...
 $ more Files.csv
@@ -3735,7 +3735,7 @@ gam print grouptree <GroupEntity> [todrive <ToDriveAttribute>*]
 4.70.02
 
 Added command to show an indented list of a group and its parent groups.
-gam show grouptree <GroupEntity>` 
+gam show grouptree <GroupEntity>`
 
 4.70.01
 
@@ -4435,7 +4435,7 @@ See:
 * https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Calendars-Events
 
 Enhanced <Tag> <Replace> processing to allow greater selection of user fields.
-See: 
+See:
 * https://github.com/taers232c/GAMADV-XTD3/wiki/Tag-Replace
 
 4.65.06
@@ -4617,7 +4617,7 @@ You might see the following scopes fail:
 
 Follow the directions to authorize the Service Account scopes.
 
-The following commands have been deleted as they are no longer required. 
+The following commands have been deleted as they are no longer required.
 
 gam <UserTypeEntity> create classroomoauth2
 gam <UserTypeEntity> delete classroomoauth2
