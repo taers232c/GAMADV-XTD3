@@ -24,12 +24,14 @@ _pybcrypt = None # dynamically imported by _load_backend_pybcrypt()
 _bcryptor = None # dynamically imported by _load_backend_bcryptor()
 # pkg
 _builtin_bcrypt = None  # dynamically imported by _load_backend_builtin()
+from passlib.crypto.digest import compile_hmac
 from passlib.exc import PasslibHashWarning, PasslibSecurityWarning, PasslibSecurityError
 from passlib.utils import safe_crypt, repeat_string, to_bytes, parse_version, \
-                          rng, getrandstr, test_crypt, to_unicode
+                          rng, getrandstr, test_crypt, to_unicode, \
+                          utf8_truncate, utf8_repeat_string, crypt_accepts_bytes
 from passlib.utils.binary import bcrypt64
 from passlib.utils.compat import get_unbound_method_function
-from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii
+from passlib.utils.compat import u, uascii_to_str, unicode, str_to_uascii, PY3, error_from
 import passlib.utils.handlers as uh
 
 # local
@@ -48,7 +50,7 @@ IDENT_2B = u("$2b$")
 _BNULL = b'\x00'
 
 # reference hash of "test", used in various self-checks
-TEST_HASH_2A = b"$2a$04$5BJqKfqMQvV7nS.yUguNcueVirQqDBGaLXSqj.rs.pZPlNR0UX/HK"
+TEST_HASH_2A = "$2a$04$5BJqKfqMQvV7nS.yUguNcueVirQqDBGaLXSqj.rs.pZPlNR0UX/HK"
 
 def _detect_pybcrypt():
     """
@@ -128,7 +130,9 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     #--------------------
     min_salt_size = max_salt_size = 22
     salt_chars = bcrypt64.charmap
-        # NOTE: 22nd salt char must be in bcrypt64._padinfo2[1], not full charmap
+
+    # NOTE: 22nd salt char must be in restricted set of ``final_salt_chars``, not full set above.
+    final_salt_chars = ".Oeu"  # bcrypt64._padinfo2[1]
 
     #--------------------
     # HasRounds
@@ -155,6 +159,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     _lacks_2y_support = False
     _lacks_2b_support = False
     _fallback_ident = IDENT_2A
+    _require_valid_utf8_bytes = False
 
     #===================================================================
     # formatting
@@ -195,10 +200,12 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
     @classmethod
     def needs_update(cls, hash, **kwds):
+        # NOTE: can't convert this to use _calc_needs_update() helper,
+        #       since _norm_hash() will correct salt padding before we can read it here.
         # check for incorrect padding bits (passlib issue 25)
         if isinstance(hash, bytes):
             hash = hash.decode("ascii")
-        if hash.startswith(IDENT_2A) and hash[28] not in bcrypt64._padinfo2[1]:
+        if hash.startswith(IDENT_2A) and hash[28] not in cls.final_salt_chars:
             return True
 
         # TODO: try to detect incorrect 8bit/wraparound hashes using kwds.get("secret")
@@ -286,7 +293,7 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
 
         verify = mixin_cls.verify
 
-        err_types = (ValueError,)
+        err_types = (ValueError, uh.exc.MissingBackendError)
         if _bcryptor:
             err_types += (_bcryptor.engine.SaltError,)
 
@@ -297,11 +304,15 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             except err_types:
                 # backends without support for given ident will throw various
                 # errors about unrecognized version:
+                #   os_crypt -- internal code below throws
+                #       - PasswordValueError if there's encoding issue w/ password.
+                #       - InternalBackendError if crypt fails for unknown reason
+                #         (trapped below so we can debug it)
                 #   pybcrypt, bcrypt -- raises ValueError
                 #   bcryptor -- raises bcryptor.engine.SaltError
                 return NotImplemented
-            except AssertionError as err:
-                # _calc_checksum() code may also throw AssertionError
+            except uh.exc.InternalBackendError:
+                # _calc_checksum() code may also throw CryptBackendError
                 # if correct hash isn't returned (e.g. 2y hash converted to 2b,
                 # such as happens with bcrypt 3.0.0)
                 log.debug("trapped unexpected response from %r backend: verify(%r, %r):",
@@ -318,20 +329,35 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
             test cases from <http://cvsweb.openwall.com/cgi/cvsweb.cgi/Owl/packages/glibc/crypt_blowfish/wrapper.c.diff?r1=1.9;r2=1.10>
             reference hash is the incorrectly generated $2x$ hash taken from above url
             """
-            secret = b"\xA3"
-            bug_hash = ident.encode("ascii") + b"05$/OK.fbVrR/bpIqNJ5ianF.CE5elHaaO4EbggVDjb8P19RukzXSM3e"
+            # NOTE: passlib 1.7.2 and earlier used the commented-out LATIN-1 test vector to detect
+            #       this bug; but python3's crypt.crypt() only supports unicode inputs (and
+            #       always encodes them as UTF8 before passing to crypt); so passlib 1.7.3
+            #       switched to the UTF8-compatible test vector below.  This one's bug_hash value
+            #       ("$2x$...rcAS") was drawn from the same openwall source (above); and the correct
+            #       hash ("$2a$...X6eu") was generated by passing the raw bytes to python2's
+            #       crypt.crypt() using OpenBSD 6.7 (hash confirmed as same for $2a$ & $2b$).
+
+            # LATIN-1 test vector
+            # secret = b"\xA3"
+            # bug_hash = ident.encode("ascii") + b"05$/OK.fbVrR/bpIqNJ5ianF.CE5elHaaO4EbggVDjb8P19RukzXSM3e"
+            # correct_hash = ident.encode("ascii") + b"05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq"
+
+            # UTF-8 test vector
+            secret = b"\xd1\x91"  # aka "\u0451"
+            bug_hash = ident.encode("ascii") + b"05$6bNw2HLQYeqHYyBfLMsv/OiwqTymGIGzFsA4hOTWebfehXHNprcAS"
+            correct_hash = ident.encode("ascii") + b"05$6bNw2HLQYeqHYyBfLMsv/OUcZd0LKP39b87nBw3.S2tVZSqiQX6eu"
+
             if verify(secret, bug_hash):
-                # NOTE: this only EVER be observed in 2a hashes,
-                #       2y/2b hashes should have fixed the bug.
+                # NOTE: this only EVER be observed in (broken) 2a and (backward-compat) 2x hashes
+                #       generated by crypt_blowfish library. 2y/2b hashes should not have the bug
                 #       (but we check w/ them anyways).
                 raise PasslibSecurityError(
                     "passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
-                    "the crypt_blowfish 8-bit bug (CVE-2011-2483), "
-                    "and should be upgraded or replaced with another backend." % backend)
+                    "the crypt_blowfish 8-bit bug (CVE-2011-2483) under %r hashes, "
+                    "and should be upgraded or replaced with another backend" % (backend, ident))
 
-            # if it doesn't have wraparound bug, make sure it *does* handle things
-            # correctly -- or we're in some weird third case.
-            correct_hash = ident.encode("ascii") + b"05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq"
+            # it doesn't have wraparound bug, but make sure it *does* verify against the correct
+            # hash, or we're in some weird third case!
             if not verify(secret, correct_hash):
                 raise RuntimeError("%s backend failed to verify %s 8bit hash" % (backend, ident))
 
@@ -375,41 +401,49 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         #----------------------------------------------------------------
         test_hash_20 = b"$2$04$5BJqKfqMQvV7nS.yUguNcuRfMMOXK0xPWavM7pOzjEi5ze5T1k8/S"
         result = safe_verify("test", test_hash_20)
-        if not result:
-            raise RuntimeError("%s incorrectly rejected $2$ hash" % backend)
-        elif result is NotImplemented:
+        if result is NotImplemented:
             mixin_cls._lacks_20_support = True
             log.debug("%r backend lacks $2$ support, enabling workaround", backend)
+        elif not result:
+            raise RuntimeError("%s incorrectly rejected $2$ hash" % backend)
 
         #----------------------------------------------------------------
         # check for 2a support
         #----------------------------------------------------------------
         result = safe_verify("test", TEST_HASH_2A)
-        if not result:
-            raise RuntimeError("%s incorrectly rejected $2a$ hash" % backend)
-        elif result is NotImplemented:
+        if result is NotImplemented:
             # 2a support is required, and should always be present
             raise RuntimeError("%s lacks support for $2a$ hashes" % backend)
+        elif not result:
+            raise RuntimeError("%s incorrectly rejected $2a$ hash" % backend)
         else:
             assert_lacks_8bit_bug(IDENT_2A)
             if detect_wrap_bug(IDENT_2A):
-                warn("passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
-                     "the bsd wraparound bug, "
-                     "and should be upgraded or replaced with another backend "
-                     "(enabling workaround for now)." % backend,
-                     uh.exc.PasslibSecurityWarning)
+                if backend == "os_crypt":
+                    # don't make this a warning for os crypt (e.g. openbsd);
+                    # they'll have proper 2b implementation which will be used for new hashes.
+                    # so even if we didn't have a workaround, this bug wouldn't be a concern.
+                    log.debug("%r backend has $2a$ bsd wraparound bug, enabling workaround", backend)
+                else:
+                    # installed library has the bug -- want to let users know,
+                    # so they can upgrade it to something better (e.g. bcrypt cffi library)
+                    warn("passlib.hash.bcrypt: Your installation of the %r backend is vulnerable to "
+                         "the bsd wraparound bug, "
+                         "and should be upgraded or replaced with another backend "
+                         "(enabling workaround for now)." % backend,
+                         uh.exc.PasslibSecurityWarning)
                 mixin_cls._has_2a_wraparound_bug = True
 
         #----------------------------------------------------------------
         # check for 2y support
         #----------------------------------------------------------------
-        test_hash_2y = TEST_HASH_2A.replace(b"2a", b"2y")
+        test_hash_2y = TEST_HASH_2A.replace("2a", "2y")
         result = safe_verify("test", test_hash_2y)
-        if not result:
-            raise RuntimeError("%s incorrectly rejected $2y$ hash" % backend)
-        elif result is NotImplemented:
+        if result is NotImplemented:
             mixin_cls._lacks_2y_support = True
             log.debug("%r backend lacks $2y$ support, enabling workaround", backend)
+        elif not result:
+            raise RuntimeError("%s incorrectly rejected $2y$ hash" % backend)
         else:
             # NOTE: Not using this as fallback candidate,
             #       lacks wide enough support across implementations.
@@ -423,13 +457,13 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         #----------------------------------------------------------------
         # check for 2b support
         #----------------------------------------------------------------
-        test_hash_2b = TEST_HASH_2A.replace(b"2a", b"2b")
+        test_hash_2b = TEST_HASH_2A.replace("2a", "2b")
         result = safe_verify("test", test_hash_2b)
-        if not result:
-            raise RuntimeError("%s incorrectly rejected $2b$ hash" % backend)
-        elif result is NotImplemented:
+        if result is NotImplemented:
             mixin_cls._lacks_2b_support = True
             log.debug("%r backend lacks $2b$ support, enabling workaround", backend)
+        elif not result:
+            raise RuntimeError("%s incorrectly rejected $2b$ hash" % backend)
         else:
             mixin_cls._fallback_ident = IDENT_2B
             assert_lacks_8bit_bug(IDENT_2B)
@@ -455,8 +489,18 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
     @classmethod
     def _norm_digest_args(cls, secret, ident, new=False):
         # make sure secret is unicode
+        require_valid_utf8_bytes = cls._require_valid_utf8_bytes
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
+        elif require_valid_utf8_bytes:
+            # if backend requires utf8 bytes (os_crypt);
+            # make sure input actually is utf8, or don't bother enabling utf-8 specific helpers.
+            try:
+                secret.decode("utf-8")
+            except UnicodeDecodeError:
+                # XXX: could just throw PasswordValueError here, backend will just do that
+                #      when _calc_digest() is actually called.
+                require_valid_utf8_bytes = False
 
         # check max secret size
         uh.validate_secret(secret)
@@ -477,7 +521,15 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
         # bcrypt only uses first 72 bytes anyways.
         # NOTE: not needed for 2y/2b, but might use 2a as fallback for them.
         if cls._has_2a_wraparound_bug and len(secret) >= 255:
-            secret = secret[:72]
+            if require_valid_utf8_bytes:
+                # backend requires valid utf8 bytes, so truncate secret to nearest valid segment.
+                # want to do this in constant time to not give away info about secret.
+                # NOTE: this only works because bcrypt will ignore everything past
+                #       secret[71], so padding to include a full utf8 sequence
+                #       won't break anything about the final output.
+                secret = utf8_truncate(secret, 72)
+            else:
+                secret = secret[:72]
 
         # special case handling for variants (ordered most common first)
         if ident == IDENT_2A:
@@ -504,7 +556,13 @@ class _BcryptCommon(uh.SubclassBackendMixin, uh.TruncateMixin, uh.HasManyIdents,
                 # we can fake $2$ behavior using the 2A/2Y/2B algorithm
                 # by repeating the password until it's at least 72 chars in length.
                 if secret:
-                    secret = repeat_string(secret, 72)
+                    if require_valid_utf8_bytes:
+                        # NOTE: this only works because bcrypt will ignore everything past
+                        #       secret[71], so padding to include a full utf8 sequence
+                        #       won't break anything about the final output.
+                        secret = utf8_repeat_string(secret, 72)
+                    else:
+                        secret = repeat_string(secret, 72)
                 ident = cls._fallback_ident
 
         elif ident == IDENT_2X:
@@ -595,9 +653,9 @@ class _BcryptBackend(_BcryptCommon):
         if isinstance(config, unicode):
             config = config.encode("ascii")
         hash = _bcrypt.hashpw(secret, config)
-        assert hash.startswith(config) and len(hash) == len(config)+31, \
-            "config mismatch: %r => %r" % (config, hash)
         assert isinstance(hash, bytes)
+        if not hash.startswith(config) or len(hash) != len(config)+31:
+            raise uh.exc.CryptBackendError(self, config, hash, source="`bcrypt` package")
         return hash[-31:].decode("ascii")
 
 #-----------------------------------------------------------------------
@@ -632,7 +690,8 @@ class _BcryptorBackend(_BcryptCommon):
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
         hash = _bcryptor.engine.Engine(False).hash_key(secret, config)
-        assert hash.startswith(config) and len(hash) == len(config)+31
+        if not hash.startswith(config) or len(hash) != len(config) + 31:
+            raise uh.exc.CryptBackendError(self, config, hash, source="bcryptor library")
         return str_to_uascii(hash[-31:])
 
 #-----------------------------------------------------------------------
@@ -701,7 +760,8 @@ class _PyBcryptBackend(_BcryptCommon):
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
         hash = _pybcrypt.hashpw(secret, config)
-        assert hash.startswith(config) and len(hash) == len(config)+31
+        if not hash.startswith(config) or len(hash) != len(config) + 31:
+            raise uh.exc.CryptBackendError(self, config, hash, source="pybcrypt library")
         return str_to_uascii(hash[-31:])
 
     _calc_checksum = _calc_checksum_raw
@@ -714,6 +774,10 @@ class _OsCryptBackend(_BcryptCommon):
     backend which uses :func:`crypt.crypt`
     """
 
+    #: set flag to ensure _prepare_digest_args() doesn't create invalid utf8 string
+    #: when truncating bytes.
+    _require_valid_utf8_bytes = not crypt_accepts_bytes
+
     @classmethod
     def _load_backend_mixin(mixin_cls, name, dryrun):
         if not test_crypt("test", TEST_HASH_2A):
@@ -721,25 +785,61 @@ class _OsCryptBackend(_BcryptCommon):
         return mixin_cls._finalize_backend_mixin(name, dryrun)
 
     def _calc_checksum(self, secret):
+        #
+        # run secret through crypt.crypt().
+        # if everything goes right, we'll get back a properly formed bcrypt hash.
+        #
         secret, ident = self._prepare_digest_args(secret)
         config = self._get_config(ident)
         hash = safe_crypt(secret, config)
-        if hash:
-            assert hash.startswith(config) and len(hash) == len(config)+31
+        if hash is not None:
+            if not hash.startswith(config) or len(hash) != len(config) + 31:
+                raise uh.exc.CryptBackendError(self, config, hash)
             return hash[-31:]
-        else:
-            # NOTE: Have to raise this error because python3's crypt.crypt() only accepts unicode.
-            #       This means it can't handle any passwords that aren't either unicode
-            #       or utf-8 encoded bytes.  However, hashing a password with an alternate
-            #       encoding should be a pretty rare edge case; if user needs it, they can just
-            #       install bcrypt backend.
-            # XXX: is this the right error type to raise?
-            #      maybe have safe_crypt() not swallow UnicodeDecodeError, and have handlers
-            #      like sha256_crypt trap it if they have alternate method of handling them?
-            raise uh.exc.MissingBackendError(
-                "non-utf8 encoded passwords can't be handled by crypt.crypt() under python3, "
-                "recommend running `pip install bcrypt`.",
-                )
+
+        #
+        # Check if this failed due to non-UTF8 bytes
+        # In detail: under py3, crypt.crypt() requires unicode inputs, which are then encoded to
+        # utf8 before passing them to os crypt() call.  this is done according to the "s" format
+        # specifier for PyArg_ParseTuple (https://docs.python.org/3/c-api/arg.html).
+        # There appears no way to get around that to pass raw bytes; so we just throw error here
+        # to let user know they need to use another backend if they want raw bytes support.
+        #
+        # XXX: maybe just let safe_crypt() throw UnicodeDecodeError under passlib 2.0,
+        #      and then catch it above? maybe have safe_crypt ALWAYS throw error
+        #      instead of returning None? (would save re-detecting what went wrong)
+        # XXX: isn't secret ALWAYS bytes at this point?
+        #
+        if PY3 and isinstance(secret, bytes):
+            try:
+                secret.decode("utf-8")
+            except UnicodeDecodeError:
+                raise error_from(uh.exc.PasswordValueError(
+                    "python3 crypt.crypt() ony supports bytes passwords using UTF8; "
+                    "passlib recommends running `pip install bcrypt` for general bcrypt support.",
+                    ), None)
+
+        #
+        # else crypt() call failed for unknown reason.
+        #
+        # NOTE: getting here should be considered a bug in passlib --
+        #       if os_crypt backend detection said there's support,
+        #       and we've already checked all known reasons above;
+        #       want them to file bug so we can figure out what happened.
+        #       in the meantime, users can avoid this by installing bcrypt-cffi backend;
+        #       which won't have this (or utf8) edgecases.
+        #
+        # XXX: throw something more specific, like an "InternalBackendError"?
+        # NOTE: if do change this error, need to update test_81_crypt_fallback() expectations
+        #       about what will be thrown; as well as safe_verify() above.
+        #
+        debug_only_repr = uh.exc.debug_only_repr
+        raise uh.exc.InternalBackendError(
+            "crypt.crypt() failed for unknown reason; "
+            "passlib recommends running `pip install bcrypt` for general bcrypt support."
+            # for debugging UTs --
+            "(config=%s, secret=%s)" % (debug_only_repr(config), debug_only_repr(secret)),
+            )
 
 #-----------------------------------------------------------------------
 # builtin backend
@@ -905,7 +1005,9 @@ class _wrapped_bcrypt(bcrypt):
 #=============================================================================
 
 class bcrypt_sha256(_wrapped_bcrypt):
-    """This class implements a composition of BCrypt+SHA256, and follows the :ref:`password-hash-api`.
+    """
+    This class implements a composition of BCrypt + HMAC_SHA256,
+    and follows the :ref:`password-hash-api`.
 
     It supports a fixed-length salt, and a variable number of rounds.
 
@@ -916,7 +1018,13 @@ class bcrypt_sha256(_wrapped_bcrypt):
 
     .. versionchanged:: 1.7
 
-        Now defaults to ``"2b"`` variant.
+        Now defaults to ``"2b"`` bcrypt variant; though supports older hashes
+        generated using the ``"2a"`` bcrypt variant.
+
+    .. versionchanged:: 1.7.3
+
+        For increased security, updated to use HMAC-SHA256 instead of plain SHA256.
+        Now only supports the ``"2b"`` bcrypt variant.  Hash format updated to "v=2".
     """
     #===================================================================
     # class attrs
@@ -930,13 +1038,43 @@ class bcrypt_sha256(_wrapped_bcrypt):
     #--------------------
     # GenericHandler
     #--------------------
-    # this is locked at 2a/2b for now.
+    # this is locked at 2b for now (with 2a allowed only for legacy v1 format)
     ident_values = (IDENT_2A, IDENT_2B)
 
     # clone bcrypt's ident aliases so they can be used here as well...
     ident_aliases = (lambda ident_values: dict(item for item in bcrypt.ident_aliases.items()
                                                if item[1] in ident_values))(ident_values)
     default_ident = IDENT_2B
+
+    #--------------------
+    # class specific
+    #--------------------
+
+    _supported_versions = set([1, 2])
+
+    #===================================================================
+    # instance attrs
+    #===================================================================
+
+    #: wrapper version.
+    #: v1 -- used prior to passlib 1.7.3; performs ``bcrypt(sha256(secret), salt, cost)``
+    #: v2 -- new in passlib 1.7.3; performs `bcrypt(sha256_hmac(salt, secret), salt, cost)``
+    version = 2
+
+    #===================================================================
+    # configuration
+    #===================================================================
+
+    @classmethod
+    def using(cls, version=None, **kwds):
+        subcls = super(bcrypt_sha256, cls).using(**kwds)
+        if version is not None:
+            subcls.version = subcls._norm_version(version)
+        ident = subcls.default_ident
+        if subcls.version > 1 and ident != IDENT_2B:
+            raise ValueError("bcrypt %r hashes not allowed for version %r" %
+                             (ident, subcls.version))
+        return subcls
 
     #===================================================================
     # formatting
@@ -957,15 +1095,28 @@ class bcrypt_sha256(_wrapped_bcrypt):
     #      working around that via prefix.
     prefix = u('$bcrypt-sha256$')
 
-    _hash_re = re.compile(r"""
+    #: current version 2 hash format
+    _v2_hash_re = re.compile(r"""(?x)
         ^
-        [$]bcrypt-sha256
-        [$](?P<variant>2[ab])
-        ,(?P<rounds>\d{1,2})
+        [$]bcrypt-sha256[$]
+        v=(?P<version>\d+),
+        t=(?P<type>2b),
+        r=(?P<rounds>\d{1,2})
         [$](?P<salt>[^$]{22})
-        (?:[$](?P<digest>.{31}))?
+        (?:[$](?P<digest>[^$]{31}))?
         $
-        """, re.X)
+        """)
+
+    #: old version 1 hash format
+    _v1_hash_re = re.compile(r"""(?x)
+        ^
+        [$]bcrypt-sha256[$]
+        (?P<type>2[ab]),
+        (?P<rounds>\d{1,2})
+        [$](?P<salt>[^$]{22})
+        (?:[$](?P<digest>[^$]{31}))?
+        $
+        """)
 
     @classmethod
     def identify(cls, hash):
@@ -979,28 +1130,62 @@ class bcrypt_sha256(_wrapped_bcrypt):
         hash = to_unicode(hash, "ascii", "hash")
         if not hash.startswith(cls.prefix):
             raise uh.exc.InvalidHashError(cls)
-        m = cls._hash_re.match(hash)
-        if not m:
-            raise uh.exc.MalformedHashError(cls)
+        m = cls._v2_hash_re.match(hash)
+        if m:
+            version = int(m.group("version"))
+            if version < 2:
+                raise uh.exc.MalformedHashError(cls)
+        else:
+            m = cls._v1_hash_re.match(hash)
+            if m:
+                version = 1
+            else:
+                raise uh.exc.MalformedHashError(cls)
         rounds = m.group("rounds")
         if rounds.startswith(uh._UZERO) and rounds != uh._UZERO:
             raise uh.exc.ZeroPaddedRoundsError(cls)
-        return cls(ident=m.group("variant"),
-                   rounds=int(rounds),
-                   salt=m.group("salt"),
-                   checksum=m.group("digest"),
-                   )
+        return cls(
+            version=version,
+            ident=m.group("type"),
+            rounds=int(rounds),
+            salt=m.group("salt"),
+            checksum=m.group("digest"),
+        )
 
-    _template = u("$bcrypt-sha256$%s,%d$%s$%s")
+    _v2_template = u("$bcrypt-sha256$v=2,t=%s,r=%d$%s$%s")
+    _v1_template = u("$bcrypt-sha256$%s,%d$%s$%s")
 
     def to_string(self):
-        hash = self._template % (self.ident.strip(_UDOLLAR),
-                                 self.rounds, self.salt, self.checksum)
+        if self.version == 1:
+            template = self._v1_template
+        else:
+            template = self._v2_template
+        hash = template % (self.ident.strip(_UDOLLAR), self.rounds, self.salt, self.checksum)
         return uascii_to_str(hash)
+
+    #===================================================================
+    # init
+    #===================================================================
+
+    def __init__(self, version=None, **kwds):
+        if version is not None:
+            self.version = self._norm_version(version)
+        super(bcrypt_sha256, self).__init__(**kwds)
+
+    #===================================================================
+    # version
+    #===================================================================
+
+    @classmethod
+    def _norm_version(cls, version):
+        if version not in cls._supported_versions:
+            raise ValueError("%s: unknown or unsupported version: %r" % (cls.name, version))
+        return version
 
     #===================================================================
     # checksum
     #===================================================================
+
     def _calc_checksum(self, secret):
         # NOTE: can't use digest directly, since bcrypt stops at first NULL.
         # NOTE: bcrypt doesn't fully mix entropy for bytes 55-72 of password
@@ -1011,9 +1196,31 @@ class bcrypt_sha256(_wrapped_bcrypt):
         if isinstance(secret, unicode):
             secret = secret.encode("utf-8")
 
+        if self.version == 1:
+            # version 1 -- old version just ran secret through sha256(),
+            # though this could be vulnerable to a breach attach
+            # (c.f. issue 114); which is why v2 switched to hmac wrapper.
+            digest = sha256(secret).digest()
+        else:
+            # version 2 -- running secret through HMAC keyed off salt.
+            # this prevents known secret -> sha256 password tables from being
+            # used to test against a bcrypt_sha256 hash.
+            # keying off salt (instead of constant string) should minimize chances of this
+            # colliding with existing table of hmac digest lookups as well.
+            # NOTE: salt in this case is the "bcrypt64"-encoded value, not the raw salt bytes,
+            #       to make things easier for parallel implementations of this hash --
+            #       saving them the trouble of implementing a "bcrypt64" decoder.
+            salt = self.salt
+            if salt[-1] not in self.final_salt_chars:
+                # forbidding salts with padding bits set, because bcrypt implementations
+                # won't consistently hash them the same.  since we control this format,
+                # just prevent these from even getting used.
+                raise ValueError("invalid salt string")
+            digest = compile_hmac("sha256", salt.encode("ascii"))(secret)
+
         # NOTE: output of b64encode() uses "+/" altchars, "=" padding chars,
         #       and no leading/trailing whitespace.
-        key = b64encode(sha256(secret).digest())
+        key = b64encode(digest)
 
         # hand result off to normal bcrypt algorithm
         return super(bcrypt_sha256, self)._calc_checksum(key)
@@ -1022,8 +1229,10 @@ class bcrypt_sha256(_wrapped_bcrypt):
     # other
     #===================================================================
 
-    # XXX: have _needs_update() mark the $2a$ ones for upgrading?
-    #      maybe do that after we switch to hex encoding?
+    def _calc_needs_update(self, **kwds):
+        if self.version < type(self).version:
+            return True
+        return super(bcrypt_sha256, self)._calc_needs_update(**kwds)
 
     #===================================================================
     # eoc

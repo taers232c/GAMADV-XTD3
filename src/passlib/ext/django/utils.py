@@ -26,11 +26,27 @@ __all__ = [
     "DJANGO_VERSION",
     "MIN_DJANGO_VERSION",
     "get_preset_config",
-    "get_django_hasher",
+    "quirks",
 ]
 
 #: minimum version supported by passlib.ext.django
 MIN_DJANGO_VERSION = (1, 8)
+
+#=============================================================================
+# quirk detection
+#=============================================================================
+
+class quirks:
+
+    #: django check_password() started throwing error on encoded=None
+    #: (really identify_hasher did)
+    none_causes_check_password_error = DJANGO_VERSION >= (2, 1)
+
+    #: django is_usable_password() started returning True for password = {None, ""} values.
+    empty_is_usable_password = DJANGO_VERSION >= (2, 1)
+
+    #: django is_usable_password() started returning True for non-hash strings in 2.1
+    invalid_is_usable_password = DJANGO_VERSION >= (2, 1)
 
 #=============================================================================
 # default policies
@@ -235,6 +251,13 @@ class DjangoTranslator(object):
         md5="MD5PasswordHasher",
     )
 
+    if DJANGO_VERSION > (2, 1):
+        # present but disabled by default as of django 2.1; not sure when added,
+        # so not listing it by default.
+        _builtin_django_hashers.update(
+            bcrypt="BCryptPasswordHasher",
+        )
+
     def _create_django_hasher(self, django_name):
         """
         helper to create new django hasher by name.
@@ -244,17 +267,22 @@ class DjangoTranslator(object):
         module = sys.modules.get("passlib.ext.django.models")
         if module is None or not module.adapter.patched:
             from django.contrib.auth.hashers import get_hasher
-            return get_hasher(django_name)
+            try:
+                return get_hasher(django_name)
+            except ValueError as err:
+                if not str(err).startswith("Unknown password hashing algorithm"):
+                    raise
+        else:
+            # We've patched django's get_hashers(), so calling django's get_hasher()
+            # or get_hashers_by_algorithm() would only land us back here.
+            # As non-ideal workaround, have to use original get_hashers(),
+            get_hashers = module.adapter._manager.getorig("django.contrib.auth.hashers:get_hashers").__wrapped__
+            for hasher in get_hashers():
+                if hasher.algorithm == django_name:
+                    return hasher
 
-        # We've patched django's get_hashers(), so calling django's get_hasher()
-        # or get_hashers_by_algorithm() would only land us back here.
-        # As non-ideal workaround, have to use original get_hashers(),
-        get_hashers = module.adapter._manager.getorig("django.contrib.auth.hashers:get_hashers").__wrapped__
-        for hasher in get_hashers():
-            if hasher.algorithm == django_name:
-                return hasher
-
-        # hardcode a few for cases where get_hashers() look won't work.
+        # hardcode a few for cases where get_hashers() lookup won't work
+        # (mainly, hashers that are present in django, but disabled by their default config)
         path = self._builtin_django_hashers.get(django_name)
         if path:
             if "." not in path:
@@ -447,7 +475,10 @@ class DjangoContextAdapter(DjangoTranslator):
             self.get_user_category = get_user_category
 
         # install lru cache wrappers
-        from django.utils.lru_cache import lru_cache
+        try:
+            from functools import lru_cache  # new py32
+        except ImportError:
+            from django.utils.lru_cache import lru_cache  # py2 compat, removed in django 3 (or earlier?)
         self.get_hashers = lru_cache()(self.get_hashers)
 
         # get copy of original make_password
@@ -542,12 +573,20 @@ class DjangoContextAdapter(DjangoTranslator):
         """
         # XXX: this currently ignores "preferred" keyword, since its purpose
         #      was for hash migration, and that's handled by the context.
+        # XXX: honor "none_causes_check_password_error" quirk for django 2.2+?
+        #      seems safer to return False.
         if password is None or not self.is_password_usable(encoded):
             return False
 
         # verify password
         context = self.context
-        correct = context.verify(password, encoded)
+        try:
+            correct = context.verify(password, encoded)
+        except exc.UnknownHashError:
+            # As of django 1.5, unidentifiable hashes returns False
+            # (side-effect of django issue 18453)
+            return False
+
         if not (correct and setter):
             return correct
 
@@ -588,8 +627,12 @@ class DjangoContextAdapter(DjangoTranslator):
         if not self.is_password_usable(hash):
             return False
         cat = self.get_user_category(user)
-        ok, new_hash = self.context.verify_and_update(password, hash,
-                                                      category=cat)
+        try:
+            ok, new_hash = self.context.verify_and_update(password, hash, category=cat)
+        except exc.UnknownHashError:
+            # As of django 1.5, unidentifiable hashes returns False
+            # (side-effect of django issue 18453)
+            return False
         if ok and new_hash is not None:
             # migrate to new hash if needed.
             user.password = new_hash

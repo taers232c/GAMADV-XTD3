@@ -1152,7 +1152,7 @@ class TOTP(object):
             Serialized TOTP key.
             Can be anything accepted by :meth:`TOTP.from_source`.
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             All additional keywords passed to :meth:`TOTP.match`.
 
         :return:

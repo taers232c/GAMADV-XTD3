@@ -34,6 +34,9 @@ class HexDigestHash(uh.StaticHandler):
     checksum_size = None # filled in by create_hex_hash()
     checksum_chars = uh.HEX_CHARS
 
+    #: special for detecting if _hash_func is just a stub method.
+    supported = True
+
     #===================================================================
     # methods
     #===================================================================
@@ -50,11 +53,21 @@ class HexDigestHash(uh.StaticHandler):
     # eoc
     #===================================================================
 
-def create_hex_hash(digest, module=__name__):
-    # NOTE: could set digest_name=hash.name for cpython, but not for some other platforms.
-    info = lookup_hash(digest)
+def create_hex_hash(digest, module=__name__, django_name=None, required=True):
+    """
+    create hex-encoded unsalted hasher for specified digest algorithm.
+
+    .. versionchanged:: 1.7.3
+        If called with unknown/supported digest, won't throw error immediately,
+        but instead return a dummy hasher that will throw error when called.
+
+        set ``required=True`` to restore old behavior.
+    """
+    info = lookup_hash(digest, required=required)
     name = "hex_" + info.name
-    return type(name, (HexDigestHash,), dict(
+    if not info.supported:
+        info.digest_size = 0
+    hasher = type(name, (HexDigestHash,), dict(
         name=name,
         __module__=module, # so ABCMeta won't clobber it
         _hash_func=staticmethod(info.const), # sometimes it's a function, sometimes not. so wrap it.
@@ -64,14 +77,23 @@ def create_hex_hash(digest, module=__name__):
 It supports no optional or contextual keywords.
 """ % (info.name,)
     ))
+    if not info.supported:
+        hasher.supported = False
+    if django_name:
+        hasher.django_name = django_name
+    return hasher
 
 #=============================================================================
 # predefined handlers
 #=============================================================================
-hex_md4     = create_hex_hash("md4")
-hex_md5     = create_hex_hash("md5")
-hex_md5.django_name = "unsalted_md5"
-hex_sha1    = create_hex_hash("sha1")
+
+# NOTE: some digests below are marked as "required=False", because these may not be present on
+#       FIPS systems (see issue 116).  if missing, will return stub hasher that throws error
+#       if an attempt is made to actually use hash/verify with them.
+
+hex_md4     = create_hex_hash("md4", required=False)
+hex_md5     = create_hex_hash("md5", django_name="unsalted_md5", required=False)
+hex_sha1    = create_hex_hash("sha1", required=False)
 hex_sha256  = create_hex_hash("sha256")
 hex_sha512  = create_hex_hash("sha512")
 

@@ -43,7 +43,7 @@ if False:
     from passlib.handlers.digests import hex_md4, hex_md5, hex_sha1, hex_sha256, hex_sha512, htdigest
     from passlib.handlers.django import django_bcrypt, django_bcrypt_sha256, django_des_crypt, django_disabled, django_pbkdf2_sha1, django_pbkdf2_sha256, django_salted_md5, django_salted_sha1
     from passlib.handlers.fshp import fshp
-    from passlib.handlers.ldap_digests import ldap_bcrypt, ldap_bsdi_crypt, ldap_des_crypt, ldap_md5, ldap_md5_crypt, ldap_plaintext, ldap_salted_md5, ldap_salted_sha1, ldap_sha1, ldap_sha1_crypt, ldap_sha256_crypt, ldap_sha512_crypt
+    from passlib.handlers.ldap_digests import ldap_bcrypt, ldap_bsdi_crypt, ldap_des_crypt, ldap_md5, ldap_md5_crypt, ldap_plaintext, ldap_salted_md5, ldap_salted_sha1, ldap_salted_sha256, ldap_salted_sha512, ldap_sha1, ldap_sha1_crypt, ldap_sha256_crypt, ldap_sha512_crypt
     from passlib.handlers.md5_crypt import apr_md5_crypt, md5_crypt
     from passlib.handlers.misc import plaintext, unix_disabled, unix_fallback
     from passlib.handlers.mssql import mssql2000, mssql2005

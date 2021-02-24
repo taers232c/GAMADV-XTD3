@@ -367,17 +367,18 @@ class _SHA2_Common(uh.HasManyBackends, uh.HasRounds, uh.HasSalt,
             return False
 
     def _calc_checksum_os_crypt(self, secret):
-        hash = safe_crypt(secret, self.to_string())
-        if hash:
-            # NOTE: avoiding full parsing routine via from_string().checksum,
-            # and just extracting the bit we need.
-            cs = self.checksum_size
-            assert hash.startswith(self.ident) and hash[-cs-1] == _UDOLLAR
-            return hash[-cs:]
-        else:
+        config = self.to_string()
+        hash = safe_crypt(secret, config)
+        if hash is None:
             # py3's crypt.crypt() can't handle non-utf8 bytes.
             # fallback to builtin alg, which is always available.
             return self._calc_checksum_builtin(secret)
+        # NOTE: avoiding full parsing routine via from_string().checksum,
+        # and just extracting the bit we need.
+        cs = self.checksum_size
+        if not hash.startswith(self.ident) or hash[-cs-1] != _UDOLLAR:
+            raise uh.exc.CryptBackendError(self, config, hash)
+        return hash[-cs:]
 
     #---------------------------------------------------------------
     # builtin backend
@@ -413,14 +414,9 @@ class sha256_crypt(_SHA2_Common):
         Optional number of rounds to use.
         Defaults to 535000, must be between 1000 and 999999999, inclusive.
 
-    :type implicit_rounds: bool
-    :param implicit_rounds:
-        this is an internal option which generally doesn't need to be touched.
-
-        this flag determines whether the hash should omit the rounds parameter
-        when encoding it to a string; this is only permitted by the spec for rounds=5000,
-        and the flag is ignored otherwise. the spec requires the two different
-        encodings be preserved as they are, instead of normalizing them.
+        .. note::
+            per the official specification, when the rounds parameter is set to 5000,
+            it may be omitted from the hash string.
 
     :type relaxed: bool
     :param relaxed:
@@ -431,6 +427,18 @@ class sha256_crypt(_SHA2_Common):
         that are too small or too large, and ``salt`` strings that are too long.
 
         .. versionadded:: 1.6
+
+    ..
+        commented out, currently only supported by :meth:`hash`, and not via :meth:`using`:
+
+        :type implicit_rounds: bool
+        :param implicit_rounds:
+            this is an internal option which generally doesn't need to be touched.
+
+            this flag determines whether the hash should omit the rounds parameter
+            when encoding it to a string; this is only permitted by the spec for rounds=5000,
+            and the flag is ignored otherwise. the spec requires the two different
+            encodings be preserved as they are, instead of normalizing them.
     """
     #===================================================================
     # class attrs
@@ -472,14 +480,9 @@ class sha512_crypt(_SHA2_Common):
         Optional number of rounds to use.
         Defaults to 656000, must be between 1000 and 999999999, inclusive.
 
-    :type implicit_rounds: bool
-    :param implicit_rounds:
-        this is an internal option which generally doesn't need to be touched.
-
-        this flag determines whether the hash should omit the rounds parameter
-        when encoding it to a string; this is only permitted by the spec for rounds=5000,
-        and the flag is ignored otherwise. the spec requires the two different
-        encodings be preserved as they are, instead of normalizing them.
+        .. note::
+            per the official specification, when the rounds parameter is set to 5000,
+            it may be omitted from the hash string.
 
     :type relaxed: bool
     :param relaxed:
@@ -490,6 +493,18 @@ class sha512_crypt(_SHA2_Common):
         that are too small or too large, and ``salt`` strings that are too long.
 
         .. versionadded:: 1.6
+
+    ..
+        commented out, currently only supported by :meth:`hash`, and not via :meth:`using`:
+
+        :type implicit_rounds: bool
+        :param implicit_rounds:
+            this is an internal option which generally doesn't need to be touched.
+
+            this flag determines whether the hash should omit the rounds parameter
+            when encoding it to a string; this is only permitted by the spec for rounds=5000,
+            and the flag is ignored otherwise. the spec requires the two different
+            encodings be preserved as they are, instead of normalizing them.
     """
 
     #===================================================================

@@ -120,7 +120,7 @@ class PasswordHash(object):
         Should handle generating salt, etc, and should return string
         containing identifier, salt & other configuration, as well as digest.
 
-        :param \*\*settings_kwds:
+        :param \\*\\*settings_kwds:
 
             Pass in settings to customize configuration of resulting hash.
 
@@ -132,7 +132,7 @@ class PasswordHash(object):
 
                 Support will be removed in Passlib 2.0.
 
-        :param \*\*context_kwds:
+        :param \\*\\*context_kwds:
 
             Specific algorithms may require context-specific information (such as the user login).
         """

@@ -36,6 +36,11 @@ else:
 import time
 if stringprep:
     import unicodedata
+try:
+    import threading
+except ImportError:
+    # module optional before py37
+    threading = None
 import timeit
 import types
 from warnings import warn
@@ -55,12 +60,12 @@ from passlib.utils.decor import (
     classproperty,
     hybrid_method,
 )
-from passlib.exc import ExpectedStringError
+from passlib.exc import ExpectedStringError, ExpectedTypeError
 from passlib.utils.compat import (add_doc, join_bytes, join_byte_values,
                                   join_byte_elems, irange, imap, PY3, u,
                                   join_unicode, unicode, byte_elem_value, nextgetter,
-                                  unicode_or_bytes_types,
-                                  get_method_function, suppress_cause)
+                                  unicode_or_str, unicode_or_bytes_types,
+                                  get_method_function, suppress_cause, PYPY)
 # local
 __all__ = [
     # constants
@@ -144,7 +149,7 @@ class SequenceMixin(object):
     subclass just needs to provide :meth:`_as_tuple()`.
     """
     def _as_tuple(self):
-        raise NotImplemented("implement in subclass")
+        raise NotImplementedError("implement in subclass")
 
     def __repr__(self):
         return repr(self._as_tuple())
@@ -574,13 +579,20 @@ def xor_bytes(left, right):
     return int_to_bytes(bytes_to_int(left) ^ bytes_to_int(right), len(left))
 
 def repeat_string(source, size):
-    """repeat or truncate <source> string, so it has length <size>"""
-    cur = len(source)
-    if size > cur:
-        mult = (size+cur-1)//cur
-        return (source*mult)[:size]
-    else:
-        return source[:size]
+    """
+    repeat or truncate <source> string, so it has length <size>
+    """
+    mult = 1 + (size - 1) // len(source)
+    return (source * mult)[:size]
+
+
+def utf8_repeat_string(source, size):
+    """
+    variant of repeat_string() which truncates to nearest UTF8 boundary.
+    """
+    mult = 1 + (size - 1) // len(source)
+    return utf8_truncate(source * mult, size)
+
 
 _BNULL = b"\x00"
 _UNULL = u("\x00")
@@ -594,6 +606,74 @@ def right_pad_string(source, size, pad=None):
         return source+pad*(size-cur)
     else:
         return source[:size]
+
+
+def utf8_truncate(source, index):
+    """
+    helper to truncate UTF8 byte string to nearest character boundary ON OR AFTER <index>.
+    returned prefix will always have length of at least <index>, and will stop on the
+    first byte that's not a UTF8 continuation byte (128 - 191 inclusive).
+    since utf8 should never take more than 4 bytes to encode known unicode values,
+    we can stop after ``index+3`` is reached.
+
+    :param bytes source:
+    :param int index:
+    :rtype: bytes
+    """
+    # general approach:
+    #
+    # * UTF8 bytes will have high two bits (0xC0) as one of:
+    #   00 -- ascii char
+    #   01 -- ascii char
+    #   10 -- continuation of multibyte char
+    #   11 -- start of multibyte char.
+    #   thus we can cut on anything where high bits aren't "10" (0x80; continuation byte)
+    #
+    # * UTF8 characters SHOULD always be 1 to 4 bytes, though they may be unbounded.
+    #   so we just keep going until first non-continuation byte is encountered, or end of str.
+    #   this should work predictably even for malformed/non UTF8 inputs.
+
+    if not isinstance(source, bytes):
+        raise ExpectedTypeError(source, bytes, "source")
+
+    # validate index
+    end = len(source)
+    if index < 0:
+        index = max(0, index + end)
+    if index >= end:
+        return source
+
+    # can stop search after 4 bytes, won't ever have longer utf8 sequence.
+    end = min(index + 3, end)
+
+    # loop until we find non-continuation byte
+    while index < end:
+        if byte_elem_value(source[index]) & 0xC0 != 0x80:
+            # found single-char byte, or start-char byte.
+            break
+        # else: found continuation byte.
+        index += 1
+    else:
+        assert index == end
+
+    # truncate at final index
+    result = source[:index]
+
+    def sanity_check():
+        # try to decode source
+        try:
+            text = source.decode("utf-8")
+        except UnicodeDecodeError:
+            # if source isn't valid utf8, byte level match is enough
+            return True
+
+        # validate that result was cut on character boundary
+        assert text.startswith(result.decode("utf-8"))
+        return True
+
+    assert sanity_check()
+
+    return result
 
 #=============================================================================
 # encoding helpers
@@ -756,16 +836,47 @@ def as_bool(value, none=None, param="boolean"):
 # host OS helpers
 #=============================================================================
 
+def is_safe_crypt_input(value):
+    """
+    UT helper --
+    test if value is safe to pass to crypt.crypt();
+    under PY3, can't pass non-UTF8 bytes to crypt.crypt.
+    """
+    if crypt_accepts_bytes or not isinstance(value, bytes):
+        return True
+    try:
+        value.decode("utf-8")
+        return True
+    except UnicodeDecodeError:
+        return False
+
 try:
     from crypt import crypt as _crypt
 except ImportError: # pragma: no cover
     _crypt = None
     has_crypt = False
+    crypt_accepts_bytes = False
+    crypt_needs_lock = False
+    _safe_crypt_lock = None
     def safe_crypt(secret, hash):
         return None
 else:
     has_crypt = True
     _NULL = '\x00'
+
+    # XXX: replace this with lazy-evaluated bug detection?
+    if threading and PYPY and (7, 2, 0) <= sys.pypy_version_info <= (7, 3, 3):
+        #: internal lock used to wrap crypt() calls.
+        #: WARNING: if non-passlib code invokes crypt(), this lock won't be enough!
+        _safe_crypt_lock = threading.Lock()
+
+        #: detect if crypt.crypt() needs a thread lock around calls.
+        crypt_needs_lock = True
+
+    else:
+        from passlib.utils.compat import nullcontext
+        _safe_crypt_lock = nullcontext()
+        crypt_needs_lock = False
 
     # some crypt() variants will return various constant strings when
     # an invalid/unrecognized config string is passed in; instead of
@@ -775,27 +886,71 @@ else:
     _invalid_prefixes = u("*:!")
 
     if PY3:
+
+        # * pypy3 (as of v7.3.1) has a crypt which accepts bytes, or ASCII-only unicode.
+        # * whereas CPython3 (as of v3.9) has a crypt which doesn't take bytes,
+        #   but accepts ANY unicode (which it always encodes to UTF8).
+        crypt_accepts_bytes = True
+        try:
+            _crypt(b"\xEE", "xx")
+        except TypeError:
+            # CPython will throw TypeError
+            crypt_accepts_bytes = False
+        except:  # no pragma
+            # don't care about other errors this might throw,
+            # just want to see if we get past initial type-coercion step.
+            pass
+
         def safe_crypt(secret, hash):
-            if isinstance(secret, bytes):
-                # Python 3's crypt() only accepts unicode, which is then
+            if crypt_accepts_bytes:
+                # PyPy3 -- all bytes accepted, but unicode encoded to ASCII,
+                # so handling that ourselves.
+                if isinstance(secret, unicode):
+                    secret = secret.encode("utf-8")
+                if _BNULL in secret:
+                    raise ValueError("null character in secret")
+                if isinstance(hash, unicode):
+                    hash = hash.encode("ascii")
+            else:
+                # CPython3's crypt() doesn't take bytes, only unicode; unicode which is then
                 # encoding using utf-8 before passing to the C-level crypt().
                 # so we have to decode the secret.
-                orig = secret
-                try:
-                    secret = secret.decode("utf-8")
-                except UnicodeDecodeError:
-                    return None
-                assert secret.encode("utf-8") == orig, \
-                            "utf-8 spec says this can't happen!"
-            if _NULL in secret:
-                raise ValueError("null character in secret")
-            if isinstance(hash, bytes):
-                hash = hash.decode("ascii")
-            result = _crypt(secret, hash)
+                if isinstance(secret, bytes):
+                    orig = secret
+                    try:
+                        secret = secret.decode("utf-8")
+                    except UnicodeDecodeError:
+                        return None
+                    # sanity check it encodes back to original byte string,
+                    # otherwise when crypt() does it's encoding, it'll hash the wrong bytes!
+                    assert secret.encode("utf-8") == orig, \
+                                "utf-8 spec says this can't happen!"
+                if _NULL in secret:
+                    raise ValueError("null character in secret")
+                if isinstance(hash, bytes):
+                    hash = hash.decode("ascii")
+            try:
+                with _safe_crypt_lock:
+                    result = _crypt(secret, hash)
+            except OSError:
+                # new in py39 -- per https://bugs.python.org/issue39289,
+                # crypt() now throws OSError for various things, mainly unknown hash formats
+                # translating that to None for now (may revise safe_crypt behavior in future)
+                return None
+            # NOTE: per issue 113, crypt() may return bytes in some odd cases.
+            #       assuming it should still return an ASCII hash though,
+            #       or there's a bigger issue at hand.
+            if isinstance(result, bytes):
+                result = result.decode("ascii")
             if not result or result[0] in _invalid_prefixes:
                 return None
             return result
     else:
+
+        #: see feature-detection in PY3 fork above
+        crypt_accepts_bytes = True
+
+        # Python 2 crypt handler
         def safe_crypt(secret, hash):
             if isinstance(secret, unicode):
                 secret = secret.encode("utf-8")
@@ -803,7 +958,8 @@ else:
                 raise ValueError("null character in secret")
             if isinstance(hash, unicode):
                 hash = hash.encode("ascii")
-            result = _crypt(secret, hash)
+            with _safe_crypt_lock:
+                result = _crypt(secret, hash)
             if not result:
                 return None
             result = result.decode("ascii")
@@ -847,7 +1003,13 @@ def test_crypt(secret, hash):
     :arg hash: known hash of password to use as reference
     :returns: True or False
     """
-    assert secret and hash
+    # safe_crypt() always returns unicode, which means that for py3,
+    # 'hash' can't be bytes, or "== hash" will never be True.
+    # under py2 unicode & str(bytes) will compare fine;
+    # so just enforcing "unicode_or_str" limitation
+    assert isinstance(hash, unicode_or_str), \
+        "hash must be unicode_or_str, got %s" % type(hash)
+    assert hash, "hash must be non-empty"
     return safe_crypt(secret, hash) == hash
 
 timer = timeit.default_timer

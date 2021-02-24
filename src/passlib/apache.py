@@ -80,7 +80,7 @@ class _CommonFile(object):
         :arg data:
             database to load, as single string.
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             all other keywords are the same as in the class constructor
         """
         if 'path' in kwds:
@@ -97,7 +97,7 @@ class _CommonFile(object):
         :arg path:
             local filepath to load from
 
-        :param \*\*kwds:
+        :param \\*\\*kwds:
             all other keywords are the same as in the class constructor
         """
         self = cls(**kwds)

@@ -125,6 +125,8 @@ _locations = dict(
     ldap_hex_sha1 = "passlib.handlers.roundup",
     ldap_salted_md5 = "passlib.handlers.ldap_digests",
     ldap_salted_sha1 = "passlib.handlers.ldap_digests",
+    ldap_salted_sha256 = "passlib.handlers.ldap_digests",
+    ldap_salted_sha512 = "passlib.handlers.ldap_digests",
     ldap_des_crypt = "passlib.handlers.ldap_digests",
     ldap_bsdi_crypt = "passlib.handlers.ldap_digests",
     ldap_md5_crypt = "passlib.handlers.ldap_digests",
@@ -518,8 +520,11 @@ def get_supported_os_crypt_schemes():
                   if get_crypt_handler(name).has_backend(OS_CRYPT))
     if not cache:  # pragma: no cover -- sanity check
         # no idea what OS this could happen on...
+        import platform
         warn("crypt.crypt() function is present, but doesn't support any "
-             "formats known to passlib!", exc.PasslibRuntimeWarning)
+             "formats known to passlib! (system=%r release=%r)" %
+             (platform.system(), platform.release()),
+             exc.PasslibRuntimeWarning)
     return cache
 
 

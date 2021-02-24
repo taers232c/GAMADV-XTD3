@@ -15,6 +15,10 @@ class UnknownBackendError(ValueError):
         message = "%s: unknown backend: %r" % (hasher.name, backend)
         ValueError.__init__(self, message)
 
+
+# XXX: add a PasslibRuntimeError as base for Missing/Internal/Security runtime errors?
+
+
 class MissingBackendError(RuntimeError):
     """Error raised if multi-backend handler has no available backends;
     or if specifically requested backend is not available.
@@ -27,18 +31,44 @@ class MissingBackendError(RuntimeError):
     :class:`~passlib.hash.bcrypt`).
     """
 
-class PasswordSizeError(ValueError):
+
+class InternalBackendError(RuntimeError):
+    """
+    Error raised if something unrecoverable goes wrong with backend call;
+    such as if ``crypt.crypt()`` returning a malformed hash.
+
+    .. versionadded:: 1.7.3
+    """
+
+
+class PasswordValueError(ValueError):
+    """
+    Error raised if a password can't be hashed / verified for various reasons.
+    This exception derives from the builtin :exc:`!ValueError`.
+
+    May be thrown directly when password violates internal invariants of hasher
+    (e.g. some don't support NULL characters).  Hashers may also throw more specific subclasses,
+    such as :exc:`!PasswordSizeError`.
+
+    .. versionadded:: 1.7.3
+    """
+    pass
+
+
+class PasswordSizeError(PasswordValueError):
     """
     Error raised if a password exceeds the maximum size allowed
     by Passlib (by default, 4096 characters); or if password exceeds
     a hash-specific size limitation.
+
+    This exception derives from :exc:`PasswordValueError` (above).
 
     Many password hash algorithms take proportionately larger amounts of time and/or
     memory depending on the size of the password provided. This could present
     a potential denial of service (DOS) situation if a maliciously large
     password is provided to an application. Because of this, Passlib enforces
     a maximum size limit, but one which should be *much* larger
-    than any legitimate password. :exc:`!PasswordSizeError` derives
+    than any legitimate password. :exc:`PasswordSizeError` derives
     from :exc:`!ValueError`.
 
     .. note::
@@ -59,7 +89,7 @@ class PasswordSizeError(ValueError):
         self.max_size = max_size
         if msg is None:
             msg = "password exceeds maximum allowed size"
-        ValueError.__init__(self, msg)
+        PasswordValueError.__init__(self, msg)
 
     # this also prevents a glibc crypt segfault issue, detailed here ...
     # http://www.openwall.com/lists/oss-security/2011/11/15/1
@@ -67,7 +97,7 @@ class PasswordSizeError(ValueError):
 class PasswordTruncateError(PasswordSizeError):
     """
     Error raised if password would be truncated by hash.
-    This derives from :exc:`PasswordSizeError` and :exc:`ValueError`.
+    This derives from :exc:`PasswordSizeError` (above).
 
     Hashers such as :class:`~passlib.hash.bcrypt` can be configured to raises
     this error by setting ``truncate_error=True``.
@@ -84,6 +114,7 @@ class PasswordTruncateError(PasswordSizeError):
             msg = ("Password too long (%s truncates to %d characters)" %
                    (cls.name, cls.truncate_size))
         PasswordSizeError.__init__(self, cls.truncate_size, msg)
+
 
 class PasslibSecurityError(RuntimeError):
     """
@@ -155,14 +186,34 @@ class UsedTokenError(TokenError):
 
 
 class UnknownHashError(ValueError):
-    """Error raised by :class:`~passlib.crypto.lookup_hash` if hash name is not recognized.
+    """
+    Error raised by :class:`~passlib.crypto.lookup_hash` if hash name is not recognized.
     This exception derives from :exc:`!ValueError`.
 
+    As of version 1.7.3, this may also be raised if hash algorithm is known,
+    but has been disabled due to FIPS mode (message will include phrase "disabled for fips").
+
+    As of version 1.7.4, this may be raised if a :class:`~passlib.context.CryptContext`
+    is unable to identify the algorithm used by a password hash.
+
     .. versionadded:: 1.7
+
+    .. versionchanged: 1.7.3
+        added 'message' argument.
+
+    .. versionchanged:: 1.7.4
+        altered call signature.
     """
-    def __init__(self, name):
-        self.name = name
-        ValueError.__init__(self, "unknown hash algorithm: %r" % name)
+    def __init__(self, message=None, value=None):
+        self.value = value
+        if message is None:
+            message = "unknown hash algorithm: %r" % value
+        self.message = message
+        ValueError.__init__(self, message, value)
+
+    def __str__(self):
+        return self.message
+
 
 #=============================================================================
 # warnings
@@ -274,7 +325,7 @@ def MissingDigestError(handler=None):
 def NullPasswordError(handler=None):
     """raised by OS crypt() supporting hashes, which forbid NULLs in password"""
     name = _get_name(handler)
-    return ValueError("%s does not allow NULL bytes in password" % name)
+    return PasswordValueError("%s does not allow NULL bytes in password" % name)
 
 #------------------------------------------------------------------------
 # errors when parsing hashes
@@ -305,6 +356,41 @@ def ChecksumSizeError(handler, raw=False):
     unit = "bytes" if raw else "chars"
     reason = "checksum must be exactly %d %s" % (checksum_size, unit)
     return MalformedHashError(handler, reason)
+
+#=============================================================================
+# sensitive info helpers
+#=============================================================================
+
+#: global flag, set temporarily by UTs to allow debug_only_repr() to display sensitive values.
+ENABLE_DEBUG_ONLY_REPR = False
+
+
+def debug_only_repr(value, param="hash"):
+    """
+    helper used to display sensitive data (hashes etc) within error messages.
+    currently returns placeholder test UNLESS unittests are running,
+    in which case the real value is displayed.
+
+    mainly useful to prevent hashes / secrets from being exposed in production tracebacks;
+    while still being visible from test failures.
+
+    NOTE: api subject to change, may formalize this more in the future.
+    """
+    if ENABLE_DEBUG_ONLY_REPR or value is None or isinstance(value, bool):
+        return repr(value)
+    return "<%s %s value omitted>" % (param, type(value))
+
+
+def CryptBackendError(handler, config, hash,  # *
+                      source="crypt.crypt()"):
+    """
+    helper to generate standard message when ``crypt.crypt()`` returns invalid result.
+    takes care of automatically masking contents of config & hash outside of UTs.
+    """
+    name = _get_name(handler)
+    msg = "%s returned invalid %s hash: config=%s hash=%s" % \
+          (source, name, debug_only_repr(config), debug_only_repr(hash))
+    raise InternalBackendError(msg)
 
 #=============================================================================
 # eof
