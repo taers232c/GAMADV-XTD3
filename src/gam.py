@@ -116,11 +116,7 @@ import google_auth_oauthlib.flow
 import google_auth_httplib2
 import httplib2
 from iso8601 import iso8601
-if platform.system() == 'Windows':
-  # No crypt module on Win, use passlib
-  from passlib.hash import sha512_crypt
-else:
-  from crypt import crypt
+from passlib.hash import sha512_crypt
 
 if platform.system() == 'Linux':
   import distro
@@ -28849,10 +28845,7 @@ class PasswordOptions():
     if not self.notifyPasswordSet:
       notify[up] = body[up] if self.clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
     if self.hashPassword:
-      if platform.system() == 'Windows':
-        body[up] = sha512_crypt.hash(body[up], rounds=5000)
-      else:
-        body[up] = crypt(body[up])
+      body[up] = sha512_crypt.hash(body[up], rounds=5000)
       body['hashFunction'] = 'crypt'
     elif self.b64DecryptPassword:
       if body[up].lower()[:5] in ['{md5}', '{sha}']:

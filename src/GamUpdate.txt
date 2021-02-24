@@ -4,6 +4,8 @@ Code cleanup.
 
 Allow empty `annotatedAssetId` for Chromebooks; the API previously didn't allow this.
 
+Following Jay's lead, updated hashing of passwords passed to Google.
+
 5.34.02
 
 Fixed bug in `gam <UserTypeEntity> update calattendees ... csv <FileName>` that caused a trap.
