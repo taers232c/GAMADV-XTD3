@@ -15,7 +15,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License. 
+# limitations under the License.
 """
 GAMADV-XTD3 is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
 
@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.34.02'
+__version__ = '5.34.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -262,31 +262,6 @@ WITH_MY_FILE_NAME = ME_IN_OWNERS_AND+WITH_ANY_FILE_NAME
 WITH_OTHER_FILE_NAME = NOT_ME_IN_OWNERS_AND+WITH_ANY_FILE_NAME
 AND_NOT_SHORTCUT = " and mimeType != '"+MIMETYPE_GA_SHORTCUT+"'"
 
-# Cloudprint
-CLOUDPRINT_ACCESS_URL = 'https://www.google.com/cloudprint/addpublicprinter.html?printerid={0}&key={1}'
-#
-DFA_CREATED_TIME = 'createdTime'
-DFA_MODIFIED_TIME = 'modifiedTime'
-DFA_PRESERVE_FILE_TIMES = 'preserveFileTimes'
-DFA_IGNORE_DEFAULT_VISIBILITY = 'ignoreDefaultVisibility'
-DFA_KEEP_REVISION_FOREVER = 'keepRevisionForever'
-DFA_LOCALFILEPATH = 'localFilepath'
-DFA_LOCALFILENAME = 'localFilename'
-DFA_LOCALMIMETYPE = 'localMimeType'
-DFA_OCRLANGUAGE = 'ocrLanguage'
-DFA_ENFORCE_SINGLE_PARENT = 'enforceSingleParent'
-DFA_PARENTID = 'parentId'
-DFA_PARENTQUERY = 'parentQuery'
-DFA_ADD_PARENT_IDS = 'addParentIds'
-DFA_ADD_PARENT_NAMES = 'addParentNames'
-DFA_REMOVE_PARENT_IDS = 'removeParentIds'
-DFA_REMOVE_PARENT_NAMES = 'removeParentNames'
-DFA_TEAMDRIVE_PARENT = 'teamDriveParent'
-DFA_TEAMDRIVE_PARENTID = 'teamDriveParentId'
-DFA_TEAMDRIVE_PARENTQUERY = 'teamDriveParentQuery'
-DFA_KWARGS = 'kwargs'
-DFA_SEARCHARGS = 'searchargs'
-DFA_USE_CONTENT_AS_INDEXABLE_TEXT = 'useContentAsIndexableText'
 # Program return codes
 UNKNOWN_ERROR_RC = 1
 USAGE_ERROR_RC = 2
@@ -327,13 +302,14 @@ ENTITY_DOES_NOT_EXIST_RC = 56
 ENTITY_DUPLICATE_RC = 57
 ENTITY_IS_NOT_AN_ALIAS_RC = 58
 ENTITY_IS_UKNOWN_RC = 59
-NO_ENTITIES_FOUND = 60
+NO_ENTITIES_FOUND_RC = 60
 INVALID_DOMAIN_RC = 61
 INVALID_DOMAIN_VALUE_RC = 62
 INVALID_TOKEN_RC = 63
 JSON_LOADS_ERROR_RC = 64
 MULTIPLE_DELETED_USERS_FOUND_RC = 65
 MULTIPLE_PROJECT_FOLDERS_FOUND_RC = 65
+STDOUT_STDERR_ERROR_RC = 66
 INSUFFICIENT_PERMISSIONS_RC = 67
 REQUEST_COMPLETED_NO_RESULTS_RC = 71
 REQUEST_NOT_COMPLETED_RC = 72
@@ -342,55 +318,70 @@ TARGET_DRIVE_SPACE_ERROR_RC = 74
 USER_REQUIRED_TO_CHANGE_PASSWORD_ERROR_RC = 75
 USER_SUSPENDED_ERROR_RC = 76
 NO_CSV_DATA_TO_UPLOAD_RC = 77
-#
-def escapeCRsNLs(value):
-  return value.replace('\r', '\\r').replace('\n', '\\n')
 
-def unescapeCRsNLs(value):
-  return value.replace('\\r', '\r').replace('\\n', '\n')
-
-def executeBatch(dbatch):
-  dbatch.execute()
-  if GC.Values[GC.INTER_BATCH_WAIT] > 0:
-    time.sleep(GC.Values[GC.INTER_BATCH_WAIT])
-
-def StringIOobject(initbuff=None):
-  if initbuff is None:
-    return io.StringIO()
-  return io.StringIO(initbuff)
-
-def systemErrorExit(sysRC, message):
-  if message:
-    stderrErrorMsg(message)
-  sys.exit(sysRC)
-
+# stdin/stdout/stderr
 def readStdin(prompt):
   return input(prompt)
+
+def stdErrorExit(e):
+  try:
+    sys.stderr.write(f'\n{ERROR_PREFIX}{str(e)}\n')
+  except IOError:
+    pass
+  sys.exit(STDOUT_STDERR_ERROR_RC)
 
 def writeStdout(data):
   try:
     GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout).write(data)
   except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
+    stdErrorExit(e)
 
 def flushStdout():
   try:
     GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout).flush()
   except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
+    stdErrorExit(e)
 
 def writeStderr(data):
   flushStdout()
   try:
     GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr).write(data)
   except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
+    stdErrorExit(e)
 
 def flushStderr():
   try:
     GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr).flush()
   except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, e)
+    stdErrorExit(e)
+
+# Error messages
+def setSysExitRC(sysRC):
+  GM.Globals[GM.SYSEXITRC] = sysRC
+
+def stderrErrorMsg(message):
+  writeStderr(f'\n{ERROR_PREFIX}{message}\n')
+
+def stderrWarningMsg(message):
+  writeStderr(f'\n{WARNING_PREFIX}{message}\n')
+
+def systemErrorExit(sysRC, message):
+  if message:
+    stderrErrorMsg(message)
+  sys.exit(sysRC)
+
+def printErrorMessage(sysRC, message):
+  setSysExitRC(sysRC)
+  writeStderr(f'\n{Ind.Spaces()}{ERROR_PREFIX}{message}\n')
+
+def printWarningMessage(sysRC, message):
+  setSysExitRC(sysRC)
+  writeStderr(f'\n{Ind.Spaces()}{WARNING_PREFIX}{message}\n')
+
+def executeBatch(dbatch):
+  dbatch.execute()
+  if GC.Values[GC.INTER_BATCH_WAIT] > 0:
+    time.sleep(GC.Values[GC.INTER_BATCH_WAIT])
 
 class _DeHTMLParser(HTMLParser): #pylint: disable=abstract-method
   def __init__(self):
@@ -478,20 +469,6 @@ def formatKeyValueList(prefixStr, kvList, suffixStr):
           msg += ' '
   msg += suffixStr
   return msg
-
-# Error exits
-def setSysExitRC(sysRC):
-  GM.Globals[GM.SYSEXITRC] = sysRC
-
-def printErrorMessage(sysRC, message):
-  setSysExitRC(sysRC)
-  writeStderr(formatKeyValueList(Ind.Spaces(), [ERROR, message], '\n'))
-
-def stderrErrorMsg(message):
-  writeStderr(f'\n{ERROR_PREFIX}{message}\n')
-
-def stderrWarningMsg(message):
-  writeStderr(f'\n{WARNING_PREFIX}{message}\n')
 
 # Something's wrong with CustomerID
 def accessErrorMessage(cd):
@@ -1483,6 +1460,12 @@ def getString(item, checkBlank=False, optional=False, minLen=1, maxLen=None):
     return ''
   missingArgumentExit(item)
 
+def escapeCRsNLs(value):
+  return value.replace('\r', '\\r').replace('\n', '\\n')
+
+def unescapeCRsNLs(value):
+  return value.replace('\\r', '\r').replace('\\n', '\n')
+
 def getStringWithCRsNLs():
   return unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=0))
 
@@ -2030,10 +2013,6 @@ def getHTTPError(responses, http_status, reason, message):
   return formatHTTPError(http_status, reason, message)
 
 # Warnings
-def printWarningMessage(sysRC, errMessage):
-  setSysExitRC(sysRC)
-  writeStderr(formatKeyValueList(Ind.Spaces(), [WARNING, errMessage], '\n'))
-
 def badRequestWarning(entityType, itemType, itemValue):
   printWarningMessage(BAD_REQUEST_RC,
                       f'{Msg.GOT} 0 {Ent.Plural(entityType)}: {Msg.INVALID} {Ent.Singular(itemType)} - {itemValue}')
@@ -2448,6 +2427,11 @@ def setEncoding(mode, encoding):
     encoding = UTF8_SIG
   return {'encoding': encoding}
 
+def StringIOobject(initbuff=None):
+  if initbuff is None:
+    return io.StringIO()
+  return io.StringIO(initbuff)
+
 # Open a file
 def openFile(filename, mode=DEFAULT_FILE_READ_MODE, encoding=None, errors=None, newline=None,
              continueOnError=False, displayError=True, stripUTFBOM=False):
@@ -2695,7 +2679,7 @@ def openCSVFileReader(filename, fieldnames=None):
     try:
       if not f.readline() or not f.readline():
         stderrWarningMsg(fileErrorMessage(filename, Msg.NO_CSV_FILE_DATA_FOUND))
-        sys.exit(NO_ENTITIES_FOUND)
+        sys.exit(NO_ENTITIES_FOUND_RC)
       f.seek(loc)
     except (IOError, UnicodeDecodeError, UnicodeError) as e:
       systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
@@ -5791,7 +5775,7 @@ def _validateUserGetObjectList(user, i, count, entity):
   jcount = len(entityList)
   entityPerformActionNumItems([Ent.USER, user], jcount, entity['item'], i, count)
   if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   return (user, gmail, entityList, jcount)
 
 def _validateUserGetMessageIds(user, i, count, entity):
@@ -15040,7 +15024,7 @@ def _clearUpdateContacts(users, entityType, updateContacts):
     jcount = len(entityList)
     entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     contactGroupsList = {
       CONTACT_GROUPS_LIST: [],
@@ -15170,7 +15154,7 @@ def _dedupContacts(users, entityType):
     jcount = len(contacts)
     entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     for contact in contacts:
@@ -15239,7 +15223,7 @@ def _deleteContacts(users, entityType):
     jcount = len(entityList)
     entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     for contact in entityList:
@@ -15391,7 +15375,7 @@ def _infoContacts(users, entityType, contactFeed=True):
     if not FJQC.formatJSON:
       entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     for contact in entityList:
@@ -15668,7 +15652,7 @@ def _processContactPhotos(users, entityType, function):
     jcount = len(entityList)
     entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.PHOTO, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     for contact in entityList:
@@ -15816,7 +15800,7 @@ def updateUserContactGroup(users):
     jcount = len(entityList)
     entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT_GROUP, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     for contactGroup in entityList:
@@ -15878,7 +15862,7 @@ def deleteUserContactGroups(users):
     jcount = len(entityList)
     entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT_GROUP, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     for contactGroup in entityList:
@@ -15945,7 +15929,7 @@ def infoUserContactGroups(users):
     if not FJQC.formatJSON:
       entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT_GROUP, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     for contactGroup in entityList:
@@ -16059,7 +16043,7 @@ def _validateUserGetDelegateList(cd, user, i, count, entity):
   jcount = len(entityList)
   entityPerformActionNumItems([Ent.USER, user], jcount, entity['item'], i, count)
   if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   return (user, entityList, jcount)
 
 def _getDelegateName(cd, delegateEmail, delegateNames):
@@ -16258,7 +16242,7 @@ def updateCrOSDevices(entityList):
         update_body[up] = getStringWithCRsNLs()
         updateNotes = update_body[up] if myarg == 'updatenotes' and update_body[up].find('#notes#') != -1 else None
       else:
-        update_body[up] = getString(Cmd.OB_STRING, minLen=[0, 1][up == 'annotatedAssetId'])
+        update_body[up] = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == 'action':
       actionLocation = Cmd.Location()
       action_body['action'], deprovisionReason = getChoice(CROS_ACTION_CHOICE_MAP, mapChoice=True)
@@ -24632,7 +24616,7 @@ def _normalizeCalIdGetRuleIds(origUser, user, origCal, calId, j, jcount, ACLScop
     return (calId, cal, None, 0)
   kcount = len(ruleIds)
   if kcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   if showAction:
     entityPerformActionNumItems([Ent.CALENDAR, calId], kcount, Ent.CALENDAR_ACL, j, jcount)
   return (calId, cal, ruleIds, kcount)
@@ -24800,7 +24784,7 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC):
     return
   jcount = len(acls)
   if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   if not csvPF:
     if not FJQC.formatJSON:
       entityPerformActionNumItems([entityType, calId], jcount, Ent.CALENDAR_ACL, i, count)
@@ -25284,7 +25268,7 @@ def _validateCalendarGetEventIDs(origUser, user, origCal, calId, j, jcount, cale
       kcount = len(calEventIds)
       if kcount == 0:
         entityNumEntitiesActionNotPerformedWarning([Ent.CALENDAR, calId], Ent.EVENT, kcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(Ent.EVENT)), j, jcount)
-        setSysExitRC(NO_ENTITIES_FOUND)
+        setSysExitRC(NO_ENTITIES_FOUND_RC)
         return (calId, cal, None, 0)
     except GAPI.notFound:
       entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
@@ -25298,7 +25282,7 @@ def _validateCalendarGetEventIDs(origUser, user, origCal, calId, j, jcount, cale
   else:
     kcount = len(calEventIds)
   if kcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   if not doIt:
     if showAction:
       entityNumEntitiesActionNotPerformedWarning([Ent.CALENDAR, calId], Ent.EVENT, kcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, j, jcount)
@@ -25370,7 +25354,7 @@ def _validateCalendarGetEvents(origUser, user, origCal, calId, j, jcount, calend
     if showAction:
       entityPerformActionNumItems([Ent.CALENDAR, calId], kcount, Ent.EVENT, j, jcount)
     if kcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
     return (calId, cal, eventsList, kcount)
   except (GAPI.notFound, GAPI.deleted) as e:
     if not checkCalendarExists(cal, calId):
@@ -26227,7 +26211,7 @@ def _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity, showAct
   if showAction:
     entityPerformActionNumItems([Ent.RESOURCE_CALENDAR, resourceId], jcount, Ent.CALENDAR_ACL, i, count)
   if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   return (calId, ruleIds, jcount)
 
 # gam resource <ResourceID> create|add calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
@@ -26487,7 +26471,7 @@ def doPrintShowUserSchemas():
     if not csvPF:
       performActionNumItems(jcount, Ent.USER_SCHEMA)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
     else:
       if not csvPF:
         Ind.Increment()
@@ -26909,7 +26893,7 @@ def doPrintShowVaultExports():
   jcount = len(results)
   if not csvPF:
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
   j = 0
   for matter in results:
     j += 1
@@ -27509,7 +27493,7 @@ def doPrintShowVaultHolds():
   jcount = len(results)
   if not csvPF:
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
   j = 0
   for matter in results:
     j += 1
@@ -27856,7 +27840,7 @@ def doPrintShowVaultMatters():
   if not csvPF:
     performActionNumItems(jcount, Ent.VAULT_MATTER)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return
     Ind.Increment()
     j = 0
@@ -28162,7 +28146,7 @@ def _validateUserGetSites(entityType, user, i, count, siteEntity, itemType=None,
   else:
     entityPerformActionSubItemModifierNumItems([entityType, user], itemType, modifier, jcount, Ent.SITE, i, count)
   if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   return (user, sitesObject, sites, jcount)
 
 def _validateSite(fullSite, i, count):
@@ -28186,7 +28170,7 @@ def _validateSiteGetRuleIds(origUser, fullSite, j, jcount, ACLScopeEntity, showA
       ruleIds = ACLScopeEntity['list']
     kcount = len(ruleIds)
     if kcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
   else:
     ruleIds = []
     kcount = 0
@@ -28717,7 +28701,7 @@ def _printSiteActivity(users, entityType):
       continue
     jcount = len(sites)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     j = 0
@@ -29692,7 +29676,7 @@ def undeleteUsers(entityList):
       jcount = len(matching_users)
       if jcount == 0:
         entityUnknownWarning(Ent.DELETED_USER, user, i, count)
-        setSysExitRC(NO_ENTITIES_FOUND)
+        setSysExitRC(NO_ENTITIES_FOUND_RC)
         continue
       if jcount > 1:
         entityActionNotPerformedWarning([Ent.DELETED_USER, user],
@@ -34133,7 +34117,7 @@ def _showASPs(user, asps, i=0, count=0):
   jcount = len(asps)
   entityPerformActionNumItems([Ent.USER, user], jcount, Ent.APPLICATION_SPECIFIC_PASSWORD, i, count)
   if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
     return
   Ind.Increment()
   for asp in asps:
@@ -34183,7 +34167,7 @@ def deleteASP(users):
     jcount = len(codeIds)
     entityPerformActionNumItems([Ent.USER, user], jcount, Ent.APPLICATION_SPECIFIC_PASSWORD, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
     j = 0
@@ -34257,7 +34241,7 @@ def _showBackupCodes(user, codes, i, count):
       jcount += 1
   entityPerformActionNumItems([Ent.USER, user], jcount, Ent.BACKUP_VERIFICATION_CODES, i, count)
   if jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
     return
   Ind.Increment()
   j = 0
@@ -34490,7 +34474,7 @@ def _validateUserGetCalendarIds(user, i, count, calendarEntity,
       return (user, None, None, 0)
   jcount = len(calIds)
   if setRC and jcount == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   if showAction:
     if not itemType:
       entityPerformActionNumItems([Ent.USER, user], jcount, Ent.CALENDAR, i, count)
@@ -35976,19 +35960,19 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
   if fileIdEntity['query']:
     fileIdEntity['list'] = doDriveSearch(drive, user, i, count, query=fileIdEntity['query'], orderBy=orderBy)
     if fileIdEntity['list'] is None:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return (user, None, 0)
   elif fileIdEntity['teamdriveadminquery']:
     fileIdEntity['list'] = doTeamDriveSearch(drive, user, i, count, fileIdEntity['teamdriveadminquery'], useDomainAdminAccess)
     if fileIdEntity['list'] is None:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return (user, None, 0)
   elif fileIdEntity['teamdrivefilequery']:
     if not fileIdEntity['teamdrive'].get('driveId'):
       fileIdEntity['teamdrive']['corpora'] = CORPORA_ALL_DRIVES
     fileIdEntity['list'] = doDriveSearch(drive, user, i, count, query=fileIdEntity['teamdrivefilequery'], orderBy=orderBy, teamDriveOnly=True, **fileIdEntity['teamdrive'])
     if fileIdEntity['list'] is None or not fileIdEntity['list']:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return (user, None, 0)
     fileIdEntity['teamdrive'].pop('driveId', None)
     fileIdEntity['teamdrive'].pop('corpora', None)
@@ -35997,10 +35981,34 @@ def _validateUserGetFileIDs(user, i, count, fileIdEntity, drive=None, entityType
       return (user, None, 0)
   l = len(fileIdEntity['list'])
   if l == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   if entityType:
     entityPerformActionNumItems([Ent.USER, user], l, entityType, i, count)
   return (user, drive, l)
+
+# Disc File Access paramaters
+DFA_CREATED_TIME = 'createdTime'
+DFA_MODIFIED_TIME = 'modifiedTime'
+DFA_PRESERVE_FILE_TIMES = 'preserveFileTimes'
+DFA_IGNORE_DEFAULT_VISIBILITY = 'ignoreDefaultVisibility'
+DFA_KEEP_REVISION_FOREVER = 'keepRevisionForever'
+DFA_LOCALFILEPATH = 'localFilepath'
+DFA_LOCALFILENAME = 'localFilename'
+DFA_LOCALMIMETYPE = 'localMimeType'
+DFA_OCRLANGUAGE = 'ocrLanguage'
+DFA_ENFORCE_SINGLE_PARENT = 'enforceSingleParent'
+DFA_PARENTID = 'parentId'
+DFA_PARENTQUERY = 'parentQuery'
+DFA_ADD_PARENT_IDS = 'addParentIds'
+DFA_ADD_PARENT_NAMES = 'addParentNames'
+DFA_REMOVE_PARENT_IDS = 'removeParentIds'
+DFA_REMOVE_PARENT_NAMES = 'removeParentNames'
+DFA_TEAMDRIVE_PARENT = 'teamDriveParent'
+DFA_TEAMDRIVE_PARENTID = 'teamDriveParentId'
+DFA_TEAMDRIVE_PARENTQUERY = 'teamDriveParentQuery'
+DFA_KWARGS = 'kwargs'
+DFA_SEARCHARGS = 'searchargs'
+DFA_USE_CONTENT_AS_INDEXABLE_TEXT = 'useContentAsIndexableText'
 
 def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryOK=False, defaultToRoot=True):
   body.pop('parents', None)
@@ -36025,7 +36033,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
   if parameters[DFA_PARENTQUERY]:
     parents = doDriveSearch(drive, user, i, count, query=parameters[DFA_PARENTQUERY], parentQuery=True, emptyQueryOK=emptyQueryOK)
     if parents is None:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return False
     body.setdefault('parents', [])
     for parent in parents:
@@ -36079,7 +36087,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
     parents = doDriveSearch(drive, user, i, count, query=parameters[DFA_TEAMDRIVE_PARENTQUERY], parentQuery=True, emptyQueryOK=emptyQueryOK,
                             teamDriveOnly=True, **parameters[DFA_KWARGS])
     if parents is None:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return False
     body.setdefault('parents', [])
     for parent in parents:
@@ -36098,14 +36106,14 @@ def _getDriveFileAddRemoveParentInfo(user, i, count, parameters, drive):
   for query in parameters[DFA_ADD_PARENT_NAMES]:
     parents = doDriveSearch(drive, user, i, count, query=query, parentQuery=True)
     if parents is None:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return (False, None, None)
     addParents.extend(parents)
   removeParents = parameters[DFA_REMOVE_PARENT_IDS][:]
   for query in parameters[DFA_REMOVE_PARENT_NAMES]:
     parents = doDriveSearch(drive, user, i, count, query=query, parentQuery=True)
     if parents is None:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return (False, None, None)
     removeParents.extend(parents)
   return (True, addParents, removeParents)
@@ -36124,13 +36132,13 @@ def _validateUserGetTeamDriveFileIDs(user, i, count, fileIdEntity, drive=None, e
   if fileIdEntity['teamdrivefilequery']:
     fileIdEntity['list'] = doDriveSearch(drive, user, i, count, query=fileIdEntity['teamdrivefilequery'], teamDriveOnly=True, **fileIdEntity['teamdrive'])
     if fileIdEntity['list'] is None or not fileIdEntity['list']:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       return (user, None, 0)
     fileIdEntity['teamdrive'].pop('driveId', None)
     fileIdEntity['teamdrive'].pop('corpora', None)
   l = len(fileIdEntity['list'])
   if l == 0:
-    setSysExitRC(NO_ENTITIES_FOUND)
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
   if entityType:
     entityPerformActionNumItems([Ent.USER, user], l, entityType, i, count)
   return (user, drive, l)
@@ -37654,7 +37662,7 @@ def deleteFileRevisions(users):
       if kcount == 0:
         entityNumEntitiesActionNotPerformedWarning([Ent.USER, user, entityType, fileName], Ent.DRIVE_FILE_REVISION, kcount,
                                                    Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(Ent.DRIVE_FILE_REVISION)), j, jcount)
-        setSysExitRC(NO_ENTITIES_FOUND)
+        setSysExitRC(NO_ENTITIES_FOUND_RC)
         continue
       if not previewDelete:
         if maxToProcess and kcount > maxToProcess:
@@ -37742,7 +37750,7 @@ def updateFileRevisions(users):
       if kcount == 0:
         entityNumEntitiesActionNotPerformedWarning([Ent.USER, user, entityType, fileName], Ent.DRIVE_FILE_REVISION, kcount,
                                                    Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(Ent.DRIVE_FILE_REVISION)), j, jcount)
-        setSysExitRC(NO_ENTITIES_FOUND)
+        setSysExitRC(NO_ENTITIES_FOUND_RC)
         continue
       if not previewUpdate:
         if maxToProcess and kcount > maxToProcess:
@@ -39033,7 +39041,7 @@ def printFileList(users):
         writeMimeTypeCountsRow(user, mimeTypeCounts)
   if not countsOnly:
     if not csvPF.rows:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       if not nodataFields:
         if DFF.fieldsList:
           nodataFields = ['Owner']+list(set(DFF.fieldsList)-skipObjects)
@@ -39090,7 +39098,7 @@ def printFileList(users):
     csvPF.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive Files')
   else:
     if not csvPFco.rows:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
     if summary != FILECOUNT_SUMMARY_NONE:
       writeMimeTypeCountsRow(FILECOUNT_SUMMARY_USER, summaryMimeTypeCounts)
     csvPFco.todrive = csvPF.todrive
@@ -44568,7 +44576,7 @@ def printShowTeamDrives(users, useDomainAdminAccess=False):
       if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TEAMDRIVE, i, count)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
     else:
       if not csvPF:
         Ind.Increment()
@@ -44731,7 +44739,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
         pass
     jcount = len(matchFeed)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
     if not csvPF:
       entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TEAMDRIVE, i, count)
       Ind.Increment()
@@ -44799,7 +44807,7 @@ def deleteUsersAliases(users):
       jcount = len(user_aliases['aliases']) if ('aliases' in user_aliases) else 0
       entityPerformActionNumItems([Ent.USER, user_primary], jcount, Ent.ALIAS, i, count)
       if jcount == 0:
-        setSysExitRC(NO_ENTITIES_FOUND)
+        setSysExitRC(NO_ENTITIES_FOUND_RC)
         continue
       Ind.Increment()
       j = 0
@@ -46992,7 +47000,7 @@ def printShowLabels(users):
       if not csvPF:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
       if jcount == 0:
-        setSysExitRC(NO_ENTITIES_FOUND)
+        setSysExitRC(NO_ENTITIES_FOUND_RC)
         continue
       if not csvPF:
         labelTree = _buildLabelTree(labels)
@@ -47191,7 +47199,7 @@ def archiveMessages(users):
     jcount = len(messageIds)
     if jcount == 0:
       entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     if parameters['messageEntity'] is None:
       if parameters['maxToProcess'] and jcount > parameters['maxToProcess']:
@@ -47341,7 +47349,7 @@ def _processMessagesThreads(users, entityType):
     jcount = len(messageIds)
     if jcount == 0:
       entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     if parameters['messageEntity'] is None:
       if parameters['maxToProcess'] and jcount > parameters['maxToProcess']:
@@ -48129,7 +48137,7 @@ def printShowMessagesThreads(users, entityType):
       continue
     jcount = len(messageIds)
     if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
     if countsOnly and not show_labels:
       if not csvPF:
         printEntityKVList([Ent.USER, user], [parameters['listType'], jcount], i, count)
@@ -48804,10 +48812,10 @@ def setForward(users):
       continue
     try:
       result = callGAPI(gmail.users().settings(), 'updateAutoForwarding',
-                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.INVALID],
                         userId='me', body=body)
       _showForward(user, i, count, result)
-    except GAPI.failedPrecondition as e:
+    except (GAPI.failedPrecondition, GAPI.invalid) as e:
       if enable:
         entityActionFailedWarning([Ent.USER, user, Ent.FORWARDING_ADDRESS, body['emailAddress']], str(e), i, count)
       else:
@@ -49441,7 +49449,7 @@ def _getSmimeIds(gmail, user, i, count, sendAsEmail, function):
     if jcount == 0:
       entityActionNotPerformedWarning([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, None],
                                       Msg.NO_ENTITIES_FOUND.format(Ent.Plural(Ent.SMIME_ID)), i, count)
-      setSysExitRC(NO_ENTITIES_FOUND)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
     elif jcount > 1:
       entityActionNotPerformedWarning([Ent.USER, user, Ent.SENDAS_ADDRESS, sendAsEmail, Ent.SMIME_ID, None],
                                       Msg.PLEASE_SELECT_ENTITY_TO_PROCESS.format(jcount, Ent.Plural(Ent.SMIME_ID), function, 'id <S/MIMEID>'),
@@ -50981,7 +50989,7 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False):
     adjustRedirectedSTDFilesIfNotMultiprocessing()
   except SystemExit as e:
     GM.Globals[GM.SYSEXITRC] = e.code
-    if not inLoop:
+    if GM.Globals[GM.SYSEXITRC] != STDOUT_STDERR_ERROR_RC and not inLoop:
       showAPICallsRetryData()
       try:
         adjustRedirectedSTDFilesIfNotMultiprocessing()
