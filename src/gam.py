@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.34.03'
+__version__ = '5.34.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5690,42 +5690,42 @@ def getEntityToModify(defaultEntityType=None, browserAllowed=False, crosAllowed=
   if browserAllowed:
     entityChoices += Cmd.BROWSER_ENTITIES
   entityType = mapEntityType(getChoice(entityChoices, choiceAliases=Cmd.ENTITY_ALIAS_MAP, defaultChoice=defaultEntityType), typeMap)
-  if entityType:
-    if entityType not in Cmd.CROS_ENTITIES+Cmd.BROWSER_ENTITIES:
-      entityClass = Cmd.ENTITY_USERS
-      if entityType == Cmd.ENTITY_OAUTHUSER:
-        return (entityClass, [_getAdminEmail()])
-      entityItem = getString(Cmd.OB_USER_ENTITY, minLen=0)
-    elif entityType not in Cmd.CROS_ENTITIES:
-      entityClass = Cmd.ENTITY_CROS
-      entityItem = getString(Cmd.OB_CROS_ENTITY, minLen=0)
-    else:
-      entityClass = Cmd.ENTITY_BROWSER
-      entityItem = getString(Cmd.OB_BROWSER_ENTITY, minLen=0)
-    if not delayGet:
-      if entityClass == Cmd.ENTITY_USERS:
-        return (entityClass, getUsersToModify(entityType, entityItem, isSuspended=isSuspended, groupMemberType=groupMemberType))
-      return (entityClass, getUsersToModify(entityType, entityItem))
-    GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
-    if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
-      buildGAPIObject(API.DIRECTORY)
+  if not entityType:
+    invalidChoiceExit(Cmd.Current(), selectorChoices+entityChoices, False)
+  if entityType not in Cmd.CROS_ENTITIES+Cmd.BROWSER_ENTITIES:
+    entityClass = Cmd.ENTITY_USERS
+    if entityType == Cmd.ENTITY_OAUTHUSER:
+      return (entityClass, [_getAdminEmail()])
+    entityItem = getString(Cmd.OB_USER_ENTITY, minLen=0)
+  elif entityType in Cmd.CROS_ENTITIES:
+    entityClass = Cmd.ENTITY_CROS
+    entityItem = getString(Cmd.OB_CROS_ENTITY, minLen=0)
+  else:
+    entityClass = Cmd.ENTITY_BROWSER
+    entityItem = getString(Cmd.OB_BROWSER_ENTITY, minLen=0)
+  if not delayGet:
     if entityClass == Cmd.ENTITY_USERS:
-      if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP, Cmd.ENTITY_CIGROUP_USERS]:
-        # Skip over sub-arguments
-        while Cmd.ArgumentsRemaining():
-          myarg = getArgument()
-          if myarg in GROUP_ROLES_MAP or myarg in {'primarydomain', 'domains', 'recursive', 'includederivedmembership'}:
-            pass
-          elif myarg == 'end':
-            break
-          else:
-            Cmd.Backup()
-            missingArgumentExit('end')
-      return (entityClass,
-              {'entityType': entityType, 'entity': entityItem, 'isSuspended': isSuspended, 'groupMemberType': groupMemberType})
+      return (entityClass, getUsersToModify(entityType, entityItem, isSuspended=isSuspended, groupMemberType=groupMemberType))
+    return (entityClass, getUsersToModify(entityType, entityItem))
+  GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
+  if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
+    buildGAPIObject(API.DIRECTORY)
+  if entityClass == Cmd.ENTITY_USERS:
+    if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP, Cmd.ENTITY_CIGROUP_USERS]:
+      # Skip over sub-arguments
+      while Cmd.ArgumentsRemaining():
+        myarg = getArgument()
+        if myarg in GROUP_ROLES_MAP or myarg in {'primarydomain', 'domains', 'recursive', 'includederivedmembership'}:
+          pass
+        elif myarg == 'end':
+          break
+        else:
+          Cmd.Backup()
+          missingArgumentExit('end')
     return (entityClass,
-            {'entityType': entityType, 'entity': entityItem})
-  invalidChoiceExit(entityType, selectorChoices+entityChoices, False)
+            {'entityType': entityType, 'entity': entityItem, 'isSuspended': isSuspended, 'groupMemberType': groupMemberType})
+  return (entityClass,
+          {'entityType': entityType, 'entity': entityItem})
 
 def getEntitySelector():
   return getChoice(Cmd.ENTITY_LIST_SELECTORS, defaultChoice=None)
