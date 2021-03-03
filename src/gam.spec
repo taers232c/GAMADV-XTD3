@@ -11,7 +11,7 @@ extra_files = [
     ('sites-v1.json', '.')
     ]
 
-a = Analysis(['gam.py'],
+a = Analysis(['gam/__main__.py'],
              hiddenimports=['pkg_resources.py2_warn'],
              hookspath=None,
              excludes=['FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter'],

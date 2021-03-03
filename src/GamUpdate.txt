@@ -1,3 +1,11 @@
+5.35.00
+
+Reconfigured GAM source so that GAM can be imported/called from a Python script.
+* A new subfolder `gam` was created under `src`; all source files were moved there
+* `gam.py` was renamed to `__init__.py`, this is what allows you to `import gam`
+* `__main__.py` was created in `gam`l; it is used by the GAM executable
+* A new `gam.py` was created in `src` that allows calling gam as a single .py file
+
 5.34.04
 
 Code cleanup.
