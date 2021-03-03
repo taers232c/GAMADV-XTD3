@@ -81,9 +81,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-from dateutil.relativedelta import relativedelta
-
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+
+from dateutil.relativedelta import relativedelta
 
 from filelock import FileLock
 
@@ -122,6 +122,7 @@ from passlib.hash import sha512_crypt
 
 if platform.system() == 'Linux':
   import distro
+
 def ISOformatTimeStamp(timestamp):
   return timestamp.isoformat('T', 'seconds')
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#
-# Sample Python script to call GAM
+""" Sample Python script to call GAM"""
 
 import gam
 
