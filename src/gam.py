@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 """Provides backwards compatibility for calling gam as a single .py file"""
 
+import sys
+
 from gam.__main__ import main
 
 # Run from command line

@@ -82,6 +82,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+print('***', sys.path)
 
 from dateutil.relativedelta import relativedelta
 
