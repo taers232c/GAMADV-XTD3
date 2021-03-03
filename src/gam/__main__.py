@@ -37,3 +37,7 @@ def main(argv):
   except (IOError, ValueError):
     pass
   sys.exit(rc)
+
+# Run from command line
+if __name__ == '__main__':
+    main(sys.argv)

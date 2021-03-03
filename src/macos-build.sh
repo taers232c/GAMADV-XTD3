@@ -1,13 +1,19 @@
 rm -rf gamadv-xtd3
 rm -rf build
 rm -rf dist
-rm -f gamadv-xtd3-$1-macos.tar
 
-pyinstaller3.7 --clean --noupx --strip -F --distpath=gamadv-xtd3 gam.spec
-cp LICENSE gamadv-xtd3
-cp license.rtf gamadv-xtd3
-cp Gam*.txt gamadv-xtd3
-cp cacerts.pem gamadv-xtd3
-
-MACOSVERSION=$(defaults read loginwindow SystemVersionStampAsString | cut -c1-5)
-tar -cf gamadv-xtd3-$1-macos-$MACOSVERSION-x86_64.tar gamadv-xtd3/ 
+export gampath="dist/gamadv-xtd3"
+rm -rf $gampath
+mkdir -p $gampath
+pyinstaller --clean --noupx --strip -F --distpath=$gampath gam.spec
+export gam="$gampath/gam"
+$gam version extended
+export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
+cp LICENSE $gampath/
+cp license.rtf $gampath/
+#cp Gam*.txt $gampath/
+cp cacerts.pem $gampath/
+arch=$(uname -m)
+GAM_ARCHIVE=gamadv-xtd3-$GAMVERSION-macos-$arch.tar
+rm -f $GAM_ARCHIVE
+tar -C dist/ --create --file $GAM_ARCHIVE gamadv-xtd3
