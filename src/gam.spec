@@ -12,6 +12,7 @@ extra_files = [
     ]
 
 a = Analysis(['gam/__main__.py'],
+             pathex=['./gam'],
              hiddenimports=['pkg_resources.py2_warn'],
              hookspath=None,
              excludes=['FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter'],
