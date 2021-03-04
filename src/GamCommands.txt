@@ -3200,13 +3200,13 @@ gam delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> 
 gam info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles] [formatjson]
 gam show drivefileacls <SharedDriveEntityAdmin>
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
 gam print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]]
 gam create|add permissions <SharedDriveEntityAdmin> <DriveFilePermissionEntity>
@@ -3228,13 +3228,13 @@ gam <UserTypeEntity> delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePerm
 gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles] [formatjson] adminaccess
 gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] adminaccess
 gam <UserTypeEntity> print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]] adminaccess
 gam <UserTypeEntity> create|add permissions <SharedDriveEntityAdmin> <DriveFilePermissionEntity>
@@ -3248,11 +3248,13 @@ In these commands, the Google administrator named in oauth2.txt is used.
 gam print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]]
 gam show teamdriveacls
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]]
 
@@ -3261,11 +3263,13 @@ In these commands, you specify an administrator and then indicate that you want 
 gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]] asadmin
 gam <UserTypeEntity> show teamdriveacls
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]] asadmin
 
@@ -4215,13 +4219,13 @@ gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionI
 gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
         [showtitles] [formatjson]
 gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
 gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
+        <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        <PermissionMatch>* [<PermissionMatchAction>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionEntity>

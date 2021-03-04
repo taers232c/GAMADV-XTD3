@@ -1,3 +1,15 @@
+5.35.01
+
+Fixed bug in `gam print users` that caused a trap when `limittoou <OrgUnitItem>` and `allfields`
+were both specified.
+
+Added option `pmselect` to `gam [<UserTypeEntity>] print|show drivefileacls` and
+`gam [<UserTypeEntity>] print|show teamdriveacls` to allow selection of files/Shared Drives
+matching the specified permissions without filtering the permissions themselves.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Shared-Drives#display-shared-drive-access
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Shared-Drives#display-shared-drive-access
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Permissions#display-file-permissionssharing
+
 5.35.00
 
 Reconfigured GAM source so that GAM can be imported/called from a Python script.
@@ -5,6 +17,8 @@ Reconfigured GAM source so that GAM can be imported/called from a Python script.
 * `gam.py` was renamed to `__init__.py`, this is what allows you to `import gam`
 * `__main__.py` was created in `gam`l; it is used by the GAM executable
 * A new `gam.py` was created in `src` that allows calling gam as a single .py file
+
+If you're not using the source code, this change should have no impact.
 
 5.34.04
 

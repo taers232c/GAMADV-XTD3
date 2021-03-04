@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.35.00'
+__version__ = '5.35.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -30617,7 +30617,7 @@ def doPrintUsers(entityList=None):
       licenses = doPrintLicenses(returnFields=['userId', 'skuId'])
   if entityList is None:
     sortRows = False
-    if orgUnitPath is not None:
+    if orgUnitPath is not None and fieldsList:
       fieldsList.append('orgUnitPath')
     fields = getItemFieldsFromFieldsList('users', fieldsList)
     for query in queries:
@@ -38355,19 +38355,22 @@ class PermissionMatch():
           matchingPermissions.append(permission)
     return matchingPermissions
 
-  def CheckPermissionMatches(self, fileInfo):
+  def CheckPermissionMatches(self, permissions):
     if not self.permissionMatches:
       return True
-    permissions = fileInfo.get('permissions', [])
-    if permissions:
-      requiredMatches = 1 if self.permissionMatchOr else len(self.permissionMatches)
-      for permission in permissions:
-        for permissionMatch in self.permissionMatches:
-          if self.CheckPermissionMatch(permission, permissionMatch):
-            requiredMatches -= 1
-            if requiredMatches == 0:
-              return self.permissionMatchKeep
+    requiredMatches = 1 if self.permissionMatchOr else len(self.permissionMatches)
+    for permission in permissions:
+      for permissionMatch in self.permissionMatches:
+        if self.CheckPermissionMatch(permission, permissionMatch):
+          requiredMatches -= 1
+          if requiredMatches == 0:
+            return self.permissionMatchKeep
     return not self.permissionMatchKeep
+
+  def CheckFilePermissionMatches(self, fileInfo):
+    if not self.permissionMatches:
+      return True
+    return CheckPermissionMatches(self, fileInfo.get('permissions', []))
 
 def noFileSelectFileIdEntity(fileIdEntity):
   return (not fileIdEntity
@@ -38615,7 +38618,7 @@ class DriveListParameters():
     return not self.onlyTeamDrives or fileInfo.get('driveId') is not None
 
   def CheckPermissionMatches(self, fileInfo):
-    return self.PM.CheckPermissionMatches(fileInfo)
+    return self.PM.CheckFilePermissionMatches(fileInfo)
 
 FILELIST_FIELDS_TITLES = ['id', 'name', 'mimeType', 'parents']
 DRIVE_INDEXED_TITLES = ['parents', 'path', 'permissions']
@@ -38693,7 +38696,7 @@ def printFileList(users):
         not DLP.CheckMimeType(f_file) or
         not DLP.CheckMinimumFileSize(f_file) or
         not DLP.CheckFilenameMatch(f_file) or
-        (not checkTeamDrivePermissions and not DLP.CheckPermissionMatches(f_file)) or
+        (not checkTeamDrivePermissions and not DLP.CheckFilePermissionMatches(f_file)) or
         (DLP.onlyTeamDrives and not driveId)):
       return
     if checkTeamDrivePermissions:
@@ -38701,7 +38704,7 @@ def printFileList(users):
         f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
                                               fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
-        if not DLP.CheckPermissionMatches(f_file):
+        if not DLP.CheckFilePermissionMatches(f_file):
           return
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
@@ -39345,7 +39348,7 @@ def printShowFileCounts(users):
               not DLP.CheckExcludeTrashed(f_file) or
               not DLP.CheckMinimumFileSize(f_file) or
               not DLP.CheckFilenameMatch(f_file) or
-              (not checkTeamDrivePermissions and not DLP.CheckPermissionMatches(f_file)) or
+              (not checkTeamDrivePermissions and not DLP.CheckFilePermissionMatches(f_file)) or
               (DLP.onlyTeamDrives and not driveId)):
             continue
           if checkTeamDrivePermissions:
@@ -39353,7 +39356,7 @@ def printShowFileCounts(users):
               f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
                                                     fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
-              if not DLP.CheckPermissionMatches(f_file):
+              if not DLP.CheckFilePermissionMatches(f_file):
                 continue
             except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
                     GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy, GAPI.badRequest):
@@ -39457,7 +39460,7 @@ def printShowFileTree(users):
         if (DLP.CheckMimeType(childEntry['info']) and
             DLP.CheckMinimumFileSize(childEntry['info']) and
             DLP.CheckFilenameMatch(childEntry['info']) and
-            DLP.CheckPermissionMatches(childEntry['info'])):
+            DLP.CheckFilePermissionMatches(childEntry['info'])):
           _showFileInfo(childEntry['info'], depth)
         if childEntry['info']['mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
           Ind.Increment()
@@ -39488,7 +39491,7 @@ def printShowFileTree(users):
       if (DLP.CheckMimeType(childEntryInfo) and
           DLP.CheckMinimumFileSize(childEntryInfo) and
           DLP.CheckFilenameMatch(childEntryInfo) and
-          DLP.CheckPermissionMatches(childEntryInfo)):
+          DLP.CheckFilePermissionMatches(childEntryInfo)):
         _showFileInfo(childEntryInfo, depth)
       if childEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
         Ind.Increment()
@@ -43892,20 +43895,20 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
   return True
 
 # gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-#	<PermissionMatch>* [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
 # gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
+#	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-#	<PermissionMatch>* [<PermissionMatchAction>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson] [adminaccess|asadmin]
 def printShowDriveFileACLs(users, useDomainAdminAccess=False):
   csvPF = CSVPrintFile(['Owner', 'id'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fileIdEntity = getDriveFileEntity()
-  oneItemPerRow = showTitles = False
+  oneItemPerRow = pmselect = showTitles = False
   fieldsList = []
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   PM = PermissionMatch()
@@ -43927,6 +43930,8 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       pass
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
+    elif myarg == 'pmselect':
+      pmselect = True
     elif PM.ProcessArgument(myarg):
       pass
     else:
@@ -43950,10 +43955,10 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       if showTitles:
         fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvPF or FJQC.formatJSON), useDomainAdminAccess)
       try:
-        results = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
-                                useDomainAdminAccess=useDomainAdminAccess,
-                                fileId=fileId, fields=fields, supportsAllDrives=True)
+        permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
+                                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
+                                    useDomainAdminAccess=useDomainAdminAccess,
+                                    fileId=fileId, fields=fields, supportsAllDrives=True)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.insufficientAdministratorPrivileges) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
@@ -43964,7 +43969,11 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
-      permissions = PM.GetMatchingPermissions(results)
+      if pmselect:
+        if not PM.CheckPermissionMatches(permissions):
+          continue
+      else:
+        permissions = PM.GetMatchingPermissions(permissions)
       if not csvPF:
         if not FJQC.formatJSON:
           _showDriveFilePermissions(entityType, fileName, permissions, printKeys, timeObjects, j, jcount)
@@ -44624,24 +44633,27 @@ def doPrintShowTeamDrives():
 
 TEAMDRIVE_INDEXED_TITLES = ['permissions']
 
-# gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
+# gam [<UserTypeEntity>] print teamdriveacls [todrive <ToDriveAttribute>*]
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
+#	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	[formatjson [quotechar <Character>]]
 #	asadmin
-# gam <UserTypeEntity> show teamdriveacls
+# gam [<UserTypeEntity>] show teamdriveacls
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
+#	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	asadmin
 def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
   csvPF = CSVPrintFile(['User', 'id', 'name'], 'sortall', TEAMDRIVE_INDEXED_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   roles = set()
-  checkGroups = oneItemPerRow = False
+  checkGroups = oneItemPerRow = pmselect = False
   fieldsList = []
   emailAddress = query = matchPattern = permtype = None
+  PM = PermissionMatch()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -44666,6 +44678,10 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       pass
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
+    elif PM.ProcessArgument(myarg):
+      pass
+    elif myarg == 'pmselect':
+      pmselect = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if query and not useDomainAdminAccess:
@@ -44738,11 +44754,16 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       printGettingAllEntityItemsForWhom(Ent.PERMISSION, teamdrive['name'], j, jcount)
       teamdrive['permissions'] = []
       try:
-        results = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
-                                useDomainAdminAccess=useDomainAdminAccess,
-                                fileId=teamdrive['id'], fields=fields, supportsAllDrives=True)
-        for permission in results:
+        permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
+                                    throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                                    useDomainAdminAccess=useDomainAdminAccess,
+                                    fileId=teamdrive['id'], fields=fields, supportsAllDrives=True)
+        if pmselect:
+          if not PM.CheckPermissionMatches(permissions):
+            continue
+        else:
+          permissions = PM.GetMatchingPermissions(permissions)
+        for permission in permissions:
           if roles and permission['role'] not in roles:
             continue
           if permtype is None:
@@ -51029,6 +51050,12 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
 
 # Process GAM command
 def CallGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=False):
+  if sys.platform == 'darwin':
+    # https://bugs.python.org/issue33725 in Python 3.8.0 seems
+    # to break parallel operations with errors about extra -b
+    # command line arguments
+    multiprocessing.set_start_method('fork')
+  initializeLogging()
   return ProcessGAMCommand(args, processGamCfg=processGamCfg, inLoop=inLoop, closeSTD=closeSTD)
 
 # gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]
