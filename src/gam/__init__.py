@@ -13368,6 +13368,7 @@ def doPrintOrgs():
           if message[15:] == pageToken:
             tokenRetries += 1
             if tokenRetries <= 2:
+              writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
               time.sleep(tokenRetries*5)
               continue
           entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, None], message)
@@ -17233,6 +17234,7 @@ def doPrintCrOSDevices(entityList=None):
           if message[15:] == pageToken:
             tokenRetries += 1
             if tokenRetries <= 2:
+              writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
               time.sleep(tokenRetries*5)
               continue
             entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
@@ -17440,6 +17442,7 @@ def doPrintCrOSActivity(entityList=None):
           if message[15:] == pageToken:
             tokenRetries += 1
             if tokenRetries <= 2:
+              writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
               time.sleep(tokenRetries*5)
               continue
             entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
