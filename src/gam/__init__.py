@@ -5203,11 +5203,11 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     try:
       result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
                              pageMessage=getPageMessage(),
-                             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                             throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                              customerId=GC.Values[GC.CUSTOMER_ID],
                              fields='nextPageToken,chromeosdevices(deviceId)',
                              maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    except (GAPI.invalidInput, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
     entityList = [device['deviceId'] for device in result]
   elif entityType in {Cmd.ENTITY_CROS_QUERY, Cmd.ENTITY_CROS_QUERIES, Cmd.ENTITY_CROS_SN}:
@@ -5253,11 +5253,12 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         try:
           result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
                                  pageMessage=getPageMessage(),
-                                 throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                                 throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                               GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                  customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou,
                                  fields='nextPageToken,chromeosdevices(deviceId)',
                                  maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.resourceNotFound, GAPI.forbidden):
+        except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
           _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
           continue
@@ -5284,11 +5285,11 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         try:
           result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
                                  pageMessage=getPageMessage(),
-                                 throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                                 throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                  customerId=GC.Values[GC.CUSTOMER_ID],
                                  fields='nextPageToken,chromeosdevices(deviceId,orgUnitPath)',
                                  maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        except (GAPI.invalidInput, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
           accessErrorExit(cd)
         for device in result:
           deviceOu = device['orgUnitPath'].lower()
@@ -13351,18 +13352,31 @@ def doPrintOrgs():
       pageMessage = getPageMessage()
       pageToken = None
       totalItems = 0
+      tokenRetries = 0
       while True:
         try:
           feed = callGAPI(cd.chromeosdevices(), 'list', 'chromeosdevices',
-                          throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
-                                        GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                        GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           pageToken=pageToken,
                           customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath,
                           fields='nextPageToken,chromeosdevices(status)', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput, GAPI.badRequest, GAPI.backendError,
+        except GAPI.invalidInput as e:
+          message = str(e)
+# Invalid Input: xyz - Check for invalid pageToken!!
+# 0123456789012345
+          if message[15:] == pageToken:
+            tokenRetries += 1
+            if tokenRetries <= 2:
+              time.sleep(tokenRetries*5)
+              continue
+          entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, None], message)
+          break
+        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.backendError,
                 GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
           break
+        tokenRetries = 0
         pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
         if feed:
           for cros in feed.get('chromeosdevices', []):
@@ -17203,21 +17217,34 @@ def doPrintCrOSDevices(entityList=None):
       pageMessage = getPageMessage()
       pageToken = None
       totalItems = 0
+      tokenRetries = 0
       while True:
         try:
           feed = callGAPI(cd.chromeosdevices(), 'list',
-                          throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
+                                        GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           pageToken=pageToken,
                           customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
                           orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except GAPI.invalidInput:
-          entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query))
+        except GAPI.invalidInput as e:
+          message = str(e)
+# Invalid Input: xyz - Check for invalid pageToken!!
+# 0123456789012345
+          if message[15:] == pageToken:
+            tokenRetries += 1
+            if tokenRetries <= 2:
+              time.sleep(tokenRetries*5)
+              continue
+            entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
+            return
+          entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query) if query is not None else message)
           return
         except GAPI.invalidOrgunit as e:
           entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
           return
         except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
           accessErrorExit(cd)
+        tokenRetries = 0
         pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
         if feed:
           for cros in feed.get('chromeosdevices', []):
@@ -17397,21 +17424,34 @@ def doPrintCrOSActivity(entityList=None):
       pageMessage = getPageMessage()
       pageToken = None
       totalItems = 0
+      tokenRetries = 0
       while True:
         try:
           feed = callGAPI(cd.chromeosdevices(), 'list',
-                          throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
+                                        GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           pageToken=pageToken,
                           customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
                           orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except GAPI.invalidInput:
-          entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query))
+        except GAPI.invalidInput as e:
+          message = str(e)
+# Invalid Input: xyz - Check for invalid pageToken!!
+# 0123456789012345
+          if message[15:] == pageToken:
+            tokenRetries += 1
+            if tokenRetries <= 2:
+              time.sleep(tokenRetries*5)
+              continue
+            entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
+            return
+          entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query) if query is not None else message)
           return
         except GAPI.invalidOrgunit as e:
           entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
           return
         except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
           accessErrorExit(cd)
+        tokenRetries = 0
         pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
         if feed:
           for cros in feed.get('chromeosdevices', []):
