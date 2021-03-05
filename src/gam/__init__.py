@@ -7638,19 +7638,12 @@ def terminateStdQueueHandler(mpQueue, mpQueueHandler):
   mpQueue.put((0, GM.REDIRECT_QUEUE_EOF, None))
   mpQueueHandler.join()
 
-###
-#def debugWriteStderr(pid, data):
-#  sys.stderr.write(f'{currentISOformatTimeStamp()},{pid},{data}\n')
-#  sys.stderr.flush()
-
 def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                            todrive,
                            csvColumnDelimiter, csvQuoteChar,
                            csvHeaderFilter, csvHeaderDropFilter,
                            csvRowFilter, csvRowDropFilter,
                            args):
-###
-#  debugWriteStderr(pid, '1 - Init')  
   initializeLogging()
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -7670,8 +7663,6 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
   GM.Globals[GM.CSVFILE] = {}
   if mpQueueCSVFile:
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
-###
-#  debugWriteStderr(pid, '2 - stdout setup')  
   if mpQueueStdout:
     GM.Globals[GM.STDOUT] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
     if GM.Globals[GM.SAVED_STDOUT] is not None:
@@ -7680,8 +7671,6 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
     mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_START, args))
   else:
     GM.Globals[GM.STDOUT] = {}
-###
-#  debugWriteStderr(pid, '3 - stderr setup')  
   if mpQueueStderr:
     if mpQueueStderr is not mpQueueStdout:
       GM.Globals[GM.STDERR] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
@@ -7690,24 +7679,15 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
       GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
   else:
     GM.Globals[GM.STDERR] = {}
-###
-#  debugWriteStderr(pid, '4 - Call')  
   sysRC = ProcessGAMCommand(args)
-###
-#  debugWriteStderr(pid, f'5 - Return {sysRC}')  
-#  debugWriteStderr(pid, '6 - stdout end')  
   if mpQueueStdout:
     mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()]))
     GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].close()
     GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = None
-###
-#  debugWriteStderr(pid, '7 - stderr end')  
   if mpQueueStderr and mpQueueStderr is not mpQueueStdout:
     mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()]))
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].close()
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
-###
-#  debugWriteStderr(pid, '8 - stdout end')  
   return pid
 
 def batchWriteStderr(data):
@@ -7732,8 +7712,6 @@ def MultiprocessGAMCommands(items, logCmds):
   def poolCallback(pid):
     poolProcessResults[0] -= 1
     if logCmds:
-###
-#      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},9 - Complete\n')
       batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},Complete\n')
 
   if not items:
@@ -7798,8 +7776,6 @@ def MultiprocessGAMCommands(items, logCmds):
       if not logCmds and pid % 100 == 0:
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
       if logCmds:
-###
-#        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},0 - {Cmd.QuotedArgumentList(item)}\n')
         batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
@@ -38367,11 +38343,6 @@ class PermissionMatch():
             return self.permissionMatchKeep
     return not self.permissionMatchKeep
 
-  def CheckFilePermissionMatches(self, fileInfo):
-    if not self.permissionMatches:
-      return True
-    return CheckPermissionMatches(self, fileInfo.get('permissions', []))
-
 def noFileSelectFileIdEntity(fileIdEntity):
   return (not fileIdEntity
           or (not fileIdEntity['dict']
@@ -38617,8 +38588,8 @@ class DriveListParameters():
   def CheckOnlyTeamDrives(self, fileInfo):
     return not self.onlyTeamDrives or fileInfo.get('driveId') is not None
 
-  def CheckPermissionMatches(self, fileInfo):
-    return self.PM.CheckFilePermissionMatches(fileInfo)
+  def CheckFilePermissionMatches(self, fileInfo):
+    return self.PM.CheckPermissionMatches(fileInfo.get('permissions', []))
 
 FILELIST_FIELDS_TITLES = ['id', 'name', 'mimeType', 'parents']
 DRIVE_INDEXED_TITLES = ['parents', 'path', 'permissions']
