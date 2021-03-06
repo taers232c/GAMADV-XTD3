@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.35.01'
+__version__ = '5.35.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -35219,11 +35219,11 @@ def wipeCalendarEvents(users):
     _wipeCalendarEvents(user, cal, calIds, jcount)
     Ind.Decrement()
 
-# gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to <CalendarItem> [<EventNotificationAttribute>]
+# gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to|destination <CalendarItem> [<EventNotificationAttribute>]
 def moveCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
-  checkArgumentPresent('to')
+  checkArgumentPresent(['to', 'destination'])
   newCalId = convertUIDtoEmailAddress(getString(Cmd.OB_CALENDAR_ITEM))
   parameters, _ = _getCalendarMoveEventsOptions()
   if not checkCalendarExists(None, newCalId, True):
