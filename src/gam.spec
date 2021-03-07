@@ -13,7 +13,7 @@ extra_files = [
     ('contactdelegation-v1.json', '.'),
     ('sites-v1.json', '.')
     ]
-extra_files += copy_metadata('gam/googleapiclient')
+extra_files += copy_metadata('google-api-python-client')
 
 a = Analysis(['gam/__main__.py'],
              pathex=['./gam'],
