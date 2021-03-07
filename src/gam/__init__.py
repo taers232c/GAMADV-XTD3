@@ -3787,7 +3787,7 @@ DISCOVERY_URIS = [googleapiclient.discovery.V1_DISCOVERY_URI, googleapiclient.di
 def getAPIService(api, httpObj):
   api, version, v2discovery = API.getVersion(api)
   return googleapiclient.discovery.build(api, version, http=httpObj, cache_discovery=False,
-                                         discoveryServiceUrl=DISCOVERY_URIS[v2discovery])
+                                         discoveryServiceUrl=DISCOVERY_URIS[v2discovery], static_discovery=False)
 
 def getService(api, httpObj):
   hasLocalJSON = API.hasLocalJSON(api)
@@ -3802,7 +3802,7 @@ def getService(api, httpObj):
     for n in range(1, retries+1):
       try:
         service = googleapiclient.discovery.build(api, version, http=httpObj, cache_discovery=False,
-                                                  discoveryServiceUrl=DISCOVERY_URIS[v2discovery])
+                                                  discoveryServiceUrl=DISCOVERY_URIS[v2discovery], static_discovery=False)
         GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
         GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
         if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
