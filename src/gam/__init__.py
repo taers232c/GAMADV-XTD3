@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.35.02'
+__version__ = '5.35.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -38349,7 +38349,7 @@ class PermissionMatch():
         if field in permission:
           if not value.match(permission[field]):
             break
-        elif 'emailAddress' in permission:
+        elif 'emailAddress' in permission and permission['emailAddress']:
           _, domain = splitEmailAddress(permission['emailAddress'])
           if not value.match(domain):
             break
