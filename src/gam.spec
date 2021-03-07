@@ -19,6 +19,7 @@ a = Analysis(['gam/__main__.py'],
              datas=extra_files,
              runtime_hooks=None)
 
+a.datas += copy_metadata('google-api-python-client')
 for d in a.datas:
     if 'pyconfig' in d[0]:
         a.datas.remove(d)
