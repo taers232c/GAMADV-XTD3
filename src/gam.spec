@@ -1,5 +1,8 @@
 # -*- mode: python -*-
+
 import sys
+
+from PyInstaller.utils.hooks import copy_metadata
 
 sys.modules['FixTk'] = None
 
