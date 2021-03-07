@@ -10,6 +10,7 @@ extra_files = [
     ('contactdelegation-v1.json', '.'),
     ('sites-v1.json', '.')
     ]
+extra_files += copy_metadata('google-api-python-client')
 
 a = Analysis(['gam/__main__.py'],
              pathex=['./gam'],
@@ -19,7 +20,6 @@ a = Analysis(['gam/__main__.py'],
              datas=extra_files,
              runtime_hooks=None)
 
-a.datas += copy_metadata('google-api-python-client')
 for d in a.datas:
     if 'pyconfig' in d[0]:
         a.datas.remove(d)
