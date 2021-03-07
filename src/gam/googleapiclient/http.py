@@ -28,9 +28,7 @@ __author__ = "jcgregorio@google.com (Joe Gregorio)"
 from six import BytesIO, StringIO
 from six.moves.urllib.parse import urlparse, urlunparse, quote, unquote
 
-import base64
 import copy
-import gzip
 import httplib2
 import json
 import logging
@@ -38,7 +36,6 @@ import mimetypes
 import os
 import random
 import socket
-import sys
 import time
 import uuid
 
@@ -116,7 +113,9 @@ def _should_retry_response(resp_status, content):
         try:
             data = json.loads(content.decode("utf-8"))
             if isinstance(data, dict):
-                reason = data["error"]["errors"][0]["reason"]
+                reason = data["error"].get("status")
+                if reason is None:
+                    reason = data["error"]["errors"][0]["reason"]
             else:
                 reason = data[0]["error"]["errors"]["reason"]
         except (UnicodeDecodeError, ValueError, KeyError):
@@ -179,20 +178,24 @@ def _retry_request(
         except _ssl_SSLError as ssl_error:
             exception = ssl_error
         except socket.timeout as socket_timeout:
-            # It's important that this be before socket.error as it's a subclass
+            # Needs to be before socket.error as it's a subclass of OSError
             # socket.timeout has no errorcode
             exception = socket_timeout
         except ConnectionError as connection_error:
-            # Needs to be before socket.error as it's a subclass of
-            # OSError (socket.error)
+            # Needs to be before socket.error as it's a subclass of OSError
             exception = connection_error
-        except socket.error as socket_error:
+        except OSError as socket_error:
             # errno's contents differ by platform, so we have to match by name.
+            # Some of these same errors may have been caught above, e.g. ECONNRESET *should* be
+            # raised as a ConnectionError, but some libraries will raise it as a socket.error
+            # with an errno corresponding to ECONNRESET
             if socket.errno.errorcode.get(socket_error.errno) not in {
                 "WSAETIMEDOUT",
                 "ETIMEDOUT",
                 "EPIPE",
                 "ECONNABORTED",
+                "ECONNREFUSED",
+                "ECONNRESET",
             }:
                 raise
             exception = socket_error
@@ -571,8 +574,9 @@ class MediaFileUpload(MediaIoBaseUpload):
       resumable: bool, True if this is a resumable upload. False means upload
         in a single request.
     """
+        self._fd = None
         self._filename = filename
-        fd = open(self._filename, "rb")
+        self._fd = open(self._filename, "rb")
         if mimetype is None:
             # No mimetype provided, make a guess.
             mimetype, _ = mimetypes.guess_type(filename)
@@ -580,11 +584,12 @@ class MediaFileUpload(MediaIoBaseUpload):
                 # Guess failed, use octet-stream.
                 mimetype = "application/octet-stream"
         super(MediaFileUpload, self).__init__(
-            fd, mimetype, chunksize=chunksize, resumable=resumable
+            self._fd, mimetype, chunksize=chunksize, resumable=resumable
         )
 
     def __del__(self):
-        self._fd.close()
+        if self._fd:
+            self._fd.close()
 
     def to_json(self):
         """Creating a JSON representation of an instance of MediaFileUpload.
@@ -745,8 +750,16 @@ class MediaIoBaseDownload(object):
             if self._total_size is None or self._progress == self._total_size:
                 self._done = True
             return MediaDownloadProgress(self._progress, self._total_size), self._done
-        else:
-            raise HttpError(resp, content, uri=self._uri)
+        elif resp.status == 416:
+            # 416 is Range Not Satisfiable
+            # This typically occurs with a zero byte file
+            content_range = resp["content-range"]
+            length = content_range.rsplit("/", 1)[1]
+            self._total_size = int(length)
+            if self._total_size == 0:
+                self._done = True
+                return MediaDownloadProgress(self._progress, self._total_size), self._done
+        raise HttpError(resp, content, uri=self._uri)
 
 
 class _StreamSlice(object):
@@ -1026,12 +1039,16 @@ class HttpRequest(object):
             chunk_end = self.resumable_progress + len(data) - 1
 
         headers = {
-            "Content-Range": "bytes %d-%d/%s"
-            % (self.resumable_progress, chunk_end, size),
             # Must set the content-length header here because httplib can't
             # calculate the size when working with _StreamSlice.
             "Content-Length": str(chunk_end - self.resumable_progress + 1),
         }
+
+        # An empty file results in chunk_end = -1 and size = 0
+        # sending "bytes 0--1/0" results in an invalid request
+        # Only add header "Content-Range" if chunk_end != -1
+        if chunk_end != -1:
+            headers["Content-Range"] = "bytes %d-%d/%s" % (self.resumable_progress, chunk_end, size)
 
         for retry_num in range(num_retries + 1):
             if retry_num > 0:
@@ -1118,6 +1135,10 @@ class HttpRequest(object):
             resumable=d["resumable"],
         )
 
+    @staticmethod
+    def null_postproc(resp, contents):
+        return resp, contents
+
 
 class BatchHttpRequest(object):
     """Batches multiple HttpRequest objects into a single HTTP request.
@@ -1168,7 +1189,7 @@ class BatchHttpRequest(object):
             batch_uri = _LEGACY_BATCH_URI
 
         if batch_uri == _LEGACY_BATCH_URI:
-            LOGGER.warn(
+            LOGGER.warning(
                 "You have constructed a BatchHttpRequest using the legacy batch "
                 "endpoint %s. This endpoint will be turned down on August 12, 2020. "
                 "Please provide the API-specific endpoint or use "
@@ -1416,7 +1437,7 @@ class BatchHttpRequest(object):
       http: httplib2.Http, an http object to be used to make the request with.
       order: list, list of request ids in the order they were added to the
         batch.
-      request: list, list of request objects to send.
+      requests: list, list of request objects to send.
 
     Raises:
       httplib2.HttpLib2Error if a transport error has occurred.
@@ -1690,9 +1711,8 @@ class HttpMock(object):
         if headers is None:
             headers = {"status": "200"}
         if filename:
-            f = open(filename, "rb")
-            self.data = f.read()
-            f.close()
+            with open(filename, "rb") as f:
+                self.data = f.read()
         else:
             self.data = None
         self.response_headers = headers
@@ -1717,6 +1737,8 @@ class HttpMock(object):
         self.headers = headers
         return httplib2.Response(self.response_headers), self.data
 
+    def close(self):
+        return None
 
 class HttpMockSequence(object):
     """Mock of httplib2.Http
@@ -1749,6 +1771,7 @@ class HttpMockSequence(object):
     """
         self._iterable = iterable
         self.follow_redirects = True
+        self.request_sequence = list()
 
     def request(
         self,
@@ -1759,6 +1782,8 @@ class HttpMockSequence(object):
         redirections=1,
         connection_type=None,
     ):
+        # Remember the request so after the fact this mock can be examined
+        self.request_sequence.append((uri, method, body, headers))
         resp, content = self._iterable.pop(0)
         content = six.ensure_binary(content)
 

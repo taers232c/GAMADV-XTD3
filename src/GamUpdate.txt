@@ -2,6 +2,8 @@
 
 Fixed bug in permission matching where `pm domain domain.com em` would match an ACL referencing a deleted user.
 
+Updated google-api-python-client to version 2.0.2.
+
 5.35.02
 
 Fixed bug in `gam <UserTypeEntity> move events` where `destination` was not recognized as a synonym for `to`.
