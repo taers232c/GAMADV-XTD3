@@ -9,7 +9,7 @@ OPTIONS:
    -h      show help.
    -d      Directory where gam folder will be installed. Default is \$HOME/bin/
    -o      OS we are running (linux, macos). Default is to detect your OS with "uname -s".
-   -a      Architecture to install (x86_64, x86_64_legacy, arm, arm64); only applies to Linux. Default is to detect your arch with "uname -m".
+   -a      Architecture to install (x86_64, arm64); only applies to Linux. Default is to detect your arch with "uname -m".
    -b      OS version. Default is to detect on MacOS and Linux.
    -l      Just upgrade GAM to latest version. Skips project creation and auth.
    -p      Profile update (true, false). Should script add gam command to environment. Default is true.
@@ -104,7 +104,7 @@ case $gamos in
     echo "This Linux distribution uses glibc $this_glibc_ver"
     case $gamarch in
       x86_64)
-        useglibc="legacy"
+        useglibc=""
         for gam_glibc_ver in $gam_x86_64_glibc_vers; do
           if version_gt $this_glibc_ver $gam_glibc_ver; then
             useglibc="glibc$gam_glibc_ver"
@@ -117,8 +117,6 @@ case $gamos in
           exit
         fi
         gamfile="linux-x86_64-$useglibc.tar.xz";;
-      x86_64_legacy)
-        gamfile="linux-x86_64-legacy.tar.xz";;
       arm|arm64|aarch64)
         useglibc=""
         for gam_glibc_ver in $gam_arm64_glibc_vers; do
@@ -141,29 +139,6 @@ case $gamos in
   [Mm]ac[Oo][sS]|[Dd]arwin)
     gamos="macos"
     gamfile="macos-x86_64.tar"
-#    if [ "$osversion" == "" ]; then
-#      this_macos_ver=$(sw_vers -productVersion | cut -c1-5)
-#    else
-#      this_macos_ver=$osversion
-#    fi
-#    if [ "$this_macos_ver" == "allmacos" ]; then
-#	gamfile="macos-x86_64.tar"
-#    else
-#      echo "You are running MacOS $this_macos_ver"
-#      use_macos_ver=""
-#      for gam_macos_ver in $gam_macos_vers; do
-#        if version_gt $this_macos_ver $gam_macos_ver; then
-#          use_macos_ver="$gam_macos_ver"
-#          echo_green "Using GAM compiled on $use_macos_ver"
-#          break
-#        fi
-#      done
-#      if [ "$use_macos_ver" == "" ]; then
-#        echo_red "Sorry, you need to be running at least MacOS $gam_macos_ver to run GAM"
-#        exit
-#      fi
-#      gamfile="macos-$use_macos_ver-x86_64.tar"
-#    fi
     ;;
   *)
     echo_red "Sorry, this installer currently only supports Linux and MacOS. Looks like you're runnning on $gamos. Exiting."
