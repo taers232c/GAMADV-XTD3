@@ -1,3 +1,8 @@
+5.35.04
+
+Fixed bug in `gam <UserTypeEntity> delete|update filerevisions <DriveFileEntity> select last 1`
+where GAM incorrectly reported `No Drive File Revisions matched` if the file had only one revision.
+
 5.35.03
 
 Fixed bug in permission matching where `pm domain domain.com em` would match an ACL referencing a deleted user.

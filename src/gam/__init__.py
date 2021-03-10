@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.35.03'
+__version__ = '5.35.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -37606,11 +37606,11 @@ def _selectRevisionIds(drive, fileId, origUser, user, i, count, j, jcount, revis
     revisionIds = [revision['id'] for revision in results]
     if countType == 'first':
       if count >= numRevisions:
-        return revisionIds[:-1]
+        return revisionIds
       return revisionIds[:count]
     if countType == 'last':
       if count >= numRevisions:
-        return revisionIds[1:]
+        return revisionIds
       return revisionIds[-count:]
     if countType == 'allexceptfirst':
       if count >= numRevisions:
