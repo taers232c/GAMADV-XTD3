@@ -91,7 +91,8 @@ class GamAction():
   RETRIEVE_DATA = 'retd'
   REVOKE = 'revo'
   SAVE = 'save'
-  SENDEMAIL = 'send'
+  SEND = 'send'
+  SENDEMAIL = 'snem'
   SET = 'set '
   SHOW = 'show'
   SIGNOUT = 'siou'
@@ -115,6 +116,7 @@ class GamAction():
   UNZIP = 'unzi'
   USE = 'use '
   VERIFY = 'vrfy'
+  WAITFORMAILBOX = 'wamb'
   WATCH = 'watc'
   WIPE = 'wipe'
   WIPE_PREVIEW = 'wipp'
@@ -190,6 +192,7 @@ class GamAction():
     RETRIEVE_DATA: ['Data Retrieved', 'Retrieve Data'],
     REVOKE: ['Revoked', 'Revoke'],
     SAVE: ['Saved', 'Save'],
+    SEND: ['Sent', 'Send'],
     SENDEMAIL: ['Email Sent', 'Send Email'],
     SET: ['Set', 'Set'],
     SHOW: ['Shown', 'Show'],
@@ -214,6 +217,7 @@ class GamAction():
     UPLOAD: ['Uploaded', 'Upload'],
     USE: ['Used', 'Use'],
     VERIFY: ['Verified', 'Verify'],
+    WAITFORMAILBOX: ['Mailbox is Setup', 'Check Mailbox is Setup'],
     WATCH: ['Watched', 'Watch'],
     WIPE: ['Wiped', 'Wipe'],
     WIPE_PREVIEW: ['Wiped (Preview)', 'Wipe (Preview)'],

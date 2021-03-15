@@ -1,3 +1,20 @@
+5.35.05
+
+Modified how `gam cros_ou_and_children <OrgUnitItem> ...` and `gam cros_ous_and_children <OrgUnitList> ...` are processed.
+The Google Directory API does not support getting all CrOS devices in an OU and its sub OUs; previously, when these options
+were used, GAM made a single API call to retrieve the entire list of CrOS devices and selected the desired devices.
+For customers with a small number of CrOS devices this didn't cause an issue, for customers with large numbers of CrOS devices,
+this could be slow. Now, GAM makes a separate API call for the OU and ech of its sub OUs to retrieve the CrOS devices.
+
+Expanded the options to select CrOS devices by OU in `gam print cros` and `gam print crosactivity`.
+```
+(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+ (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]
+```
+Using `gam print cros cros_ou /Students fields ...` will be much faster than `gam cros_ou /Students print cros fields ...`
+as the second form makes one API call to retrieve the CrOS device IDs and then another API call per device to get the fields.
+In the first form, GAM makes a single API call to retrieve the devices and their fields.
+
 5.35.04
 
 Fixed bug in `gam <UserTypeEntity> delete|update filerevisions <DriveFileEntity> select last 1`

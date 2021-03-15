@@ -23,6 +23,7 @@
 # These values can be translated into other languages
 # Project creation messages in order of appearance
 CREATING_PROJECT = 'Creating project "{0}"...\n'
+CHECK_INTERRUPTED = 'Check interrupted'
 CHECKING_PROJECT_CREATION_STATUS = 'Checking project creation status...\n'
 NO_RIGHTS_GOOGLE_CLOUD_ORGANIZATION = 'Looks like you have no rights to your Google Cloud Organization.\nAttempting to fix that...\n'
 YOUR_ORGANIZATION_NAME_IS = 'Your organization name is {0}\n'
@@ -351,6 +352,7 @@ REPLY_TO_CUSTOM_REQUIRES_EMAIL_ADDRESS = 'replyto REPLY_TO_CUSTOM requires custo
 REQUEST_COMPLETED_NO_FILES = 'Request completed but no results/files were returned, try requesting again'
 REQUEST_NOT_COMPLETE = 'Request needs to be completed before downloading, current status is: {0}'
 RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET = 'Results are too large for Google Spreadsheets. Uploading as a regular CSV file.'
+RETRIES_EXHAUSTED = 'Retries {0} exhausted'
 SCHEMA_WOULD_HAVE_NO_FIELDS = '{0} would have no {1}'
 SELECTED = 'Selected'
 SERVICE_NOT_APPLICABLE = 'Service not applicable/Does not exist'

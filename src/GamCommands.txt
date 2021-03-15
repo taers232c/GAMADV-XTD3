@@ -387,13 +387,7 @@ If an item contains spaces, it should be surrounded by ".
 <ParameterKey> ::= <String>
 <ParameterValue> ::= <String>
 <Password> ::= <String>
-<PrinterACLScope> ::=
-        <UserTypeEntity>|user:<EmailAdress>|group:<EmailAddress>|
-        domain:<DomainName>)|domain|public
 <PrinterID> ::= <String>
-<PrintJobAge> ::= <Number>(m|h|d|w)
-<PrintJobID> ::= <String>
-<PrintJobStatus> ::= done|error|held|in_progress|queued|submitted
 <ProjectID> ::= <String>
         Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <ProjectName> ::= <String>
@@ -423,10 +417,6 @@ If an item contains spaces, it should be surrounded by ".
         See: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups
 <QueryMobile> ::= <String>
         See: https://support.google.com/a/answer/7549103
-<QueryPrinter> ::= <String>
-        See: https://developers.google.com/cloud-print/docs/appInterfaces#search
-<QueryPrintJob> ::= <String>
-        See: https://developers.google.com/cloud-print/docs/appInterfaces#parameters_3
 <QueryTeamDrive> ::= <String>
         See: https://developers.google.com/drive/api/v3/search-parameters
 <QueryUser> ::= <String>
@@ -546,16 +536,12 @@ If an item contains spaces, it should be surrounded by ".
 <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
 <MobileIDList> ::= "<MobileID>(,<MobileID>)*"
 <OrgUnitList> ::= "<OrgUnitItem>(,<OrgUnitItem>)*"
-<PrinterACLScopeList> ::= "<PrinterACLScope>(,<PrinterACLScope>)*"
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
-<PrintJobIDList> ::= "<PrintJobID>(,<PrintJobID>)*"
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
 <QueryBrowserList> ::= "<QueryBrowser>(,<QueryBrowser>)*"
 <QueryCrOSList> ::= "<QueryCrOS>(,<QueryCrOS>)*"
 <QueryDeviceList> ::= "<QueryDevice>(,<QueryDevice>)*"
 <QueryMobileList> ::= "<QueryMobile>(,<QueryMobile>)*"
-<QueryPrinterList> ::= "<QueryPrinter>(,<QueryPrinter>)*"
-<QueryPrintJobList> ::= "<QueryPrintJob>(,<QueryPrintJob>)*"
 <QueryUserList> ::= "<QueryUser>(,<QueryUser>)*"
 <ResourceIDList> ::= "<ResourceID>(,<ResourceID>)*"
 <SchemaNameList> ::= "<SchemaName>(,<SchemaName>)*"
@@ -854,9 +840,7 @@ Specify a collection of items by directly specifying them; the item type is dete
         <MobileIDList> |
         (query:<QueryMobile>)|(query <QueryMobile>)
 <OrgUnitEntity> ::= <OrgUnitList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
-<PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<PrinterIDEntity> ::= <PrinterIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
-<PrintJobEntity> ::= <PrintJobIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+<PrinterIDEntity> ::= <PrinterIDList> | <FileSelector> | <CSVFileSelector>
 <RecipientEntity> ::= <EmailAddressEntity> | (select <UserTypeEntity>)
 <ResourceEntity> ::= <ResourceIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <SchemaEntity> ::= <SchemaNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
@@ -1542,30 +1526,36 @@ gam <CrOSTypeEntity> info [nolists] [listlimit <Number>]
         [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
 
 Print fields for selected CrOS devices; use these options to select CrOS devices:
-        [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
+         [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+          (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
 If none of these options are chosen, all CrOS devices are selected.
 
 gam print cros [todrive <ToDriveAttribute>*]
-        [(query <QueryCrOS>)|(queries <QueryCrOSList>)] [limittoou <OrgUnitItem>]
-        (querytime.* <Time>)*
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
+         [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+          (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
+        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
-        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
         [timerangeorder ascending|descending]
+        [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [sortheaders] [formatjson [quotechar <Character>]]
 
 Print fields for specified CrOS devices.
 
 gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
+        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>] [start <Date>] [end <Date>]
+        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [timerangeorder ascending|descending]
         [sortheaders] [formatjson [quotechar <Character>]]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
+        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [start <Date>] [end <Date>]
+        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [timerangeorder ascending|descending]
         [sortheaders] [formatjson [quotechar <Character>]]
@@ -1588,12 +1578,16 @@ gam <CrOSTypeEntity> print
 gam <CrOSTypeEntity> print cros
 
 Print activity for selected CrOS devices; use these options to select CrOS devices:
-        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
+         [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+          (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
 If none of these options are chosen, all CrOS devices are selected.
 
 gam print crosactivity [todrive <ToDriveAttribute>*]
-        [(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
-        [querytime.* <Time>] [start <Date>] [end <Date>]
+        [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
+         [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+          (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
+        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
         [listlimit <Number>] [timerangeorder ascending|descending]
@@ -2715,89 +2709,6 @@ gam print orgs|ous [todrive <ToDriveAttribute>*] [showparent] [toplevelonly] [fr
         [mincroscount <Number>] [maxcroscount <Number>]
         [minusercount <Number>] [maxusercount <Number>]
 gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
-
-# Printers
-
-<PrinterAttribute> ::=
-        (currentquota <Number>)|
-        (dailyquota <Number>)|
-        (defaultdisplayname <String>)|
-        (description <String>)|
-        (displayname <String>)|
-        (firmware <String>)|
-        (gcpversion <String>)|
-        (istosaccepted <Boolean>)|
-        (manufacturer <String>)|
-        (model <String>)|
-        (name <String>)|
-        (ownerid <EmailAddress>)|
-        (proxy <String>)|
-        (public <Boolean>)|
-        (quotaenabled <Boolean>)|
-        (setupurl <URL>)|
-        (status <Number>)|
-        (supporturl <URL>)|
-        (type <String>)|
-        (updateurl <URL>)|
-        (uuid <String>)
-<PrinterExtraFields> ::=
-        connectionstatus|
-        semanticstate|
-        uistate|
-        queuedjobscount
-<PrinterExtraFieldsList> ::= "<PrinterExtraFields>(,<PrinterExtraFields>)*"
-
-gam [<UserTypeEntity>] update printer|printers <PrinterIDEntity> <PrinterAttribute>+
-gam [<UserTypeEntity>] delete printer|printers <PrinterIDEntity>
-
-gam [<UserTypeEntity>] info printer|printers <PrinterIDEntity>
-        [everything] [extrafields <PrinterExtraFieldList>]
-gam [<UserTypeEntity>] show printer|printers
-        [(query <QueryPrinter>)|(queries <QueryPrinterList>)]
-        [type <String>] [status <String>]
-        [include_save_to_google_docs [<Boolean>]]
-        [extrafields <PrinterExtraFieldList>]
-gam [<UserTypeEntity>] print printer|printers [todrive <ToDriveAttribute>*]
-        [(query <QueryPrinter>)|(queries <QueryPrinterList>)]
-        [type <String>] [status <String>]
-        [include_save_to_google_docs [<Boolean>]]
-        [extrafields <PrinterExtraFieldList>] [delimiter <Character>]
-
-<PrinterACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|public
-<PrinterACLScopeList> ::= "<PrinterACLScope>(,<PrinterACLScope>)*"
-<PrinterACLScopeEntity>::= <PrinterACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-
-gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> create|add user|manager|owner [usersonly|groupsonly] <PrinterACLScopeEntity> [notify]
-gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> create|add print public
-gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> delete [usersonly|groupsonly] <PrinterACLScopeEntity>
-gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> delete public
-gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> sync user|manager|owner [usersonly|groupsonly] [addonly|removeonly] <PrinterACLScopeEntity> [notify]
-gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> wipe user|manager|owner
-gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> showacls
-gam [<UserTypeEntity>] printer|printers <PrinterIDEntity> printacls [todrive <ToDriveAttribute>*]
-
-# Printjobs
-
-gam [<UserTypeEntity>] printjob <PrinterID> submit
-        (<FileName> [charset <CharSet>])|<URL> [name|title <String>] (tag <String>)*
-gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> cancel
-gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> delete
-gam [<UserTypeEntity>] printjob|printjobs <PrintJobEntity> resubmit <PrinterID>
-
-<PrintJobOrderByFieldName> ::=
-        create_time|status|title
-
-gam [<UserTypeEntity>] printjob|printjobs <PrinterID>|any fetch
-        [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
-        [orderby <PrintJobOrderByFieldName> [ascending|descending]]
-        [owner|user <EmailAddress>]
-        [limit <Number>] [drivedir|(targetfolder <FilePath>)]
-
-gam [<UserTypeEntity>] print printjob|printjobs [todrive <ToDriveAttribute>*] [printer|printerid <PrinterID>]
-        [(query <QueryPrintJob>)|(queries <QueryPrintJobList>)] [olderthan|newerthan <PrintJobAge>] [status <PrintJobStatus>]
-        [orderby <PrintJobOrderByFieldName> [ascending|descending]]
-        [owner|user <EmailAddress>]
-        [limit <Number>] [delimiter <Character>]
 
 # Reports
 

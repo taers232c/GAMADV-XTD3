@@ -27,6 +27,7 @@ CHAT = 'chat'
 CLASSROOM = 'classroom'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
 CLOUDIDENTITY_GROUPS = 'cloudidentitygroups'
+CLOUDIDENTITY_USERINVITATIONS = 'cloudidentityuserinvitations'
 CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
 CLOUDRESOURCEMANAGER_V2 = 'cloudresourcemanager2'
 CONTACTS = 'contacts'
@@ -46,6 +47,7 @@ IAP = 'iap'
 LICENSING = 'licensing'
 OAUTH2 = 'oauth2'
 PEOPLE = 'people'
+PRINTERS = 'printers'
 PUBSUB = 'pubsub'
 REPORTS = 'reports'
 RESELLER = 'reseller'
@@ -101,6 +103,7 @@ PROJECT_APIS = [
   'alertcenter.googleapis.com',
   'calendar-json.googleapis.com',
   'chat.googleapis.com',
+#  'chromepolicy.googleapis.com',
   'classroom.googleapis.com',
   'cloudidentity.googleapis.com',
   'cloudresourcemanager.googleapis.com',
@@ -128,8 +131,10 @@ _INFO = {
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': False},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
+#  CHROMEPOLICY: {'name': 'Chrome Policy API', 'version': 'v1', 'v2discovery': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
+#  CLOUDIDENTITY_USERINVITATIONS: {'name': 'Cloud Identity User Invitations API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDRESOURCEMANAGER_V1: {'name': 'Cloud Resource Manager API v1', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
   CLOUDRESOURCEMANAGER_V2: {'name': 'Cloud Resource Manager API v2', 'version': 'v2', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
   CONTACTS: {'name': 'Contacts API', 'version': 'v3', 'v2discovery': False},
@@ -149,6 +154,7 @@ _INFO = {
   LICENSING: {'name': 'License Manager API', 'version': 'v1', 'v2discovery': True},
   OAUTH2: {'name': 'OAuth2 API', 'version': 'v2', 'v2discovery': False},
   PEOPLE: {'name': 'People API', 'version': 'v1', 'v2discovery': True},
+#  PRINTERS: {'name': 'Directory API Printers', 'version': 'directory_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   PUBSUB: {'name': 'Pub / Sub API', 'version': 'v1', 'v2discovery': True},
   REPORTS: {'name': 'Reports API', 'version': 'reports_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   RESELLER: {'name': 'Reseller API', 'version': 'v1', 'v2discovery': False},
@@ -175,6 +181,12 @@ _CLIENT_SCOPES = [
     'subscopes': READONLY,
     'scope': 'https://www.googleapis.com/auth/admin.directory.device.chromebrowsers',
   },
+#  {
+#    'name': 'Chrome Policy API',
+#    'api': CHROMEPOLICY,
+#    'subscopes': READONLY,
+#    'scope': 'https://www.googleapis.com/auth/chrome.management.policy',
+#  },
   {'name': 'Classroom API - Courses',
    'api': CLASSROOM,
    'subscopes': READONLY,
@@ -211,6 +223,10 @@ _CLIENT_SCOPES = [
    'api': CLOUDIDENTITY_GROUPS,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/cloud-identity.groups'},
+#  {'name': 'Cloud Identity User Invitations API',
+#   'api': CLOUDIDENTITY_USERINVITATIONS,
+#   'subscopes': READONLY,
+#   'scope': 'https://www.googleapis.com/auth/cloud-identity.userinvitations'},
   {'name': 'Cloud Storage (Vault Export - read only)',
    'api': STORAGE,
    'subscopes': [],
@@ -287,6 +303,10 @@ _CLIENT_SCOPES = [
    'api': PEOPLE,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/contacts'},
+#  {'name': 'Directory API - Printers',
+#   'api': PRINTERS,
+#   'subscopes': READONLY,
+#   'scope': 'https://www.googleapis.com/auth/admin.chrome.printers'},
   {'name': 'Pub / Sub API',
    'api': PUBSUB,
    'subscopes': [],

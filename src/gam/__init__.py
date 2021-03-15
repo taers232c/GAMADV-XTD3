@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.35.04'
+__version__ = '5.35.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1306,8 +1306,7 @@ def getTopLevelOrgId(cd, parentOrgUnitPath):
   if parentOrgUnitPath != '/':
     try:
       result = callGAPI(cd.orgunits(), 'get',
-                        throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
-                                      GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                         customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(parentOrgUnitPath)),
                         fields='orgUnitId')
       return result['orgUnitId']
@@ -1346,7 +1345,7 @@ def getOrgUnitId(cd=None):
   try:
     if orgUnit == '/':
       result = callGAPI(cd.orgunits(), 'list',
-                        throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                         customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath='/', type='children',
                         fields='organizationUnits(parentOrgUnitId)')
       if result.get('organizationUnits', []):
@@ -1356,7 +1355,7 @@ def getOrgUnitId(cd=None):
         return (orgUnit, topLevelOrgId)
       return (orgUnit, '/') #Bogus but should never happen
     result = callGAPI(cd.orgunits(), 'get',
-                      throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                      throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                       customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnit)), fields='orgUnitId')
     return (orgUnit, result['orgUnitId'])
   except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
@@ -3546,8 +3545,7 @@ class transportAgentRequest(google_auth_httplib2.Request):
   @_force_user_agent(GAM_USER_AGENT)
   def __call__(self, *args, **kwargs): #pylint: disable=arguments-differ
     """Inserts the GAM user-agent header in requests."""
-    return super(transportAgentRequest, self).__call__(*args, **kwargs)
-
+    return super().__call__(*args, **kwargs)
 
 class transportAuthorizedHttp(google_auth_httplib2.AuthorizedHttp):
   """An AuthorizedHttp which forces a user agent during requests."""
@@ -3555,7 +3553,7 @@ class transportAuthorizedHttp(google_auth_httplib2.AuthorizedHttp):
   @_force_user_agent(GAM_USER_AGENT)
   def request(self, *args, **kwargs): #pylint: disable=arguments-differ
     """Inserts the GAM user-agent header in requests."""
-    return super(transportAuthorizedHttp, self).request(*args, **kwargs)
+    return super().request(*args, **kwargs)
 
 def transportCreateRequest(httpObj=None):
   """Creates a uniform Request object with a default http, if not provided.
@@ -4657,7 +4655,7 @@ def convertOrgUnitIDtoPath(orgUnitId, cd):
       cd = buildGAPIObject(API.DIRECTORY)
     try:
       orgUnitPath = callGAPI(cd.orgunits(), 'get',
-                             throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                             throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                              customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitId, fields='orgUnitPath')['orgUnitPath']
     except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
       orgUnitPath = orgUnitId
@@ -5084,8 +5082,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       try:
         if ou.startswith('id:'):
           ou = callGAPI(cd.orgunits(), 'get',
-                        throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
-                                      GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                         customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, fields='orgUnitPath')['orgUnitPath']
         printGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
         result = callGAPIpages(cd.users(), 'list', 'users',
@@ -5245,59 +5242,40 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     directlyInOU = entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS}
     numOus = len(ous)
     allQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus)) if directlyInOU else Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))
-    if entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS}:
-      oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if directlyInOU else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-      for ou in ous:
-        ou = makeOrgUnitPathAbsolute(ou)
-        printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+    for ou in ous:
+      ou = makeOrgUnitPathAbsolute(ou)
+      ouList = [ou]
+      if not directlyInOU:
+        try:
+          orgs = callGAPI(cd.orgunits(), 'list',
+                          throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
+                          type='all', fields='organizationUnits(orgUnitPath)')
+        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
+          continue
+        ouList.extend([subou['orgUnitPath'] for subou in orgs.get('organizationUnits', [])])
+      for subou in ouList:
+        subou = makeOrgUnitPathAbsolute(subou)
+        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+        printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, subou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
         try:
           result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
                                  pageMessage=getPageMessage(),
                                  throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                                GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                                 customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou,
+                                 customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=subou,
                                  fields='nextPageToken,chromeosdevices(deviceId)',
                                  maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
         except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, subou)
           _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
           continue
         entityList.extend([device['deviceId'] for device in result])
-      Ent.SetGettingQualifier(Ent.CROS_DEVICE, allQualifier)
-      Ent.SetGettingForWhom(','.join(ous))
-      printGotEntityItemsForWhom(len(entityList))
-    else:
-      ouSet = set()
-      for ou in ous:
-        ou = makeOrgUnitPathAbsolute(ou)
-        try:
-          result = callGAPI(cd.orgunits(), 'get',
-                            throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                            customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(ou)), fields='orgUnitPath')
-        except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
-          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
-          continue
-        ouSet.add(result['orgUnitPath'].lower())
-      if entityError[ENTITY_ERROR_DNE] == 0:
-        qualifier = Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, len(ous)))
-        printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ','.join(ous), qualifier=allQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-        try:
-          result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
-                                 pageMessage=getPageMessage(),
-                                 throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                                 customerId=GC.Values[GC.CUSTOMER_ID],
-                                 fields='nextPageToken,chromeosdevices(deviceId,orgUnitPath)',
-                                 maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except (GAPI.invalidInput, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-          accessErrorExit(cd)
-        for device in result:
-          deviceOu = device['orgUnitPath'].lower()
-          for ou in ouSet:
-            if deviceOu.startswith(ou):
-              entityList.append(device['deviceId'])
-              break
-        printGotEntityItemsForWhom(len(entityList))
+    Ent.SetGettingQualifier(Ent.CROS_DEVICE, allQualifier)
+    Ent.SetGettingForWhom(','.join(ous))
+    printGotEntityItemsForWhom(len(entityList))
   elif entityType == Cmd.ENTITY_BROWSER:
     result = convertEntityToList(entity)
     for deviceId in result:
@@ -6195,7 +6173,7 @@ def getFieldsFromFieldsList(fieldsList):
   return None
 
 def getItemFieldsFromFieldsList(item, fieldsList, returnItemIfNoneList=False):
-  if  fieldsList:
+  if fieldsList:
     return f'nextPageToken,{item}({",".join(set(fieldsList))})'.replace('.', '/')
   if not returnItemIfNoneList:
     return None
@@ -9971,8 +9949,7 @@ def getUserOrgUnits(cd, orgUnit, orgUnitId):
   try:
     if orgUnit == orgUnitId:
       orgUnit = callGAPI(cd.orgunits(), 'get',
-                         throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
-                                       GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                         throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnit, fields='orgUnitPath')['orgUnitPath']
     printGettingAllEntityItemsForWhom(Ent.USER, orgUnit, qualifier=Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
                                       entityType=Ent.ORGANIZATIONAL_UNIT)
@@ -11949,15 +11926,34 @@ def setTrueCustomerId(cd=None):
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       pass
 
+def _getCustomerId():
+  customerId = GC.Values[GC.CUSTOMER_ID]
+  if customerId != GC.MY_CUSTOMER and customerId[0] != 'C':
+    customerId = 'C' + customerId
+  return customerId
+
+def _getCustomersCustomerIdNoC():
+  customerId = GC.Values[GC.CUSTOMER_ID]
+  if customerId.startswith('C'):
+    customerId = customerId[1:]
+  return f'customers/{customerId}'
+
+def _getCustomersCustomerIdWithC():
+  customerId = GC.Values[GC.CUSTOMER_ID]
+  if customerId != GC.MY_CUSTOMER and customerId[0] != 'C':
+    customerId = 'C' + customerId
+  return f'customers/{customerId}'
+
 # gam info customer [formatjson]
 def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
   cd = buildGAPIObject(API.DIRECTORY)
+  customerId = _getCustomerId()
   if FJQC is None:
     FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   try:
     customerInfo = callGAPI(cd.customers(), 'get',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                            customerKey=GC.Values[GC.CUSTOMER_ID])
+                            customerKey=customerId)
     try:
       customerInfo['verified'] = callGAPI(cd.domains(), 'get',
                                           throwReasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
@@ -11970,7 +11966,7 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
     customerCreationTime = formatLocalTime(customerInfo['customerCreationTime'])
     domains = callGAPIitems(cd.domains(), 'list', 'domains',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                            customer=GC.Values[GC.CUSTOMER_ID], fields='domains(creationTime)')
+                            customer=customerInfo['id'], fields='domains(creationTime)')
     for domain in domains:
       domainCreationTime = formatLocalTimestamp(domain['creationTime'])
       if domainCreationTime < customerCreationTime:
@@ -12000,6 +11996,7 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
 #	[locality <String>] [region <String>] [postalcode <String>] [country|countrycode <String>]
 def doUpdateCustomer():
   cd = buildGAPIObject(API.DIRECTORY)
+  customerId = _getCustomerId()
   body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -12020,7 +12017,7 @@ def doUpdateCustomer():
     try:
       callGAPI(cd.customers(), 'patch',
                throwReasons=[GAPI.DOMAIN_NOT_VERIFIED_SECONDARY, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-               customerKey=GC.Values[GC.CUSTOMER_ID], body=body, fields='')
+               customerKey=customerId, body=body, fields='')
       entityActionPerformed([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]])
     except GAPI.domainNotVerifiedSecondary:
       entityActionFailedWarning([Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID], Ent.DOMAIN, body['customerDomain']], Msg.DOMAIN_NOT_VERIFIED_SECONDARY)
@@ -12731,7 +12728,7 @@ def doCreateOrg():
     parentPath = None
     try:
       parentPath = callGAPI(cd.orgunits(), 'get',
-                            throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                            throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                             customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=parent, fields='orgUnitPath')['orgUnitPath']
     except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
       pass
@@ -12770,7 +12767,7 @@ def doCreateOrg():
     getPath += orgNames[i]
     try:
       callGAPI(cd.orgunits(), 'get',
-               throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+               throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(getPath), fields='')
       printKeyValueList([Ent.Singular(Ent.ORGANIZATIONAL_UNIT), fullPath, Msg.EXISTS])
     except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
@@ -12787,7 +12784,7 @@ def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0, showError=False):
     return (True, orgUnitPath)
   try:
     return (True, callGAPI(cd.orgunits(), 'get',
-                           throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                           throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                            customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnitPath)),
                            fields='orgUnitPath')['orgUnitPath'])
   except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
@@ -13077,7 +13074,7 @@ def _doInfoOrgs(entityList):
     try:
       if orgUnitPath == '/':
         orgs = callGAPI(cd.orgunits(), 'list',
-                        throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                         customerId=GC.Values[GC.CUSTOMER_ID], type='children',
                         fields='organizationUnits(parentOrgUnitId)')
         if orgs.get('organizationUnits', []):
@@ -13089,8 +13086,7 @@ def _doInfoOrgs(entityList):
       else:
         orgUnitPath = makeOrgUnitPathRelative(orgUnitPath)
       result = callGAPI(cd.orgunits(), 'get',
-                        throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
-                                      GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                         customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(orgUnitPath))
       printEntity([Ent.ORGANIZATIONAL_UNIT, result['orgUnitPath']], i, count)
       Ind.Increment()
@@ -13165,10 +13161,10 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
       waitOnFailure(1, 10, reason, message)
       try:
         response = callGAPI(cd.orgunits(), 'list',
-                            throwReasons=[GAPI.ORGUNIT_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                            throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                             customerId=GC.Values[GC.CUSTOMER_ID], type='all', orgUnitPath=topLevelOrgUnits[int(ri[RI_I])], fields=listfields)
         orgUnits.extend(response.get('organizationUnits', []))
-      except GAPI.orgunitNotFound:
+      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
         entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, topLevelOrgUnits[int(ri[RI_I])]], Msg.DOES_NOT_EXIST)
       except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
         accessErrorExit(cd)
@@ -13210,9 +13206,10 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
     batchSubOrgs = False
   try:
     orgs = callGAPI(cd.orgunits(), 'list',
-                    throwReasons=[GAPI.ORGUNIT_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
-                    customerId=GC.Values[GC.CUSTOMER_ID], type=listType if not batchSubOrgs else 'children', orgUnitPath=orgUnitPath, fields=listfields)
-  except GAPI.orgunitNotFound:
+                    throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                    customerId=GC.Values[GC.CUSTOMER_ID], type=listType if not batchSubOrgs else 'children',
+                    orgUnitPath=orgUnitPath, fields=listfields)
+  except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
     entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST)
     return None
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
@@ -13236,7 +13233,7 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
     for missing_parent in missing_parents:
       try:
         result = callGAPI(cd.orgunits(), 'get',
-                          throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+                          throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                           customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=missing_parent, fields=fields)
         orgUnits.append(result)
       except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError,
@@ -16987,6 +16984,13 @@ def getCrOSDeviceFiles(entityList):
 def doGetCrOSDeviceFiles():
   getCrOSDeviceFiles(getCrOSDeviceEntity())
 
+def substituteQueryTimes(queries, queryTimes):
+  if queryTimes:
+    for i, query in enumerate(queries):
+      if query is not None:
+        for queryTimeName, queryTimeValue in iter(queryTimes.items()):
+          queries[i] = query.replace(f'#{queryTimeName}#', queryTimeValue)
+
 CROS_ORDERBY_CHOICE_MAP = {
   'lastsync': 'lastSync',
   'location': 'annotatedLocation',
@@ -16997,21 +17001,37 @@ CROS_ORDERBY_CHOICE_MAP = {
   'user': 'annotatedUser',
   }
 
+CROS_ENTITIES_MAP = {
+  'crosorg': Cmd.ENTITY_CROS_OU,
+  'crosorgandchildren': Cmd.ENTITY_CROS_OU_AND_CHILDREN,
+  'crosords': Cmd.ENTITY_CROS_OUS,
+  'crosorgsandchildren': Cmd.ENTITY_CROS_OUS_AND_CHILDREN,
+  'crosou': Cmd.ENTITY_CROS_OU,
+  'crosouandchildren': Cmd.ENTITY_CROS_OU_AND_CHILDREN,
+  'crosous': Cmd.ENTITY_CROS_OUS,
+  'crosousandchildren': Cmd.ENTITY_CROS_OUS_AND_CHILDREN
+  }
+
 CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
                        'cpuStatusReports', 'diskVolumeReports', 'lastKnownNetwork', 'systemRamFreeReports']
 
 # gam print cros [todrive <ToDriveAttribute>*]
-#	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
-#	[querytime.* <Time>] [start <Date>] [end <Date>]
+#	[(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
+#	 [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+#	  (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
+#	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
+#	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
+#	[timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson [quotechar <Character>]]
 #
+# gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
 # gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
 #	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>] [timerangeorder ascending|descending]
+#	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
+#	[timerangeorder ascending|descending]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson [quotechar <Character>]]
 def doPrintCrOSDevices(entityList=None):
@@ -17133,26 +17153,37 @@ def doPrintCrOSDevices(entityList=None):
   fieldsList = ['deviceId']
   csvPF = CSVPrintFile(fieldsList, indexedTitles=CROS_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  orgUnitPath = projection = orderBy = sortOrder = None
+  projection = orderBy = sortOrder = None
+  ous = [None]
   queries = [None]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   selectedLists = {}
   queryTimes = {}
+  selectionAllowed = entityList is None
   allFields = noLists = oneRow = sortHeaders = False
+  directlyInOU = True
   activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif entityList is None and myarg == 'limittoou':
-      orgUnitPath = getOrgUnitItem()
-    elif entityList is None and myarg in {'query', 'queries'}:
+    elif selectionAllowed and myarg == 'limittoou':
+      ous = [getOrgUnitItem()]
+      selectionAllowed = False
+      directlyInOU = True
+    elif selectionAllowed and myarg in CROS_ENTITIES_MAP:
+      myarg = CROS_ENTITIES_MAP[myarg]
+      ous = convertEntityToList(getString(Cmd.OB_CROS_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN])
+      selectionAllowed = False
+      directlyInOU = myarg in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS}
+    elif (selectionAllowed or queries == [None]) and myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
-    elif entityList is None and myarg.startswith('querytime'):
+    elif myarg.startswith('querytime'):
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
-    elif entityList is None and myarg == 'select':
+    elif selectionAllowed and myarg == 'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
+      selectionAllowed = False
     elif myarg == 'orderby':
       orderBy, sortOrder = getOrderBySortOrder(CROS_ORDERBY_CHOICE_MAP, 'DESCENDING', True)
     elif myarg == 'onerow':
@@ -17207,55 +17238,76 @@ def doPrintCrOSDevices(entityList=None):
   if FJQC.formatJSON:
     sortHeaders = False
     csvPF.SetJSONTitles(['deviceId', 'JSON'])
+  substituteQueryTimes(queries, queryTimes)
   if entityList is None:
     sortRows = False
     fields = getItemFieldsFromFieldsList('chromeosdevices', fieldsList)
-    for query in queries:
-      if queryTimes and query is not None:
-        for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-          query = query.replace(f'#{queryTimeName}#', queryTimeValue)
-      printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
-      pageMessage = getPageMessage()
-      pageToken = None
-      totalItems = 0
-      tokenRetries = 0
-      while True:
+    for ou in ous:
+      if ou is not None:
+        ou = makeOrgUnitPathAbsolute(ou)
+      ouList = [ou]
+      if not directlyInOU:
         try:
-          feed = callGAPI(cd.chromeosdevices(), 'list',
-                          throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
-                                        GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                          pageToken=pageToken,
-                          customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
-                          orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except GAPI.invalidInput as e:
-          message = str(e)
+          orgs = callGAPI(cd.orgunits(), 'list',
+                          throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
+                          type='all', fields='organizationUnits(orgUnitPath)')
+        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+          return
+        ouList.extend([subou['orgUnitPath'] for subou in orgs.get('organizationUnits', [])])
+      for subou in ouList:
+        if subou is not None:
+          orgUnitPath = makeOrgUnitPathAbsolute(subou)
+        else:
+          orgUnitPath = subou
+        for query in queries:
+          if orgUnitPath is not None:
+            oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+            printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+          else:
+            printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
+          pageMessage = getPageMessage()
+          pageToken = None
+          totalItems = 0
+          tokenRetries = 0
+          while True:
+            try:
+              feed = callGAPI(cd.chromeosdevices(), 'list',
+                              throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
+                                            GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                              pageToken=pageToken,
+                              customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
+                              orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+            except GAPI.invalidInput as e:
+              message = str(e)
 # Invalid Input: xyz - Check for invalid pageToken!!
 # 0123456789012345
-          if message[15:] == pageToken:
-            tokenRetries += 1
-            if tokenRetries <= 2:
-              writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
-              time.sleep(tokenRetries*5)
-              continue
-            entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
-            return
-          entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query) if query is not None else message)
-          return
-        except GAPI.invalidOrgunit as e:
-          entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
-          return
-        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-          accessErrorExit(cd)
-        tokenRetries = 0
-        pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
-        if feed:
-          for cros in feed.get('chromeosdevices', []):
-            _printCrOS(cros)
-          del feed
-        if not pageToken:
-          _finalizeGAPIpagesResult(pageMessage)
-          printGotAccountEntities(totalItems)
-          break
+              if message[15:] == pageToken:
+                tokenRetries += 1
+                if tokenRetries <= 2:
+                  writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
+                  time.sleep(tokenRetries*5)
+                  continue
+                entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
+                return
+              entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query) if query is not None else message)
+              return
+            except GAPI.invalidOrgunit as e:
+              entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
+              return
+            except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+              accessErrorExit(cd)
+            tokenRetries = 0
+            pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
+            if feed:
+              for cros in feed.get('chromeosdevices', []):
+                _printCrOS(cros)
+              del feed
+            if not pageToken:
+              _finalizeGAPIpagesResult(pageMessage)
+              printGotAccountEntities(totalItems)
+              break
   else:
     sortRows = True
     if allFields or len(set(fieldsList)) > 1:
@@ -17291,13 +17343,16 @@ def doPrintCrOSDevices(entityList=None):
 CROS_ACTIVITY_TIME_OBJECTS = {'createTime'}
 
 # gam print crosactivity [todrive <ToDriveAttribute>*]
-#	[(query <QueryCrOS>)|(queries <QueryCrOSList>)|(select <CrOSTypeEntity>)] [limittoou <OrgUnitItem>]
-#	[querytime.* <Time>] [start <Date>] [end <Date>]
+#	[(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
+#	 [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
+#	  (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
+#	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
 #	[recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
 #	[listlimit <Number>] [timerangeorder ascending|descending]
 #	[delimiter <Character>] [formatjson [quotechar <Character>]]
 #
+# gam print crosactivity [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
 # gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
 #	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
@@ -17356,25 +17411,36 @@ def doPrintCrOSActivity(entityList=None):
   csvPF = CSVPrintFile(fieldsList)
   FJQC = FormatJSONQuoteChar(csvPF)
   projection = 'FULL'
-  orgUnitPath = orderBy = sortOrder = None
+  orderBy = sortOrder = None
+  ous = [None]
   queries = [None]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
   queryTimes = {}
+  selectionAllowed = entityList is None
   oneUserPerRow = selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  directlyInOU = True
   activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif entityList is None and myarg == 'limittoou':
-      orgUnitPath = getOrgUnitItem()
-    elif entityList is None and myarg in {'query', 'queries'}:
+    elif selectionAllowed and myarg == 'limittoou':
+      ous = [getOrgUnitItem()]
+      selectionAllowed = False
+      directlyInOU = True
+    elif selectionAllowed and myarg in CROS_ENTITIES_MAP:
+      myarg = CROS_ENTITIES_MAP[myarg]
+      ous = convertEntityToList(getString(Cmd.OB_CROS_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN])
+      selectionAllowed = False
+      directlyInOU = myarg in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS}
+    elif (selectionAllowed or queries == [None]) and myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
-    elif entityList is None and myarg.startswith('querytime'):
+    elif myarg.startswith('querytime'):
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
-    elif entityList is None and myarg == 'select':
+    elif selectionAllowed and myarg == 'select':
       _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_CROS, crosAllowed=True, userAllowed=False)
+      selectionAllowed = False
     elif myarg == 'oneuserperrow':
       oneUserPerRow = True
     elif myarg == 'listlimit':
@@ -17415,55 +17481,76 @@ def doPrintCrOSActivity(entityList=None):
   _, _, entityList = getEntityArgument(entityList)
   if FJQC.formatJSON:
     csvPF.SetJSONTitles(['deviceId', 'JSON'])
+  substituteQueryTimes(queries, queryTimes)
   if entityList is None:
     sortRows = False
     fields = getItemFieldsFromFieldsList('chromeosdevices', fieldsList)
-    for query in queries:
-      if queryTimes and query is not None:
-        for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-          query = query.replace(f'#{queryTimeName}#', queryTimeValue)
-      printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
-      pageMessage = getPageMessage()
-      pageToken = None
-      totalItems = 0
-      tokenRetries = 0
-      while True:
+    for ou in ous:
+      if ou is not None:
+        ou = makeOrgUnitPathAbsolute(ou)
+      ouList = [ou]
+      if not directlyInOU:
         try:
-          feed = callGAPI(cd.chromeosdevices(), 'list',
-                          throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
-                                        GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                          pageToken=pageToken,
-                          customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
-                          orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except GAPI.invalidInput as e:
-          message = str(e)
+          orgs = callGAPI(cd.orgunits(), 'list',
+                          throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
+                          type='all', fields='organizationUnits(orgUnitPath)')
+        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+          return
+        ouList.extend([subou['orgUnitPath'] for subou in orgs.get('organizationUnits', [])])
+      for subou in ouList:
+        if subou is not None:
+          orgUnitPath = makeOrgUnitPathAbsolute(subou)
+        else:
+          orgUnitPath = subou
+        for query in queries:
+          if orgUnitPath is not None:
+            oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+            printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+          else:
+            printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
+          pageMessage = getPageMessage()
+          pageToken = None
+          totalItems = 0
+          tokenRetries = 0
+          while True:
+            try:
+              feed = callGAPI(cd.chromeosdevices(), 'list',
+                              throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
+                                            GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                              pageToken=pageToken,
+                              customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
+                              orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+            except GAPI.invalidInput as e:
+              message = str(e)
 # Invalid Input: xyz - Check for invalid pageToken!!
 # 0123456789012345
-          if message[15:] == pageToken:
-            tokenRetries += 1
-            if tokenRetries <= 2:
-              writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
-              time.sleep(tokenRetries*5)
-              continue
-            entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
-            return
-          entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query) if query is not None else message)
-          return
-        except GAPI.invalidOrgunit as e:
-          entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
-          return
-        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-          accessErrorExit(cd)
-        tokenRetries = 0
-        pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
-        if feed:
-          for cros in feed.get('chromeosdevices', []):
-            _printCrOS(cros)
-          del feed
-        if not pageToken:
-          _finalizeGAPIpagesResult(pageMessage)
-          printGotAccountEntities(totalItems)
-          break
+              if message[15:] == pageToken:
+                tokenRetries += 1
+                if tokenRetries <= 2:
+                  writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
+                  time.sleep(tokenRetries*5)
+                  continue
+                entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
+                return
+              entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query) if query is not None else message)
+              return
+            except GAPI.invalidOrgunit as e:
+              entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
+              return
+            except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+              accessErrorExit(cd)
+            tokenRetries = 0
+            pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
+            if feed:
+              for cros in feed.get('chromeosdevices', []):
+                _printCrOS(cros)
+              del feed
+            if not pageToken:
+              _finalizeGAPIpagesResult(pageMessage)
+              printGotAccountEntities(totalItems)
+              break
   else:
     sortRows = True
     jcount = len(entityList)
@@ -17502,12 +17589,13 @@ def doPrintCrOSEntity(entityList):
 # gam delete browser <DeviceID>
 def doDeleteBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
+  customerId = _getCustomersCustomerIdNoC()
   deviceId = getString(Cmd.OB_DEVICE_ID)
   checkForExtraneousArguments()
   try:
     callGAPI(cbcm.chromebrowsers(), 'delete',
              throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-             customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId)
+             customer=customerId, deviceId=deviceId)
     entityActionPerformed([Ent.CHROME_BROWSER, deviceId])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
@@ -17567,6 +17655,7 @@ BROWSER_FULL_ACCESS_FIELDS = {'browsers', 'lastDeviceUsers', 'lastStatusReportTi
 #	[formatjson]
 def doInfoBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
+  customerId = _getCustomersCustomerIdNoC()
   deviceId = getString(Cmd.OB_DEVICE_ID)
   projection = 'BASIC'
   fieldsList = []
@@ -17589,7 +17678,7 @@ def doInfoBrowsers():
   try:
     browser = callGAPI(cbcm.chromebrowsers(), 'get',
                        throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                       customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, projection=projection, fields=fields)
+                       customer=customerId, deviceId=deviceId, projection=projection, fields=fields)
     _showBrowser(browser, FJQC)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
@@ -17602,6 +17691,7 @@ def doInfoBrowsers():
 #	[batchsize <Integer>]
 def doMoveBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
+  customerId = _getCustomersCustomerIdNoC()
   deviceIds = []
   batch_size = GC.Values[GC.BATCH_SIZE]
   orgUnitPath = ''
@@ -17631,11 +17721,8 @@ def doMoveBrowsers():
       unknownArgumentExit()
   if not orgUnitPath:
     missingArgumentExit('orgunit')
+  substituteQueryTimes(queries, queryTimes)
   if queries:
-    for query in queries:
-      if queryTimes:
-        for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-          query = query.replace(f'#{queryTimeName}#', queryTimeValue)
     deviceIds.extend(getUsersToModify(Cmd.ENTITY_BROWSER_QUERIES, queries))
   body = {'org_unit_path': orgUnitPath}
   bcount = 0
@@ -17648,7 +17735,7 @@ def doMoveBrowsers():
       callGAPI(cbcm.chromebrowsers(), 'moveChromeBrowsersToOu',
                mapNotFound=False,
                throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-               customer=GC.Values[GC.CUSTOMER_ID], body=body)
+               customer=customerId, body=body)
       for deviceId in deviceIds:
         j += 1
         entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_BROWSER, deviceId], j, jcount)
@@ -17678,6 +17765,7 @@ BROWSER_DEVICEID_ANNOTATED_FIELDS = 'deviceId,annotatedAssetId,annotatedLocation
 # gam update browser <BrowserEntity> <BrowserAttibute>+ [updatenotes <String>]
 def doUpdateBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
+  customerId = _getCustomersCustomerIdNoC()
   _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_BROWSER, browserAllowed=True, crosAllowed=False, userAllowed=False)
   body = {}
   updateNotes = None
@@ -17699,14 +17787,14 @@ def doUpdateBrowsers():
     try:
       browser = callGAPI(cbcm.chromebrowsers(), 'get',
                          throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                         customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId,
+                         customer=customerId, deviceId=deviceId,
                          projection='BASIC', fields=BROWSER_DEVICEID_ANNOTATED_FIELDS)
       if updateNotes:
         body['annotatedNotes'] = updateNotes.replace('#notes#', browser['annotatedNotes'])
       browser.update(body)
       callGAPI(cbcm.chromebrowsers(), 'update',
                throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-               customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId,
+               customer=customerId, deviceId=deviceId,
                body=browser, projection='BASIC', fields="deviceId")
       entityActionPerformed([Ent.CHROME_BROWSER, deviceId], i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
@@ -17758,6 +17846,7 @@ def doPrintShowBrowsers():
     csvPF.WriteRowTitles(row)
 
   cbcm = buildGAPIObject(API.CBCM)
+  customerId = _getCustomersCustomerIdNoC()
   csvPF = CSVPrintFile(['deviceId']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
@@ -17806,18 +17895,16 @@ def doPrintShowBrowsers():
   fields = getItemFieldsFromFieldsList('browsers', fieldsList)
   if FJQC.formatJSON:
     sortHeaders = False
+  substituteQueryTimes(queries, queryTimes)
   if entityList is None:
     for query in queries:
-      if queryTimes and query is not None:
-        for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-          query = query.replace(f'#{queryTimeName}#', queryTimeValue)
       printGettingAllAccountEntities(Ent.CHROME_BROWSER, query)
       pageMessage = getPageMessage()
       try:
         browsers = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
                                  pageMessage=pageMessage,
                                  throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
-                                 customer=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath, query=query, projection=projection,
+                                 customer=customerId, orgUnitPath=orgUnitPath, query=query, projection=projection,
                                  orderBy=orderBy, sortOrder=sortOrder, fields=fields)
         if not csvPF:
           jcount = len(browsers)
@@ -17850,7 +17937,7 @@ def doPrintShowBrowsers():
       try:
         browser = callGAPI(cbcm.chromebrowsers(), 'get',
                            throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                           customer=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, projection=projection, fields=fields)
+                           customer=customerId, deviceId=deviceId, projection=projection, fields=fields)
         _printBrowser(browser)
       except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
         checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
@@ -17875,6 +17962,7 @@ def _showBrowserToken(browser, FJQC, i=0, count=0):
 #	[formatjson]
 def doCreateBrowserToken():
   cbcm = buildGAPIObject(API.CBCM)
+  customerId = _getCustomersCustomerIdNoC()
   FJQC = FormatJSONQuoteChar()
   body = {'token_type': 'CHROME_BROWSER'}
   while Cmd.ArgumentsRemaining():
@@ -17888,7 +17976,7 @@ def doCreateBrowserToken():
   try:
     browser = callGAPI(cbcm.enrollmentTokens(), 'create',
                        throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
-                       customer=GC.Values[GC.CUSTOMER_ID], body=body)
+                       customer=customerId, body=body)
     entityActionPerformed([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, browser['token']])
     Ind.Increment()
     _showBrowserToken(browser, FJQC, 0, 0)
@@ -17901,12 +17989,13 @@ def doCreateBrowserToken():
 # gam revoke browsertoken <BrowserTokenPermanentID>
 def doRevokeBrowserToken():
   cbcm = buildGAPIObject(API.CBCM)
+  customerId = _getCustomersCustomerIdNoC()
   tokenPermanentId = getString(Cmd.OB_BROWSER_ENROLLEMNT_TOKEN_ID)
   checkForExtraneousArguments()
   try:
     callGAPI(cbcm.enrollmentTokens(), 'revoke',
              throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
-             customer=GC.Values[GC.CUSTOMER_ID], tokenPermanentId=tokenPermanentId)
+             customer=customerId, tokenPermanentId=tokenPermanentId)
     entityActionPerformed([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, tokenPermanentId])
   except (GAPI.invalid, GAPI.invalidInput, GAPI.badRequest, GAPI.resourceNotFound, GAPI.invalidOrgunit) as e:
     entityActionFailedWarning([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, tokenPermanentId], str(e))
@@ -17954,6 +18043,7 @@ def doPrintShowBrowserTokens():
     csvPF.WriteRowTitles(row)
 
   cbcm = buildGAPIObject(API.CBCM)
+  customerId = _getCustomersCustomerIdNoC()
   csvPF = CSVPrintFile(['token']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
@@ -17987,17 +18077,15 @@ def doPrintShowBrowserTokens():
   fields = getItemFieldsFromFieldsList('chromeEnrollmentTokens', fieldsList)
   if FJQC.formatJSON:
     sortHeaders = False
+  substituteQueryTimes(queries, queryTimes)
   for query in queries:
-    if queryTimes and query is not None:
-      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
     printGettingAllAccountEntities(Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, query)
     pageMessage = getPageMessage()
     try:
       browsers = callGAPIpages(cbcm.enrollmentTokens(), 'list', 'chromeEnrollmentTokens',
                                pageMessage=pageMessage,
                                throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
-                               customer=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath, query=query,
+                               customer=customerId, orgUnitPath=orgUnitPath, query=query,
                                fields=fields)
       if not csvPF:
         jcount = len(browsers)
@@ -18034,12 +18122,6 @@ def buildGAPICIDeviceServiceObject():
     sys.exit(GM.Globals[GM.SYSEXITRC])
   return ci
 
-def _getCIDeviceCustomerID():
-  customer = GC.Values[GC.CUSTOMER_ID]
-  if customer.startswith('C'):
-    customer = customer[1:]
-  return f'customers/{customer}'
-
 def getUpdateDeleteCIDeviceOptions(entityType, count, action, doit, actionChoices):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -18059,7 +18141,7 @@ def getUpdateDeleteCIDeviceOptions(entityType, count, action, doit, actionChoice
 
 def getCIDeviceEntity():
   ci = buildGAPICIDeviceServiceObject()
-  customer = _getCIDeviceCustomerID()
+  customer = _getCustomersCustomerIdNoC()
   if checkArgumentPresent('devicesn'):
     query = f'serial:{getString(Cmd.OB_SERIAL_NUMBER)}'
   elif checkArgumentPresent('query'):
@@ -18094,7 +18176,7 @@ DEVICE_USERNAME_PATTERN = re.compile(r'^(devices/.+)/(deviceUsers/.+)$')
 DEVICE_USERNAME_FORMAT_REQUIRED = 'devices/<String>/deviceUsers/<String>'
 def getCIDeviceUserEntity():
   ci = buildGAPICIDeviceServiceObject()
-  customer = _getCIDeviceCustomerID()
+  customer = _getCustomersCustomerIdNoC()
   if checkArgumentPresent('query'):
     query = getString(Cmd.OB_QUERY)
   else:
@@ -18146,7 +18228,7 @@ DEVICE_TIME_OBJECTS = {'createTime', 'firstSyncTime', 'lastSyncTime', 'lastUpdat
 # gam create device serialnumber <String> devicetype <DeviceType> [assettag <String>]
 def doCreateCIDevice():
   ci = buildGAPICIDeviceServiceObject()
-  customer = _getCIDeviceCustomerID()
+  customer = _getCustomersCustomerIdNoC()
   body = {'deviceType': '', 'serialNumber': ''}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -18237,7 +18319,7 @@ DEVICE_MISSING_ACTION_MAP = {
 #	[preview]
 def doSyncCIDevices():
   ci = buildGAPICIDeviceServiceObject()
-  customer = _getCIDeviceCustomerID()
+  customer = _getCustomersCustomerIdNoC()
   queryTimes = {}
   queries = [None]
   filename = None
@@ -18298,10 +18380,8 @@ def doSyncCIDevices():
   closeFile(f)
   fields = f'nextPageToken,devices({",".join(fieldsList)})'
   remoteDevices = []
+  substituteQueryTimes(queries, queryTimes)
   for query in queries:
-    if queryTimes and query is not None:
-      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
     printGettingAllAccountEntities(Ent.COMPANY_DEVICE, query)
     pageMessage = getPageMessage()
     try:
@@ -18514,7 +18594,7 @@ DEVICE_ORDERBY_CHOICE_MAP = {
 #	[formatjson [quotechar <Character>]]
 def doPrintCIDevices():
   ci = buildGAPICIDeviceServiceObject()
-  customer = _getCIDeviceCustomerID()
+  customer = _getCustomersCustomerIdNoC()
   parent = 'devices/-'
   csvPF = CSVPrintFile(['name'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -18549,10 +18629,8 @@ def doPrintCIDevices():
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   fields = getItemFieldsFromFieldsList('devices', fieldsList)
   userFields = getItemFieldsFromFieldsList('deviceUsers', userFieldsList)
+  substituteQueryTimes(queries, queryTimes)
   for query in queries:
-    if queryTimes and query is not None:
-      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
     devices = []
     printGettingAllAccountEntities(entityType, query)
     pageMessage = getPageMessage()
@@ -18697,7 +18775,7 @@ def doInfoCIDeviceUser():
 #	[formatjson [quotechar <Character>]]
 def doPrintCIDeviceUsers():
   ci = buildGAPICIDeviceServiceObject()
-  customer = _getCIDeviceCustomerID()
+  customer = _getCustomersCustomerIdNoC()
   csvPF = CSVPrintFile(['name'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   OBY = OrderBy(DEVICE_ORDERBY_CHOICE_MAP)
@@ -18721,10 +18799,8 @@ def doPrintCIDeviceUsers():
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   fields = getItemFieldsFromFieldsList('deviceUsers', fieldsList)
+  substituteQueryTimes(queries, queryTimes)
   for query in queries:
-    if queryTimes and query is not None:
-      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
     printGettingAllAccountEntities(Ent.DEVICE_USER, query)
     pageMessage = getPageMessage()
     try:
@@ -19215,10 +19291,8 @@ def doPrintMobileDevices():
   if appsLimit >= 0:
     parameters['projection'] = 'FULL'
   fields = getItemFieldsFromFieldsList('mobiledevices', parameters['fieldsList'])
+  substituteQueryTimes(queries, queryTimes)
   for query in queries:
-    if queryTimes and query is not None:
-      for queryTimeName, queryTimeValue in iter(queryTimes.items()):
-        query = query.replace(f'#{queryTimeName}#', queryTimeValue)
     printGettingAllAccountEntities(Ent.MOBILE_DEVICE, query)
     pageMessage = getPageMessage()
     pageToken = None
@@ -23402,6 +23476,8 @@ def doShowCIGroupMembers():
 # gam print licenses [todrive <ToDriveAttribute>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
 def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False):
   lic = buildGAPIObject(API.LICENSING)
+  setTrueCustomerId()
+  customerId = _getCustomerId()
   csvPF = CSVPrintFile()
   products = []
   feed = []
@@ -23450,7 +23526,7 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
         feed += callGAPIpages(lic.licenseAssignments(), 'listForProductAndSku', 'items',
                               pageMessage=getPageMessageForWhom(forWhom=skuIdDisplay),
                               throwReasons=[GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
-                              customerId=GC.Values[GC.DOMAIN], productId=productId, skuId=skuId, fields=fields)
+                              customerId=customerId, productId=productId, skuId=skuId, fields=fields)
         if countsOnly:
           licenseCounts.append([Ent.PRODUCT, productId, Ent.SKU, [skuId, skuIdDisplay][returnCounts], Ent.LICENSE, len(feed)])
           feed = []
@@ -23468,7 +23544,7 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
         feed += callGAPIpages(lic.licenseAssignments(), 'listForProduct', 'items',
                               pageMessage=getPageMessageForWhom(forWhom=productDisplay),
                               throwReasons=[GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
-                              customerId=GC.Values[GC.DOMAIN], productId=productId, fields=fields)
+                              customerId=customerId, productId=productId, fields=fields)
         if countsOnly:
           licenseCounts.append([Ent.PRODUCT, [productId, productDisplay][returnCounts], Ent.LICENSE, len(feed)])
           feed = []
@@ -51064,12 +51140,6 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
 
 # Process GAM command
 def CallGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=False):
-  if sys.platform == 'darwin':
-    # https://bugs.python.org/issue33725 in Python 3.8.0 seems
-    # to break parallel operations with errors about extra -b
-    # command line arguments
-    multiprocessing.set_start_method('fork')
-  initializeLogging()
   return ProcessGAMCommand(args, processGamCfg=processGamCfg, inLoop=inLoop, closeSTD=closeSTD)
 
 # gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]

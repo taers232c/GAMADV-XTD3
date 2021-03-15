@@ -70,6 +70,7 @@ class GamEntity():
   CALENDAR_SETTINGS = 'cset'
   CHROME_BROWSER = 'chbr'
   CHROME_BROWSER_ENROLLMENT_TOKEN = 'cbet'
+  CHROME_POLICY_SCHEMA = 'cpsc'
   CLASSROOM_INVITATION = 'clai'
   CLASSROOM_INVITATION_OWNER = 'clio'
   CLASSROOM_INVITATION_STUDENT = 'clis'
@@ -194,6 +195,8 @@ class GamEntity():
   PERSONAL_DEVICE = 'pedv'
   PHOTO = 'phot'
   POP_ENABLED = 'popa'
+  PRINTER = 'prin'
+  PRINTER_MODEL = 'prmd'
   PRIVILEGE = 'priv'
   PRODUCT = 'prod'
   PROFILE_SHARING_ENABLED = 'prof'
@@ -253,6 +256,7 @@ class GamEntity():
   USER = 'user'
   USER_ALIAS = 'uali'
   USER_EMAIL = 'uema'
+  USER_INVITATION = 'uinv'
   USER_NOT_SUSPENDED = 'uns'
   USER_SCHEMA = 'usch'
   USER_SUSPENDED = 'usup'
@@ -300,6 +304,7 @@ class GamEntity():
     CALENDAR_SETTINGS: ['Calendar Settings', 'Calendar Settings'],
     CHROME_BROWSER: ['Chrome Browsers', 'Chrome Browser'],
     CHROME_BROWSER_ENROLLMENT_TOKEN: ['Chrome Browser Enrollment Tokens', 'Chrome Browser Enrollment Token'],
+    CHROME_POLICY_SCHEMA: ['Chrome Policy Schemas', 'Chrome Policy Schema'],
     CLASSROOM_INVITATION: ['Classroom Invitations', 'Classroom Invitation'],
     CLASSROOM_INVITATION_OWNER: ['Classroom Owner Invitations', 'Classroom Owner Invitation'],
     CLASSROOM_INVITATION_STUDENT: ['Classroom Student Invitations', 'Classroom Student Invitation'],
@@ -424,6 +429,8 @@ class GamEntity():
     PERSONAL_DEVICE: ['Personal Devices', 'Personal Device'],
     PHOTO: ['Photos', 'Photo'],
     POP_ENABLED: ['POP Enabled', 'POP Enabled'],
+    PRINTER: ['Printers', 'Printer'],
+    PRINTER_MODEL: ['Printer Models', 'Printer Model'],
     PRIVILEGE: ['Privileges', 'Privilege'],
     PRODUCT: ['Products', 'Product'],
     PROFILE_SHARING_ENABLED: ['Profile Sharing Enabled', 'Profile Sharing Enabled'],
@@ -483,6 +490,7 @@ class GamEntity():
     USER: ['Users', 'User'],
     USER_ALIAS: ['User Aliases', 'User Alias'],
     USER_EMAIL: ['User Emails', 'User Email'],
+    USER_INVITATION: ['User Invitations', 'User Invitation'],
     USER_NOT_SUSPENDED: ['Users (Not suspended)', 'User (Not suspended)'],
     USER_SCHEMA: ['Schemas', 'Schema'],
     USER_SUSPENDED: ['Users (Suspended)', 'User (Suspended)'],
