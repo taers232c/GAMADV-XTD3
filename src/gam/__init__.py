@@ -46667,7 +46667,7 @@ def _getUserGmailLabels(gmail, user, i, count, **kwargs):
 
 def _getLabelId(labels, labelName):
   for label in labels['labels']:
-    if labelName == label['id'] or labelName.lower() == label['name'].lower():
+    if (labelName.upper() == label['id']) or (labelName.lower() in {label['id'].lower(), label['name'].lower()}):
       return label['id']
   return None
 
@@ -48716,7 +48716,7 @@ def createFilter(users):
       unknownArgumentExit()
   if not body['criteria']:
     missingChoiceExit(FILTER_CRITERIA_CHOICE_MAP)
-  if jsonData is None and not body['action']['addLabelIds'] and not body['action']['removeLabelIds'] and 'forward' not in body['action']:
+  if not body['action'].get('addLabelIds') and not body['action'].get('removeLabelIds') and 'forward' not in body['action']:
     missingChoiceExit(FILTER_ACTION_CHOICES)
   addLabelIndicies = {}
   for field in ['addLabelIds', 'removeLabelIds']:
@@ -48736,17 +48736,25 @@ def createFilter(users):
         continue
     try:
       for addLabelName, addLabelData in iter(addLabelIndicies.items()):
-        addLabelId = _getLabelId(labels, addLabelName)
-        if not addLabelId:
+        retries = 3
+        for n in range(1, retries+1):
+          addLabelId = _getLabelId(labels, addLabelName)
+          if addLabelId:
+            retries = 0
+            break
           try:
             result = callGAPI(gmail.users().labels(), 'create',
                               throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
                               userId='me', body={'name': addLabelName}, fields='id')
-            labels['labels'].append({'id': result['id'], 'name': addLabelName, 'type': LABEL_TYPE_USER})
+            addLabelId = result['id']
+            labels['labels'].append({'id': result['id'], 'name': addLabelName})
+            retries = 0
+            break
           except GAPI.duplicate:
-            entityActionFailedWarning([Ent.USER, user, Ent.LABEL, addLabelName], Msg.DUPLICATE, i, count)
-            continue
-          addLabelId = result['id']
+            labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
+        if retries:
+          entityActionFailedWarning([Ent.USER, user, Ent.LABEL, addLabelName], Msg.DUPLICATE, i, count)
+          continue
         for field in ['addLabelIds', 'removeLabelIds']:
           if field in addLabelData:
             body['action'][field][addLabelData[field]] = addLabelId
