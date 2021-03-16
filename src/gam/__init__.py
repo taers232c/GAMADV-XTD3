@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.35.05'
+__version__ = '5.35.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -46667,7 +46667,7 @@ def _getUserGmailLabels(gmail, user, i, count, **kwargs):
 
 def _getLabelId(labels, labelName):
   for label in labels['labels']:
-    if labelName in (label['id'], label['name']):
+    if labelName == label['id'] or labelName.lower() == label['name'].lower():
       return label['id']
   return None
 
@@ -48716,40 +48716,46 @@ def createFilter(users):
       unknownArgumentExit()
   if not body['criteria']:
     missingChoiceExit(FILTER_CRITERIA_CHOICE_MAP)
-  if not body['action']['addLabelIds'] and not body['action']['removeLabelIds'] and 'forward' not in body['action']:
+  if jsonData is None and not body['action']['addLabelIds'] and not body['action']['removeLabelIds'] and 'forward' not in body['action']:
     missingChoiceExit(FILTER_ACTION_CHOICES)
-  for i, labelId in enumerate(body['action']['addLabelIds']):
-    if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
-      addLabelIndex = i
-      addLabelName = labelId
-      break
-  else:
-    addLabelIndex = -1
+  addLabelIndicies = {}
+  for field in ['addLabelIds', 'removeLabelIds']:
+    for i, labelId in enumerate(body['action'].get(field, [])):
+      if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
+        addLabelIndicies.setdefault(labelId, {})
+        addLabelIndicies[labelId][field] = i
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    if addLabelIndex >= 0:
+    if addLabelIndicies:
       labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
       if not labels:
         continue
     try:
-      if addLabelIndex >= 0:
+      for addLabelName, addLabelData in iter(addLabelIndicies.items()):
         addLabelId = _getLabelId(labels, addLabelName)
         if not addLabelId:
-          result = callGAPI(gmail.users().labels(), 'create',
-                            throwReasons=GAPI.GMAIL_THROW_REASONS,
-                            userId='me', body={'name': addLabelName}, fields='id')
+          try:
+            result = callGAPI(gmail.users().labels(), 'create',
+                              throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
+                              userId='me', body={'name': addLabelName}, fields='id')
+            labels['labels'].append({'id': result['id'], 'name': addLabelName, 'type': LABEL_TYPE_USER})
+          except GAPI.duplicate:
+            entityActionFailedWarning([Ent.USER, user, Ent.LABEL, addLabelName], Msg.DUPLICATE, i, count)
+            continue
           addLabelId = result['id']
-        body['action']['addLabelIds'][addLabelIndex] = addLabelId
+        for field in ['addLabelIds', 'removeLabelIds']:
+          if field in addLabelData:
+            body['action'][field][addLabelData[field]] = addLabelId
       result = callGAPI(gmail.users().settings().filters(), 'create',
-                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION],
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION],
                         userId='me', body=body, fields='id')
       if result:
         entityActionPerformed([Ent.USER, user, Ent.FILTER, result['id']], i, count)
-    except (GAPI.invalidArgument, GAPI.failedPrecondition) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.FILTER, ''], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -48863,10 +48869,12 @@ def printShowFilters(users):
             row = _printFilter(user, userFilter, labels)
             if FJQC.formatJSON:
               # Map user label IDs to label names
-              if 'action' in userFilter and 'addLabelIds' in userFilter['action']:
-                for i, labelId in enumerate(userFilter['action']['addLabelIds']):
-                  if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
-                    userFilter['action']['addLabelIds'][i] = _getLabelName(labels, labelId)
+              if 'action' in userFilter:
+                for field in ['addLabelIds', 'removeLabelIds']:
+                  if field in userFilter['action']:
+                    for i, labelId in enumerate(userFilter['action'][field]):
+                      if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
+                        userFilter['action'][field][i] = _getLabelName(labels, labelId)
               row['JSON'] = json.dumps(userFilter, ensure_ascii=False, sort_keys=False)
             csvPF.WriteRowTitles(row)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:

@@ -1,3 +1,7 @@
+5.35.06
+
+Fixed bug in `gam <UserTypeEntity> create filter` that caused a trap.
+
 5.35.05
 
 Modified how `gam cros_ou_and_children <OrgUnitItem> ...` and `gam cros_ous_and_children <OrgUnitList> ...` are processed.
