@@ -36,11 +36,11 @@ and all necessary authentications.
 | [Downloads] | [Configuration] | [Install] |
 |    :---:    |      :---:      |   :---:   |
 
-# Installation - Upgrading from a GAM version other than a prior version of GAMADV-X or GAMADV-XTD or GAMADV-XTD3
+# Installation - Upgrading from Standard GAM
 Use these steps if you have used any version of GAM in your domain. They will update your GAM project
 and all necessary authentications.
 
-| [Downloads] | [Configuration] | [UpgradeFromBasic] |
+| [Downloads] | [Configuration] | [UpgradeFromStandard] |
 |    :---:    |      :---:      |        :---:       |
 
 # Installation - Upgrading from a prior version of GAMADV-X or GAMADV-XTD or GAMADV-XTD3

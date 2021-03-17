@@ -1,3 +1,10 @@
+5.35.07
+
+Fixed bug in all `gam browser|browsertoken` commands that displayed an error like this:
+```
+ERROR: 400: invalid - Invalid Customer ID: customers/xxx
+```
+
 5.35.06
 
 Fixed bug in `gam <UserTypeEntity> create filter` that caused a trap.

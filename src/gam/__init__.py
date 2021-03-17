@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.35.06'
+__version__ = '5.35.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5284,6 +5284,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         entityList.append(deviceId)
   elif entityType in {Cmd.ENTITY_BROWSER_OU, Cmd.ENTITY_BROWSER_OUS}:
     cbcm = buildGAPIObject(API.CBCM)
+    customerId = _getCustomerIdNoC()
     ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_BROWSER_OU)
     numOus = len(ous)
     allQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))
@@ -5295,7 +5296,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         result = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
                                pageMessage=getPageMessage(),
                                throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
-                               customer=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, projection='BASIC',
+                               customer=customerId, orgUnitPath=ou, projection='BASIC',
                                orderBy='id', sortOrder='ASCENDING', fields='nextPageToken,browsers(deviceId)')
       except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.forbidden):
         checkEntityDNEorAccessErrorExit(None, Ent.ORGANIZATIONAL_UNIT, ou)
@@ -5307,6 +5308,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     printGotEntityItemsForWhom(len(entityList))
   elif entityType in {Cmd.ENTITY_BROWSER_QUERY, Cmd.ENTITY_BROWSER_QUERIES}:
     cbcm = buildGAPIObject(API.CBCM)
+    customerId = _getCustomerIdNoC()
     queries = convertEntityToList(entity, shlexSplit=entityType == Cmd.ENTITY_BROWSER_QUERIES,
                                   nonListEntityType=entityType == Cmd.ENTITY_BROWSER_QUERY)
     prevLen = 0
@@ -5316,7 +5318,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         result = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
                                pageMessage=getPageMessage(),
                                throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                               customer=GC.Values[GC.CUSTOMER_ID], query=query, projection='BASIC',
+                               customer=customerId, query=query, projection='BASIC',
                                orderBy='id', sortOrder='ASCENDING', fields='nextPageToken,browsers(deviceId)')
       except GAPI.invalidInput:
         Cmd.Backup()
@@ -11932,6 +11934,12 @@ def _getCustomerId():
     customerId = 'C' + customerId
   return customerId
 
+def _getCustomerIdNoC():
+  customerId = GC.Values[GC.CUSTOMER_ID]
+  if customerId[0] == 'C':
+    return customerId[1:]
+  return customerId
+
 def _getCustomersCustomerIdNoC():
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId.startswith('C'):
@@ -17589,7 +17597,7 @@ def doPrintCrOSEntity(entityList):
 # gam delete browser <DeviceID>
 def doDeleteBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
-  customerId = _getCustomersCustomerIdNoC()
+  customerId = _getCustomerIdNoC()
   deviceId = getString(Cmd.OB_DEVICE_ID)
   checkForExtraneousArguments()
   try:
@@ -17655,7 +17663,7 @@ BROWSER_FULL_ACCESS_FIELDS = {'browsers', 'lastDeviceUsers', 'lastStatusReportTi
 #	[formatjson]
 def doInfoBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
-  customerId = _getCustomersCustomerIdNoC()
+  customerId = _getCustomerIdNoC()
   deviceId = getString(Cmd.OB_DEVICE_ID)
   projection = 'BASIC'
   fieldsList = []
@@ -17691,7 +17699,7 @@ def doInfoBrowsers():
 #	[batchsize <Integer>]
 def doMoveBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
-  customerId = _getCustomersCustomerIdNoC()
+  customerId = _getCustomerIdNoC()
   deviceIds = []
   batch_size = GC.Values[GC.BATCH_SIZE]
   orgUnitPath = ''
@@ -17765,7 +17773,7 @@ BROWSER_DEVICEID_ANNOTATED_FIELDS = 'deviceId,annotatedAssetId,annotatedLocation
 # gam update browser <BrowserEntity> <BrowserAttibute>+ [updatenotes <String>]
 def doUpdateBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
-  customerId = _getCustomersCustomerIdNoC()
+  customerId = _getCustomerIdNoC()
   _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_BROWSER, browserAllowed=True, crosAllowed=False, userAllowed=False)
   body = {}
   updateNotes = None
@@ -17846,7 +17854,7 @@ def doPrintShowBrowsers():
     csvPF.WriteRowTitles(row)
 
   cbcm = buildGAPIObject(API.CBCM)
-  customerId = _getCustomersCustomerIdNoC()
+  customerId = _getCustomerIdNoC()
   csvPF = CSVPrintFile(['deviceId']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
@@ -17962,7 +17970,7 @@ def _showBrowserToken(browser, FJQC, i=0, count=0):
 #	[formatjson]
 def doCreateBrowserToken():
   cbcm = buildGAPIObject(API.CBCM)
-  customerId = _getCustomersCustomerIdNoC()
+  customerId = _getCustomerIdNoC()
   FJQC = FormatJSONQuoteChar()
   body = {'token_type': 'CHROME_BROWSER'}
   while Cmd.ArgumentsRemaining():
@@ -17989,7 +17997,7 @@ def doCreateBrowserToken():
 # gam revoke browsertoken <BrowserTokenPermanentID>
 def doRevokeBrowserToken():
   cbcm = buildGAPIObject(API.CBCM)
-  customerId = _getCustomersCustomerIdNoC()
+  customerId = _getCustomerIdNoC()
   tokenPermanentId = getString(Cmd.OB_BROWSER_ENROLLEMNT_TOKEN_ID)
   checkForExtraneousArguments()
   try:
@@ -18043,7 +18051,7 @@ def doPrintShowBrowserTokens():
     csvPF.WriteRowTitles(row)
 
   cbcm = buildGAPIObject(API.CBCM)
-  customerId = _getCustomersCustomerIdNoC()
+  customerId = _getCustomerIdNoC()
   csvPF = CSVPrintFile(['token']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
