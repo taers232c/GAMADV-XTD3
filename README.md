@@ -51,7 +51,7 @@ or authentications because new features have been included.
 |   :---:    |    :---:    |         :---:         |
 
 # Multiple Versions
-You can install multiple versions of GAM, GAMADV-X, GAMADV-XTD and GAMADV-XTD3 in different parallel directories.
+You can install multiple versions of GAM and GAMADV-XTD3 in different parallel directories.
 
 [GAM]: https://github.com/jay0lee/GAM
 [GitHub Releases]: https://github.com/taers232c/GAMADV-XTD3/releases
