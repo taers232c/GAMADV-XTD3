@@ -62,6 +62,6 @@ You can install multiple versions of GAM and GAMADV-XTD3 in different parallel d
 [Downloads]: https://github.com/taers232c/GAMADV-XTD3/wiki/Downloads
 [Configuration]: https://github.com/taers232c/GAMADV-XTD3/wiki/gam.cfg
 [Install]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Install-Advanced-GAM
-[UpgradeFromBasic]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-Standard-GAM
+[UpgradeFromStandard]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-Standard-GAM
 [Updates]: https://github.com/taers232c/GAMADV-XTD3/wiki/GAM-Updates
 [UpgradeFromAdvanced]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-GAMADV-X-or-GAMADV-XTD
