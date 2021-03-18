@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '5.35.07'
+__version__ = '5.35.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5255,7 +5255,7 @@ def getUsersToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
           _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
           continue
-        ouList.extend([subou['orgUnitPath'] for subou in orgs.get('organizationUnits', [])])
+        ouList.extend([subou['orgUnitPath'] for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
       for subou in ouList:
         subou = makeOrgUnitPathAbsolute(subou)
         oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
@@ -17263,7 +17263,7 @@ def doPrintCrOSDevices(entityList=None):
         except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
           return
-        ouList.extend([subou['orgUnitPath'] for subou in orgs.get('organizationUnits', [])])
+        ouList.extend([subou['orgUnitPath'] for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
       for subou in ouList:
         if subou is not None:
           orgUnitPath = makeOrgUnitPathAbsolute(subou)
@@ -17506,7 +17506,7 @@ def doPrintCrOSActivity(entityList=None):
         except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
           return
-        ouList.extend([subou['orgUnitPath'] for subou in orgs.get('organizationUnits', [])])
+        ouList.extend([subou['orgUnitPath'] for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
       for subou in ouList:
         if subou is not None:
           orgUnitPath = makeOrgUnitPathAbsolute(subou)
@@ -25261,7 +25261,7 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
   elif myarg in {'colorindex', 'colorid'}:
     body['colorId'] = getInteger(CALENDAR_EVENT_MIN_COLOR_INDEX, CALENDAR_EVENT_MAX_COLOR_INDEX)
   elif myarg == 'noreminders':
-    body['reminders'] = {'useDefault': False}
+    body['reminders'] = {'overrides': [], 'useDefault': False}
   elif myarg == 'reminder':
     body.setdefault('reminders', {'overrides': [], 'useDefault': False})
     body['reminders']['overrides'].append(getCalendarReminder())

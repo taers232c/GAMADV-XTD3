@@ -1,3 +1,7 @@
+5.35.08
+
+Fixed bug in `gam calendar <CalendarEntity> create|import|update event` where `noreminders` was not disabling reminders.
+
 5.35.07
 
 Fixed bug in all `gam browser|browsertoken` commands that displayed an error like this:
