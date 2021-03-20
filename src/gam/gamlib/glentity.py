@@ -70,6 +70,7 @@ class GamEntity():
   CALENDAR_SETTINGS = 'cset'
   CHROME_BROWSER = 'chbr'
   CHROME_BROWSER_ENROLLMENT_TOKEN = 'cbet'
+  CHROME_POLICY = 'cpol'
   CHROME_POLICY_SCHEMA = 'cpsc'
   CLASSROOM_INVITATION = 'clai'
   CLASSROOM_INVITATION_OWNER = 'clio'
@@ -304,6 +305,7 @@ class GamEntity():
     CALENDAR_SETTINGS: ['Calendar Settings', 'Calendar Settings'],
     CHROME_BROWSER: ['Chrome Browsers', 'Chrome Browser'],
     CHROME_BROWSER_ENROLLMENT_TOKEN: ['Chrome Browser Enrollment Tokens', 'Chrome Browser Enrollment Token'],
+    CHROME_POLICY: ['Chrome Policies', 'Chrome Policy'],
     CHROME_POLICY_SCHEMA: ['Chrome Policy Schemas', 'Chrome Policy Schema'],
     CLASSROOM_INVITATION: ['Classroom Invitations', 'Classroom Invitation'],
     CLASSROOM_INVITATION_OWNER: ['Classroom Owner Invitations', 'Classroom Owner Invitation'],

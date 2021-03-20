@@ -276,6 +276,7 @@ If an item contains spaces, it should be surrounded by ".
 <AccessToken> ::= <String>
 <AlertID> ::= <String>
 <APIScopeURL> ::= <String>
+<APPID> ::= <String>
 <ASPID> ::= <String>
 <AssetTag> ::= <String>
 <BrowserTokenPermanentID> ::= <String>
@@ -1533,8 +1534,8 @@ If none of these options are chosen, all CrOS devices are selected.
 
 gam print cros [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
-         [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
-          (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
+         [(limittoou|cros_ou <OrgUnitItem>)|(cros_ou_and_children <OrgUnitItem>)|
+          (cros_ous <OrgUnitList>)|(cros_ous_and_children <OrgUnitList>)]]
         [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
@@ -1585,8 +1586,8 @@ If none of these options are chosen, all CrOS devices are selected.
 
 gam print crosactivity [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
-         [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
-          (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
+         [(limittoou|cros_ou <OrgUnitItem>)|(cros_ou_and_children <OrgUnitItem>)|
+          (cros_ous <OrgUnitList>)|(cros_ous_and_children <OrgUnitList>)]]
         [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
@@ -1631,6 +1632,17 @@ Delimiter defaults to gam.cfg/csv_output_field_delimiter.
 
 gam get devicefile <CrOSEntity> [select <DeviceFileEntity>] [targetfolder <FilePath>]
 gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <FilePath>]
+
+# Chrome Browser Policies
+
+gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
+        ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+gam delete chromepolicy <SchemaName>+
+        ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+gam show chromepolicies
+        ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+gam show chromeschemas
+        [filter <String>]
 
 # Contacts
 
@@ -2709,6 +2721,62 @@ gam print orgs|ous [todrive <ToDriveAttribute>*] [showparent] [toplevelonly] [fr
         [mincroscount <Number>] [maxcroscount <Number>]
         [minusercount <Number>] [maxusercount <Number>]
 gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
+
+# Printers
+
+<PrinterAttribute> ::=
+        (description <String>)|
+        (displayname <String>)|
+        (makeandmodel <String>)|
+        (ou|org|orgunit <OrgUnitItem>)|
+        (ownerid <EmailAddress>)|
+        (uri <String>)|
+        (driverless [<Boolean>])
+
+<PrinterFieldName> ::=
+        auxiliarymessages|
+        createtime|
+        description|
+        displayname|
+        id|
+        makeandmodel|
+        name|
+        ou|org|orgunit|orgunitid|
+        uri|
+        usedriverlessconfig|
+<PrinterFieldNameList> ::= "<PrinterFieldName>(,<PrinterFieldName>)*"
+
+gam create printer <PrinterAttribute>+
+gam update printer <PrinterID> <PrinterAttribute>+
+gam delete printer
+        <PrinterIDList>|
+        file (<FileName>|(gdoc <UserGoogleDoc>)
+              [charset <Charset>] [delimiter <Character>]))|
+        csvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
+                [fields <FieldNameList>]
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
+                [delimiter <Character>])
+
+gam info printer <PrinterID>
+        [fields <PrinterFieldNameList>] [formatjson]
+gam show printers
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [filter <String>] [showinherited [<Boolean>]
+        [fields <PrinterFieldNameList>] [formatjson]
+gam print printers [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [filter <String>] [showinherited [<Boolean>]
+        [fields <PrinterFieldNameList>] [[formatjson [quotechar <Character>]]
+
+gam show printermodels
+        [filter <String>]
+        [formatjson]
+gam print printermodels [todrive <ToDriveAttribute>*]
+        [filter <String>]
+        [[formatjson [quotechar <Character>]]
 
 # Reports
 
@@ -4858,6 +4926,22 @@ gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
         [countsonly]
 gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAttribute>*]
         [delimiter <Character>] [quotechar <Character>]
+
+# Users - Invitations
+
+gam send userinvitation <EmailAddress>
+gam cancel userinvitation <EmailAddress>
+gam info userinvitation <EmailAddress> [formatjson]
+gam show userinvitations
+        [state notyetsent|invited|accepted|declined]
+        [orderby email|updatetime [ascending|descending]]
+        [formatjson]
+gam print userinvitations [todrive <ToDriveAttribute>*]
+        [[state notyetsent|invited|accepted|declined]
+        [orderby email|updatetime [ascending|descending]]
+        [[formatjson [quotechar <Character>]]
+gam check isinvitable|userinvitation <EmailAddress>
+gam <UserTypeEntity> check isinvitable [todrive <ToDriveAttribute>*]
 
 # Users - Licenses
 

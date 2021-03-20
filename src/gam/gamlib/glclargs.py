@@ -596,6 +596,7 @@ class GamCLArgs():
   OB_ACL_SCOPE_ENTITY = 'ACLScopeEntity'
   OB_ALERT_ID = 'AlertID'
   OB_API_SCOPE_URL_LIST = 'APIScopeURLList'
+  OB_APP_ID = 'AppID'
   OB_ARGUMENT = 'argument'
   OB_ASP_ID_LIST = 'ASPIDList'
   OB_BROWSER_ENROLLEMNT_TOKEN_ID = 'BrowserEnrollmentTokenID'

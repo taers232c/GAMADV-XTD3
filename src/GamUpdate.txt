@@ -1,3 +1,15 @@
+6.00.00
+
+Following Jay's lead, added the capability to manage three new areas.
+
+* Chrome Policies - https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Policies
+* Chrome Printers - https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Printers
+* Unmanaged Accounts - https://github.com/taers232c/GAMADV-XTD3/wiki/Unmanaged-Accounts
+
+You'll have to do `gam update project` and `gam oauth create` to enable these commands.
+
+As with any initial release, proceed with care and report any problems.
+
 5.35.08
 
 Fixed bug in `gam calendar <CalendarEntity> create|import|update event` where `noreminders` was not disabling reminders.
@@ -19,7 +31,7 @@ Modified how `gam cros_ou_and_children <OrgUnitItem> ...` and `gam cros_ous_and_
 The Google Directory API does not support getting all CrOS devices in an OU and its sub OUs; previously, when these options
 were used, GAM made a single API call to retrieve the entire list of CrOS devices and selected the desired devices.
 For customers with a small number of CrOS devices this didn't cause an issue, for customers with large numbers of CrOS devices,
-this could be slow. Now, GAM makes a separate API call for the OU and ech of its sub OUs to retrieve the CrOS devices.
+this could be slow. Now, GAM makes a separate API call for the OU and each of its sub OUs to retrieve the CrOS devices.
 
 Expanded the options to select CrOS devices by OU in `gam print cros` and `gam print crosactivity`.
 ```
