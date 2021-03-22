@@ -2297,6 +2297,16 @@ def performActionNumItems(itemCount, itemType, i=0, count=0):
                                  [f'{Act.ToPerform()} {itemCount} {Ent.Choose(itemType, itemCount)}'],
                                  currentCountNL(i, count)))
 
+def actionPerformedNumItems(itemCount, itemType, i=0, count=0):
+  writeStderr(formatKeyValueList(Ind.Spaces(),
+                                 [f'{itemCount} {Ent.Choose(itemType, itemCount)} {Act.Performed()} '],
+                                 currentCountNL(i, count)))
+
+def actionFailedNumItems(itemCount, itemType, errMessage, i=0, count=0):
+  writeStderr(formatKeyValueList(Ind.Spaces(),
+                                 [f'{itemCount} {Ent.Choose(itemType, itemCount)} {Act.Failed()}: {errMessage} '],
+                                 currentCountNL(i, count)))
+
 def performActionModifierNumItems(modifier, itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  [f'{Act.ToPerform()} {modifier} {itemCount} {Ent.Choose(itemType, itemCount)}'],
@@ -18216,14 +18226,23 @@ def doDeleteChromePolicy():
     elif myarg == 'appid':
       app_id = getString(Cmd.OB_APP_ID)
     elif myarg in schemas:
-      body['requests'].append({'policySchema': schemas[myarg].name})
+      body['requests'].append({'policySchema': schemas[myarg]['name']})
     else:
       unknownArgumentExit()
   if not orgunit:
     missingArgumentExit('orgunit')
+  count = len(body['requests'])
+  performActionNumItems(count, Ent.CHROME_POLICY)
+  if count == 0:
+    return
   updatePolicyRequests(body, orgunit, printer_id, app_id)
-  callGAPI(cp.customers().policies().orgunits(), 'batchInherit',
-           customer=customer, body=body)
+  try:
+    callGAPI(cp.customers().policies().orgunits(), 'batchInherit',
+             throwReasons=[GAPI.INVALID_ARGUMENT],
+             customer=customer, body=body)
+    actionPerformedNumItems(count, Ent.CHROME_POLICY)
+  except GAPI.invalidArgument as e:
+    actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
 
 # gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
 #	ou|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
@@ -18249,7 +18268,7 @@ def doUpdateChromePolicy():
         field = getArgument()
         if field in {'ou', 'org', 'orgunit', 'printerid', 'appid'} or '.' in field:
           Cmd.Backup()
-          break # field is actually a new policy name
+          break # field is actually a new policy name or orgunit
         if field not in schemas[myarg]['settings']:
           missingChoiceExit(schemas[myarg]['settings'])
         casedField = schemas[myarg]['settings'][field]['name']
@@ -18258,7 +18277,6 @@ def doUpdateChromePolicy():
         if vtype in ['TYPE_INT64', 'TYPE_INT32', 'TYPE_UINT64']:
           if not value.isnumeric():
             invalidArgumentExit(integerLimits(None, None))
-            #controlflow.system_error_exit(7, f'Value for {myarg} {field} must be a number, got {value}')
           value = int(value)
         elif vtype in ['TYPE_BOOL']:
           if value in TRUE_VALUES:
@@ -18271,7 +18289,7 @@ def doUpdateChromePolicy():
           value = value.upper()
           enum_values = schemas[myarg]['settings'][field]['enums']
           if value not in enum_values:
-            missingChoiceExit(enum_values)
+            invalidChoiceExit(value, enum_values, True)
           prefix = schemas[myarg]['settings'][field]['enum_prefix']
           value = f'{prefix}{value}'
         elif vtype in ['TYPE_LIST']:
@@ -18282,9 +18300,18 @@ def doUpdateChromePolicy():
       unknownArgumentExit()
   if not orgunit:
     missingArgumentExit('orgunit')
+  count = len(body['requests'])
+  performActionNumItems(count, Ent.CHROME_POLICY)
+  if count == 0:
+    return
   updatePolicyRequests(body, orgunit, printer_id, app_id)
-  callGAPI(cp.customers().policies().orgunits(), 'batchModify',
-           customer=customer, body=body)
+  try:
+    callGAPI(cp.customers().policies().orgunits(), 'batchModify',
+             throwReasons=[GAPI.INVALID_ARGUMENT],
+             customer=customer, body=body)
+    actionPerformedNumItems(count, Ent.CHROME_POLICY)
+  except GAPI.invalidArgument as e:
+    actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
 
 # gam show chromepolicies
 #	ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
@@ -18325,10 +18352,10 @@ def doPrintShowChromePolicies():
     body['policySchemaFilter'] = f'{namespace}.*'
     try:
       policies = callGAPIpages(cp.customers().policies(), 'resolve','resolvedPolicies',
-                                 throwReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                                 throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE],
                                  customer=customer,
                                  body=body)
-    except GAPI.serviceNotAvailable as e:
+    except (GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.CHROME_POLICY, body['policySchemaFilter']], str(e))
       continue
     for policy in sorted(policies, key=lambda k: k.get('value', {}).get('policySchema', '')):
