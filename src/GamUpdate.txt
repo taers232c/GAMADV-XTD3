@@ -10,6 +10,13 @@ You'll have to do `gam update project` and `gam oauth create` to enable these co
 
 As with any initial release, proceed with care and report any problems.
 
+Updated `gam report customer|user` to continue processing subsequent dates when Google indicates that no data is available
+for a particular date.
+
+Improved `Got` messages so it is easier to monitor progress.
+
+Removed extraneous `email` header in `gam report user ... aggregatebydate`.
+
 5.35.08
 
 Fixed bug in `gam calendar <CalendarEntity> create|import|update event` where `noreminders` was not disabling reminders.

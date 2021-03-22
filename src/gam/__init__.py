@@ -2203,10 +2203,12 @@ FIRST_ITEM_MARKER = '%%first_item%%'
 LAST_ITEM_MARKER = '%%last_item%%'
 TOTAL_ITEMS_MARKER = '%%total_items%%'
 
-def getPageMessage(showFirstLastItems=False):
+def getPageMessage(showFirstLastItems=False, showDate=None):
   if not GC.Values[GC.SHOW_GETTINGS]:
     return None
   pageMessage = f'{Msg.GOT} {TOTAL_ITEMS_MARKER} {{0}}'
+  if showDate:
+    pageMessage += f' on {showDate}'
   if showFirstLastItems:
     pageMessage += f': {FIRST_ITEM_MARKER} - {LAST_ITEM_MARKER}'
   else:
@@ -2217,12 +2219,14 @@ def getPageMessage(showFirstLastItems=False):
     GM.Globals[GM.LAST_GOT_MSG_LEN] = 0
   return pageMessage
 
-def getPageMessageForWhom(forWhom=None, showFirstLastItems=False):
+def getPageMessageForWhom(forWhom=None, showFirstLastItems=False, showDate=None):
   if not GC.Values[GC.SHOW_GETTINGS]:
     return None
   if forWhom:
     Ent.SetGettingForWhom(forWhom)
   pageMessage = f'{Msg.GOT} {TOTAL_ITEMS_MARKER} {{0}}{Ent.GettingPostQualifier()} {Msg.FOR} {Ent.GettingForWhom()}'
+  if showDate:
+    pageMessage += f' on {showDate}'
   if showFirstLastItems:
     pageMessage += f': {FIRST_ITEM_MARKER} - {LAST_ITEM_MARKER}'
   else:
@@ -4370,7 +4374,7 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, pageMessage,
           lastItem = str(lastItem)
         showMessage = showMessage.replace(FIRST_ITEM_MARKER, firstItem)
         showMessage = showMessage.replace(LAST_ITEM_MARKER, lastItem)
-      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(entityType, totalItems))))
+    writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(entityType, totalItems))))
   return (pageToken, totalItems)
 
 def _finalizeGAPIpagesResult(pageMessage):
@@ -10095,25 +10099,24 @@ def doReportUsage():
   endDateTime = startEndTime.endDateTime
   endDate = endDateTime.strftime(YYYYMMDD_FORMAT)
   startUseDate = endUseDate = None
-  showGetting = False
   if not orgUnitId:
     showOrgUnit = False
   if userReports:
     if select:
-      showGetting = True
+      Ent.SetGetting(Ent.REPORT)
       kwargs = [{'userKey': normalizeEmailAddressOrUID(user)} for user in users]
     elif userKey == 'all':
       if orgUnitId:
         kwargs[0]['orgUnitID'] = orgUnitId
         userOrgUnits = getUserOrgUnits(cd, orgUnit, orgUnitId)
-        printGettingEntityItemForWhom(Ent.REPORT, f'users in orgUnit {orgUnit}')
+        forWhom = f'users in orgUnit {orgUnit}'
       else:
-        printGettingEntityItemForWhom(Ent.REPORT, 'all users')
-      pageMessage = getPageMessage()
+        forWhom = 'all users'
+      printGettingEntityItemForWhom(Ent.REPORT, forWhom)
     else:
+      Ent.SetGetting(Ent.REPORT)
       kwargs = [{'userKey': normalizeEmailAddressOrUID(userKey)}]
       printGettingEntityItemForWhom(Ent.REPORT, kwargs[0]['userKey'])
-      pageMessage = getPageMessage()
     if showOrgUnit:
       titles.append('orgUnitPath')
   else:
@@ -10129,9 +10132,10 @@ def doReportUsage():
     startDateTime += oneDay
     try:
       for kwarg in kwargs:
-        if showGetting:
-          printGettingEntityItemForWhom(Ent.REPORT, kwarg['userKey'])
-          pageMessage = getPageMessage()
+        if not select and userKey == 'all':
+          pageMessage = getPageMessageForWhom(forWhom, showDate=useDate)
+        else:
+          pageMessage = getPageMessageForWhom(kwarg['userKey'], showDate=useDate)
         try:
           usage = callGAPIpages(service, 'get', 'usageReports',
                                 pageMessage=pageMessage,
@@ -10274,8 +10278,12 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 def doReport():
   def processUserUsage(usage, lastDate):
-    if not usage or lastDate == usage[0]['date']:
-      return (lastDate is None, lastDate)
+#    if not usage or lastDate == usage[0]['date']:
+#      return (lastDate is None, lastDate)
+    if not usage:
+      return (True, lastDate)
+    if lastDate == usage[0]['date']:
+      return (False, lastDate)
     lastDate = usage[0]['date']
     for user_report in usage:
       if 'entity' not in user_report:
@@ -10313,8 +10321,12 @@ def doReport():
     return (True, lastDate)
 
   def processAggregateUserUsage(usage, lastDate):
-    if not usage or lastDate == usage[0]['date']:
-      return (lastDate is None, lastDate)
+#    if not usage or lastDate == usage[0]['date']:
+#      return (lastDate is None, lastDate)
+    if not usage:
+      return (True, lastDate)
+    if lastDate == usage[0]['date']:
+      return (False, lastDate)
     lastDate = usage[0]['date']
     for user_report in usage:
       if 'entity' not in user_report:
@@ -10334,8 +10346,12 @@ def doReport():
     return (True, lastDate)
 
   def processCustomerUsageOneRow(usage, lastDate):
-    if not usage or lastDate == usage[0]['date']:
-      return (lastDate is None, lastDate)
+#    if not usage or lastDate == usage[0]['date']:
+#      return (lastDate is None, lastDate)
+    if not usage:
+      return (True, lastDate)
+    if lastDate == usage[0]['date']:
+      return (False, lastDate)
     lastDate = usage[0]['date']
     row = {'date': lastDate}
     for item in usage[0].get('parameters', []):
@@ -10396,8 +10412,12 @@ def doReport():
     return (True, lastDate)
 
   def processCustomerUsage(usage, lastDate):
-    if not usage or lastDate == usage[0]['date']:
-      return (lastDate is None, lastDate)
+#    if not usage or lastDate == usage[0]['date']:
+#      return (lastDate is None, lastDate)
+    if not usage:
+      return (True, lastDate)
+    if lastDate == usage[0]['date']:
+      return (False, lastDate)
     lastDate = usage[0]['date']
     for item in usage[0].get('parameters', []):
       if 'name' not in item:
@@ -10577,25 +10597,24 @@ def doReport():
     if startEndTime.startDateTime is None:
       startEndTime.startDateTime = startEndTime.endDateTime = todaysDate()
     if select:
-      pageMessage = None
       normalizeUsers = True
       orgUnitId = None
+      Ent.SetGetting(Ent.REPORT)
     elif userKey == 'all':
       if orgUnitId:
         userOrgUnits = getUserOrgUnits(cd, orgUnit, orgUnitId)
-        printGettingEntityItemForWhom(Ent.REPORT, f'users in orgUnit {orgUnit}')
+        forWhom = f'users in orgUnit {orgUnit}'
       else:
-        printGettingEntityItemForWhom(Ent.REPORT, 'all users')
-      pageMessage = getPageMessage()
+        forWhom = 'all users'
+      printGettingEntityItemForWhom(Ent.REPORT, forWhom)
       users = ['all']
     else:
       Ent.SetGetting(Ent.REPORT)
-      pageMessage = getPageMessage()
       users = [normalizeEmailAddressOrUID(userKey)]
       orgUnitId = None
     if aggregateUserUsage:
       titles = ['date']
-    if not showOrgUnit:
+    elif not showOrgUnit:
       titles = ['email', 'date']
     else:
       titles = ['email', 'orgUnitPath', 'date']
@@ -10631,6 +10650,10 @@ def doReport():
                 break
               startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
               continue
+          if not select and userKey == 'all':
+            pageMessage = getPageMessageForWhom(forWhom, showDate=tryDate)
+          else:
+            pageMessage = getPageMessageForWhom(user, showDate=tryDate)
           usage = callGAPIpages(rep.userUsageReport(), 'get', 'usageReports',
                                 pageMessage=pageMessage,
                                 throwReasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
