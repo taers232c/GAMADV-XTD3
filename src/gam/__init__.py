@@ -18172,7 +18172,7 @@ def commonprefix(m):
       return s1[:i]
   return s1
 
-def build_schemas(cp=None, sfilter=None):
+def buildChromeSchemas(cp=None, sfilter=None):
   if not cp:
     cp = buildGAPIObject(API.CHROMEPOLICY)
   parent = _getCustomersCustomerIdWithC()
@@ -18180,18 +18180,19 @@ def build_schemas(cp=None, sfilter=None):
                           parent=parent, filter=sfilter)
   schema_objects = {}
   for schema in schemas:
-    schema_name = schema.get('name', '').split('/')[-1]
+    schema_name = schema['name'].split('/')[-1]
     schema_dict = {'name': schema_name,
                    'description': schema.get('policyDescription', ''),
                    'settings': {}
                   }
-    for mtype in schema.get('definition', {}).get('messageType', {}):
-      for setting in mtype.get('field', {}):
-        setting_name = setting.get('name', '')
+    fieldDescriptions = schema['fieldDescriptions']
+    for mtype in schema['definition']['messageType']:
+      for setting in mtype['field']:
+        setting_name = setting['name']
         setting_dict = {'name': setting_name,
                         'constraints': None,
                         'descriptions':  [],
-                        'type': setting.get('type'),
+                        'type': setting['type'],
                        }
         if setting_dict['type'] == 'TYPE_STRING' and setting.get('label') == 'LABEL_REPEATED':
           setting_dict['type'] = 'TYPE_LIST'
@@ -18203,17 +18204,22 @@ def build_schemas(cp=None, sfilter=None):
               setting_dict['enum_prefix'] = commonprefix(setting_dict['enums'])
               prefix_len = len(setting_dict['enum_prefix'])
               setting_dict['enums'] = [enum[prefix_len:] for enum in setting_dict['enums'] if not enum.endswith('UNSPECIFIED')]
-              break
-          for fdesc in schema.get('fieldDescriptions', []):
-            if fdesc.get('field') == setting_name:
-              setting_dict['descriptions'] = [d['description'] for d in fdesc.get('knownValueDescriptions', [])]
+              setting_dict['descriptions'] = ['']*len(setting_dict['enums'])
+              for i, an in enumerate(setting_dict['enums']):
+                for fdesc in fieldDescriptions:
+                  if fdesc['field'] == setting_name:
+                    for d in fdesc['knownValueDescriptions']:
+                      if d['value'][prefix_len:] == an:
+                        setting_dict['descriptions'][i] = d['description']
+                        break
+                    break
               break
         elif setting_dict['type'] == 'TYPE_MESSAGE':
           continue
         else:
           setting_dict['enums'] = None
-          for fdesc in schema.get('fieldDescriptions', []):
-            if fdesc.get('field') == setting_name:
+          for fdesc in schema['fieldDescriptions']:
+            if fdesc['field'] == setting_name:
               if 'knownValueDescriptions' in fdesc:
                 setting_dict['descriptions'] = fdesc['knownValueDescriptions']
               elif 'description' in fdesc:
@@ -18237,7 +18243,7 @@ def updatePolicyRequests(body, orgunit, printer_id, app_id):
 def doDeleteChromePolicy():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   customer = _getCustomersCustomerIdWithC()
-  schemas = build_schemas(cp)
+  schemas = buildChromeSchemas(cp)
   app_id = orgunit = printer_id = None
   body = {'requests': []}
   while Cmd.ArgumentsRemaining():
@@ -18272,7 +18278,7 @@ def doDeleteChromePolicy():
 def doUpdateChromePolicy():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   customer = _getCustomersCustomerIdWithC()
-  schemas = build_schemas(cp)
+  schemas = buildChromeSchemas(cp)
   app_id = orgunit = printer_id = None
   body = {'requests': []}
   while Cmd.ArgumentsRemaining():
@@ -18410,7 +18416,7 @@ def doPrintShowChromeSchemas():
       sfilter = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
-  schemas = build_schemas(cp, sfilter)
+  schemas = buildChromeSchemas(cp, sfilter)
   for _, value in sorted(iter(schemas.items())):
     printKeyValueList([f'{value.get("name")}', f'{value.get("description")}'])
     Ind.Increment()
