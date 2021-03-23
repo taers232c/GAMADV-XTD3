@@ -1,3 +1,9 @@
+6.00.01
+
+Improve error handling in `gam delete|update chromepolicy` and `gam show chromepolicies`.
+
+When showing Chrome Policies, display OU and optional printerid/appid at top of output.
+
 6.00.00
 
 Following Jay's lead, added the capability to manage three new areas.
@@ -13,7 +19,7 @@ As with any initial release, proceed with care and report any problems.
 Updated `gam report customer|user` to continue processing subsequent dates when Google indicates that no data is available
 for a particular date.
 
-Improved `Got` messages so it is easier to monitor progress.
+Improved `gam report` `Got` messages so it is easier to monitor progress.
 
 Removed extraneous `email` header in `gam report user ... aggregatebydate`.
 

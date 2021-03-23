@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.00.00'
+__version__ = '6.00.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1341,24 +1341,23 @@ def getOrgUnitId(cd=None, orgUnit=None):
     cd = buildGAPIObject(API.DIRECTORY)
   if orgUnit is None:
     orgUnit = getOrgUnitItem()
-  if orgUnit[:3] == 'id:':
-    return (orgUnit, orgUnit)
   try:
     if orgUnit == '/':
       result = callGAPI(cd.orgunits(), 'list',
                         throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                         customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath='/', type='children',
-                        fields='organizationUnits(parentOrgUnitId)')
+                        fields='organizationUnits(parentOrgUnitId,parentOrgUnitPath)')
       if result.get('organizationUnits', []):
-        return (orgUnit, result['organizationUnits'][0]['parentOrgUnitId'])
+        return (result['organizationUnits'][0]['parentOrgUnitPath'], result['organizationUnits'][0]['parentOrgUnitId'])
       topLevelOrgId = getTopLevelOrgId(cd, '/')
       if topLevelOrgId:
         return (orgUnit, topLevelOrgId)
       return (orgUnit, '/') #Bogus but should never happen
     result = callGAPI(cd.orgunits(), 'get',
                       throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
-                      customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnit)), fields='orgUnitId')
-    return (orgUnit, result['orgUnitId'])
+                      customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnit)),
+                      fields='orgUnitId,orgUnitPath')
+    return (result['orgUnitPath'], result['orgUnitId'])
   except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
     entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, orgUnit)
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
@@ -4663,7 +4662,9 @@ def splitEmailAddressOrUID(emailAddressOrUID):
   return (normalizedEmailAddressOrUID, normalizedEmailAddressOrUID, GC.Values[GC.DOMAIN])
 
 # Convert Org Unit Id to Org Unit Path
-def convertOrgUnitIDtoPath(orgUnitId, cd):
+def convertOrgUnitIDtoPath(cd, orgUnitId):
+  if orgUnitId.startswith('orgunits/'):
+    orgUnitId = f'id:{orgUnitId[9:]}'
   orgUnitPath = GM.Globals[GM.MAP_ORGUNIT_ID_TO_NAME].get(orgUnitId)
   if not orgUnitPath:
     if cd is None:
@@ -12440,7 +12441,7 @@ def doPrintShowAdmins():
     admin['assignedToUser'] = convertUserIDtoEmail(admin['assignedTo'], cd)
     admin['role'] = role_from_roleid(admin['roleId'])
     if 'orgUnitId' in admin:
-      admin['orgUnit'] = convertOrgUnitIDtoPath(f'id:{admin["orgUnitId"]}', cd)
+      admin['orgUnit'] = convertOrgUnitIDtoPath(cd, f'id:{admin["orgUnitId"]}')
 
   cd = buildGAPIObject(API.DIRECTORY)
   roleId = None
@@ -18157,11 +18158,11 @@ def doPrintShowBrowserTokens():
       csvPF.SetSortTitles(['token'])
     csvPF.writeCSVfile('Chrome Browser Enrollment Tokens')
 
-def _getOrgunitsOrgUnitId(orgunit):
-  if orgunit.startswith('orgunits/'):
-    return orgunit
-  _, orgunitid = getOrgUnitId(None, orgunit)
-  return f'orgunits/{orgunitid[3:]}'
+def _getOrgunitsOrgUnitIdPath(orgUnit):
+  if orgUnit.startswith('orgunits/'):
+    orgUnit = f'id:{orgUnit[9:]}'
+  orgUnitPath, orgUnitId = getOrgUnitId(None, orgUnit)
+  return (orgUnitPath, f'orgunits/{orgUnitId[3:]}')
 
 def commonprefix(m):
   '''Given a list of strings m, return string which is prefix common to all'''
@@ -18228,11 +18229,9 @@ def buildChromeSchemas(cp=None, sfilter=None):
     schema_objects[schema_name.lower()] = schema_dict
   return schema_objects
 
-def updatePolicyRequests(body, orgunit, printer_id, app_id):
-  if not orgunit:
-    orgunit = _getOrgunitsOrgUnitId('/')
+def updatePolicyRequests(body, orgUnit, printer_id, app_id):
   for request in body['requests']:
-    request['policyTargetKey'] = {'targetResource': orgunit}
+    request['policyTargetKey'] = {'targetResource': orgUnit}
     if printer_id:
       request['policyTargetKey']['additionalTargetKeys'] = {'printer_id': printer_id}
     elif app_id:
@@ -18244,12 +18243,12 @@ def doDeleteChromePolicy():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   customer = _getCustomersCustomerIdWithC()
   schemas = buildChromeSchemas(cp)
-  app_id = orgunit = printer_id = None
+  app_id = orgUnit = printer_id = None
   body = {'requests': []}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'ou', 'org', 'orgunit'}:
-      orgunit = _getOrgunitsOrgUnitId(getString(Cmd.OB_ORGUNIT_PATH))
+      orgUnitPath, orgUnit = _getOrgunitsOrgUnitIdPath(getString(Cmd.OB_ORGUNIT_PATH))
     elif myarg == 'printerid':
       printer_id = getString(Cmd.OB_PRINTER_ID)
     elif myarg == 'appid':
@@ -18258,18 +18257,20 @@ def doDeleteChromePolicy():
       body['requests'].append({'policySchema': schemas[myarg]['name']})
     else:
       unknownArgumentExit()
-  if not orgunit:
+  if not orgUnit:
     missingArgumentExit('orgunit')
   count = len(body['requests'])
   performActionNumItems(count, Ent.CHROME_POLICY)
   if count == 0:
     return
-  updatePolicyRequests(body, orgunit, printer_id, app_id)
+  updatePolicyRequests(body, orgUnit, printer_id, app_id)
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchInherit',
-             throwReasons=[GAPI.INVALID_ARGUMENT],
+             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND],
              customer=customer, body=body)
     actionPerformedNumItems(count, Ent.CHROME_POLICY)
+  except GAPI.notFound as e:
+    entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
 
@@ -18279,12 +18280,12 @@ def doUpdateChromePolicy():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   customer = _getCustomersCustomerIdWithC()
   schemas = buildChromeSchemas(cp)
-  app_id = orgunit = printer_id = None
+  app_id = orgUnit = printer_id = None
   body = {'requests': []}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'ou', 'org', 'orgunit'}:
-      orgunit = _getOrgunitsOrgUnitId(getString(Cmd.OB_ORGUNIT_PATH))
+      orgUnitPath, orgUnit = _getOrgunitsOrgUnitIdPath(getString(Cmd.OB_ORGUNIT_PATH))
     elif myarg == 'printerid':
       printer_id = getString(Cmd.OB_PRINTER_ID)
     elif myarg == 'appid':
@@ -18299,6 +18300,7 @@ def doUpdateChromePolicy():
           Cmd.Backup()
           break # field is actually a new policy name or orgunit
         if field not in schemas[myarg]['settings']:
+          Cmd.Backup()
           missingChoiceExit(schemas[myarg]['settings'])
         casedField = schemas[myarg]['settings'][field]['name']
         value = getString(Cmd.OB_STRING)
@@ -18308,6 +18310,7 @@ def doUpdateChromePolicy():
             invalidArgumentExit(integerLimits(None, None))
           value = int(value)
         elif vtype in ['TYPE_BOOL']:
+          value = value.lower()
           if value in TRUE_VALUES:
             value = True
           elif value in FALSE_VALUES:
@@ -18327,18 +18330,20 @@ def doUpdateChromePolicy():
         body['requests'][-1]['updateMask'] += f'{casedField},'
     else:
       unknownArgumentExit()
-  if not orgunit:
+  if not orgUnit:
     missingArgumentExit('orgunit')
   count = len(body['requests'])
   performActionNumItems(count, Ent.CHROME_POLICY)
   if count == 0:
     return
-  updatePolicyRequests(body, orgunit, printer_id, app_id)
+  updatePolicyRequests(body, orgUnit, printer_id, app_id)
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchModify',
-             throwReasons=[GAPI.INVALID_ARGUMENT],
+             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND],
              customer=customer, body=body)
     actionPerformedNumItems(count, Ent.CHROME_POLICY)
+  except GAPI.notFound as e:
+    entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
 
@@ -18347,20 +18352,20 @@ def doUpdateChromePolicy():
 def doPrintShowChromePolicies():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   customer = _getCustomersCustomerIdWithC()
-  app_id = orgunit = printer_id = None
+  app_id = orgUnit = printer_id = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'ou', 'org', 'orgunit'}:
-      orgunit = _getOrgunitsOrgUnitId(getString(Cmd.OB_ORGUNIT_PATH))
+      orgUnitPath, orgUnit = _getOrgunitsOrgUnitIdPath(getString(Cmd.OB_ORGUNIT_PATH))
     elif myarg == 'printerid':
       printer_id = getString(Cmd.OB_PRINTER_ID)
     elif myarg == 'appid':
       app_id = getString(Cmd.OB_APP_ID)
     else:
       unknownArgumentExit()
-  if not orgunit:
+  if not orgUnit:
     missingArgumentExit('orgunit')
-  body = {'policyTargetKey': {'targetResource': orgunit}}
+  body = {'policyTargetKey': {'targetResource': orgUnit}}
   if printer_id:
     body['policyTargetKey']['additionalTargetKeys'] = {'printer_id': printer_id}
     namespaces = ['chrome.printers']
@@ -18381,14 +18386,24 @@ def doPrintShowChromePolicies():
     body['policySchemaFilter'] = f'{namespace}.*'
     try:
       policies = callGAPIpages(cp.customers().policies(), 'resolve','resolvedPolicies',
-                                 throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE],
+                                 throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
                                  customer=customer,
                                  body=body)
+    except GAPI.notFound as e:
+      entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
+      continue
     except (GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.CHROME_POLICY, body['policySchemaFilter']], str(e))
       continue
+    kvList = []
+    if printer_id:
+      kvList.extend(['printerid', printer_id])
+    elif app_id:
+      kvList.extend(['appid', app_id])
+    printEntityKVList([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], kvList)
     for policy in sorted(policies, key=lambda k: k.get('value', {}).get('policySchema', '')):
       name = policy.get('value', {}).get('policySchema', '')
+      printBlankLine()
       printKeyValueList([name])
       Ind.Increment()
       values = policy.get('value', {}).get('value', {})
@@ -18397,7 +18412,6 @@ def doPrintShowChromePolicies():
           value = value.split('_ENUM_')[-1]
         printKeyValueList([f'{setting}', f'{value}'])
       Ind.Decrement()
-      printBlankLine()
 
 def _getChromePolicySchemaName():
   name = getString(Cmd.OB_SCHEMA_NAME)
@@ -19366,12 +19380,12 @@ def _checkPrinterInheritance(cd, printer, orgUnitId, showInherited):
     elif orgUnitId is not None and printer['orgUnitId'] != orgUnitId:
       printer['inherited'] = True
       printer['parentOrgUnitId'] = printer['orgUnitId']
-      printer['parentOrgUnitPath'] = convertOrgUnitIDtoPath(f'id:{printer["parentOrgUnitId"]}', cd)
+      printer['parentOrgUnitPath'] = convertOrgUnitIDtoPath(cd, f'id:{printer["parentOrgUnitId"]}')
       printer['orgUnitId'] = orgUnitId
     else:
       printer['inherited'] = False
       printer['parentOrgUnitId'] = printer['parentOrgUnitPath'] = ''
-    printer['orgUnitPath'] = convertOrgUnitIDtoPath(f'id:{printer["orgUnitId"]}', cd)
+    printer['orgUnitPath'] = convertOrgUnitIDtoPath(cd, f'id:{printer["orgUnitId"]}')
   return True
 
 def _showPrinter(cd, printer, FJQC, orgUnitId=None, showInherited=False, i=0, count=0):
@@ -27393,7 +27407,7 @@ def _getExportOrgUnitName(export, cd):
   query = export.get('query')
   if query:
     if 'orgUnitInfo' in query:
-      query['orgUnitInfo']['orgUnitPath'] = convertOrgUnitIDtoPath(query['orgUnitInfo']['orgUnitId'], cd)
+      query['orgUnitInfo']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, query['orgUnitInfo']['orgUnitId'])
 
 VAULT_EXPORT_TIME_OBJECTS = {'versionDate', 'createTime', 'startTime', 'endTime'}
 
@@ -27950,7 +27964,7 @@ def _getHoldEmailAddressesOrgUnitName(hold, cd):
     for i in range(0, len(hold['accounts'])):
       hold['accounts'][i]['email'] = convertUIDtoEmailAddress(f'uid:{hold["accounts"][i]["accountId"]}', cd, accountType)
   if 'orgUnit' in hold:
-    hold['orgUnit']['orgUnitPath'] = convertOrgUnitIDtoPath(hold['orgUnit']['orgUnitId'], cd)
+    hold['orgUnit']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, hold['orgUnit']['orgUnitId'])
 
 VAULT_HOLD_TIME_OBJECTS = {'holdTime', 'updateTime', 'startTime', 'endTime'}
 
