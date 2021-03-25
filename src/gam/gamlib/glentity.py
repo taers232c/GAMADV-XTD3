@@ -97,6 +97,8 @@ class GamEntity():
   COURSE_ANNOUNCEMENT_STATE = 'cast'
   COURSE_MATERIAL_DRIVEFILE = 'comd'
   COURSE_MATERIAL_FORM = 'comf'
+  COURSE_MATERIAL_ID = 'cmid'
+  COURSE_MATERIAL_STATE = 'cmst'
   COURSE_NAME = 'cona'
   COURSE_STATE = 'cost'
   COURSE_SUBMISSION_ID = 'csid'
@@ -332,6 +334,8 @@ class GamEntity():
     COURSE_ANNOUNCEMENT_STATE: ['Course Announcement States', 'Course Announcement State'],
     COURSE_MATERIAL_DRIVEFILE: ['Course Material Drive Files', 'Course Material Drive File'],
     COURSE_MATERIAL_FORM: ['Course Material Forms', 'Course Material Form'],
+    COURSE_MATERIAL_ID: ['Course Material IDs', 'Course Material ID'],
+    COURSE_MATERIAL_STATE: ['Course Material States', 'Course Material State'],
     COURSE_NAME: ['Course Names', 'Course Name'],
     COURSE_STATE: ['Course States', 'Course State'],
     COURSE_SUBMISSION_ID: ['Course Submission IDs', 'Course Submission ID'],

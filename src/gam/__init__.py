@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.00.01'
+__version__ = '6.00.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10279,8 +10279,6 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 def doReport():
   def processUserUsage(usage, lastDate):
-#    if not usage or lastDate == usage[0]['date']:
-#      return (lastDate is None, lastDate)
     if not usage:
       return (True, lastDate)
     if lastDate == usage[0]['date']:
@@ -10322,8 +10320,6 @@ def doReport():
     return (True, lastDate)
 
   def processAggregateUserUsage(usage, lastDate):
-#    if not usage or lastDate == usage[0]['date']:
-#      return (lastDate is None, lastDate)
     if not usage:
       return (True, lastDate)
     if lastDate == usage[0]['date']:
@@ -10347,8 +10343,6 @@ def doReport():
     return (True, lastDate)
 
   def processCustomerUsageOneRow(usage, lastDate):
-#    if not usage or lastDate == usage[0]['date']:
-#      return (lastDate is None, lastDate)
     if not usage:
       return (True, lastDate)
     if lastDate == usage[0]['date']:
@@ -10413,8 +10407,6 @@ def doReport():
     return (True, lastDate)
 
   def processCustomerUsage(usage, lastDate):
-#    if not usage or lastDate == usage[0]['date']:
-#      return (lastDate is None, lastDate)
     if not usage:
       return (True, lastDate)
     if lastDate == usage[0]['date']:
@@ -32111,6 +32103,11 @@ COURSE_STATE_MAPS = {
     'published': 'PUBLISHED',
     'deleted': 'DELETED',
     },
+  Cmd.OB_COURSE_MATERIAL_STATE_LIST: {
+    'draft': 'DRAFT',
+    'published': 'PUBLISHED',
+    'deleted': 'DELETED',
+    },
   Cmd.OB_COURSE_SUBMISSION_STATE_LIST: {
     'new': 'NEW',
     'created': 'CREATED',
@@ -32130,10 +32127,10 @@ def _getCourseStates(item, states):
     else:
       invalidChoiceExit(state, stateMap, True)
 
-def _gettingCourseAnnouncementQuery(courseAnnouncementStates):
+def _gettingCourseEntityQuery(entityType, courseWorkStates):
   query = ''
-  if courseAnnouncementStates:
-    query += f'{Ent.Choose(Ent.COURSE_ANNOUNCEMENT_STATE, len(courseAnnouncementStates))}: {",".join(courseAnnouncementStates)}, '
+  if courseWorkStates:
+    query += f'{Ent.Choose(entityType, len(courseWorkStates))}: {",".join(courseWorkStates)}, '
   if query:
     query = query[:-2]
   return query
@@ -32155,6 +32152,8 @@ class CourseAttributes():
     self.students = []
     self.announcementStates = []
     self.courseAnnouncements = []
+    self.materialStates = []
+    self.courseMaterials = []
     self.workStates = []
     self.courseWorks = []
     self.copyTopics = False
@@ -32169,6 +32168,14 @@ class CourseAttributes():
     'creatorUserId',
     'updateTime',
     ]
+  COURSE_MATERIAL_READONLY_FIELDS = [
+    'alternateLink',
+    'courseId',
+    'creationTime',
+    'creatorUserId',
+    'updateTime',
+    ]
+
   COURSE_COURSEWORK_READONLY_FIELDS = [
     'alternateLink',
     'assignment',
@@ -32250,6 +32257,8 @@ class CourseAttributes():
         _getCourseStates(Cmd.OB_COURSE_ANNOUNCEMENT_STATE_LIST, self.announcementStates)
       elif myarg in {'workstate', 'workstates', 'courseworkstate', 'courseworkstates'}:
         _getCourseStates(Cmd.OB_COURSE_WORK_STATE_LIST, self.workStates)
+      elif myarg in {'materialstate', 'materialstates', 'coursematerialstate', 'coursematerialstates'}:
+        _getCourseStates(Cmd.OB_COURSE_MATERIAL_STATE_LIST, self.materialStates)
       elif myarg == 'members':
         self.members = getChoice(COURSE_MEMBER_ARGUMENTS)
       elif myarg == 'markpublishedasdraft':
@@ -32279,9 +32288,9 @@ class CourseAttributes():
       if copyFromCourseInfo is None:
         return False
       self.ownerId = copyFromCourseInfo['ownerId']
-      if (self.announcementStates or self.workStates) and self.copyMaterialsFiles:
+      if (self.announcementStates or self.materialStates or self.workStates) and self.copyMaterialsFiles:
         self.body['courseState'] = 'ACTIVE'
-    elif self.members != 'none' or self.announcementStates or self.workStates or self.copyTopics:
+    elif self.members != 'none' or self.announcementStates or self.materialStates or self.workStates or self.copyTopics:
       missingArgumentExit('copyfrom <CourseID>)')
     else:
       return True
@@ -32291,7 +32300,7 @@ class CourseAttributes():
                                                                  'nextPageToken,students(profile(emailAddress))')
     if self.announcementStates:
       printGettingAllEntityItemsForWhom(Ent.COURSE_ANNOUNCEMENT_ID, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0,
-                                        _gettingCourseAnnouncementQuery(self.announcementStates))
+                                        _gettingCourseEntityQuery(Ent.COURSE_ANNOUNCEMENT_STATE, self.announcementStates))
       try:
         self.courseAnnouncements = callGAPIpages(self.croom.courses().announcements(), 'list', 'announcements',
                                                  pageMessage=getPageMessage(),
@@ -32305,9 +32314,25 @@ class CourseAttributes():
       except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
+    if self.materialStates:
+      printGettingAllEntityItemsForWhom(Ent.COURSE_MATERIAL_ID, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0,
+                                        _gettingCourseEntityQuery(Ent.COURSE_MATERIAL_STATE, self.materialStates))
+      try:
+        self.courseMaterials = callGAPIpages(self.croom.courses().courseWorkMaterials(), 'list', 'courseWorkMaterial',
+                                                 pageMessage=getPageMessage(),
+                                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                                 courseId=self.courseId, courseWorkMaterialStates=self.materialStates,
+                                                 pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+        for courseMaterial in self.courseMaterials:
+          for field in self.COURSE_MATERIAL_READONLY_FIELDS:
+            courseMaterial.pop(field, None)
+          self.CleanMaterials(courseMaterial, Ent.COURSE_MATERIAL_ID, courseMaterial['id'])
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
+        return False
     if self.workStates:
       printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0,
-                                        _gettingCourseWorkQuery(self.workStates))
+                                        _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, self.workStates))
       try:
         self.courseWorks = callGAPIpages(self.croom.courses().courseWork(), 'list', 'courseWork',
                                          pageMessage=getPageMessage(),
@@ -32399,11 +32424,11 @@ class CourseAttributes():
     newCourseId = newCourse['id']
     ownerId = newCourse['ownerId']
     teacherFolderId = newCourse['teacherFolder']['id']
-    if self.announcementStates or self.workStates or self.copyTopics:
+    if self.announcementStates or self.materialStates or self.workStates or self.copyTopics:
       _, tcroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{ownerId}')
       if tcroom is None:
         return
-    if (self.announcementStates or self.workStates) and self.copyMaterialsFiles:
+    if (self.announcementStates or self.materialStates or self.workStates) and self.copyMaterialsFiles:
       _, tdrive = buildGAPIServiceObject(API.DRIVE3, f'uid:{ownerId}')
       if tdrive is None:
         return
@@ -32475,6 +32500,33 @@ class CourseAttributes():
                 GAPI.permissionDenied, GAPI.forbidden) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
+    if self.courseMaterials:
+      jcount = len(self.courseMaterials)
+      j = 0
+      for courseMaterial in self.courseMaterials:
+        j += 1
+        body = courseMaterial.copy()
+        courseMaterialId = body.pop('id')
+        if courseMaterial['state'] == 'DELETED':
+          entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, Ent.COURSE_MATERIAL_ID, courseMaterialId], Act.MODIFIER_FROM,
+                                                               [Ent.COURSE, self.courseId], Msg.DELETED, j, jcount)
+          continue
+        if self.copyMaterialsFiles:
+          self.CopyMaterials(tdrive, newCourseId, body, Ent.COURSE_MATERIAL_ID, courseMaterialId, teacherFolderId)
+        try:
+          result = callGAPI(tcroom.courses().courseWorkMaterials(), 'create',
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
+                                          GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR],
+                            courseId=newCourseId, body=body, fields='id')
+          entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_MATERIAL_ID, result['id']], Act.MODIFIER_FROM,
+                                                     [Ent.COURSE, self.courseId, Ent.COURSE_MATERIAL_ID, courseMaterialId], j, jcount)
+        except GAPI.notFound as e:
+          entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
+          return
+        except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError,
+                GAPI.permissionDenied, GAPI.forbidden) as e:
+          entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
+                                                         [Ent.COURSE, self.courseId, Ent.COURSE_MATERIAL_ID, courseMaterialId], str(e), j, jcount)
     if self.courseWorks:
       jcount = len(self.courseWorks)
       j = 0
@@ -32532,6 +32584,7 @@ class CourseAttributes():
 # gam create course [id|alias <CourseAlias>] <CourseAttribute>*
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
+#	    [materialstates <CourseMaterialStateList>]
 #	    [workstates <CourseWorkStateList>]
 #	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
 #		[mapsharemodestudentcopy edit|none|view]
@@ -32626,6 +32679,7 @@ def _doUpdateCourses(entityList):
 # gam update courses <CourseEntity> <CourseAttribute>+
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
+#	    [materialstates <CourseMaterialStateList>]
 #	    [workstates <CourseWorkStateList>]
 #	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
 #		[mapsharemodestudentcopy edit|none|view]
@@ -32639,6 +32693,7 @@ def doUpdateCourses():
 # gam update course <CourseID> <CourseAttribute>+
 #	 [copyfrom <CourseID>
 #	    [announcementstates <CourseAnnouncementStateList>]
+#	    [materialstates <CourseMaterialStateList>]
 #	    [workstates <CourseWorkStateList>]
 #	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
 #		[mapsharemodestudentcopy edit|none|view]
@@ -33256,7 +33311,7 @@ COURSE_ANNOUNCEMENTS_INDEXED_TITLES = ['materials']
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)*
 #	(orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
-#	[showcreatoremails] [fields <CourseAnnouncementFieldNameList>] [formatjson [quotechar <Character>]]
+#	[showcreatoremails|creatoremail] [fields <CourseAnnouncementFieldNameList>] [formatjson [quotechar <Character>]]
 #	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseAnnouncements():
   def _printCourseAnnouncement(course, courseAnnouncement, i, count):
@@ -33323,7 +33378,7 @@ def doPrintCourseAnnouncements():
     if not courseAnnouncementIds:
       fields = getItemFieldsFromFieldsList('announcements', fieldsList)
       printGettingAllEntityItemsForWhom(Ent.COURSE_ANNOUNCEMENT_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
-                                        _gettingCourseAnnouncementQuery(courseAnnouncementStates))
+                                        _gettingCourseEntityQuery(Ent.COURSE_ANNOUNCEMENT_STATE, courseAnnouncementStates))
       try:
         results = callGAPIpages(croom.courses().announcements(), 'list', 'announcements',
                                 pageMessage=getPageMessage(),
@@ -33352,6 +33407,166 @@ def doPrintCourseAnnouncements():
         except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Announcements')
+
+COURSE_MATERIAL_FIELDS_CHOICE_MAP = {
+  'alternatelink': 'alternateLink',
+  'assigneemode': 'assigneeMode',
+  'courseid': 'courseId',
+  'coursematerialid': 'id',
+  'creationtime': 'creationTime',
+  'creator': 'creatorUserId',
+  'creatoruserid': 'creatorUserId',
+  'description': 'description',
+  'id': 'id',
+  'materialid': 'id',
+  'materials': 'materials',
+  'scheduledtime': 'scheduledTime',
+  'state': 'state',
+  'title': 'title',
+  'topicid': 'topicId',
+  'updatetime': 'updateTime',
+  }
+COURSE_MATERIAL_ORDERBY_CHOICE_MAP = {
+  'updatetime': 'updateTime',
+  'updatedate': 'updateTime',
+  }
+COURSE_MATERIAL_TIME_OBJECTS = {'creationTime', 'scheduledTime', 'updateTime'}
+COURSE_MATERIAL_SORT_TITLES = ['courseId', 'courseName', 'id', 'title', 'description', 'state']
+COURSE_MATERIAL_INDEXED_TITLES = ['materials']
+
+def _initCourseMaterialSelectionParameters():
+  return {'courseMaterialIds': [], 'courseMaterialStates': []}
+
+def _getCourseMaterialSelectionParameters(myarg, courseMaterialSelectionParameters):
+  if myarg in {'materialid', 'materialids', 'coursematerialid', 'coursematerialids'}:
+    courseMaterialSelectionParameters['courseMaterialIds'] = getEntityList(Cmd.OB_COURSE_MATERIAL_ID_ENTITY)
+  elif myarg in {'materialstate', 'materialstates', 'coursematerialstate', 'coursematerialstates'}:
+    _getCourseStates(Cmd.OB_COURSE_MATERIAL_STATE_LIST, courseMaterialSelectionParameters['courseMaterialStates'])
+  else:
+    return False
+  return True
+
+# gam print course-materials [todrive <ToDriveAttribute>*]
+#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	(materialids <CourseMaterialIDEntity>)|((materialstates <CourseMaterialStateList>)*
+#	(orderby <CourseMaterialsOrderByFieldName> [ascending|descending])*)
+#	[showcreatoremails|creatoremail] [showtopicnames] [fields <CourseMaterialFieldNameList>] [formatjson [quotechar <Character>]]
+#	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
+def doPrintCourseMaterials():
+  def _getTopicNames(croom, courseId):
+    topicNames = {}
+    try:
+      results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
+                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                              courseId=courseId,
+                              fields='nextPageToken,topic(topicId,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+      for courseTopic in results:
+        topicNames[courseTopic['topicId']] = courseTopic['name']
+    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument):
+      pass
+    return topicNames
+
+  def _printCourseMaterial(course, courseMaterial, i, count):
+    if applyCourseItemFilter and not _courseItemPassesFilter(courseMaterial, courseItemFilter):
+      return
+    if showCreatorEmail:
+      courseMaterial['creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseMaterial['creatorUserId'], creatorEmails,
+                                                                       [Ent.COURSE, courseMaterial['id'], Ent.COURSE_MATERIAL_ID, courseMaterial['id'],
+                                                                        Ent.CREATOR_ID, courseMaterial['creatorUserId']], i, count)
+    if showTopicNames:
+      topicId = courseMaterial.get('topicId')
+      if topicId:
+        courseMaterial['topicName'] = topicNames.get(topicId, topicId)
+    row = flattenJSON(courseMaterial, flattened={'courseId': course['id'], 'courseName': course['name']}, timeObjects=COURSE_MATERIAL_TIME_OBJECTS)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'courseId': course['id'], 'courseName': course['name'],
+                              'JSON': json.dumps(cleanJSON(courseMaterial, timeObjects=COURSE_MATERIAL_TIME_OBJECTS),
+                                                 ensure_ascii=False, sort_keys=True)})
+
+  croom = buildGAPIObject(API.CLASSROOM)
+  csvPF = CSVPrintFile(['courseId', 'courseName'], COURSE_MATERIAL_SORT_TITLES, COURSE_MATERIAL_INDEXED_TITLES)
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  courseSelectionParameters = _initCourseSelectionParameters()
+  courseMaterialSelectionParameters = _initCourseMaterialSelectionParameters()
+  courseItemFilter = _initCourseItemFilter()
+  courseShowProperties = _initCourseShowProperties(['name'])
+  OBY = OrderBy(COURSE_MATERIAL_ORDERBY_CHOICE_MAP)
+  creatorEmails = {}
+  showCreatorEmail = showTopicNames = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif _getCourseSelectionParameters(myarg, courseSelectionParameters):
+      pass
+    elif _getCourseMaterialSelectionParameters(myarg, courseMaterialSelectionParameters):
+      pass
+    elif _getCourseItemFilter(myarg, courseItemFilter, COURSE_CUS_FILTER_FIELDS_MAP):
+      pass
+    elif myarg == 'orderby':
+      OBY.GetChoice()
+    elif myarg in {'showcreatoremails', 'creatoremail'}:
+      showCreatorEmail = True
+    elif myarg == 'showtopicnames':
+      showTopicNames = True
+    elif getFieldsList(myarg, COURSE_MATERIAL_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if showCreatorEmail and fieldsList:
+    fieldsList.append('creatorUserId')
+  if showTopicNames and fieldsList:
+    fieldsList.append('topicId')
+  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
+  if coursesInfo is None:
+    return
+  applyCourseItemFilter = _setApplyCourseItemFilter(courseItemFilter, fieldsList)
+  courseMaterialIds = courseMaterialSelectionParameters['courseMaterialIds']
+  courseMaterialIdsLists = courseMaterialIds if isinstance(courseMaterialIds, dict) else {}
+  i = 0
+  count = len(coursesInfo)
+  for course in coursesInfo:
+    i += 1
+    courseId = course['id']
+    if showTopicNames:
+      topicNames = _getTopicNames(croom, courseId)
+    if courseMaterialIdsLists:
+      courseMaterialIds = courseMaterialIdsLists[courseId]
+    if not courseMaterialIds:
+      fields = getItemFieldsFromFieldsList('courseWork', fieldsList)
+      printGettingAllEntityItemsForWhom(Ent.COURSE_MATERIAL_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
+                                        _gettingCourseEntityQuery(Ent.COURSE_MATERIAL_STATE, courseMaterialSelectionParameters['courseMaterialStates']))
+      try:
+        results = callGAPIpages(croom.courses().courseWorkMaterials(), 'list', 'courseWorkMaterial',
+                                pageMessage=getPageMessage(),
+                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                courseId=courseId, courseWorkMaterialStates=courseMaterialSelectionParameters['courseMaterialStates'], orderBy=OBY.orderBy,
+                                fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+        for courseMaterial in results:
+          _printCourseMaterial(course, courseMaterial, i, count)
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
+    else:
+      jcount = len(courseMaterialIds)
+      if jcount == 0:
+        continue
+      fields = f'{",".join(set(fieldsList))}' if fieldsList else None
+      j = 0
+      for courseMaterialId in courseMaterialIds:
+        j += 1
+        try:
+          courseMaterial = callGAPI(croom.courses().courseWorkMaterials(), 'get',
+                                    throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                    courseId=courseId, id=courseMaterialId, fields=fields)
+          _printCourseMaterial(course, courseMaterial, i, count)
+        except GAPI.notFound:
+          entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_MATERIAL_ID, courseMaterialId], j, jcount)
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_MATERIAL_ID, courseMaterialId], str(e), j, jcount)
+  csvPF.writeCSVfile('Course Work Material')
 
 COURSE_TOPICS_TIME_OBJECTS = {'updateTime'}
 COURSE_TOPICS_SORT_TITLES = ['courseId', 'courseName', 'topicId', 'name', 'updateTime']
@@ -33483,20 +33698,12 @@ def _getCourseWorkSelectionParameters(myarg, courseWorkSelectionParameters):
     return False
   return True
 
-def _gettingCourseWorkQuery(courseWorkStates):
-  query = ''
-  if courseWorkStates:
-    query += f'{Ent.Choose(Ent.COURSE_WORK_STATE, len(courseWorkStates))}: {",".join(courseWorkStates)}, '
-  if query:
-    query = query[:-2]
-  return query
-
 # gam print course-work [todrive <ToDriveAttribute>*]
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
 #	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
 #	(orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
-#	[showcreatoremails] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson [quotechar <Character>]]
-#	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
+#	[showcreatoremails|creatoremail] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson [quotechar <Character>]]
+#	[timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseWork():
   def _getTopicNames(croom, courseId):
     topicNames = {}
@@ -33582,7 +33789,8 @@ def doPrintCourseWork():
       courseWorkIds = courseWorkIdsLists[courseId]
     if not courseWorkIds:
       fields = getItemFieldsFromFieldsList('courseWork', fieldsList)
-      printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count, _gettingCourseWorkQuery(courseWorkSelectionParameters['courseWorkStates']))
+      printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
+                                        _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, courseWorkSelectionParameters['courseWorkStates']))
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 pageMessage=getPageMessage(),
@@ -33737,7 +33945,8 @@ def doPrintCourseSubmissions():
     if courseWorkIdsLists:
       courseWorkIds = courseWorkIdsLists[courseId]
     if not courseWorkIds:
-      printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count, _gettingCourseWorkQuery(courseWorkSelectionParameters['courseWorkStates']))
+      printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
+                                        _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, courseWorkSelectionParameters['courseWorkStates']))
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 pageMessage=getPageMessage(),
@@ -51230,6 +51439,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_COURSE:		doPrintCourses,
       Cmd.ARG_COURSES:		doPrintCourses,
       Cmd.ARG_COURSEANNOUNCEMENTS:	doPrintCourseAnnouncements,
+      Cmd.ARG_COURSEMATERIALS:	doPrintCourseMaterials,
       Cmd.ARG_COURSEPARTICIPANTS:	doPrintCourseParticipants,
       Cmd.ARG_COURSESUBMISSIONS:	doPrintCourseSubmissions,
       Cmd.ARG_COURSETOPICS:	doPrintCourseTopics,

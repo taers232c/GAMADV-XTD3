@@ -1,3 +1,15 @@
+6.00.02
+
+Added support for stand-alone course materials; these were not previously supported by the Google Classroom API.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Classroom-Courses#display-course-materials
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Classroom-Courses#create-and-update-courses
+
+To use the course materials features you must authorize the appropriate scope: `'Classroom API - Course Work/Materials'`.
+```
+gam oauth create
+gam user user@domain.com check|update serviceaccount
+```
+
 6.00.01
 
 Improve error handling in `gam delete|update chromepolicy` and `gam show chromepolicies`.
