@@ -1077,8 +1077,8 @@ gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [formatjson
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventSelectProperty> ::=
-        (after|start|starttime|timemin <Time>)|
-        (before|end|endtime|timemax <Time>)|
+        (after|starttime|timemin <Time>)|
+        (before|endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
         (sharedextendedproperty <Syting>)|

@@ -1,3 +1,8 @@
+6.00.03
+
+Fixed bug in `gam calendar update event` introduced in 5.34.02 where updating an event's start or end time appeared to work
+but no change was actually made.
+
 6.00.02
 
 Added support for stand-alone course materials; these were not previously supported by the Google Classroom API.
