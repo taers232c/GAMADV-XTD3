@@ -1124,7 +1124,7 @@ gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [formatjson
         available|
         (colorindex|colorid <EventColorIndex>))|
         (description <String>)|
-        (end|endtime (allday <Date>)|<Time>)|
+        (end (allday <Date>)|<Time>)|
         (guestscaninviteothers <Boolean>)|
         guestscantinviteothers|
         (guestscanmodify <Boolean>)|
@@ -1145,7 +1145,7 @@ gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [formatjson
         (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
         (source <String> <URL>)|
-        (start|starttime (allday <Date>)|<Time>)|
+        (start (allday <Date>)|<Time>)|
         (status confirmed|tentative|cancelled)|
         (summary <String>)|
         tentative|
@@ -3827,17 +3827,25 @@ gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttrib
         ((calendars <CalendarList>) | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>)|
         <CalendarSelectProperty>*
 
-<CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
-<CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
-<CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CalendarACLScope> ::=
+        <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
+<CalendarACLScopeList> ::=
+        <CalendarACLScope>(,<CalendarACLScope>)*
+<CalendarACLScopeEntity>::=
+        <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
+<CalendarEmailNotificatonEventType> ::=
+        eventcreation|eventchange|eventcancellation|eventresponse|agenda
+<CalendarEmailNotificatonEventTypeList> ::=
+        "<CalendarEmailNotificatonEventType>(,<CalendarEmailNotificatonEventType>)*"
+				   
 <CalendarAttribute> ::=
         (backgroundcolor <ColorValue>)|
         (color <CalendarColorName>)|
         (colorindex|colorid <CalendarColorIndex>)|
         (foregroundcolor <ColorValue>)|
         (hidden <Boolean>)|
-        (notification clear|(email eventcreation|eventchange|eventcancellation|eventresponse|agenda))|
+        (notification clear|(email <CalendarEmailNotificatonEventTypeList>))|
         (reminder clear|(email|pop <Number>)|(<Number> email|pop))|
         (selected <Boolean>)|
         (summary <String>)

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.00.03'
+__version__ = '6.00.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -35779,8 +35779,14 @@ def _getCalendarAttributes(body):
       body.setdefault('notificationSettings', {'notifications': []})
       method = getChoice(CALENDAR_NOTIFICATION_METHODS+Cmd.CLEAR_NONE_ARGUMENT)
       if method not in Cmd.CLEAR_NONE_ARGUMENT:
-        body['notificationSettings']['notifications'].append({'method': method,
-                                                              'type': getChoice(CALENDAR_NOTIFICATION_TYPES_MAP, mapChoice=True)})
+        for ntype in _getFieldsList():
+          if ntype in CALENDAR_NOTIFICATION_TYPES_MAP:
+            body['notificationSettings']['notifications'].append({'method': method,
+                                                                  'type': CALENDAR_NOTIFICATION_TYPES_MAP[ntype]})
+          else:
+            invalidChoiceExit(ntype, CALENDAR_NOTIFICATION_TYPES_MAP, True)
+      else:
+        body['notificationSettings']['notifications'] = []
     else:
       unknownArgumentExit()
   return colorRgbFormat

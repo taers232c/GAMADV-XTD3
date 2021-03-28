@@ -1,3 +1,21 @@
+6.00.04
+
+Updated `<CalendarAttribute>` to allow specifying a list of email notification event types.
+
+Previously, you had to specify each email notification event type individually (this still works).
+```
+<CalendarEmailNotificatonEventType> ::=
+        eventcreation|eventchange|eventcancellation|eventresponse|agenda
+<CalendarEmailNotificatonEventTypeList> ::= 
+        <CalendarEmailNotificatonEventType>(,<CalendarEmailNotificatonEventType>)*
+
+<CalendarAttribute> ::=
+...
+        (notification clear|(email <CalendarEmailNotificatonEventTypeList>))|
+
+gam user user@domain.con update calendar primary notification email eventchange,eventcancellation
+```
+
 6.00.03
 
 Fixed bug in `gam calendar update event` introduced in 5.34.02 where updating an event's start or end time appeared to work
