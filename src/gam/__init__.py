@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.00.05'
+__version__ = '6.00.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13768,6 +13768,54 @@ def doPrintAliases():
         if aliasMatchPattern.match(alias):
           csvPF.WriteRow({'NonEditableAlias': alias, 'Target': group['email'], 'TargetType': 'Group'})
   csvPF.writeCSVfile('Aliases')
+
+# gam print addresses [todrive <ToDriveAttribute>*]
+def doPrintAddresses():
+  cd = buildGAPIObject(API.DIRECTORY)
+  csvPF = CSVPrintFile()
+  titlesList = ['Type', 'Email']
+  userFields = ['primaryEmail', 'aliases', 'suspended']
+  groupFields = ['email', 'aliases']
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      unknownArgumentExit()
+  csvPF.SetTitles(titlesList)
+  printGettingAllAccountEntities(Ent.USER)
+  try:
+    entityList = callGAPIpages(cd.users(), 'list', 'users',
+                               pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='primaryEmail',
+                               throwReasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                               customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
+                               fields=f'nextPageToken,users({",".join(userFields)})',
+                               maxResults=GC.Values[GC.USER_MAX_RESULTS])
+  except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
+    accessErrorExit(cd)
+  for user in entityList:
+    csvPF.WriteRow({'Type': 'User' if not user['suspended'] else 'SuspendedUser', 'Email': user['primaryEmail']})
+    for alias in user.get('aliases', []):
+      csvPF.WriteRow({'Type': 'UserAlias', 'Email': alias})
+    for alias in user.get('nonEditableAliases', []):
+      csvPF.WriteRow({'Type': 'UserNEAlias', 'Email': alias})
+  printGettingAllAccountEntities(Ent.GROUP)
+  try:
+    entityList = callGAPIpages(cd.groups(), 'list', 'groups',
+                               pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
+                               throwReasons=GAPI.GROUP_LIST_THROW_REASONS,
+                               customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
+                               fields=f'nextPageToken,groups({",".join(groupFields)})')
+  except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+    accessErrorExit(cd)
+  for group in entityList:
+    csvPF.WriteRow({'Type': 'Group', 'Email': group['email']})
+    for alias in group.get('aliases', []):
+      csvPF.WriteRow({'Type': 'GroupAlias', 'Email': alias})
+    for alias in group.get('nonEditableAliases', []):
+      csvPF.WriteRow({'Type': 'GroupNEAlias', 'Email': alias})
+  csvPF.SortRowsTwoTitles('Type', 'Email', False)
+  csvPF.writeCSVfile('Addresses')
 
 # Contact commands utilities
 #
@@ -51428,7 +51476,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   'print':
     (Act.PRINT,
-     {Cmd.ARG_ADMINROLE:	doPrintShowAdminRoles,
+     {Cmd.ARG_ADDRESSES:	doPrintAddresses,
+      Cmd.ARG_ADMINROLE:	doPrintShowAdminRoles,
       Cmd.ARG_ADMIN:		doPrintShowAdmins,
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,

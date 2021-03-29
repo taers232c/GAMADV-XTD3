@@ -1,3 +1,10 @@
+6.00.06
+
+Added command `gam print addresses [todrive <ToDriveAttribute>*]` that produces a
+two column CSV file (headers Type, Email) that displays all group and user primary
+email addresses and aliases. The types are: Group, GroupAlias, GroupNEAlias,
+SuspendedUser, User, UserAlias, UserNEAlias. 'NE' is and abbreviation for NonEditable.
+
 6.00.05
 
 Fixed bug in `gam print vaultcounts ... everyone` which caused the following error:

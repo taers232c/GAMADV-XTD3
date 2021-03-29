@@ -335,6 +335,7 @@ class GamCLArgs():
   ARG_3LO = '3lo'
   ARG_ACL = 'acl'
   ARG_ACLS = 'acls'
+  ARG_ADDRESSES = 'addresses'
   ARG_ADMIN = 'admin'
   ARG_ADMINS = 'admins'
   ARG_ADMINROLE = 'adminrole'
