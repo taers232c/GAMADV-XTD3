@@ -2,7 +2,7 @@
 
 Fixed bug in `gam print course-materials fields <CourseAnnouncementFieldNameList>` that caused the following error:
 ```
-Course: <CourseID>, Print Failed: Request contains an invalid argument.
+Course: <CourseID>, Print Failed: Request contains an invalid argument. 
 ```
 
 Code cleanup for `gam print course-work` and `gam print course-materials`.
