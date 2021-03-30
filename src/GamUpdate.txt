@@ -1,3 +1,12 @@
+6.00.07
+
+Added option `splitupdate` to `gam <UserTypeEntity> update calattendees` to handle replacing
+an email alias with its primary email in the event attendee list.
+By default, when you try to replace an email alias with its primary email, the Google Calendar API
+detects that the underlying user ID is the same and doesn't change the address. The `splitupdate`
+option causes GAM to make two updates to the attendee list; the first removes the alias and
+the second adds the primary email.
+
 6.00.06
 
 Added command `gam print addresses [todrive <ToDriveAttribute>*]` that produces a
@@ -9,7 +18,7 @@ SuspendedUser, User, UserAlias, UserNEAlias. 'NE' is and abbreviation for NonEdi
 
 Fixed bug in `gam print vaultcounts ... everyone` which caused the following error:
 ```
-ERROR: getUsersToModify coding error 
+ERROR: getUsersToModify coding error
 ```
 
 6.00.04
@@ -20,7 +29,7 @@ Previously, you had to specify each email notification event type individually (
 ```
 <CalendarEmailNotificatonEventType> ::=
         eventcreation|eventchange|eventcancellation|eventresponse|agenda
-<CalendarEmailNotificatonEventTypeList> ::= 
+<CalendarEmailNotificatonEventTypeList> ::=
         <CalendarEmailNotificatonEventType>(,<CalendarEmailNotificatonEventType>)*
 
 <CalendarAttribute> ::=

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.00.06'
+__version__ = '6.00.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26221,14 +26221,13 @@ def _validateCalendarGetEvents(origUser, user, origCal, calId, j, jcount, calend
   except (GAPI.notFound, GAPI.deleted) as e:
     if not checkCalendarExists(cal, calId):
       entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
-      return (calId, cal, [], 0)
-    entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), k, kcount)
+    else:
+      entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId], str(e), j, jcount)
   except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
     entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
-    return (calId, cal, [], 0)
   except (GAPI.serviceNotAvailable, GAPI.authError):
     entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
-    return (calId, cal, [], 0)
+  return (calId, cal, [], 0)
 
 def _getCalendarCreateImportUpdateEventOptions(function, calendarEventEntity=None):
   body = {}
@@ -30919,9 +30918,8 @@ def infoUsers(entityList):
     elif myarg in {'custom', 'schemas', 'customschemas'}:
       getSchemas = True
       projection = 'custom'
-      customFieldMask = getString(Cmd.OB_SCHEMA_NAME_LIST)
-      if myarg == 'customschemas':
-        fieldsList.append('customSchemas')
+      customFieldMask = getString(Cmd.OB_SCHEMA_NAME_LIST).replace(' ', ',')
+      fieldsList.append('customSchemas')
     elif myarg in {'products', 'product'}:
       skus = SKU.convertProductListToSKUList(getGoogleProductList())
     elif myarg in {'sku', 'skus'}:
@@ -30938,6 +30936,8 @@ def infoUsers(entityList):
       FJQC.GetFormatJSON(myarg)
   if fieldsList:
     fieldsList.append('primaryEmail')
+    if getAliases:
+      fieldsList.append('aliases')
   fields = getFieldsFromFieldsList(fieldsList)
   if getLicenses:
     lic = buildGAPIObject(API.LICENSING)
@@ -31230,7 +31230,7 @@ def infoUsers(entityList):
 #	[nobuildingnames|buildingnames]
 #	[nogroups|groups]
 #	[nolicenses|nolicences|licenses|licences]
-#	[noschemas|allschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
+#	[noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
 #	[userview] <UserFieldName>* [fields <UserFieldNameList>]
 #	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 def doInfoUsers():
@@ -31242,7 +31242,7 @@ def doInfoUsers():
 #	[nobuildingnames|buildingnames]
 #	[nogroups|groups]
 #	[nolicenses|nolicences|licenses|licences]
-#	[noschemas|allschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
+#	[noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
 #	[userview] <UserFieldName>* [fields <UserFieldNameList>]
 #	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 # gam info user
@@ -36528,7 +36528,7 @@ def emptyCalendarTrash(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
-#	[<EventNotificationAttribute>] [doit]
+#	[<EventNotificationAttribute>] [splitupdate] [doit]
 #	(csv <FileName>|(gsheet <UserGoogleSheet>))*
 #	(delete <EmailAddress>)*
 #	(deleteentity <EmailAddressEntity>)*
@@ -36549,7 +36549,7 @@ def updateCalendarAttendees(users):
 
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
-  anyOrganizer = doIt = False
+  anyOrganizer = doIt = splitUpdate = False
   parameters = {'sendUpdates': 'none'}
   attendeeMap = {}
   errors = 0
@@ -36621,6 +36621,8 @@ def updateCalendarAttendees(users):
       pass
     elif myarg == 'doit':
       doIt = True
+    elif myarg == 'splitupdate':
+      splitUpdate = True
     else:
       unknownArgumentExit()
   if not attendeeMap:
@@ -36628,6 +36630,8 @@ def updateCalendarAttendees(users):
   ucount = len(attendeeMap)
   if errors:
     systemErrorExit(USAGE_ERROR_RC, '')
+  removeMessage = Msg.ATTENDEES_REMOVE
+  addMessage = Msg.ATTENDEES_ADD_REMOVE if not splitUpdate else Msg.ATTENDEES_ADD
   fieldsList = ['attendees', 'id', 'organizer', 'status', 'summary']
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -36659,18 +36663,23 @@ def updateCalendarAttendees(users):
         needsUpdate = False
         for _, v in sorted(iter(attendeeMap.items())):
           v['done'] = False
-        updatedAttendees = []
+        updatedAttendeesAdd = []
+        updatedAttendeesRemove = []
         entityPerformActionNumItems([Ent.EVENT, eventSummary], ucount, Ent.ATTENDEE, k, kcount)
         Ind.Increment()
         u = 0
         for attendee in event.get('attendees', []):
           oldAddr = attendee.get('email', '').lower()
           if not oldAddr:
-            updatedAttendees.append(attendee)
+            updatedAttendeesAdd.append(attendee)
+            if splitUpdate:
+              updatedAttendeesRemove.append(attendee)
             continue
           update = attendeeMap.get(oldAddr)
           if not update:
-            updatedAttendees.append(attendee)
+            updatedAttendeesAdd.append(attendee)
+            if splitUpdate:
+              updatedAttendeesRemove.append(attendee)
             continue
           updOp = update['op']
           if updOp == 'delete':
@@ -36697,7 +36706,7 @@ def updateCalendarAttendees(users):
               else:
                 Act.Set(Act.SKIP)
                 entityPerformAction([Ent.EVENT, eventSummary, Ent.ATTENDEE, oldAddr], u, ucount)
-              updatedAttendees.append(attendee)
+              updatedAttendeesAdd.append(attendee)
             else: #replace
               u += 1
               update['done'] = True
@@ -36706,7 +36715,7 @@ def updateCalendarAttendees(users):
               attendee['optional'] = updOptional if updOptional is not None else oldOptional
               Act.Set(Act.REPLACE)
               entityPerformActionModifierNewValue([Ent.EVENT, eventSummary, Ent.ATTENDEE, oldAddr], Act.MODIFIER_WITH, update['email'], u, ucount)
-              updatedAttendees.append(attendee)
+              updatedAttendeesAdd.append(attendee)
               needsUpdate = True
         for newAddr, v in sorted(iter(attendeeMap.items())):
           if v['op'] == 'add' and not v['done']:
@@ -36719,7 +36728,7 @@ def updateCalendarAttendees(users):
               attendee['optional'] = v['optional']
             Act.Set(Act.ADD)
             entityPerformAction([Ent.EVENT, eventSummary, Ent.ATTENDEE, newAddr], u, ucount)
-            updatedAttendees.append(attendee)
+            updatedAttendeesAdd.append(attendee)
             needsUpdate = True
         for newAddr, v in sorted(iter(attendeeMap.items())):
           if not v['done']:
@@ -36730,23 +36739,44 @@ def updateCalendarAttendees(users):
         if needsUpdate:
           Act.Set(Act.UPDATE)
           if doIt:
-            try:
-              callGAPI(cal.events(), 'patch',
-                       throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
-                       calendarId=calId, eventId=event['id'], body={'attendees': updatedAttendees},
-                       sendUpdates=parameters['sendUpdates'], fields='')
-              entityActionPerformed([Ent.EVENT, eventSummary], j, jcount)
-            except GAPI.notFound as e:
-              if not checkCalendarExists(cal, calId):
-                entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
+            status = True
+            if splitUpdate:
+              try:
+                callGAPI(cal.events(), 'patch',
+                         throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+                         calendarId=calId, eventId=event['id'], body={'attendees': updatedAttendeesRemove},
+                         sendUpdates=parameters['sendUpdates'], fields='')
+                entityActionPerformedMessage([Ent.EVENT, eventSummary], removeMessage, j, jcount)
+              except GAPI.notFound as e:
+                if not checkCalendarExists(cal, calId):
+                  entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
+                  break
+                entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventSummary], str(e), k, kcount)
+                status = False
+              except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
+                entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
                 break
-              entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventSummary], str(e), k, kcount)
-            except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
-              entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
-              break
-            except (GAPI.serviceNotAvailable, GAPI.authError):
-              entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
-              break
+              except (GAPI.serviceNotAvailable, GAPI.authError):
+                entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
+                break
+            if status:
+              try:
+                callGAPI(cal.events(), 'patch',
+                         throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+                         calendarId=calId, eventId=event['id'], body={'attendees': updatedAttendeesAdd},
+                         sendUpdates=parameters['sendUpdates'], fields='')
+                entityActionPerformedMessage([Ent.EVENT, eventSummary], addMessage, jcount)
+              except GAPI.notFound as e:
+                if not checkCalendarExists(cal, calId):
+                  entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
+                  break
+                entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventSummary], str(e), k, kcount)
+              except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
+                entityActionFailedWarning([Ent.CALENDAR, calId], str(e), j, jcount)
+                break
+              except (GAPI.serviceNotAvailable, GAPI.authError):
+                entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
+                break
           else:
             entityActionNotPerformedWarning([Ent.EVENT, eventSummary], Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, j, jcount)
       Ind.Decrement()

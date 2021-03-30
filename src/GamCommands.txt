@@ -3661,7 +3661,7 @@ gam info user [<UserItem>]
         [nobuildingnames|buildingnames]
         [nogroups|groups]
         [nolicenses|nolicences|licenses|licences]
-        [noschemas|allschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
+        [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
         [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
@@ -3686,7 +3686,7 @@ gam info users <UserTypeEntity>
         [nobuildingnames|buildingnames]
         [nogroups|groups]
         [nolicenses|nolicences|licenses|licences]
-        [noschemas|allschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
+        [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
         [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
@@ -3711,7 +3711,7 @@ gam <UserTypeEntity> info users
         [nobuildingnames|buildingnames]
         [nogroups|groups]
         [nolicenses|nolicences|licenses|licences]
-        [noschemas|allschemas|(schemas|custom <SchemaNameList>)|(customschemas <SchemaNameList>)]
+        [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
         [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
 
@@ -3724,7 +3724,9 @@ gam print users [todrive <ToDriveAttribute>*]
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
          [limittoou <OrgUnitPath>] [deleted_only|only_deleted])
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [groups|groupsincolumns] [license|licenses|licence|licences]
+	[schemas|custom|customschemas all|<SchemaNameList>]
+	[emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
@@ -3734,7 +3736,9 @@ Print fields for specified users.
 
 gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [groups|groupsincolumns] [license|licenses|licence|licences]
+	[schemas|custom|customschemas all|<SchemaNameList>]
+	[emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
@@ -3742,7 +3746,9 @@ gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
 
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+        [groups|groupsincolumns] [license|licenses|licence|licences]
+	[schemas|custom|customschemas all|<SchemaNameList>]
+	[emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
@@ -4027,7 +4033,7 @@ gam <UserTypeEntity> print events <UserCalendarEntity> [<EventSelectEntity>] <Ev
         [countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
-        [<EventNotificationAttribute>] [doit]
+        [<EventNotificationAttribute>] [splitupdate] [doit]
         (csv <FileName>|(gsheet <UserGoogleSheet>))*
         (delete <EmailAddress>)*
         (deleteentity <EmailAddressEntity>)*
