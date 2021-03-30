@@ -33539,42 +33539,6 @@ def doPrintCourseTopics():
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Topics')
 
-COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
-  'alternatelink': 'alternateLink',
-  'assignedgrade': 'assignedGrade',
-  'courseid': 'courseId',
-  'coursesubmissionid': 'id',
-  'courseworkid': 'courseWorkId',
-  'courseworktype': 'courseWorkType',
-  'creationtime': 'creationTime',
-  'draftgrade': 'draftGrade',
-  'id': 'id',
-  'late': 'late',
-  'state': 'state',
-  'submissionhistory': 'submissionHistory',
-  'submissionid': 'id',
-  'updatetime': 'updateTime',
-  'userid': 'userId',
-  'workid': 'courseWorkId',
-  'worktype': 'courseWorkType',
-  }
-COURSE_SUBMISSION_TIME_OBJECTS = {'creationTime', 'updateTime', 'gradeTimestamp', 'stateTimestamp'}
-COURSE_SUBMISSION_SORT_TITLES = ['courseId', 'courseName', 'courseWorkId', 'id', 'userId',
-                                 'profile.emailAddress', 'profile.name.givenName', 'profile.name.familyName', 'profile.name.fullName', 'state']
-COURSE_SUBISSION_INDEXED_TITLES = ['submissionHistory']
-
-def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
-  query = ''
-  if courseSubmissionStates:
-    query += f'{Ent.Choose(Ent.COURSE_SUBMISSION_STATE, len(courseSubmissionStates))}: {",".join(courseSubmissionStates)}, '
-  if late:
-    query += f'{late}, '
-  if userId:
-    query += f'{Ent.Singular(Ent.USER)}: {userId}, '
-  if query:
-    query = query[:-2]
-  return query
-
 def _initCourseWMSelectionParameters():
   return {'courseWMIds': [], 'courseWMStates': []}
 
@@ -33810,6 +33774,42 @@ def doPrintCourseMaterials():
 #	[timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 def doPrintCourseWork():
   doPrintCourseWM(Ent.COURSE_WORK_ID, Ent.COURSE_WORK_STATE)
+
+COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
+  'alternatelink': 'alternateLink',
+  'assignedgrade': 'assignedGrade',
+  'courseid': 'courseId',
+  'coursesubmissionid': 'id',
+  'courseworkid': 'courseWorkId',
+  'courseworktype': 'courseWorkType',
+  'creationtime': 'creationTime',
+  'draftgrade': 'draftGrade',
+  'id': 'id',
+  'late': 'late',
+  'state': 'state',
+  'submissionhistory': 'submissionHistory',
+  'submissionid': 'id',
+  'updatetime': 'updateTime',
+  'userid': 'userId',
+  'workid': 'courseWorkId',
+  'worktype': 'courseWorkType',
+  }
+COURSE_SUBMISSION_TIME_OBJECTS = {'creationTime', 'updateTime', 'gradeTimestamp', 'stateTimestamp'}
+COURSE_SUBMISSION_SORT_TITLES = ['courseId', 'courseName', 'courseWorkId', 'id', 'userId',
+                                 'profile.emailAddress', 'profile.name.givenName', 'profile.name.familyName', 'profile.name.fullName', 'state']
+COURSE_SUBISSION_INDEXED_TITLES = ['submissionHistory']
+
+def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
+  query = ''
+  if courseSubmissionStates:
+    query += f'{Ent.Choose(Ent.COURSE_SUBMISSION_STATE, len(courseSubmissionStates))}: {",".join(courseSubmissionStates)}, '
+  if late:
+    query += f'{late}, '
+  if userId:
+    query += f'{Ent.Singular(Ent.USER)}: {userId}, '
+  if query:
+    query = query[:-2]
+  return query
 
 # gam print course-submissions [todrive <ToDriveAttribute>*]
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
