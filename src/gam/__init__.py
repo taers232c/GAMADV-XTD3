@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.00.07'
+__version__ = '6.00.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33454,166 +33454,6 @@ def doPrintCourseAnnouncements():
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Announcements')
 
-COURSE_MATERIAL_FIELDS_CHOICE_MAP = {
-  'alternatelink': 'alternateLink',
-  'assigneemode': 'assigneeMode',
-  'courseid': 'courseId',
-  'coursematerialid': 'id',
-  'creationtime': 'creationTime',
-  'creator': 'creatorUserId',
-  'creatoruserid': 'creatorUserId',
-  'description': 'description',
-  'id': 'id',
-  'materialid': 'id',
-  'materials': 'materials',
-  'scheduledtime': 'scheduledTime',
-  'state': 'state',
-  'title': 'title',
-  'topicid': 'topicId',
-  'updatetime': 'updateTime',
-  }
-COURSE_MATERIAL_ORDERBY_CHOICE_MAP = {
-  'updatetime': 'updateTime',
-  'updatedate': 'updateTime',
-  }
-COURSE_MATERIAL_TIME_OBJECTS = {'creationTime', 'scheduledTime', 'updateTime'}
-COURSE_MATERIAL_SORT_TITLES = ['courseId', 'courseName', 'id', 'title', 'description', 'state']
-COURSE_MATERIAL_INDEXED_TITLES = ['materials']
-
-def _initCourseMaterialSelectionParameters():
-  return {'courseMaterialIds': [], 'courseMaterialStates': []}
-
-def _getCourseMaterialSelectionParameters(myarg, courseMaterialSelectionParameters):
-  if myarg in {'materialid', 'materialids', 'coursematerialid', 'coursematerialids'}:
-    courseMaterialSelectionParameters['courseMaterialIds'] = getEntityList(Cmd.OB_COURSE_MATERIAL_ID_ENTITY)
-  elif myarg in {'materialstate', 'materialstates', 'coursematerialstate', 'coursematerialstates'}:
-    _getCourseStates(Cmd.OB_COURSE_MATERIAL_STATE_LIST, courseMaterialSelectionParameters['courseMaterialStates'])
-  else:
-    return False
-  return True
-
-# gam print course-materials [todrive <ToDriveAttribute>*]
-#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
-#	(materialids <CourseMaterialIDEntity>)|((materialstates <CourseMaterialStateList>)*
-#	(orderby <CourseMaterialsOrderByFieldName> [ascending|descending])*)
-#	[showcreatoremails|creatoremail] [showtopicnames] [fields <CourseMaterialFieldNameList>] [formatjson [quotechar <Character>]]
-#	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
-def doPrintCourseMaterials():
-  def _getTopicNames(croom, courseId):
-    topicNames = {}
-    try:
-      results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
-                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
-                              courseId=courseId,
-                              fields='nextPageToken,topic(topicId,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-      for courseTopic in results:
-        topicNames[courseTopic['topicId']] = courseTopic['name']
-    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument):
-      pass
-    return topicNames
-
-  def _printCourseMaterial(course, courseMaterial, i, count):
-    if applyCourseItemFilter and not _courseItemPassesFilter(courseMaterial, courseItemFilter):
-      return
-    if showCreatorEmail:
-      courseMaterial['creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseMaterial['creatorUserId'], creatorEmails,
-                                                                       [Ent.COURSE, courseMaterial['id'], Ent.COURSE_MATERIAL_ID, courseMaterial['id'],
-                                                                        Ent.CREATOR_ID, courseMaterial['creatorUserId']], i, count)
-    if showTopicNames:
-      topicId = courseMaterial.get('topicId')
-      if topicId:
-        courseMaterial['topicName'] = topicNames.get(topicId, topicId)
-    row = flattenJSON(courseMaterial, flattened={'courseId': course['id'], 'courseName': course['name']}, timeObjects=COURSE_MATERIAL_TIME_OBJECTS)
-    if not FJQC.formatJSON:
-      csvPF.WriteRowTitles(row)
-    elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'courseId': course['id'], 'courseName': course['name'],
-                              'JSON': json.dumps(cleanJSON(courseMaterial, timeObjects=COURSE_MATERIAL_TIME_OBJECTS),
-                                                 ensure_ascii=False, sort_keys=True)})
-
-  croom = buildGAPIObject(API.CLASSROOM)
-  csvPF = CSVPrintFile(['courseId', 'courseName'], COURSE_MATERIAL_SORT_TITLES, COURSE_MATERIAL_INDEXED_TITLES)
-  FJQC = FormatJSONQuoteChar(csvPF)
-  fieldsList = []
-  courseSelectionParameters = _initCourseSelectionParameters()
-  courseMaterialSelectionParameters = _initCourseMaterialSelectionParameters()
-  courseItemFilter = _initCourseItemFilter()
-  courseShowProperties = _initCourseShowProperties(['name'])
-  OBY = OrderBy(COURSE_MATERIAL_ORDERBY_CHOICE_MAP)
-  creatorEmails = {}
-  showCreatorEmail = showTopicNames = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif _getCourseSelectionParameters(myarg, courseSelectionParameters):
-      pass
-    elif _getCourseMaterialSelectionParameters(myarg, courseMaterialSelectionParameters):
-      pass
-    elif _getCourseItemFilter(myarg, courseItemFilter, COURSE_CUS_FILTER_FIELDS_MAP):
-      pass
-    elif myarg == 'orderby':
-      OBY.GetChoice()
-    elif myarg in {'showcreatoremails', 'creatoremail'}:
-      showCreatorEmail = True
-    elif myarg == 'showtopicnames':
-      showTopicNames = True
-    elif getFieldsList(myarg, COURSE_MATERIAL_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
-      pass
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if showCreatorEmail and fieldsList:
-    fieldsList.append('creatorUserId')
-  if showTopicNames and fieldsList:
-    fieldsList.append('topicId')
-  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
-  if coursesInfo is None:
-    return
-  applyCourseItemFilter = _setApplyCourseItemFilter(courseItemFilter, fieldsList)
-  courseMaterialIds = courseMaterialSelectionParameters['courseMaterialIds']
-  courseMaterialIdsLists = courseMaterialIds if isinstance(courseMaterialIds, dict) else {}
-  i = 0
-  count = len(coursesInfo)
-  for course in coursesInfo:
-    i += 1
-    courseId = course['id']
-    if showTopicNames:
-      topicNames = _getTopicNames(croom, courseId)
-    if courseMaterialIdsLists:
-      courseMaterialIds = courseMaterialIdsLists[courseId]
-    if not courseMaterialIds:
-      fields = getItemFieldsFromFieldsList('courseWork', fieldsList)
-      printGettingAllEntityItemsForWhom(Ent.COURSE_MATERIAL_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
-                                        _gettingCourseEntityQuery(Ent.COURSE_MATERIAL_STATE, courseMaterialSelectionParameters['courseMaterialStates']))
-      try:
-        results = callGAPIpages(croom.courses().courseWorkMaterials(), 'list', 'courseWorkMaterial',
-                                pageMessage=getPageMessage(),
-                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
-                                courseId=courseId, courseWorkMaterialStates=courseMaterialSelectionParameters['courseMaterialStates'], orderBy=OBY.orderBy,
-                                fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-        for courseMaterial in results:
-          _printCourseMaterial(course, courseMaterial, i, count)
-      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
-        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
-    else:
-      jcount = len(courseMaterialIds)
-      if jcount == 0:
-        continue
-      fields = f'{",".join(set(fieldsList))}' if fieldsList else None
-      j = 0
-      for courseMaterialId in courseMaterialIds:
-        j += 1
-        try:
-          courseMaterial = callGAPI(croom.courses().courseWorkMaterials(), 'get',
-                                    throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
-                                    courseId=courseId, id=courseMaterialId, fields=fields)
-          _printCourseMaterial(course, courseMaterial, i, count)
-        except GAPI.notFound:
-          entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_MATERIAL_ID, courseMaterialId], j, jcount)
-        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
-          entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_MATERIAL_ID, courseMaterialId], str(e), j, jcount)
-  csvPF.writeCSVfile('Course Work Material')
-
 COURSE_TOPICS_TIME_OBJECTS = {'updateTime'}
 COURSE_TOPICS_SORT_TITLES = ['courseId', 'courseName', 'topicId', 'name', 'updateTime']
 
@@ -33699,173 +33539,6 @@ def doPrintCourseTopics():
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Topics')
 
-COURSE_WORK_FIELDS_CHOICE_MAP = {
-  'alternatelink': 'alternateLink',
-  'assigneemode': 'assigneeMode',
-  'courseid': 'courseId',
-  'courseworkid': 'id',
-  'courseworktype': 'workType',
-  'creationtime': 'creationTime',
-  'creator': 'creatorUserId',
-  'creatoruserid': 'creatorUserId',
-  'description': 'description',
-  'duedate': 'dueDate',
-  'duetime': 'dueTime',
-  'id': 'id',
-  'materials': 'materials',
-  'maxpoints': 'maxPoints',
-  'scheduledtime': 'scheduledTime',
-  'state': 'state',
-  'submissionmodificationmode': 'submissionModificationMode',
-  'title': 'title',
-  'topicid': 'topicId',
-  'updatetime': 'updateTime',
-  'workid': 'id',
-  'worktype': 'workType',
-  }
-COURSE_WORK_ORDERBY_CHOICE_MAP = {
-  'duedate': 'dueDate',
-  'updatetime': 'updateTime',
-  'updatedate': 'updateTime',
-  }
-COURSE_WORK_TIME_OBJECTS = {'creationTime', 'scheduledTime', 'updateTime'}
-COURSE_WORK_SORT_TITLES = ['courseId', 'courseName', 'id', 'title', 'description', 'state']
-COURSE_WORK_INDEXED_TITLES = ['materials']
-
-def _initCourseWorkSelectionParameters():
-  return {'courseWorkIds': [], 'courseWorkStates': []}
-
-def _getCourseWorkSelectionParameters(myarg, courseWorkSelectionParameters):
-  if myarg in {'workid', 'workids', 'courseworkid', 'courseworkids'}:
-    courseWorkSelectionParameters['courseWorkIds'] = getEntityList(Cmd.OB_COURSE_WORK_ID_ENTITY)
-  elif myarg in {'workstate', 'workstates', 'courseworkstate', 'courseworkstates'}:
-    _getCourseStates(Cmd.OB_COURSE_WORK_STATE_LIST, courseWorkSelectionParameters['courseWorkStates'])
-  else:
-    return False
-  return True
-
-# gam print course-work [todrive <ToDriveAttribute>*]
-#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
-#	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
-#	(orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
-#	[showcreatoremails|creatoremail] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson [quotechar <Character>]]
-#	[timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
-def doPrintCourseWork():
-  def _getTopicNames(croom, courseId):
-    topicNames = {}
-    try:
-      results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
-                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
-                              courseId=courseId,
-                              fields='nextPageToken,topic(topicId,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-      for courseTopic in results:
-        topicNames[courseTopic['topicId']] = courseTopic['name']
-    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument):
-      pass
-    return topicNames
-
-  def _printCourseWork(course, courseWork, i, count):
-    if applyCourseItemFilter and not _courseItemPassesFilter(courseWork, courseItemFilter):
-      return
-    if showCreatorEmail:
-      courseWork['creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWork['creatorUserId'], creatorEmails,
-                                                                   [Ent.COURSE, course['id'], Ent.COURSE_WORK_ID, courseWork['id'],
-                                                                    Ent.CREATOR_ID, courseWork['creatorUserId']], i, count)
-    if showTopicNames:
-      topicId = courseWork.get('topicId')
-      if topicId:
-        courseWork['topicName'] = topicNames.get(topicId, topicId)
-    row = flattenJSON(courseWork, flattened={'courseId': course['id'], 'courseName': course['name']}, timeObjects=COURSE_WORK_TIME_OBJECTS)
-    if not FJQC.formatJSON:
-      csvPF.WriteRowTitles(row)
-    elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'courseId': course['id'], 'courseName': course['name'],
-                              'JSON': json.dumps(cleanJSON(courseWork, timeObjects=COURSE_WORK_TIME_OBJECTS),
-                                                 ensure_ascii=False, sort_keys=True)})
-
-  croom = buildGAPIObject(API.CLASSROOM)
-  csvPF = CSVPrintFile(['courseId', 'courseName'], COURSE_WORK_SORT_TITLES, COURSE_WORK_INDEXED_TITLES)
-  FJQC = FormatJSONQuoteChar(csvPF)
-  fieldsList = []
-  courseSelectionParameters = _initCourseSelectionParameters()
-  courseWorkSelectionParameters = _initCourseWorkSelectionParameters()
-  courseItemFilter = _initCourseItemFilter()
-  courseShowProperties = _initCourseShowProperties(['name'])
-  OBY = OrderBy(COURSE_WORK_ORDERBY_CHOICE_MAP)
-  creatorEmails = {}
-  showCreatorEmail = showTopicNames = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif _getCourseSelectionParameters(myarg, courseSelectionParameters):
-      pass
-    elif _getCourseWorkSelectionParameters(myarg, courseWorkSelectionParameters):
-      pass
-    elif _getCourseItemFilter(myarg, courseItemFilter, COURSE_CUS_FILTER_FIELDS_MAP):
-      pass
-    elif myarg == 'orderby':
-      OBY.GetChoice()
-    elif myarg in {'showcreatoremails', 'creatoremail'}:
-      showCreatorEmail = True
-    elif myarg == 'showtopicnames':
-      showTopicNames = True
-    elif getFieldsList(myarg, COURSE_WORK_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
-      pass
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if showCreatorEmail and fieldsList:
-    fieldsList.append('creatorUserId')
-  if showTopicNames and fieldsList:
-    fieldsList.append('topicId')
-  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
-  if coursesInfo is None:
-    return
-  applyCourseItemFilter = _setApplyCourseItemFilter(courseItemFilter, fieldsList)
-  courseWorkIds = courseWorkSelectionParameters['courseWorkIds']
-  courseWorkIdsLists = courseWorkIds if isinstance(courseWorkIds, dict) else {}
-  i = 0
-  count = len(coursesInfo)
-  for course in coursesInfo:
-    i += 1
-    courseId = course['id']
-    if showTopicNames:
-      topicNames = _getTopicNames(croom, courseId)
-    if courseWorkIdsLists:
-      courseWorkIds = courseWorkIdsLists[courseId]
-    if not courseWorkIds:
-      fields = getItemFieldsFromFieldsList('courseWork', fieldsList)
-      printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
-                                        _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, courseWorkSelectionParameters['courseWorkStates']))
-      try:
-        results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
-                                pageMessage=getPageMessage(),
-                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
-                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy,
-                                fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-        for courseWork in results:
-          _printCourseWork(course, courseWork, i, count)
-      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
-        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
-    else:
-      jcount = len(courseWorkIds)
-      if jcount == 0:
-        continue
-      fields = f'{",".join(set(fieldsList))}' if fieldsList else None
-      j = 0
-      for courseWorkId in courseWorkIds:
-        j += 1
-        try:
-          courseWork = callGAPI(croom.courses().courseWork(), 'get',
-                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
-                                courseId=courseId, id=courseWorkId, fields=fields)
-          _printCourseWork(course, courseWork, i, count)
-        except GAPI.notFound:
-          entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
-        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
-          entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
-  csvPF.writeCSVfile('Course Work')
-
 COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
   'alternatelink': 'alternateLink',
   'assignedgrade': 'assignedGrade',
@@ -33901,6 +33574,242 @@ def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
   if query:
     query = query[:-2]
   return query
+
+def _initCourseWMSelectionParameters():
+  return {'courseWMIds': [], 'courseWMStates': []}
+
+def _getCourseWMSelectionParameters(myarg, courseWMSelectionParameters,
+                                    IDArguments, OBIDEntity,
+                                    StateArguments, OBStateList):
+  if myarg in IDArguments:
+    courseWMSelectionParameters['courseWMIds'] = getEntityList(OBIDEntity)
+  elif myarg in StateArguments:
+    _getCourseStates(OBStateList, courseWMSelectionParameters['courseWMStates'])
+  else:
+    return False
+  return True
+
+COURSE_MATERIAL_ID_ARGUMENTS = {'materialid', 'materialids', 'coursematerialid', 'coursematerialids'}
+COURSE_MATERIAL_STATE_ARGUMENTS = {'materialstate', 'materialstates', 'coursematerialstate', 'coursematerialstates'}
+COURSE_MATERIAL_FIELDS_CHOICE_MAP = {
+  'alternatelink': 'alternateLink',
+  'assigneemode': 'assigneeMode',
+  'courseid': 'courseId',
+  'coursematerialid': 'id',
+  'creationtime': 'creationTime',
+  'creator': 'creatorUserId',
+  'creatoruserid': 'creatorUserId',
+  'description': 'description',
+  'id': 'id',
+  'materialid': 'id',
+  'materials': 'materials',
+  'scheduledtime': 'scheduledTime',
+  'state': 'state',
+  'title': 'title',
+  'topicid': 'topicId',
+  'updatetime': 'updateTime',
+  }
+COURSE_MATERIAL_ORDERBY_CHOICE_MAP = {'updatetime': 'updateTime', 'updatedate': 'updateTime'}
+COURSE_MATERIAL_TIME_OBJECTS = {'creationTime', 'scheduledTime', 'updateTime'}
+COURSE_MATERIAL_SORT_TITLES = ['courseId', 'courseName', 'id', 'title', 'description', 'state']
+COURSE_MATERIAL_INDEXED_TITLES = ['materials']
+
+COURSE_WORK_ID_ARGUMENTS = {'workid', 'workids', 'courseworkid', 'courseworkids'}
+COURSE_WORK_STATE_ARGUMENTS = {'workstate', 'workstates', 'courseworkstate', 'courseworkstates'}
+COURSE_WORK_FIELDS_CHOICE_MAP = {
+  'alternatelink': 'alternateLink',
+  'assigneemode': 'assigneeMode',
+  'courseid': 'courseId',
+  'courseworkid': 'id',
+  'courseworktype': 'workType',
+  'creationtime': 'creationTime',
+  'creator': 'creatorUserId',
+  'creatoruserid': 'creatorUserId',
+  'description': 'description',
+  'duedate': 'dueDate',
+  'duetime': 'dueTime',
+  'id': 'id',
+  'materials': 'materials',
+  'maxpoints': 'maxPoints',
+  'scheduledtime': 'scheduledTime',
+  'state': 'state',
+  'submissionmodificationmode': 'submissionModificationMode',
+  'title': 'title',
+  'topicid': 'topicId',
+  'updatetime': 'updateTime',
+  'workid': 'id',
+  'worktype': 'workType',
+  }
+COURSE_WORK_ORDERBY_CHOICE_MAP = {'duedate': 'dueDate', 'updatetime': 'updateTime', 'updatedate': 'updateTime'}
+COURSE_WORK_TIME_OBJECTS = {'creationTime', 'scheduledTime', 'updateTime'}
+COURSE_WORK_SORT_TITLES = ['courseId', 'courseName', 'id', 'title', 'description', 'state']
+COURSE_WORK_INDEXED_TITLES = ['materials']
+
+def doPrintCourseWM(entityIDType, entityStateType):
+  def _getTopicNames(croom, courseId):
+    topicNames = {}
+    try:
+      results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
+                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                              courseId=courseId,
+                              fields='nextPageToken,topic(topicId,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+      for courseTopic in results:
+        topicNames[courseTopic['topicId']] = courseTopic['name']
+    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument):
+      pass
+    return topicNames
+
+  def _printCourseWM(course, courseWM, i, count):
+    if applyCourseItemFilter and not _courseItemPassesFilter(courseWM, courseItemFilter):
+      return
+    if showCreatorEmail:
+      courseWM['creatorUserEmail'] = _convertCourseUserIdToEmail(croom, courseWM['creatorUserId'], creatorEmails,
+                                                                 [Ent.COURSE, course['id'], entityIDType, courseWM['id'],
+                                                                  Ent.CREATOR_ID, courseWM['creatorUserId']], i, count)
+    if showTopicNames:
+      topicId = courseWM.get('topicId')
+      if topicId:
+        courseWM['topicName'] = topicNames.get(topicId, topicId)
+    row = flattenJSON(courseWM, flattened={'courseId': course['id'], 'courseName': course['name']}, timeObjects=TimeObjects)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'courseId': course['id'], 'courseName': course['name'],
+                              'JSON': json.dumps(cleanJSON(courseWM, timeObjects=TimeObjects),
+                                                 ensure_ascii=False, sort_keys=True)})
+
+  croom = buildGAPIObject(API.CLASSROOM)
+  if entityIDType == Ent.COURSE_WORK_ID:
+    SortTitles = COURSE_WORK_SORT_TITLES
+    IndexedTitles = COURSE_WORK_INDEXED_TITLES
+    TimeObjects = COURSE_WORK_TIME_OBJECTS
+    OrderbyChoiceMap = COURSE_WORK_ORDERBY_CHOICE_MAP
+    FieldsChoiceMap = COURSE_WORK_FIELDS_CHOICE_MAP
+    IDArguments = COURSE_WORK_ID_ARGUMENTS
+    OBIDEntity = Cmd.OB_COURSE_WORK_ID_ENTITY
+    StateArguments = COURSE_WORK_STATE_ARGUMENTS
+    OBStateList = Cmd.OB_COURSE_WORK_STATE_LIST
+    CSVTitle = 'Course Work'
+    service = croom.courses().courseWork()
+    items = 'courseWork'
+  else:
+    SortTitles = COURSE_MATERIAL_SORT_TITLES
+    IndexedTitles = COURSE_MATERIAL_INDEXED_TITLES
+    TimeObjects = COURSE_MATERIAL_TIME_OBJECTS
+    OrderbyChoiceMap = COURSE_MATERIAL_ORDERBY_CHOICE_MAP
+    FieldsChoiceMap = COURSE_MATERIAL_FIELDS_CHOICE_MAP
+    IDArguments = COURSE_MATERIAL_ID_ARGUMENTS
+    OBIDEntity = Cmd.OB_COURSE_MATERIAL_ID_ENTITY
+    StateArguments = COURSE_MATERIAL_STATE_ARGUMENTS
+    OBStateList = Cmd.OB_COURSE_MATERIAL_STATE_LIST
+    CSVTitle = 'Course Work Material'
+    service = croom.courses().courseWorkMaterials()
+    items = 'courseWorkMaterial'
+  csvPF = CSVPrintFile(['courseId', 'courseName'], SortTitles, IndexedTitles)
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  courseSelectionParameters = _initCourseSelectionParameters()
+  courseWMSelectionParameters = _initCourseWMSelectionParameters()
+  courseItemFilter = _initCourseItemFilter()
+  courseShowProperties = _initCourseShowProperties(['name'])
+  OBY = OrderBy(OrderbyChoiceMap)
+  creatorEmails = {}
+  showCreatorEmail = showTopicNames = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif _getCourseSelectionParameters(myarg, courseSelectionParameters):
+      pass
+    elif _getCourseWMSelectionParameters(myarg, courseWMSelectionParameters,
+                                         IDArguments, OBIDEntity,
+                                         StateArguments, OBStateList):
+      pass
+    elif _getCourseItemFilter(myarg, courseItemFilter, COURSE_CUS_FILTER_FIELDS_MAP):
+      pass
+    elif myarg == 'orderby':
+      OBY.GetChoice()
+    elif myarg in {'showcreatoremails', 'creatoremail'}:
+      showCreatorEmail = True
+    elif myarg == 'showtopicnames':
+      showTopicNames = True
+    elif getFieldsList(myarg, FieldsChoiceMap, fieldsList, initialField='id'):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if showCreatorEmail and fieldsList:
+    fieldsList.append('creatorUserId')
+  if showTopicNames and fieldsList:
+    fieldsList.append('topicId')
+  if entityIDType == Ent.COURSE_WORK_ID:
+    kwargs = {'courseWorkStates': courseWMSelectionParameters['courseWMStates']}
+  else:
+    kwargs = {'courseWorkMaterialStates': courseWMSelectionParameters['courseWMStates']}
+  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
+  if coursesInfo is None:
+    return
+  applyCourseItemFilter = _setApplyCourseItemFilter(courseItemFilter, fieldsList)
+  courseWMIds = courseWMSelectionParameters['courseWMIds']
+  courseWMIdsLists = courseWMIds if isinstance(courseWMIds, dict) else {}
+  i = 0
+  count = len(coursesInfo)
+  for course in coursesInfo:
+    i += 1
+    courseId = course['id']
+    if showTopicNames:
+      topicNames = _getTopicNames(croom, courseId)
+    if courseWMIdsLists:
+      courseWMIds = courseWMIdsLists[courseId]
+    if not courseWMIds:
+      fields = getItemFieldsFromFieldsList(items, fieldsList)
+      printGettingAllEntityItemsForWhom(entityIDType, Ent.TypeName(Ent.COURSE, courseId), i, count,
+                                        _gettingCourseEntityQuery(entityStateType, courseWMSelectionParameters['courseWMStates']))
+      try:
+        results = callGAPIpages(service, 'list', items,
+                                pageMessage=getPageMessage(),
+                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                courseId=courseId, orderBy=OBY.orderBy,
+                                fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS], **kwargs)
+        for courseWM in results:
+          _printCourseWM(course, courseWM, i, count)
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
+    else:
+      jcount = len(courseWMIds)
+      if jcount == 0:
+        continue
+      fields = f'{",".join(set(fieldsList))}' if fieldsList else None
+      j = 0
+      for courseWMId in courseWMIds:
+        j += 1
+        try:
+          courseWM = callGAPI(service, 'get',
+                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                              courseId=courseId, id=courseWMId, fields=fields)
+          _printCourseWM(course, courseWM, i, count)
+        except GAPI.notFound:
+          entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], entityIDType, courseWMId], j, jcount)
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.COURSE_NAME, course['name'], entityIDType, courseWMId], str(e), j, jcount)
+  csvPF.writeCSVfile(CSVTitle)
+
+# gam print course-materials [todrive <ToDriveAttribute>*]
+#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	(materialids <CourseMaterialIDEntity>)|((materialstates <CourseMaterialStateList>)*
+#	(orderby <CourseMaterialsOrderByFieldName> [ascending|descending])*)
+#	[showcreatoremails|creatoremail] [showtopicnames] [fields <CourseMaterialFieldNameList>] [formatjson [quotechar <Character>]]
+#	[timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
+def doPrintCourseMaterials():
+  doPrintCourseWM(Ent.COURSE_MATERIAL_ID, Ent.COURSE_MATERIAL_STATE)
+
+# gam print course-work [todrive <ToDriveAttribute>*]
+#	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
+#	(workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
+#	(orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
+#	[showcreatoremails|creatoremail] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson [quotechar <Character>]]
+#	[timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
+def doPrintCourseWork():
+  doPrintCourseWM(Ent.COURSE_WORK_ID, Ent.COURSE_WORK_STATE)
 
 # gam print course-submissions [todrive <ToDriveAttribute>*]
 #	(course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
@@ -33938,7 +33847,7 @@ def doPrintCourseSubmissions():
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   courseSelectionParameters = _initCourseSelectionParameters()
-  courseWorkSelectionParameters = _initCourseWorkSelectionParameters()
+  courseWMSelectionParameters = _initCourseWMSelectionParameters()
   courseItemFilter = _initCourseItemFilter()
   courseShowProperties = _initCourseShowProperties(['name'])
   courseSubmissionStates = []
@@ -33953,7 +33862,9 @@ def doPrintCourseSubmissions():
       csvPF.GetTodriveParameters()
     elif _getCourseSelectionParameters(myarg, courseSelectionParameters):
       pass
-    elif _getCourseWorkSelectionParameters(myarg, courseWorkSelectionParameters):
+    elif _getCourseWMSelectionParameters(myarg, courseWMSelectionParameters,
+                                         COURSE_WORK_ID_ARGUMENTS, Cmd.OB_COURSE_WORK_ID_ENTITY,
+                                         COURSE_WORK_STATE_ARGUMENTS, Cmd.OB_COURSE_WORK_STATE_LIST):
       pass
     elif _getCourseItemFilter(myarg, courseItemFilter, COURSE_CU_FILTER_FIELDS_MAP):
       pass
@@ -33977,7 +33888,7 @@ def doPrintCourseSubmissions():
   if coursesInfo is None:
     return
   applyCourseItemFilter = _setApplyCourseItemFilter(courseItemFilter, fieldsList)
-  courseWorkIds = courseWorkSelectionParameters['courseWorkIds']
+  courseWorkIds = courseWMSelectionParameters['courseWMIds']
   courseWorkIdsLists = courseWorkIds if isinstance(courseWorkIds, dict) else {}
   courseSubmissionIdsLists = courseSubmissionIds if isinstance(courseSubmissionIds, dict) else {}
   i = 0
@@ -33992,12 +33903,12 @@ def doPrintCourseSubmissions():
       courseWorkIds = courseWorkIdsLists[courseId]
     if not courseWorkIds:
       printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, courseId), i, count,
-                                        _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, courseWorkSelectionParameters['courseWorkStates']))
+                                        _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, courseWMSelectionParameters['courseWMStates']))
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 pageMessage=getPageMessage(),
                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
-                                courseId=courseId, courseWorkStates=courseWorkSelectionParameters['courseWorkStates'], orderBy=OBY.orderBy,
+                                courseId=courseId, courseWorkStates=courseWMSelectionParameters['courseWMStates'], orderBy=OBY.orderBy,
                                 fields='nextPageToken,courseWork(id)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         courseWorkIdsForCourse = [courseWork['id'] for courseWork in results]
       except GAPI.notFound:

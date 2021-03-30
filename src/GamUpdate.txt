@@ -1,3 +1,12 @@
+6.00.08
+
+Fixed bug in `gam print course-materials fields <CourseAnnouncementFieldNameList>` that caused the following error:
+```
+Course: <CourseID>, Print Failed: Request contains an invalid argument.
+```
+
+Code cleanup for `gam print course-work` and `gam print course-materials`.
+
 6.00.07
 
 Added option `splitupdate` to `gam <UserTypeEntity> update calattendees` to handle replacing
