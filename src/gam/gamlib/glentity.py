@@ -68,10 +68,13 @@ class GamEntity():
   CALENDAR = 'cale'
   CALENDAR_ACL = 'cacl'
   CALENDAR_SETTINGS = 'cset'
+  CHROME_APP = 'capp'
+  CHROME_APP_DEVICE = 'capd'
   CHROME_BROWSER = 'chbr'
   CHROME_BROWSER_ENROLLMENT_TOKEN = 'cbet'
   CHROME_POLICY = 'cpol'
   CHROME_POLICY_SCHEMA = 'cpsc'
+  CHROME_VERSION = 'cver'
   CLASSROOM_INVITATION = 'clai'
   CLASSROOM_INVITATION_OWNER = 'clio'
   CLASSROOM_INVITATION_STUDENT = 'clis'
@@ -305,10 +308,13 @@ class GamEntity():
     CALENDAR: ['Calendars', 'Calendar'],
     CALENDAR_ACL: ['Calendar ACLs', 'Calendar ACL'],
     CALENDAR_SETTINGS: ['Calendar Settings', 'Calendar Settings'],
+    CHROME_APP: ['Chrome Applications', 'Chrome Application'],
+    CHROME_APP_DEVICE: ['Chrome Application Devices', 'Chrome Application Device'],
     CHROME_BROWSER: ['Chrome Browsers', 'Chrome Browser'],
     CHROME_BROWSER_ENROLLMENT_TOKEN: ['Chrome Browser Enrollment Tokens', 'Chrome Browser Enrollment Token'],
     CHROME_POLICY: ['Chrome Policies', 'Chrome Policy'],
     CHROME_POLICY_SCHEMA: ['Chrome Policy Schemas', 'Chrome Policy Schema'],
+    CHROME_VERSION: ['Chrome Versions', 'Chrome Version'],
     CLASSROOM_INVITATION: ['Classroom Invitations', 'Classroom Invitation'],
     CLASSROOM_INVITATION_OWNER: ['Classroom Owner Invitations', 'Classroom Owner Invitation'],
     CLASSROOM_INVITATION_STUDENT: ['Classroom Student Invitations', 'Classroom Student Invitation'],

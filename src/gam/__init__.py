@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.00.08'
+__version__ = '6.01.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19520,7 +19520,7 @@ def doInfoPrinter():
   except (GAPI.invalid, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.DEVICE, f'{printerId}'], str(e))
 
-PRINTERS_ENTITIES_MAP = {
+ORGUNIT_ENTITIES_MAP = {
   'org': Cmd.ENTITY_OU,
   'organdchildren': Cmd.ENTITY_OU_AND_CHILDREN,
   'orgs': Cmd.ENTITY_OUS,
@@ -19528,7 +19528,11 @@ PRINTERS_ENTITIES_MAP = {
   'ou': Cmd.ENTITY_OU,
   'ouandchildren': Cmd.ENTITY_OU_AND_CHILDREN,
   'ous': Cmd.ENTITY_OUS,
-  'ousandchildren': Cmd.ENTITY_OUS_AND_CHILDREN
+  'ousandchildren': Cmd.ENTITY_OUS_AND_CHILDREN,
+  'orgunit': Cmd.ENTITY_OU,
+  'orgunitandchildren': Cmd.ENTITY_OU_AND_CHILDREN,
+  'orgunits': Cmd.ENTITY_OUS,
+  'orgunitsandchildren': Cmd.ENTITY_OUS_AND_CHILDREN,
   }
 
 # gam show printers
@@ -19567,8 +19571,8 @@ def doPrintShowPrinters():
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in PRINTERS_ENTITIES_MAP:
-      myarg = PRINTERS_ENTITIES_MAP[myarg]
+    elif myarg in ORGUNIT_ENTITIES_MAP:
+      myarg = ORGUNIT_ENTITIES_MAP[myarg]
       ous = convertEntityToList(getString(Cmd.OB_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
       directlyInOU = myarg in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS}
     elif getFieldsList(myarg, PRINTER_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
@@ -19631,12 +19635,12 @@ def doPrintShowPrinters():
   if csvPF:
     csvPF.writeCSVfile('Printers')
 
-# gam show printermodels
-#	[filter <String>]
-#	[formatjson]
 # gam print printermodels [todrive <ToDriveAttribute>*]
 #	[filter <String>]
 #	[[formatjson [quotechar <Character>]]
+# gam show printermodels
+#	[filter <String>]
+#	[formatjson]
 def doPrintShowPrinterModels():
   def _showPrinterModel(model, FJQC, i, count):
     if FJQC is not None and FJQC.formatJSON:
@@ -19697,6 +19701,422 @@ def doPrintShowPrinterModels():
       _printPrinterModel(model)
   if csvPF:
     csvPF.writeCSVfile('Printer Models')
+
+CHROME_APPS_ORDERBY_CHOICE_MAP = {
+  'appname': 'app_name',
+  'apptype': 'appType',
+  'installtype': 'install_type',
+  'numberofpermissions': 'number_of_permissions',
+  'totalinstallcount': 'total_install_count',
+  }
+CHROME_APPS_TITLES = [
+  'displayName',
+  'browserDeviceCount', 'osUserCount',
+  'appType', 'description',
+  'appInstallType', 'appSource',
+  'disabled', 'homepageUri', 'permissions'
+  ]
+
+# gam print chromeapps [todrive <ToDriveAttribute>*]
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[filter <String>]
+#	[orderby appname|apptype|installtype|numberofpermissions|totalinstallcount]
+#	[formatjson [quotechar <Character>]] [delimiter <Character>]
+# gam show chromeapps
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[filter <String>]
+#	[orderby appname|apptype|installtype|numberofpermissions|totalinstallcount]
+#	[formatjson]
+def doPrintShowChromeApps():
+  def _printApp(app):
+    if showOrgUnit:
+      app['orgUnitPath'] = orgUnitPath
+    if FJQC.formatJSON:
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(app)):
+        csvPF.WriteRowNoFilter({'appId': app['appId'],
+                                'JSON': json.dumps(cleanJSON(app),
+                                                   ensure_ascii=False, sort_keys=True)})
+    else:
+      csvPF.WriteRow(flattenJSON(app, simpleLists=['permissions'], delimiter=delimiter))
+
+  def _showApp(app, i=0, count=0):
+    if showOrgUnit:
+      app['orgUnitPath'] = orgUnitPath
+    if FJQC is not None and FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(app), ensure_ascii=False, sort_keys=True))
+    else:
+      printEntity([Ent.CHROME_APP, app['appId']], i, count)
+      Ind.Increment()
+      showJSON(None, app)
+      Ind.Decrement()
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  cm = buildGAPIObject(API.CHROMEMANAGEMENT)
+  customerId = _getCustomersCustomerIdWithC()
+  csvPF = CSVPrintFile(['appId']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  ous = [None]
+  directlyInOU = True
+  showOrgUnit = False
+  orderBy = pfilter = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in ORGUNIT_ENTITIES_MAP:
+      myarg = ORGUNIT_ENTITIES_MAP[myarg]
+      ous = convertEntityToList(getString(Cmd.OB_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
+      directlyInOU = myarg in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS}
+    elif myarg == 'filter':
+      pfilter = getString(Cmd.OB_STRING)
+    elif myarg == 'orderby':
+      orderBy = getChoice(CHROME_APPS_ORDERBY_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if ous[0] is not None:
+    showOrgUnit = True
+  if csvPF and not FJQC.formatJSON:
+    csvPF.AddTitles(CHROME_APPS_TITLES)
+    if showOrgUnit:
+      csvPF.AddTitle('orgUnitPath')
+  for ou in ous:
+    if ou is not None:
+      ou = makeOrgUnitPathAbsolute(ou)
+      _, orgUnitId = getOrgUnitId(cd, ou)
+      ouList = [(ou, orgUnitId[3:])]
+    else:
+      ouList = [('/', None)]
+    if not directlyInOU:
+      try:
+        orgs = callGAPI(cd.orgunits(), 'list',
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
+                        type='all', fields='organizationUnits(orgUnitPath,orgUnitId)')
+      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+        return
+      ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
+    for subou in ouList:
+      orgUnitPath = subou[0]
+      orgUnitId = subou[1]
+      if orgUnitId is not None:
+        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+        printGettingAllEntityItemsForWhom(Ent.CHROME_APP, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+      else:
+        printGettingAllAccountEntities(Ent.CHROME_APP, pfilter)
+      pageMessage = getPageMessage()
+      try:
+        apps = callGAPIpages(cm.customers().reports(), 'countInstalledApps', 'installedApps',
+                             throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                             pageMessage=pageMessage,
+                             customer=customerId, orgUnitId=orgUnitId, filter=pfilter, orderBy=orderBy)
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.CHROME_APP, None], str(e))
+        return
+      jcount = len(apps)
+      if not csvPF:
+        entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_APP)
+        Ind.Increment()
+        j = 0
+        for app in apps:
+          j += 1
+          _showApp(app, j, jcount)
+        Ind.Decrement()
+      else:
+        for app in apps:
+          _printApp(app)
+  if csvPF:
+    csvPF.writeCSVfile('Chrome Installed Applications')
+
+CHROME_APP_DEVICES_APPTYPE_CHOICE_MAP = {
+  'extension': 'EXTENSION',
+  'app': 'APP',
+  'theme': 'THEME',
+  'hostedapp': 'HOSTED_APP',
+  'androidapp': 'ANDROID_APP',
+  }
+CHROME_APP_DEVICES_ORDERBY_CHOICE_MAP = {
+  'deviceid': 'deviceId',
+  'machine': 'machine',
+  }
+CHROME_APP_DEVICES_TITLES = [
+  'appType', 'deviceId', 'machine'
+  ]
+
+# gam print chromeappdevices [todrive <ToDriveAttribute>*]
+#	appid <AppID> apptype extension|app|theme|hostedapp|androidapp
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[start <Date>] [end <Date>]
+#	[orderby deviceid|machine]
+#	[formatjson [quotechar <Character>]]
+# gam show chromeappdevices
+#	appid <AppID> apptype extension|app|theme|hostedapp|androidapp
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[start <Date>] [end <Date>]
+#	[orderby deviceid|machine]
+#	[formatjson]
+def doPrintShowChromeAppDevices():
+  def _printDevice(device):
+    device['appId'] = appId
+    device['appType'] = appType
+    if showOrgUnit:
+      device['orgUnitPath'] = orgUnitPath
+    if FJQC.formatJSON:
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(device)):
+        csvPF.WriteRowNoFilter({'appId': device['appId'],
+                                'JSON': json.dumps(cleanJSON(device),
+                                                   ensure_ascii=False, sort_keys=True)})
+    else:
+      csvPF.WriteRow(flattenJSON(device))
+
+  def _showDevice(device, i=0, count=0):
+    device['appId'] = appId
+    device['appType'] = appType
+    if showOrgUnit:
+      device['orgUnitPath'] = orgUnitPath
+    if FJQC is not None and FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(device), ensure_ascii=False, sort_keys=True))
+    else:
+      printEntity([Ent.CHROME_APP, device['appId']], i, count)
+      Ind.Increment()
+      showJSON(None, device)
+      Ind.Decrement()
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  cm = buildGAPIObject(API.CHROMEMANAGEMENT)
+  customerId = _getCustomersCustomerIdWithC()
+  csvPF = CSVPrintFile(['appId']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  ous = [None]
+  directlyInOU = True
+  showOrgUnit = False
+  appId = appType = orderBy = None
+  startDate = endDate = pfilter = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in ORGUNIT_ENTITIES_MAP:
+      myarg = ORGUNIT_ENTITIES_MAP[myarg]
+      ous = convertEntityToList(getString(Cmd.OB_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
+      directlyInOU = myarg in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS}
+    elif myarg == 'appid':
+      appId = getString(Cmd.OB_APP_ID)
+    elif myarg == 'apptype':
+      appType = getChoice(CHROME_APP_DEVICES_APPTYPE_CHOICE_MAP, mapChoice=True)
+    elif myarg in CROS_START_ARGUMENTS:
+      startDate, _ = _getFilterDateTime()
+      startDate = startDate.strftime(YYYYMMDD_FORMAT)
+    elif myarg in CROS_END_ARGUMENTS:
+      endDate, _ = _getFilterDateTime()
+      endDate = endDate.strftime(YYYYMMDD_FORMAT)
+    elif myarg == 'orderby':
+      orderBy = getChoice(CHROME_APP_DEVICES_ORDERBY_CHOICE_MAP, mapChoice=True)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if appId is None:
+    missingArgumentExit('appid')
+  if appType is None:
+    missingArgumentExit('apptype')
+  if endDate:
+    pfilter = f'last_active_date<={endDate}'
+  if startDate:
+    if pfilter:
+      pfilter += ' AND '
+    else:
+      pfilter = ''
+    pfilter += f'last_active_date>={startDate}'
+  if ous[0] is not None:
+    showOrgUnit = True
+  if csvPF and not FJQC.formatJSON:
+    csvPF.AddTitles(CHROME_APP_DEVICES_TITLES)
+    if showOrgUnit:
+      csvPF.AddTitle('orgUnitPath')
+  for ou in ous:
+    if ou is not None:
+      ou = makeOrgUnitPathAbsolute(ou)
+      _, orgUnitId = getOrgUnitId(cd, ou)
+      ouList = [(ou, orgUnitId[3:])]
+    else:
+      ouList = [('/', None)]
+    if not directlyInOU:
+      try:
+        orgs = callGAPI(cd.orgunits(), 'list',
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
+                        type='all', fields='organizationUnits(orgUnitPath,orgUnitId)')
+      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+        return
+      ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
+    for subou in ouList:
+      orgUnitPath = subou[0]
+      orgUnitId = subou[1]
+      if orgUnitId is not None:
+        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+        printGettingAllEntityItemsForWhom(Ent.CHROME_APP_DEVICE, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+      else:
+        printGettingAllAccountEntities(Ent.CHROME_APP_DEVICE, pfilter)
+      pageMessage = getPageMessage()
+      try:
+        devices = callGAPIpages(cm.customers().reports(), 'findInstalledAppDevices', 'devices',
+                                throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                                pageMessage=pageMessage,
+                                appId=appId, appType=appType,
+                                customer=customerId, orgUnitId=orgUnitId, filter=pfilter, orderBy=orderBy)
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.CHROME_APP_DEVICE, None], str(e))
+        return
+      jcount = len(devices)
+      if not csvPF:
+        entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_APP_DEVICE)
+        Ind.Increment()
+        j = 0
+        for device in devices:
+          j += 1
+          _showDevice(device, j, jcount)
+        Ind.Decrement()
+      else:
+        for device in devices:
+          _printDevice(device)
+  if csvPF:
+    csvPF.writeCSVfile('Chrome Installed Application Devices')
+
+CHROME_VERSIONS_TITLES = [
+  'channel', 'system', 'deviceOsVersion'
+  ]
+
+# gam print chromeversions [todrive <ToDriveAttribute>*]
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[start <Date>] [end <Date>]
+#	[recentfirst [<Boolean>]]
+#	[formatjson [quotechar <Character>]]
+# gam show chromeversions
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[start <Date>] [end <Date>]
+#	[recentfirst [<Boolean>]]
+#	[formatjson]
+def doPrintShowChromeVersions():
+  def _printVersion(version):
+    if showOrgUnit:
+      version['orgUnitPath'] = orgUnitPath
+    if FJQC.formatJSON:
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(version)):
+        csvPF.WriteRowNoFilter({'version': version['version'], 'count': version['count'],
+                                'JSON': json.dumps(cleanJSON(version),
+                                                   ensure_ascii=False, sort_keys=True)})
+    else:
+      csvPF.WriteRow(flattenJSON(version))
+
+  def _showVersion(version, i=0, count=0):
+    if showOrgUnit:
+      version['orgUnitPath'] = orgUnitPath
+    if FJQC is not None and FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(version), ensure_ascii=False, sort_keys=True))
+    else:
+      printEntity([Ent.CHROME_VERSION, version['version']], i, count)
+      Ind.Increment()
+      showJSON(None, version)
+      Ind.Decrement()
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  cm = buildGAPIObject(API.CHROMEMANAGEMENT)
+  customerId = _getCustomersCustomerIdWithC()
+  csvPF = CSVPrintFile(['version', 'count']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  ous = [None]
+  directlyInOU = True
+  reverse = showOrgUnit = False
+  startDate = endDate = pfilter = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in ORGUNIT_ENTITIES_MAP:
+      myarg = ORGUNIT_ENTITIES_MAP[myarg]
+      ous = convertEntityToList(getString(Cmd.OB_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
+      directlyInOU = myarg in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS}
+    elif myarg in CROS_START_ARGUMENTS:
+      startDate, _ = _getFilterDateTime()
+      startDate = startDate.strftime(YYYYMMDD_FORMAT)
+    elif myarg in CROS_END_ARGUMENTS:
+      endDate, _ = _getFilterDateTime()
+      endDate = endDate.strftime(YYYYMMDD_FORMAT)
+    elif myarg == 'recentfirst':
+      reverse = getBoolean()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if endDate:
+    pfilter = f'last_active_date<={endDate}'
+  if startDate:
+    if pfilter:
+      pfilter += ' AND '
+    else:
+      pfilter = ''
+    pfilter += f'last_active_date>={startDate}'
+  if ous[0] is not None:
+    showOrgUnit = True
+  if csvPF and not FJQC.formatJSON:
+    csvPF.AddTitles(CHROME_VERSIONS_TITLES)
+    if showOrgUnit:
+      csvPF.AddTitle('orgUnitPath')
+  for ou in ous:
+    if ou is not None:
+      ou = makeOrgUnitPathAbsolute(ou)
+      _, orgUnitId = getOrgUnitId(cd, ou)
+      ouList = [(ou, orgUnitId[3:])]
+    else:
+      ouList = [('/', None)]
+    if not directlyInOU:
+      try:
+        orgs = callGAPI(cd.orgunits(), 'list',
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
+                        type='all', fields='organizationUnits(orgUnitPath,orgUnitId)')
+      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+        return
+      ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
+    for subou in ouList:
+      orgUnitPath = subou[0]
+      orgUnitId = subou[1]
+      if orgUnitId is not None:
+        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+        printGettingAllEntityItemsForWhom(Ent.CHROME_VERSION, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+      else:
+        printGettingAllAccountEntities(Ent.CHROME_VERSION, pfilter)
+      pageMessage = getPageMessage()
+      try:
+        versions = callGAPIpages(cm.customers().reports(), 'countChromeVersions', 'browserVersions',
+                                 throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                                 pageMessage=pageMessage,
+                                 customer=customerId, orgUnitId=orgUnitId, filter=pfilter)
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.CHROME_VERSION, None], str(e))
+        return
+      jcount = len(versions)
+      if not csvPF:
+        entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_VERSION)
+        Ind.Increment()
+        j = 0
+        for version in sorted(versions, key=lambda k: k['version'], reverse=reverse):
+          j += 1
+          _showVersion(version, j, jcount)
+        Ind.Decrement()
+      else:
+        for version in sorted(versions, key=lambda k: k['version'], reverse=reverse):
+          _printVersion(version)
+  if csvPF:
+    csvPF.writeCSVfile('Chrome Versions')
 
 # Mobile command utilities
 MOBILE_ACTION_CHOICE_MAP = {
@@ -35952,7 +36372,7 @@ CALENDAR_EXCLUDE_DOMAINS = {
 
 # gam <UserTypeEntity> print calendars <UserCalendarEntity> [todrive <ToDriveAttribute>*] [permissions]
 #	[primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
-#	[formatjson] [delimiter <Character>] [quotechar <Character>}
+#	[formatjson [quotechar <Character>]] [delimiter <Character>]
 # gam <UserTypeEntity> show calendars <UserCalendarEntity> [permissions]
 #	[primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
 #	[formatjson]
@@ -46587,10 +47007,10 @@ def _createLicenses(lic, parameters, count, users):
                  productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
         message = Act.SUCCESS
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.duplicate, GAPI.conditionNotMet, GAPI.invalid) as e:
+    except (GAPI.duplicate, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid) as e:
       message = str(e)
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], message, i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError) as e:
+    except (GAPI.userNotFound, GAPI.backendError) as e:
       message = str(e)
       entityUnknownWarning(Ent.USER, user, i, count)
     if parameters['csvPF']:
@@ -46625,10 +47045,10 @@ def updateLicense(users):
         message = Act.SUCCESS
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(parameters[LICENSE_SKUID])],
                                             Act.MODIFIER_FROM, SKU.skuIdToDisplayName(parameters[LICENSE_OLDSKUID]), i, count)
-    except (GAPI.internalError, GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid) as e:
+    except (GAPI.internalError, GAPI.notFound, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid) as e:
       message = str(e)
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], message, i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError) as e:
+    except (GAPI.userNotFound, GAPI.backendError) as e:
       message = str(e)
       entityUnknownWarning(Ent.USER, user, i, count)
     if parameters['csvPF']:
@@ -46651,10 +47071,10 @@ def _deleteLicenses(lic, parameters, count, users):
                  productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
         message = Act.SUCCESS
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid) as e:
+    except (GAPI.notFound, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid) as e:
       message = str(e)
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], message, i, count)
-    except (GAPI.userNotFound, GAPI.forbidden, GAPI.backendError) as e:
+    except (GAPI.userNotFound, GAPI.backendError) as e:
       message = str(e)
       entityUnknownWarning(Ent.USER, user, i, count)
     if parameters['csvPF']:
@@ -51426,6 +51846,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
+      Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
+      Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
+      Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
       Cmd.ARG_CIGROUP:		doPrintCIGroups,
       Cmd.ARG_CIGROUPMEMBERS:	doPrintCIGroupMembers,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
@@ -51516,6 +51939,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
+      Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
+      Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
+      Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
       Cmd.ARG_CHROMEPOLICY:	doPrintShowChromePolicies,
       Cmd.ARG_CHROMESCHEMA:	doPrintShowChromeSchemas,
       Cmd.ARG_CIGROUPMEMBERS:	doShowCIGroupMembers,

@@ -1435,6 +1435,50 @@ gam print browsertokens [todrive <ToDriveAttribute>*]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
         [sortheaders] [formatjson [quotechar <Character>]]
 
+# Chrome Installed Apps Counts
+
+gam show chromeapps
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [filter <String>]
+        [orderby appname|apptype|installtype|numberofpermissions|totalinstallcount]
+        [formatjson]
+gam print chromeapps [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [filter <String>]
+        [orderby appname|apptype|installtype|numberofpermissions|totalinstallcount]
+        [formatjson [quotechar <Character>]] [delimiter <Character>]
+
+gam show chromeappdevices
+        appid <AppID> apptype extension|app|theme|hostedapp|androidapp
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [start <Date>] [end <Date>]
+        [orderby deviceid|machine]
+        [formatjson]
+gam print chromeappdevices [todrive <ToDriveAttribute>*]
+        appid <AppID> apptype extension|app|theme|hostedapp|androidapp
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [start <Date>] [end <Date>]
+        [orderby deviceid|machine]
+        [formatjson [quotechar <Character>]]
+
+# Chrome Versions Counts
+
+gam show chromeversions
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [start <Date>] [end <Date>] [recentfirst [<Boolean>]]
+        [formatjson]
+gam print chromeversions [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [start <Date>] [end <Date>]
+        [recentfirst [<Boolean>]]
+        [formatjson [quotechar <Character>]]
+
 # ChromeOS Devices
 
 <CrOSAction> ::=
@@ -1648,6 +1692,47 @@ gam show chromepolicies
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 gam show chromeschemas
         [filter <String>]
+
+# Chrome Apps/Versions
+
+gam show chromeapps
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [filter <String>]
+        [orderby appname|apptype|installtype|numberofpermissions|totalinstallcount]
+        [formatjson]
+gam print chromeapps [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [filter <String>]
+        [orderby appname|apptype|installtype|numberofpermissions|totalinstallcount]
+        [formatjson [quotechar <Character>]]
+
+gam show chromeappdevices
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [appid <AppID>] [apptype extension|app|theme|hostedapp|androidapp]
+        [filter <String>]
+        [orderby deviceid|machine]
+        [formatjson]
+gam print chromeappdevices [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [appid <AppID>] [apptype extension|app|theme|hostedapp|androidapp]
+        [filter <String>]
+        [orderby deviceid|machine]
+        [formatjson [quotechar <Character>]]
+
+gam show chromeversions
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [start <Date>] [end <Date>]
+        [formatjson]
+gam print chromeversions [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [start <Date>] [end <Date>]
+        [formatjson [quotechar <Character>]]
 
 # Contacts
 

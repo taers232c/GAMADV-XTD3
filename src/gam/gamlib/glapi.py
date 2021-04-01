@@ -24,6 +24,7 @@ ALERTCENTER = 'alertcenter'
 CALENDAR = 'calendar'
 CBCM = 'cbcm'
 CHAT = 'chat'
+CHROMEMANAGEMENT = 'chromemanagement'
 CHROMEPOLICY = 'chromepolicy'
 CLASSROOM = 'classroom'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
@@ -104,6 +105,7 @@ PROJECT_APIS = [
   'alertcenter.googleapis.com',
   'calendar-json.googleapis.com',
   'chat.googleapis.com',
+  'chromemanagement.googleapis.com',
   'chromepolicy.googleapis.com',
   'classroom.googleapis.com',
   'cloudidentity.googleapis.com',
@@ -132,6 +134,7 @@ _INFO = {
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': False},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
+  CHROMEMANAGEMENT: {'name': 'Chrome Management API', 'version': 'v1', 'v2discovery': True},
   CHROMEPOLICY: {'name': 'Chrome Policy API', 'version': 'v1', 'v2discovery': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
@@ -181,6 +184,12 @@ _CLIENT_SCOPES = [
     'api': CBCM,
     'subscopes': READONLY,
     'scope': 'https://www.googleapis.com/auth/admin.directory.device.chromebrowsers',
+  },
+  {
+    'name': 'Chrome Management API - read only',
+    'api': CHROMEPOLICY,
+    'subscopes': [],
+    'scope': 'https://www.googleapis.com/auth/chrome.management.reports.readonly',
   },
   {
     'name': 'Chrome Policy API',
