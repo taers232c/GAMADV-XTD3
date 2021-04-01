@@ -288,7 +288,9 @@ def decode(token, certs=None, verify=True, audience=None):
     return payload
 
 
-class Credentials(google.auth.credentials.Signing, google.auth.credentials.Credentials):
+class Credentials(
+    google.auth.credentials.Signing, google.auth.credentials.CredentialsWithQuotaProject
+):
     """Credentials that use a JWT as the bearer token.
 
     These credentials require an "audience" claim. This claim identifies the
@@ -346,6 +348,7 @@ class Credentials(google.auth.credentials.Signing, google.auth.credentials.Crede
         audience,
         additional_claims=None,
         token_lifetime=_DEFAULT_TOKEN_LIFETIME_SECS,
+        quota_project_id=None,
     ):
         """
         Args:
@@ -358,6 +361,8 @@ class Credentials(google.auth.credentials.Signing, google.auth.credentials.Crede
                 the JWT payload.
             token_lifetime (int): The amount of time in seconds for
                 which the token is valid. Defaults to 1 hour.
+            quota_project_id (Optional[str]): The project ID used for quota
+                and billing.
         """
         super(Credentials, self).__init__()
         self._signer = signer
@@ -365,6 +370,7 @@ class Credentials(google.auth.credentials.Signing, google.auth.credentials.Crede
         self._subject = subject
         self._audience = audience
         self._token_lifetime = token_lifetime
+        self._quota_project_id = quota_project_id
 
         if additional_claims is None:
             additional_claims = {}
@@ -486,6 +492,18 @@ class Credentials(google.auth.credentials.Signing, google.auth.credentials.Crede
             subject=subject if subject is not None else self._subject,
             audience=audience if audience is not None else self._audience,
             additional_claims=new_additional_claims,
+            quota_project_id=self._quota_project_id,
+        )
+
+    @_helpers.copy_docstring(google.auth.credentials.CredentialsWithQuotaProject)
+    def with_quota_project(self, quota_project_id):
+        return self.__class__(
+            self._signer,
+            issuer=self._issuer,
+            subject=self._subject,
+            audience=self._audience,
+            additional_claims=self._additional_claims,
+            quota_project_id=quota_project_id,
         )
 
     def _make_jwt(self):
@@ -538,7 +556,7 @@ class Credentials(google.auth.credentials.Signing, google.auth.credentials.Crede
 
 
 class OnDemandCredentials(
-    google.auth.credentials.Signing, google.auth.credentials.Credentials
+    google.auth.credentials.Signing, google.auth.credentials.CredentialsWithQuotaProject
 ):
     """On-demand JWT credentials.
 
@@ -565,6 +583,7 @@ class OnDemandCredentials(
         additional_claims=None,
         token_lifetime=_DEFAULT_TOKEN_LIFETIME_SECS,
         max_cache_size=_DEFAULT_MAX_CACHE_SIZE,
+        quota_project_id=None,
     ):
         """
         Args:
@@ -577,12 +596,16 @@ class OnDemandCredentials(
                 which the token is valid. Defaults to 1 hour.
             max_cache_size (int): The maximum number of JWT tokens to keep in
                 cache. Tokens are cached using :class:`cachetools.LRUCache`.
+            quota_project_id (Optional[str]): The project ID used for quota
+                and billing.
+
         """
         super(OnDemandCredentials, self).__init__()
         self._signer = signer
         self._issuer = issuer
         self._subject = subject
         self._token_lifetime = token_lifetime
+        self._quota_project_id = quota_project_id
 
         if additional_claims is None:
             additional_claims = {}
@@ -697,6 +720,19 @@ class OnDemandCredentials(
             subject=subject if subject is not None else self._subject,
             additional_claims=new_additional_claims,
             max_cache_size=self._cache.maxsize,
+            quota_project_id=self._quota_project_id,
+        )
+
+    @_helpers.copy_docstring(google.auth.credentials.CredentialsWithQuotaProject)
+    def with_quota_project(self, quota_project_id):
+
+        return self.__class__(
+            self._signer,
+            issuer=self._issuer,
+            subject=self._subject,
+            additional_claims=self._additional_claims,
+            max_cache_size=self._cache.maxsize,
+            quota_project_id=quota_project_id,
         )
 
     @property

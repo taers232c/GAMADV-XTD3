@@ -1,3 +1,7 @@
+6.01.02
+
+Update google_auth, google_auth_httplib2, google_auth_oauthlib, googleapiclient, httplib2 libraries.
+
 6.01.01
 
 Updated `gam print|show chromeversions` to avoid a trap where a version was returned without a `version` field.
@@ -1495,7 +1499,7 @@ Fixed bug in `gam info user <UserItem> nolicenses` that caused a trap.
 
 5.06.00
 
-Update google_auth, google_auth_httlib2, google_auth_oauthlib, googleapiclient, httplib2 libraries.
+Update google_auth, google_auth_httplib2, google_auth_oauthlib, googleapiclient, httplib2 libraries.
 
 5.05.12
 
