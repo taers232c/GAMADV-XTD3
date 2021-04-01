@@ -1,3 +1,7 @@
+6.01.01
+
+Updated `gam print|show chromeversions` to avoid a trap where a version was returned without a `version` field.
+
 6.01.00
 
 Added the capability to access two new areas.

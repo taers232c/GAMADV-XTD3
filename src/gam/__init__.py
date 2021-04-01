@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.01.00'
+__version__ = '6.01.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20009,6 +20009,8 @@ def doPrintShowChromeVersions():
   def _printVersion(version):
     if showOrgUnit:
       version['orgUnitPath'] = orgUnitPath
+    if 'version' not in version:
+      version['version'] = 'Unknown'
     if FJQC.formatJSON:
       if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(version)):
         csvPF.WriteRowNoFilter({'version': version['version'], 'count': version['count'],
@@ -20020,6 +20022,8 @@ def doPrintShowChromeVersions():
   def _showVersion(version, i=0, count=0):
     if showOrgUnit:
       version['orgUnitPath'] = orgUnitPath
+    if 'version' not in version:
+      version['version'] = 'Unknown'
     if FJQC is not None and FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(version), ensure_ascii=False, sort_keys=True))
     else:
@@ -20108,12 +20112,12 @@ def doPrintShowChromeVersions():
         entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_VERSION)
         Ind.Increment()
         j = 0
-        for version in sorted(versions, key=lambda k: k['version'], reverse=reverse):
+        for version in sorted(versions, key=lambda k: k.get('version', 'Unknown'), reverse=reverse):
           j += 1
           _showVersion(version, j, jcount)
         Ind.Decrement()
       else:
-        for version in sorted(versions, key=lambda k: k['version'], reverse=reverse):
+        for version in sorted(versions, key=lambda k: k.get('version', 'Unknown'), reverse=reverse):
           _printVersion(version)
   if csvPF:
     csvPF.writeCSVfile('Chrome Versions')
