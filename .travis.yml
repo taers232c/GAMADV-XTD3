@@ -88,8 +88,6 @@ jobs:
       env:
         - BUILD_PYTHON_VERSION=3.9.2
         - MIN_PYTHON_VERSION=3.9.2
-        - BUILD_OPENSSL_VERSION=1.1.1i
-        - MIN_OPENSSL_VERSION=1.1.1i
 
 before_install:
 - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
