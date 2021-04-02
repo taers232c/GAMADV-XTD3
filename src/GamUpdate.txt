@@ -1,3 +1,9 @@
+6.01.03
+
+Upgraded to Python 3.9.3.
+
+Upgraded to OpenSSL 1.1.1k.
+
 6.01.02
 
 Update google_auth, google_auth_httplib2, google_auth_oauthlib, googleapiclient, httplib2 libraries.
