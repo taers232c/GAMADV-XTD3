@@ -187,7 +187,7 @@ _CLIENT_SCOPES = [
   },
   {
     'name': 'Chrome Management API - read only',
-    'api': CHROMEPOLICY,
+    'api': CHROMEMANAGEMENT,
     'subscopes': [],
     'scope': 'https://www.googleapis.com/auth/chrome.management.reports.readonly',
   },
