@@ -26,6 +26,7 @@ CBCM = 'cbcm'
 CHAT = 'chat'
 CHROMEMANAGEMENT = 'chromemanagement'
 CHROMEPOLICY = 'chromepolicy'
+CHROMEVERSIONHISTORY = 'versionhistory'
 CLASSROOM = 'classroom'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
 CLOUDIDENTITY_GROUPS = 'cloudidentitygroups'
@@ -67,6 +68,7 @@ FAM1_SCOPES = 'fam1'
 FAM2_SCOPES = 'fam2'
 FAM_LIST = [FAM1_SCOPES, FAM2_SCOPES]
 #
+CHROMEVERSIONHISTORY_URL = 'https://versionhistory.googleapis.com/v1/chrome/platforms'
 DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
 GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
 IAM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
@@ -136,6 +138,7 @@ _INFO = {
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
   CHROMEMANAGEMENT: {'name': 'Chrome Management API', 'version': 'v1', 'v2discovery': True},
   CHROMEPOLICY: {'name': 'Chrome Policy API', 'version': 'v1', 'v2discovery': True},
+  CHROMEVERSIONHISTORY: {'name': 'Chrome Version History API', 'version': 'v1', 'v2discovery': True, 'localjson': True, 'noauthentication': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_USERINVITATIONS: {'name': 'Cloud Identity User Invitations API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
@@ -196,6 +199,12 @@ _CLIENT_SCOPES = [
     'api': CHROMEPOLICY,
     'subscopes': READONLY,
     'scope': 'https://www.googleapis.com/auth/chrome.management.policy',
+  },
+  {
+    'name': 'Chrome Version History API',
+    'api': CHROMEVERSIONHISTORY,
+    'subscopes': [],
+    'scope': '',
   },
   {'name': 'Classroom API - Courses',
    'api': CLASSROOM,

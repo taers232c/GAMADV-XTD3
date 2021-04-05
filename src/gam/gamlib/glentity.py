@@ -72,8 +72,11 @@ class GamEntity():
   CHROME_APP_DEVICE = 'capd'
   CHROME_BROWSER = 'chbr'
   CHROME_BROWSER_ENROLLMENT_TOKEN = 'cbet'
+  CHROME_CHANNEL = 'chan'
+  CHROME_PLATFORM = 'cpla'
   CHROME_POLICY = 'cpol'
   CHROME_POLICY_SCHEMA = 'cpsc'
+  CHROME_RELEASE = 'crel'
   CHROME_VERSION = 'cver'
   CLASSROOM_INVITATION = 'clai'
   CLASSROOM_INVITATION_OWNER = 'clio'
@@ -312,8 +315,11 @@ class GamEntity():
     CHROME_APP_DEVICE: ['Chrome Application Devices', 'Chrome Application Device'],
     CHROME_BROWSER: ['Chrome Browsers', 'Chrome Browser'],
     CHROME_BROWSER_ENROLLMENT_TOKEN: ['Chrome Browser Enrollment Tokens', 'Chrome Browser Enrollment Token'],
+    CHROME_CHANNEL: ['Chrome Channels', 'Chrome Channel'],
+    CHROME_PLATFORM: ['Chrome Platforms', 'Chrome Platform'],
     CHROME_POLICY: ['Chrome Policies', 'Chrome Policy'],
     CHROME_POLICY_SCHEMA: ['Chrome Policy Schemas', 'Chrome Policy Schema'],
+    CHROME_RELEASE: ['Chrome Releases', 'Chrome Release'],
     CHROME_VERSION: ['Chrome Versions', 'Chrome Version'],
     CLASSROOM_INVITATION: ['Classroom Invitations', 'Classroom Invitation'],
     CLASSROOM_INVITATION_OWNER: ['Classroom Owner Invitations', 'Classroom Owner Invitation'],

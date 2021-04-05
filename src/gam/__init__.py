@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.01.04'
+__version__ = '6.01.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4448,7 +4448,7 @@ def buildGAPIObject(api):
       API_Scopes = set(API.VAULT_SCOPES) if api == API.VAULT else set()
     GM.Globals[GM.CURRENT_CLIENT_API] = api
     GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API_Scopes.intersection(credentials.scopes)
-    if api != API.OAUTH2 and not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
+    if api not in {API.OAUTH2, API.CHROMEVERSIONHISTORY} and not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
       systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
     if not GC.Values[GC.DOMAIN]:
       GC.Values[GC.DOMAIN] = GM.Globals[GM.DECODED_ID_TOKEN].get('hd', 'UNKNOWN').lower()
@@ -4491,6 +4491,11 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
       if displayError:
         entityServiceNotApplicableWarning(Ent.USER, userEmail, i, count)
       return (userEmail, None)
+
+def buildGAPIObjectNoAuthentication(api):
+  httpObj = getHttpObj(cache=GM.Globals[GM.CACHE_DIR])
+  service = getService(api, httpObj)
+  return service
 
 def initGDataObject(gdataObj, api):
   GM.Globals[GM.CURRENT_CLIENT_API] = api
@@ -6157,7 +6162,7 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
 
 # myarg is command line argument
 # fieldChoiceMap maps myarg to API field names
-#FIELD_CHOICES_MAP = {
+#FIELD_CHOICE_MAP = {
 #  'foo': 'foo',
 #  'foobar': 'fooBar',
 #  }
@@ -7166,7 +7171,7 @@ def flattenJSON(topStructure, flattened=None,
   return flattened
 
 # Show a json object
-def showJSON(showName, showValue, skipObjects=None, timeObjects=None, simpleLists=None, dictObjectsKey=None):
+def showJSON(showName, showValue, skipObjects=None, timeObjects=None, simpleLists=None, dictObjectsKey=None, sortDictKeys=True):
   def _show(objectName, objectValue, subObjectKey, level):
     if objectName in allSkipObjects:
       return
@@ -7200,7 +7205,7 @@ def showJSON(showName, showValue, skipObjects=None, timeObjects=None, simpleList
         Ind.Increment()
       elif level > 0:
         indentAfterFirst = unindentAfterLast = True
-      subObjects = sorted(objectValue)
+      subObjects = sorted(objectValue) if sortDictKeys else objectValue.keys()
       if subObjectKey and (subObjectKey in subObjects):
         subObjects.remove(subObjectKey)
         subObjects.insert(0, subObjectKey)
@@ -13488,15 +13493,17 @@ def doShowOrgTree():
 
 ALIAS_TARGET_TYPES = ['user', 'group', 'target']
 
-# gam create aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-# gam update aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+# gam create|update aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+#	[verifynotinvitable]
 def doCreateUpdateAliases():
   cd = buildGAPIObject(API.DIRECTORY)
+  ci = None
   updateCmd = Act.Get() == Act.UPDATE
   aliasList = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
   targetType = getChoice(ALIAS_TARGET_TYPES)
   targetEmails = getEntityList(Cmd.OB_GROUP_ENTITY)
   entityLists = targetEmails if isinstance(targetEmails, dict) else None
+  verifyNotInvitable = checkArgumentPresent('verifynotinvitable')
   checkForExtraneousArguments()
   i = 0
   count = len(aliasList)
@@ -13505,6 +13512,11 @@ def doCreateUpdateAliases():
     if entityLists:
       targetEmails = entityLists[aliasEmail]
     aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
+    if verifyNotInvitable:
+      isInvitableUser, ci = _getIsInvitableUser(ci, aliasEmail)
+      if isInvitableUser:
+        entityActionNotPerformedWarning([Ent.ALIAS_EMAIL, aliasEmail], Msg.EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT)
+        continue
     body = {'alias': aliasEmail}
     jcount = len(targetEmails)
     if jcount > 0:
@@ -19623,7 +19635,8 @@ def doPrintShowPrinters():
         return
       if not csvPF:
         jcount = len(printers)
-        performActionNumItems(jcount, Ent.PRINTER)
+        if not FJQC.formatJSON:
+          performActionNumItems(jcount, Ent.PRINTER)
         Ind.Increment()
         j = 0
         for printer in printers:
@@ -19644,7 +19657,7 @@ def doPrintShowPrinters():
 #	[formatjson]
 def doPrintShowPrinterModels():
   def _showPrinterModel(model, FJQC, i, count):
-    if FJQC is not None and FJQC.formatJSON:
+    if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(model), ensure_ascii=False, sort_keys=True))
     else:
       printEntity([Ent.PRINTER_MODEL, model['manufacturer']], i, count)
@@ -19690,7 +19703,8 @@ def doPrintShowPrinterModels():
     return
   if not csvPF:
     jcount = len(models)
-    performActionNumItems(jcount, Ent.PRINTER_MODEL)
+    if not FJQC.formatJSON:
+      performActionNumItems(jcount, Ent.PRINTER_MODEL)
     Ind.Increment()
     j = 0
     for model in models:
@@ -19745,7 +19759,7 @@ def doPrintShowChromeApps():
   def _showApp(app, i=0, count=0):
     if showOrgUnit:
       app['orgUnitPath'] = orgUnitPath
-    if FJQC is not None and FJQC.formatJSON:
+    if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(app), ensure_ascii=False, sort_keys=True))
     else:
       printEntity([Ent.CHROME_APP, app['appId']], i, count)
@@ -19821,7 +19835,8 @@ def doPrintShowChromeApps():
         return
       jcount = len(apps)
       if not csvPF:
-        entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_APP)
+        if not FJQC.formatJSON:
+          entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_APP)
         Ind.Increment()
         j = 0
         for app in apps:
@@ -19845,9 +19860,7 @@ CHROME_APP_DEVICES_ORDERBY_CHOICE_MAP = {
   'deviceid': 'deviceId',
   'machine': 'machine',
   }
-CHROME_APP_DEVICES_TITLES = [
-  'appType', 'deviceId', 'machine'
-  ]
+CHROME_APP_DEVICES_TITLES = ['appType', 'deviceId', 'machine']
 
 # gam print chromeappdevices [todrive <ToDriveAttribute>*]
 #	appid <AppID> apptype extension|app|theme|hostedapp|androidapp
@@ -19882,7 +19895,7 @@ def doPrintShowChromeAppDevices():
     device['appType'] = appType
     if showOrgUnit:
       device['orgUnitPath'] = orgUnitPath
-    if FJQC is not None and FJQC.formatJSON:
+    if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(device), ensure_ascii=False, sort_keys=True))
     else:
       printEntity([Ent.CHROME_APP, device['appId']], i, count)
@@ -19977,7 +19990,8 @@ def doPrintShowChromeAppDevices():
         return
       jcount = len(devices)
       if not csvPF:
-        entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_APP_DEVICE)
+        if not FJQC.formatJSON:
+          entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_APP_DEVICE)
         Ind.Increment()
         j = 0
         for device in devices:
@@ -19990,9 +20004,7 @@ def doPrintShowChromeAppDevices():
   if csvPF:
     csvPF.writeCSVfile('Chrome Installed Application Devices')
 
-CHROME_VERSIONS_TITLES = [
-  'channel', 'system', 'deviceOsVersion'
-  ]
+CHROME_VERSIONS_TITLES = ['channel', 'system', 'deviceOsVersion']
 
 # gam print chromeversions [todrive <ToDriveAttribute>*]
 #	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
@@ -20025,7 +20037,7 @@ def doPrintShowChromeVersions():
       version['orgUnitPath'] = orgUnitPath
     if 'version' not in version:
       version['version'] = 'Unknown'
-    if FJQC is not None and FJQC.formatJSON:
+    if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(version), ensure_ascii=False, sort_keys=True))
     else:
       printEntity([Ent.CHROME_VERSION, version['version']], i, count)
@@ -20110,7 +20122,8 @@ def doPrintShowChromeVersions():
         return
       jcount = len(versions)
       if not csvPF:
-        entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_VERSION)
+        if not FJQC.formatJSON:
+          entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_VERSION)
         Ind.Increment()
         j = 0
         for version in sorted(versions, key=lambda k: k.get('version', 'Unknown'), reverse=reverse):
@@ -20122,6 +20135,188 @@ def doPrintShowChromeVersions():
           _printVersion(version)
   if csvPF:
     csvPF.writeCSVfile('Chrome Versions')
+
+CHROME_HISTORY_ENTITY_CHOICE_MAP = {
+  'platforms': Ent.CHROME_PLATFORM,
+  'channels': Ent.CHROME_CHANNEL,
+  'versions': Ent.CHROME_VERSION,
+  'releases': Ent.CHROME_RELEASE,
+  }
+CHROME_PLATFORM_CHOICE_MAP = {
+  'all': 'all',
+  'android': 'android',
+  'ios': 'ios',
+  'lacros': 'lacros',
+  'linux': 'linux',
+  'mac': 'mac',
+  'macarm64': 'mac_arm64',
+  'sebview': 'webview',
+  'win': 'win',
+  'win64': 'win64',
+  }
+CHROME_CHANNEL_CHOICE_MAP = {
+  'beta': 'beta',
+  'canary': 'canary',
+  'canaryasan': 'canary_asan',
+  'dev': 'dev',
+  'stable': 'stable',
+  }
+CHROME_VERSIONHISTORY_ORDERBY_CHOICE_MAP = {
+  Ent.CHROME_VERSION:  {
+    'channel': 'channel',
+    'name': 'name',
+    'platform': 'platform',
+    'version': 'version'
+    },
+  Ent.CHROME_RELEASE: {
+    'channel': 'channel',
+    'endtime': 'endtime',
+    'fraction': 'fraction',
+    'name': 'name',
+    'platform': 'platform',
+    'starttime': 'starttime',
+    'version': 'version'
+    }
+  }
+CHROME_VERSIONHISTORY_TITLES = {
+  Ent.CHROME_PLATFORM: ['platformType'],
+  Ent.CHROME_CHANNEL:  ['channelType'],
+  Ent.CHROME_VERSION: ['version'],
+  Ent.CHROME_RELEASE: ['version', 'fraction', 'serving.startTime', 'serving.endTime']
+  }
+CHROME_VERSIONHISTORY_ITEMS = {
+  Ent.CHROME_PLATFORM: 'platforms',
+  Ent.CHROME_CHANNEL: 'channels',
+  Ent.CHROME_VERSION: 'versions',
+  Ent.CHROME_RELEASE: 'releases'
+  }
+CHROME_VERSIONHISTORY_TIMEOBJECTS = {
+  Ent.CHROME_PLATFORM: None,
+  Ent.CHROME_CHANNEL:  None,
+  Ent.CHROME_VERSION: None,
+  Ent.CHROME_RELEASE: ['startTime', 'endTime']
+  }
+
+# gam print chromehistory platforms [todrive <ToDriveAttribute>*]
+#	[formatjson [quotechar <Character>]]
+# gam show chromehistory platforms
+#	[formatjson]
+
+# gam print chromehistory channels [todrive <ToDriveAttribute>*]
+#	[platform <ChromePlatformType>]
+#	[formatjson [quotechar <Character>]]
+# gam show chromehistory channels
+#	[platform <ChromePlatformType>]
+#	[formatjson]
+
+# gam print chromehistory versions [todrive <ToDriveAttribute>*]
+#	[platform <ChromePlatformType>] [channel <ChromeChannelType>]
+#	(orderby <ChromeVersionsOrderByFieldName> [ascending|descending])*
+#	[filter <String>]
+#	[formatjson [quotechar <Character>]]
+# gam show chromehistory versions
+#	[platform <ChromePlatformType>] [channel <ChromeChannelType>]
+#	(orderby <ChromeVersionsOrderByFieldName> [ascending|descending])*
+#	[filter <String>]
+#	[formatjson]
+
+# gam print chromehistory releases [todrive <ToDriveAttribute>*]
+#	[platform <ChromePlatformType>] [channel <ChromeChannelType>] [version <String>]
+#	(orderby <ChromeReleasessOrderByFieldName> [ascending|descending])*
+#	[filter <String>]
+#	[formatjson [quotechar <Character>]]
+# gam show chromehistory releases
+#	[platform <ChromePlatformType>] [channel <ChromeChannelType>] [version <String>]
+#	(orderby <ChromeReleasessOrderByFieldName> [ascending|descending])*
+#	[filter <String>]
+#	[formatjson]
+
+def doPrintShowChromeHistory():
+  def _printItem(citem):
+    if FJQC.formatJSON:
+      if (((not csvPF.rowFilter and not csvPF.rowDropFilter)) or
+          csvPF.CheckRowTitles(flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType]))):
+        csvPF.WriteRowNoFilter({'name': citem['name'],
+                                'JSON': json.dumps(cleanJSON(citem),
+                                                   ensure_ascii=False, sort_keys=True)})
+    else:
+      csvPF.WriteRow(flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType]))
+
+  def _showItem(citem, i=0, count=0):
+    if FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(citem), ensure_ascii=False, sort_keys=True))
+    else:
+      printEntity([entityType, citem['name']], i, count)
+      Ind.Increment()
+      showJSON(None, citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType], sortDictKeys=False)
+      Ind.Decrement()
+
+  cv = buildGAPIObjectNoAuthentication(API.CHROMEVERSIONHISTORY)
+  csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  cplatform = 'all'
+  channel = 'all'
+  version = 'all'
+  kwargs = {}
+  entityType = getChoice(CHROME_HISTORY_ENTITY_CHOICE_MAP, mapChoice=True)
+  if entityType in {Ent.CHROME_VERSION, Ent.CHROME_RELEASE}:
+    OBY = OrderBy(CHROME_VERSIONHISTORY_ORDERBY_CHOICE_MAP[entityType])
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif entityType != Ent.CHROME_PLATFORM and myarg == 'platform':
+      cplatform = getChoice(CHROME_PLATFORM_CHOICE_MAP, mapChoice=True)
+    elif entityType in {Ent.CHROME_VERSION, Ent.CHROME_RELEASE} and myarg == 'channel':
+      channel = getChoice(CHROME_CHANNEL_CHOICE_MAP, mapChoice=True)
+    elif entityType == Ent.CHROME_RELEASE and myarg == 'version':
+      version = getString(Cmd.OB_CHROME_VERSION)
+    elif entityType in {Ent.CHROME_VERSION, Ent.CHROME_RELEASE} and myarg == 'orderby':
+      OBY.GetChoice()
+    elif entityType in {Ent.CHROME_VERSION, Ent.CHROME_RELEASE} and myarg == 'filter':
+      kwargs['filter'] = getString(Cmd.OB_STRING)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if csvPF and not FJQC.formatJSON:
+    csvPF.AddTitles(CHROME_VERSIONHISTORY_TITLES[entityType])
+  if entityType == Ent.CHROME_PLATFORM:
+    svc = cv.platforms()
+    parent = 'chrome'
+  elif entityType == Ent.CHROME_CHANNEL:
+    svc = cv.platforms().channels()
+    parent = f'chrome/platforms/{cplatform}'
+  elif entityType == Ent.CHROME_VERSION:
+    svc = cv.platforms().channels().versions()
+    parent = f'chrome/platforms/{cplatform}/channels/{channel}'
+    kwargs['orderBy'] = OBY.orderBy
+  else: #elif entityType == Ent.CHROME_RELEASE
+    svc = cv.platforms().channels().versions().releases()
+    parent = f'chrome/platforms/{cplatform}/channels/{channel}/versions/{version}'
+    kwargs['orderBy'] = OBY.orderBy
+  printGettingAllAccountEntities(entityType)
+  pageMessage = getPageMessage()
+  try:
+    citems = callGAPIpages(svc, 'list', CHROME_VERSIONHISTORY_ITEMS[entityType],
+                           throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                           pageMessage=pageMessage,
+                           parent=parent, fields=f'nextPageToken,{CHROME_VERSIONHISTORY_ITEMS[entityType]}',
+                           **kwargs)
+  except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+    entityActionFailedWarning([entityType, None], str(e))
+    return
+  if not csvPF:
+    jcount = len(citems)
+    if not FJQC.formatJSON:
+      performActionNumItems(jcount, entityType)
+    j = 0
+    for citem in citems:
+      j += 1
+      _showItem(citem, j, jcount)
+  else:
+    for citem in citems:
+      _printItem(citem)
+  if csvPF:
+    csvPF.writeCSVfile(Ent.Plural(entityType))
 
 # Mobile command utilities
 MOBILE_ACTION_CHOICE_MAP = {
@@ -20742,9 +20937,10 @@ GROUP_CIGROUP_FIELDS_MAP = {'name': 'displayName', 'displayname': 'displayName',
 GROUP_JSON_SKIP_FIELDS = ['email', 'adminCreated', 'directMembersCount', 'members', 'aliases', 'nonEditableAliases']
 
 # gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
+#	[verifynotinvitable]
 def doCreateGroup(ciGroupsAPI=False):
   cd = buildGAPIObject(API.DIRECTORY)
-  getBeforeUpdate = False
+  verifyNotInvitable = getBeforeUpdate = False
   groupEmail = getEmailAddress(noUid=True)
   entityType = GROUP_CIGROUP_ENTITYTYPE_MAP[ciGroupsAPI]
   if not ciGroupsAPI:
@@ -20776,8 +20972,15 @@ def doCreateGroup(ciGroupsAPI=False):
                                                       'query': getString(Cmd.OB_QUERY)})
     elif ciGroupsAPI and myarg == 'makeowner':
       initialGroupConfig = 'WITH_INITIAL_OWNER'
+    elif myarg == 'verifynotinvitable':
+      verifyNotInvitable = True
     else:
       getGroupAttrValue(myarg, gs_body)
+  if verifyNotInvitable:
+    isInvitableUser, _ = _getIsInvitableUser(None, groupEmail)
+    if isInvitableUser:
+      entityActionNotPerformedWarning([Ent.GROUP, groupEmail], Msg.EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT)
+      return
   if ciGroupsAPI:
     for k, v in iter(GROUP_CIGROUP_FIELDS_MAP.items()):
       if k in gs_body:
@@ -20834,6 +21037,7 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 #	[copyfrom <GroupItem>] <GroupAttribute>*
 #	[security|makesecuritygroup]
 #	[admincreated <Boolean>]
+#	[verifynotinvitable]
 # gam update groups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
 #	[delivery <DeliverySetting>] [preview] [actioncsv]
@@ -20922,12 +21126,12 @@ def doUpdateGroups():
       kvList.append(f'{Ent.Singular(Ent.DELIVERY)}: {delivery_settings}')
     if optMsg:
       kvList.append(optMsg)
-    entityActionPerformedMessage([entityType, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
+    entityActionPerformedMessage([entityType, group, Ent.MEMBER, member, Ent.ROLE, role], ', '.join(kvList), j, jcount)
     if csvPF:
       csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Performed(), 'message': Act.SUCCESS})
 
   def _showFailure(group, member, role, errMsg, j, jcount):
-    entityActionFailedWarning([entityType, group, Ent.MEMBER, member], errMsg, j, jcount)
+    entityActionFailedWarning([entityType, group, Ent.MEMBER, member, Ent.ROLE, role], errMsg, j, jcount)
     if csvPF:
       csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Failed(), 'message': errMsg})
 
@@ -21234,6 +21438,7 @@ def doUpdateGroups():
     body = {}
     gs_body = {}
     ci_body = {}
+    verifyNotInvitable = False
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'email':
@@ -21247,8 +21452,15 @@ def doUpdateGroups():
                              'cloudidentity.googleapis.com/groups.security': ''}
       elif myarg == 'json':
         gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
+      elif myarg == 'verifynotinvitable':
+        verifyNotInvitable = True
       else:
         getGroupAttrValue(myarg, gs_body)
+    if 'email' in body and verifyNotInvitable:
+      isInvitableUser, _ = _getIsInvitableUser(None, body['email'])
+      if isInvitableUser:
+        entityActionNotPerformedWarning([Ent.GROUP, body['email']], Msg.EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT)
+        return
     if ci_body:
       ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
       if 'email' in body:
@@ -26247,7 +26459,7 @@ def getCalendarEventEntity(noIds=False):
       break
   return calendarEventEntity
 
-CALENDAR_EVENT_SENDUPDATES_CHOICES_MAP = {'all': 'all', 'externalonly': 'externalOnly', 'none': 'none'}
+CALENDAR_EVENT_SENDUPDATES_CHOICE_MAP = {'all': 'all', 'externalonly': 'externalOnly', 'none': 'none'}
 
 def _getCalendarSendUpdates(myarg, parameters):
   if myarg == 'sendnotifications':
@@ -26255,7 +26467,7 @@ def _getCalendarSendUpdates(myarg, parameters):
   elif myarg == 'notifyattendees':
     parameters['sendUpdates'] = 'all'
   elif myarg == 'sendupdates':
-    parameters['sendUpdates'] = getChoice(CALENDAR_EVENT_SENDUPDATES_CHOICES_MAP, mapChoice=True)
+    parameters['sendUpdates'] = getChoice(CALENDAR_EVENT_SENDUPDATES_CHOICE_MAP, mapChoice=True)
   else:
     return False
   return True
@@ -30350,7 +30562,11 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         return (schemaName, None)
     invalidArgumentExit(Cmd.OB_SCHEMA_NAME_FIELD_NAME)
 
-  createIfNotFound = noActionIfAlias = False
+  parameters = {
+    'verifyNotInvitable': False,
+    'createIfNotFound': False,
+    'noActionIfAlias': False
+    }
   if updateCmd:
     body = {}
   else:
@@ -30383,10 +30599,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       if updateCmd or value:
         Cmd.Backup()
         unknownArgumentExit()
+    elif myarg == 'verifynotinvitable':
+      parameters['verifyNotInvitable'] = True
     elif updateCmd and myarg == 'createifnotfound':
-      createIfNotFound = True
+      parameters['createIfNotFound'] = True
     elif updateCmd and myarg == 'noactionifalias':
-      noActionIfAlias = True
+      parameters['noActionIfAlias'] = True
     elif updateCmd and myarg == 'updateoufromgroup':
       groupOrgUnitMap = _getGroupOrgUnitMap()
     elif updateCmd and myarg == 'updateprimaryemail':
@@ -30704,8 +30922,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     else:
       unknownArgumentExit()
   if not PwdOpts.makeUniqueRandomPassword:
-    PwdOpts.AssignPassword(body, notify, notFoundBody, createIfNotFound)
-  return (body, notify, tagReplacements, addGroups, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, createIfNotFound, noActionIfAlias)
+    PwdOpts.AssignPassword(body, notify, notFoundBody, parameters['createIfNotFound'])
+  return (body, notify, tagReplacements, addGroups, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters)
 
 def createUserAddToGroups(cd, user, addGroups, i, count):
   action = Act.Get()
@@ -30720,10 +30938,16 @@ def createUserAddToGroups(cd, user, addGroups, i, count):
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
 #	[lograndompassword <FileName>] [ignorenullpassword]
+#	[verifynotinvitable]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addGroups, PwdOpts, _, _, _, _, _ = getUserAttributes(cd, False, noUid=True)
+  body, notify, tagReplacements, addGroups, PwdOpts, _, _, _, parameters = getUserAttributes(cd, False, noUid=True)
   user = body['primaryEmail']
+  if parameters['verifyNotInvitable']:
+    isInvitableUser, _ = _getIsInvitableUser(None, user)
+    if isInvitableUser:
+      entityActionNotPerformedWarning([Ent.USER, user], Msg.EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT)
+      return
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   try:
     result = callGAPI(cd.users(), 'insert',
@@ -30778,16 +31002,18 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
 #	[lograndompassword <FileName>] [ignorenullpassword]
+#	[verifynotinvitable]
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addGroups, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, createIfNotFound, noActionIfAlias = getUserAttributes(cd, True)
+  ci = None
+  body, notify, tagReplacements, addGroups, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters = getUserAttributes(cd, True)
   vfe = 'primaryEmail' in body and body['primaryEmail'][:4].lower() == 'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   for user in entityList:
     i += 1
     user = userKey = normalizeEmailAddressOrUID(user)
-    if noActionIfAlias and not verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
+    if parameters['noActionIfAlias'] and not verifyPrimaryEmail(cd, user, parameters['createIfNotFound'], i, count):
       continue
     try:
       if vfe:
@@ -30827,8 +31053,13 @@ def updateUsers(entityList):
           continue
         body['orgUnitPath'] = orgUnit
       if body:
+        if 'primaryEmail' in body and parameters['verifyNotInvitable']:
+          isInvitableUser, ci = _getIsInvitableUser(ci, body['primaryEmail'])
+          if isInvitableUser:
+            entityActionNotPerformedWarning([Ent.USER, body['primaryEmail']], Msg.EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT, i, count)
+            continue
         if PwdOpts.makeUniqueRandomPassword:
-          PwdOpts.AssignPassword(body, notify, notFoundBody, createIfNotFound)
+          PwdOpts.AssignPassword(body, notify, notFoundBody, parameters['createIfNotFound'])
         try:
           result = callGAPI(cd.users(), 'update',
                             throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
@@ -30842,7 +31073,7 @@ def updateUsers(entityList):
           if notify.get('recipients') and notify['password']:
             sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count, createMessage=False)
         except GAPI.userNotFound:
-          if createIfNotFound:
+          if parameters['createIfNotFound']:
             if notFoundBody and (count == 1) and not vfe and ('password' in notFoundBody) and ('name' in body) and ('givenName' in body['name']) and ('familyName' in body['name']):
               if 'primaryEmail' not in body:
                 body['primaryEmail'] = user
@@ -32094,10 +32325,12 @@ def isolateCIUserInvitatonsEmail(name):
 def quotedCIUserInvitatonsEmail(customer, email):
   return f"{customer}/userinvitations/{quote_plus(email, safe='@')}"
 
-def _getCIUserInvitationsEntity():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_USERINVITATIONS)
+def _getCIUserInvitationsEntity(ci=None, email=None):
+  if ci is None:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_USERINVITATIONS)
   customer = _getCustomersCustomerIdWithC()
-  email = getString(Cmd.OB_EMAIL_ADDRESS)
+  if email is None:
+    email = getString(Cmd.OB_EMAIL_ADDRESS)
   pattern = re.compile(rf'^{customer}/userinvitations/(.+)$')
   mg = pattern.match(email)
   if mg:
@@ -32105,6 +32338,18 @@ def _getCIUserInvitationsEntity():
   else:
     email = normalizeEmailAddressOrUID(email, noUid=True)
   return (quotedCIUserInvitatonsEmail(customer, email), email, ci)
+
+def _getIsInvitableUser(ci, email):
+  name, _, ci = _getCIUserInvitationsEntity(ci, email)
+  try:
+    result = callGAPI(ci.customers().userinvitations(), 'isInvitableUser',
+                      throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                      name=name)
+    return (result['isInvitableUser'], ci)
+  except GAPI.notFound:
+    return (False, ci)
+  except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied):
+    return (False, ci)
 
 # gam send userinvitation <EmailAddress>
 # gam cancel userinvitation <EmailAddress>
@@ -51853,6 +52098,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
       Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
+      Cmd.ARG_CHROMEHISTORY:	doPrintShowChromeHistory,
       Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
       Cmd.ARG_CIGROUP:		doPrintCIGroups,
       Cmd.ARG_CIGROUPMEMBERS:	doPrintCIGroupMembers,
@@ -51946,9 +52192,10 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
       Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
-      Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
+      Cmd.ARG_CHROMEHISTORY:	doPrintShowChromeHistory,
       Cmd.ARG_CHROMEPOLICY:	doPrintShowChromePolicies,
       Cmd.ARG_CHROMESCHEMA:	doPrintShowChromeSchemas,
+      Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
       Cmd.ARG_CIGROUPMEMBERS:	doShowCIGroupMembers,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintShowDomainContacts,

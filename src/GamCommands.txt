@@ -1040,6 +1040,7 @@ gam print alertfeedback [todrive <ToDriveAttribute>*] [alert <AlertID>] [filter 
 
 gam create|add alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
 gam update alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+        [verifynotinvitable]
 gam delete alias|aliases [user|group|target] <EmailAddressEntity>
 gam info alias|aliases <EmailAddressEntity>
 
@@ -1477,6 +1478,72 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
          (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
         [start <Date>] [end <Date>]
         [recentfirst [<Boolean>]]
+        [formatjson [quotechar <Character>]]
+
+# Chrome Version History
+
+<ChromePlatfornType> ::=
+        all|
+        android|
+        ios|
+        lacros|
+        linux|
+        mac|
+        macarm64|
+        sebview|
+        win|
+        win64
+<ChromeChannelType> :==
+        beta|
+        canary|
+        canaryasan|
+        dev|
+        stable
+<ChromeVersionsOrderByFieldName> ::=
+        channel|
+        name|
+        platform|
+        version|
+<ChromeReleasesOrderByFieldName> ::= 
+        channel|
+        endtime|
+        fraction|
+        name|
+        platform|
+        starttime|
+        version
+
+gam show chromehistory platforms
+        [formatjson]
+gam print chromehistory platforms [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
+
+gam show chromehistory channels
+        [platform <ChromePlatformType>]
+        [formatjson]
+gam print chromehistory channels [todrive <ToDriveAttribute>*]
+        [platform <ChromePlatformType>]
+        [formatjson [quotechar <Character>]]
+
+gam show chromehistory versions
+        [platform <ChromePlatformType>] [channel <ChromeChannelType>]
+        [filter <String>]
+        (orderby <ChromeVersionsOrderByFieldName> [ascending|descending])*
+        [formatjson]
+gam print chromehistory versions [todrive <ToDriveAttribute>*]
+        [platform <ChromePlatformType>] [channel <ChromeChannelType>]
+        [filter <String>]
+        (orderby <ChromeVersionsOrderByFieldName> [ascending|descending])*
+        [formatjson [quotechar <Character>]]
+gam show chromehistory releases
+        [platform <ChromePlatformType>] [channel <ChromeChannelType>] [version <String>]
+        [filter <String>]
+        (orderby <ChromeReleasessOrderByFieldName> [ascending|descending])*
+        [formatjson]
+gam print chromehistory releases [todrive <ToDriveAttribute>*]
+        [platform <ChromePlatformType>] [channel <ChromeChannelType>] [version <String>]
+        [filter <String>]
+        (orderby <ChromeReleasessOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]]
 
 # ChromeOS Devices
@@ -2350,10 +2417,12 @@ gam show domainaliases|aliasdomains [formatjson]
 
 gam create|add group <EmailAddress>
         [copyfrom <GroupItem>] <GroupAttribute>*
+        [verifynotinvitable]
 gam update group|groups <GroupEntity> [email <EmailAddress>]
         [copyfrom <GroupItem>] <GroupAttribute>*
         [security|makesecuritygroup]
         [admincreated <Boolean>]
+        [verifynotinvitable]
 gam update group|groups <GroupEntity> create|add [<GroupRole>]
         [usersonly|groupsonly] [notsuspended|suspended]
         [[delivery] <DeliverySetting>]
@@ -3723,6 +3792,7 @@ gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
+        [verifynotinvitable]
 gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
@@ -3736,6 +3806,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
+        [verifynotinvitable]
 gam delete user <UserItem> [noactionifalias]
 gam undelete user <UserItem> [ou|org|orgunit <OrgUnitPath>]
 gam suspend user <UserItem> [noactionifalias]

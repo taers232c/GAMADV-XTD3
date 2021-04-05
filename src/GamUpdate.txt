@@ -1,3 +1,14 @@
+6.01.05
+
+Added the capability to display Chrome version history.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Version-History
+
+Added the option `verifynotinvitable` to `gam create|update alias|group|user` that causes GAM to verify
+that the email address being created/updated is not that of an unmanaged account; if it is, the
+command is not performed.
+
+Updated google-api-python-client to version 2.1.0.
+
 6.01.04
 
 Fixed bug in `gam report usage customer` that caused a trap.
@@ -12,7 +23,7 @@ Upgraded to OpenSSL 1.1.1k.
 
 6.01.02
 
-Update google_auth, google_auth_httplib2, google_auth_oauthlib, googleapiclient, httplib2 libraries.
+Updated google_auth, google_auth_httplib2, google_auth_oauthlib, googleapiclient, httplib2 libraries.
 
 6.01.01
 
