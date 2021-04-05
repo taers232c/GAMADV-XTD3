@@ -1,3 +1,9 @@
+6.01.04
+
+Fixed bug in `gam report usage customer` that caused a trap.
+
+Upgraded to Python 3.9.4.
+
 6.01.03
 
 Upgraded to Python 3.9.3.

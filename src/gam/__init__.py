@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.01.03'
+__version__ = '6.01.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10133,10 +10133,11 @@ def doReportUsage():
     startDateTime += oneDay
     try:
       for kwarg in kwargs:
-        if not select and userKey == 'all':
-          pageMessage = getPageMessageForWhom(forWhom, showDate=useDate)
-        else:
-          pageMessage = getPageMessageForWhom(kwarg['userKey'], showDate=useDate)
+        if userReports:
+          if not select and userKey == 'all':
+            pageMessage = getPageMessageForWhom(forWhom, showDate=useDate)
+          else:
+            pageMessage = getPageMessageForWhom(kwarg['userKey'], showDate=useDate)
         try:
           usage = callGAPIpages(service, 'get', 'usageReports',
                                 pageMessage=pageMessage,
