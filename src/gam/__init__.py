@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.01.05'
+__version__ = '6.01.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -288,6 +288,7 @@ ENTITY_IS_A_USER_RC = 20
 ENTITY_IS_A_USER_ALIAS_RC = 21
 ENTITY_IS_A_GROUP_RC = 22
 ENTITY_IS_A_GROUP_ALIAS_RC = 23
+ENTITY_IS_AN_UNMANAGED_ACCOUNT_RC = 24
 ORPHANS_COLLECTED_RC = 30
 # Warnings/Errors
 ACTION_FAILED_RC = 50
@@ -9877,14 +9878,23 @@ def doWhatIs():
         _showAliasType(Ent.GROUP_ALIAS, email, Ent.GROUP, result['email'])
       setSysExitRC(ENTITY_IS_A_GROUP_ALIAS_RC)
     return
-  except GAPI.groupNotFound:
+  except (GAPI.groupNotFound, GAPI.forbidden):
     pass
-  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.badRequest):
     entityUnknownWarning(Ent.EMAIL, email)
     setSysExitRC(ENTITY_IS_UKNOWN_RC)
     return
-  entityUnknownWarning(Ent.EMAIL, email)
-  setSysExitRC(ENTITY_IS_UKNOWN_RC)
+  isInvitableUser, ci = _getIsInvitableUser(None, email)
+  if isInvitableUser:
+    if showInfo:
+      name, user, ci = _getCIUserInvitationsEntity(ci, email)
+      infoCIUserInvitations(name, user, ci, None)
+    else:
+      _showPrimaryType(Ent.USER_INVITATION, email)
+    setSysExitRC(ENTITY_IS_AN_UNMANAGED_ACCOUNT_RC)
+  else:
+    entityUnknownWarning(Ent.EMAIL, email)
+    setSysExitRC(ENTITY_IS_UKNOWN_RC)
 
 def _adjustTryDate(errMsg, noDateChange):
   match_date = re.match('Data for dates later than (.*) is not yet available. Please check back later', errMsg)
@@ -12500,13 +12510,12 @@ def _convertTransferAppIDtoName(apps, appID):
       return app['name']
   return f'applicationId: {appID}'
 
-CALENDAR_APP_NAME = 'Calendar'
-DRIVE_AND_DOCS_APP_NAME = 'Drive and Docs'
+DRIVE_AND_DOCS_APP_NAME = 'drive and docs'
+GOOGLE_DATA_STUDIO_APP_NAME = 'google data studio'
 
 SERVICE_NAME_CHOICE_MAP = {
-  'calendar': CALENDAR_APP_NAME,
+  'datastudio': GOOGLE_DATA_STUDIO_APP_NAME,
   'drive': DRIVE_AND_DOCS_APP_NAME,
-  'drive and docs': DRIVE_AND_DOCS_APP_NAME,
   'googledrive': DRIVE_AND_DOCS_APP_NAME,
   'gdrive': DRIVE_AND_DOCS_APP_NAME,
   }
@@ -12514,7 +12523,7 @@ SERVICE_NAME_CHOICE_MAP = {
 def _validateTransferAppName(apps, appName):
   appName = appName.strip().lower()
   if appName in SERVICE_NAME_CHOICE_MAP:
-    appName = SERVICE_NAME_CHOICE_MAP[appName].lower()
+    appName = SERVICE_NAME_CHOICE_MAP[appName]
   appNameList = []
   for app in apps:
     if appName == app['name'].lower():
@@ -12528,7 +12537,8 @@ PRIVACY_LEVEL_CHOICE_MAP = {
   'all': ['PRIVATE', 'SHARED'],
   }
 
-# gam create datatransfer|transfer <OldOwnerID> <ServiceNameList> <NewOwnerID> [private|shared|all] [release_resources] (<ParameterKey> <ParameterValue>)*
+# gam create datatransfer|transfer <OldOwnerID> <ServiceNameList> <NewOwnerID>
+#	[private|shared|all] [release_resources] (<ParameterKey> <ParameterValue>)*
 def doCreateDataTransfer():
   def _assignAppParameter(key, value, doubleBackup=False):
     for app in apps:
@@ -18360,6 +18370,7 @@ def doUpdateChromePolicy():
         vtype = schemas[myarg]['settings'][field]['type']
         if vtype in ['TYPE_INT64', 'TYPE_INT32', 'TYPE_UINT64']:
           if not value.isnumeric():
+            Cmd.Backup()
             invalidArgumentExit(integerLimits(None, None))
           value = int(value)
         elif vtype in ['TYPE_BOOL']:
@@ -18369,7 +18380,7 @@ def doUpdateChromePolicy():
           elif value in FALSE_VALUES:
             value = False
           else:
-            invalidChoiceExit(value, TRUE_FALSE, False)
+            invalidChoiceExit(value, TRUE_FALSE, True)
         elif vtype in ['TYPE_ENUM']:
           value = value.upper()
           enum_values = schemas[myarg]['settings'][field]['enums']
@@ -18379,6 +18390,17 @@ def doUpdateChromePolicy():
           value = f'{prefix}{value}'
         elif vtype in ['TYPE_LIST']:
           value = value.split(',')
+        if myarg == 'chrome.users.chromebrowserupdates' and casedField == 'targetVersionPrefixSetting':
+          mg = re.compile(r'^([a-z]+)-(\d+)$').match(value)
+          if mg:
+            channel = mg.group(1).lower().replace('_', '')
+            if channel not in CHROME_CHANNEL_CHOICE_MAP:
+              invalidChoiceExit(value, CHROME_CHANNEL_CHOICE_MAP, True)
+            milestone = getRelativeMilestone(CHROME_CHANNEL_CHOICE_MAP[channel], int(mg.group(2)))
+            if not milestone:
+              Cmd.Backup()
+              invalidArgumentExit(value)
+            value = f'{milestone}.'
         body['requests'][-1]['policyValue']['value'][casedField] = value
         body['requests'][-1]['updateMask'] += f'{casedField},'
     else:
@@ -20136,6 +20158,32 @@ def doPrintShowChromeVersions():
   if csvPF:
     csvPF.writeCSVfile('Chrome Versions')
 
+def getRelativeMilestone(channel='stable', minus=0):
+  ''' takes a channel and minus_versions like stable and -1. returns current given  milestone number '''
+  cv = buildGAPIObjectNoAuthentication(API.CHROMEVERSIONHISTORY)
+  try:
+    releases = callGAPIpages(cv.platforms().channels().versions().releases(), 'list', 'releases',
+                             throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                             parent=f'chrome/platforms/all/channels/{channel}/versions/all',
+                             fields='nextPageToken,releases(version)')
+  except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+    entityActionFailedWarning([Ent.CHROME_RELEASE, None], str(e))
+    return ''
+  milestones = []
+  # Note that milestones are usually sequential but some numbers
+  # may be skipped. For example, there was no Chrome 82 stable.
+  # Thus we need to do more than find the latest version and subtract.
+  for release in releases:
+    if 'version' in release:
+      milestone = release['version'].split('.')[0]
+      if milestone not in milestones:
+        milestones.append(milestone)
+  milestones.sort(reverse=True)
+  try:
+    return milestones[minus]
+  except IndexError:
+    return ''
+
 CHROME_HISTORY_ENTITY_CHOICE_MAP = {
   'platforms': Ent.CHROME_PLATFORM,
   'channels': Ent.CHROME_CHANNEL,
@@ -20150,7 +20198,7 @@ CHROME_PLATFORM_CHOICE_MAP = {
   'linux': 'linux',
   'mac': 'mac',
   'macarm64': 'mac_arm64',
-  'sebview': 'webview',
+  'webview': 'webview',
   'win': 'win',
   'win64': 'win64',
   }
@@ -20159,6 +20207,7 @@ CHROME_CHANNEL_CHOICE_MAP = {
   'canary': 'canary',
   'canaryasan': 'canary_asan',
   'dev': 'dev',
+  'extended': 'extended',
   'stable': 'stable',
   }
 CHROME_VERSIONHISTORY_ORDERBY_CHOICE_MAP = {
@@ -32325,9 +32374,15 @@ def isolateCIUserInvitatonsEmail(name):
 def quotedCIUserInvitatonsEmail(customer, email):
   return f"{customer}/userinvitations/{quote_plus(email, safe='@')}"
 
+def buildGAPICIUserInvitationsServiceObject():
+  _, ci = buildGAPIServiceObject(API.CLOUDIDENTITY_USERINVITATIONS, _getAdminEmail(), displayError=True)
+  if not ci:
+    sys.exit(GM.Globals[GM.SYSEXITRC])
+  return ci
+
 def _getCIUserInvitationsEntity(ci=None, email=None):
   if ci is None:
-    ci = buildGAPIObject(API.CLOUDIDENTITY_USERINVITATIONS)
+    ci = buildGAPICIUserInvitationsServiceObject()
   customer = _getCustomersCustomerIdWithC()
   if email is None:
     email = getString(Cmd.OB_EMAIL_ADDRESS)
@@ -32380,9 +32435,9 @@ def doCIUserInvitationsAction():
 CI_USERINVITATION_TIME_OBJECTS = ['updateTime']
 
 def _showUserInvitation(invitation, FJQC, i=0, count=0):
-  if FJQC.formatJSON:
+  if FJQC is not None and FJQC.formatJSON:
     invitation['email'] = isolateCIUserInvitatonsEmail(invitation['name'])
-    printLine(json.dumps(cleanJSON(invitation), ensure_ascii=False, sort_keys=True))
+    printLine(json.dumps(cleanJSON(invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
   else:
     printEntity([Ent.USER_INVITATION, isolateCIUserInvitatonsEmail(invitation['name'])], i, count)
     Ind.Increment()
@@ -32406,10 +32461,8 @@ def doCheckCIUserInvitations():
   except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.USER_INVITATION, f'{user}'], str(e))
 
-# gam info userinvitation <EmailAddress> [formatjson]
-def doInfoCIUserInvitations():
-  name, user, ci = _getCIUserInvitationsEntity()
-  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
+
+def infoCIUserInvitations(name, user, ci, FJQC):
   try:
     invitation = callGAPI(ci.customers().userinvitations(), 'get',
                           throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
@@ -32419,6 +32472,12 @@ def doInfoCIUserInvitations():
     entityUnknownWarning(Ent.USER_INVITATION, f'{user}')
   except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.USER_INVITATION, f'{user}'], str(e))
+
+# gam info userinvitation <EmailAddress> [formatjson]
+def doInfoCIUserInvitations():
+  name, user, ci = _getCIUserInvitationsEntity()
+  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
+  infoCIUserInvitations(name, user, ci, FJQC)
 
 CI_USERINVITATION_ORDERBY_CHOICE_MAP = {
   'email': 'email',
@@ -32452,7 +32511,7 @@ def doPrintShowCIUserInvitations():
     row = flattenJSON(invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS)
     csvPF.WriteRowTitles(row)
 
-  ci = buildGAPIObject(API.CLOUDIDENTITY_USERINVITATIONS)
+  ci = buildGAPICIUserInvitationsServiceObject()
   customer = _getCustomersCustomerIdWithC()
   csvPF = CSVPrintFile(['email']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -32498,7 +32557,7 @@ def doPrintShowCIUserInvitations():
 # /batch is broken for Cloud Identity. Once fixed move this to using batch.
 # Current serial implementation will be SLOW...
 def checkCIUserIsInvitable(users):
-  ci = buildGAPIObject(API.CLOUDIDENTITY_USERINVITATIONS)
+  ci = buildGAPICIUserInvitationsServiceObject()
   customer = _getCustomersCustomerIdWithC()
   csvPF = CSVPrintFile(['invitableUsers'])
   while Cmd.ArgumentsRemaining():

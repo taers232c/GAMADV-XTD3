@@ -1,3 +1,13 @@
+6.01.06 
+
+Updated `gam whatis <EmailItem>` to check if `<EmailItem>` is an unmanaged account
+if it is not a group/user email address or alias.
+
+Following Jay's lead, switched all commands referencing unmanaged accounts to use
+Service Account access rather than Client access. This avoids the `Invalid Scope`
+issue when doing `gam oauth create`. The `Cloud Identity User Invitations API` has
+been dropped from `gam oauth create` for now.
+
 6.01.05
 
 Added the capability to display Chrome version history.
@@ -6,6 +16,13 @@ Added the capability to display Chrome version history.
 Added the option `verifynotinvitable` to `gam create|update alias|group|user` that causes GAM to verify
 that the email address being created/updated is not that of an unmanaged account; if it is, the
 command is not performed.
+
+To use this option you must add the `Cloud Identity API` to your project and authorize
+the appropriate scope: `Cloud Identity User Invitations API`.
+
+* Unmanaged Accounts - https://github.com/taers232c/GAMADV-XTD3/wiki/Unmanaged-Accounts
+
+You'll have to do `gam update project` and `gam oauth create` to enable this option.
 
 Updated google-api-python-client to version 2.1.0.
 

@@ -2306,6 +2306,8 @@ gam print|show transferapps
 
 <DataTransferService> ::=
         calendar|
+        currents|
+        datastudio|"google data studio"|
         googledrive|gdrive|drive|"drive and docs"
 <DataTransferServiceList> ::= "<DataTransferService>(,<DataTransferService>)*"
 
@@ -2313,12 +2315,16 @@ gam print|show transferapps
 <NewOwnerID> ::= <UserItem>
 
 gam create|add datatransfer|transfer <OldOwnerID> <DataTransferServiceList> <NewOwnerID>
-        [private|shared|all] (<ParameterKey> <ParameterValue>)*
-        [release_resources]
+        [private|shared|all] [release_resources]
+        (<ParameterKey> <ParameterValue>)*
 
 gam info datatransfer|transfer <TransferID>
-gam print datatransfers|transfers [todrive <ToDriveAttribute>*] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]
-gam show datatransfers|transfers [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]
+gam print datatransfers|transfers [todrive <ToDriveAttribute>*]
+        [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
+        [status completed|failed|inprogress|pending|<String>] [delimiter <Character>]
+gam show datatransfers|transfers
+        [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
+        [status completed|failed|inprogress|pending|<String>] [delimiter <Character>]
 
 # Domains
 
