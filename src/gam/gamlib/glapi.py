@@ -35,6 +35,7 @@ CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
 CLOUDRESOURCEMANAGER_V2 = 'cloudresourcemanager2'
 CONTACTS = 'contacts'
 CONTACTDELEGATION = 'contactdelegation'
+DATASTUDIO = 'datastudio'
 DATATRANSFER = 'datatransfer'
 DIRECTORY = 'directory'
 DOCS = 'docs'
@@ -113,6 +114,7 @@ PROJECT_APIS = [
   'cloudidentity.googleapis.com',
   'cloudresourcemanager.googleapis.com',
   'contacts.googleapis.com',
+  'datastudio.googleapis.com',
   'docs.googleapis.com',
   'drive.googleapis.com',
   'driveactivity.googleapis.com',
@@ -146,6 +148,7 @@ _INFO = {
   CLOUDRESOURCEMANAGER_V2: {'name': 'Cloud Resource Manager API v2', 'version': 'v2', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
   CONTACTS: {'name': 'Contacts API', 'version': 'v3', 'v2discovery': False},
   CONTACTDELEGATION: {'name': 'Contact Delegation API', 'version': 'v1', 'v2discovery': True, 'localjson': True},
+  DATASTUDIO: {'name': 'Data Studio API', 'version': 'v1', 'v2discovery': True},
   DATATRANSFER: {'name': 'Data Transfer API', 'version': 'datatransfer_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   DIRECTORY: {'name': 'Directory API', 'version': 'directory_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   DOCS: {'name': 'Docs API', 'version': 'v1', 'v2discovery': True},
@@ -182,30 +185,22 @@ _CLIENT_SCOPES = [
    'api': CALENDAR,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/calendar'},
-  {
-    'name': 'Chrome Browser Cloud Management API',
-    'api': CBCM,
-    'subscopes': READONLY,
-    'scope': 'https://www.googleapis.com/auth/admin.directory.device.chromebrowsers',
-  },
-  {
-    'name': 'Chrome Management API - read only',
-    'api': CHROMEMANAGEMENT,
-    'subscopes': [],
-    'scope': 'https://www.googleapis.com/auth/chrome.management.reports.readonly',
-  },
-  {
-    'name': 'Chrome Policy API',
-    'api': CHROMEPOLICY,
-    'subscopes': READONLY,
-    'scope': 'https://www.googleapis.com/auth/chrome.management.policy',
-  },
-  {
-    'name': 'Chrome Version History API',
-    'api': CHROMEVERSIONHISTORY,
-    'subscopes': [],
-    'scope': '',
-  },
+  {'name': 'Chrome Browser Cloud Management API',
+   'api': CBCM,
+   'subscopes': READONLY,
+   'scope': 'https://www.googleapis.com/auth/admin.directory.device.chromebrowsers',},
+  {'name': 'Chrome Management API - read only',
+   'api': CHROMEMANAGEMENT,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/chrome.management.reports.readonly',},
+  {'name': 'Chrome Policy API',
+   'api': CHROMEPOLICY,
+   'subscopes': READONLY,
+   'scope': 'https://www.googleapis.com/auth/chrome.management.policy',},
+  {'name': 'Chrome Version History API',
+   'api': CHROMEVERSIONHISTORY,
+   'subscopes': [],
+   'scope': '',},
   {'name': 'Classroom API - Courses',
    'api': CLASSROOM,
    'subscopes': READONLY,
@@ -425,6 +420,10 @@ _SVCACCT_SCOPES = [
    'api': CONTACTS,
    'subscopes': [],
    'scope': 'https://www.google.com/m8/feeds'},
+#  {'name': 'Data Studio API',
+#   'api': DATASTUDIO,
+#   'subscopes': READONLY,
+#   'scope': 'https://www.googleapis.com/auth/datastudio'},
   {'name': 'Drive API',
    'api': DRIVE3,
    'subscopes': READONLY,

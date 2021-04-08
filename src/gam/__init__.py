@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.01.06'
+__version__ = '6.01.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -20229,9 +20229,13 @@ CHROME_VERSIONHISTORY_ORDERBY_CHOICE_MAP = {
   }
 CHROME_VERSIONHISTORY_TITLES = {
   Ent.CHROME_PLATFORM: ['platformType'],
-  Ent.CHROME_CHANNEL:  ['channelType'],
-  Ent.CHROME_VERSION: ['version'],
-  Ent.CHROME_RELEASE: ['version', 'fraction', 'serving.startTime', 'serving.endTime']
+  Ent.CHROME_CHANNEL:  ['platformType', 'channelType'],
+  Ent.CHROME_VERSION: ['platformType', 'channelType', 'version',
+                       'major_version', 'minor_version', 'build', 'patch'],
+  Ent.CHROME_RELEASE: ['platformType', 'channelType','version',
+                       'major_version', 'minor_version', 'build', 'patch',
+                       'fraction', 'serving.startTime', 'serving.endTime']
+
   }
 CHROME_VERSIONHISTORY_ITEMS = {
   Ent.CHROME_PLATFORM: 'platforms',
@@ -20281,7 +20285,26 @@ CHROME_VERSIONHISTORY_TIMEOBJECTS = {
 #	[formatjson]
 
 def doPrintShowChromeHistory():
+  def addDetailFields(citem):
+    if 'channelType' not in citem:
+      channel_match = re.search(r"\/channels\/([^/]*)", citem['name'])
+      if channel_match:
+        try:
+          citem['channelType'] = channel_match.group(1)
+        except IndexError:
+          pass
+    if 'platformType' not in citem:
+      platform_match = re.search(r"\/platforms\/([^/]*)", citem['name'])
+      if platform_match:
+        try:
+          citem['platformType'] = platform_match.group(1)
+        except IndexError:
+          pass
+    if citem.get('version', '').count('.') == 3:
+      citem['major_version'], citem['minor_version'], citem['build'], citem['patch'] = citem['version'].split('.')
+
   def _printItem(citem):
+    addDetailFields(citem)
     if FJQC.formatJSON:
       if (((not csvPF.rowFilter and not csvPF.rowDropFilter)) or
           csvPF.CheckRowTitles(flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType]))):
@@ -20292,6 +20315,7 @@ def doPrintShowChromeHistory():
       csvPF.WriteRow(flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType]))
 
   def _showItem(citem, i=0, count=0):
+    addDetailFields(citem)
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(citem), ensure_ascii=False, sort_keys=True))
     else:
@@ -20366,6 +20390,19 @@ def doPrintShowChromeHistory():
       _printItem(citem)
   if csvPF:
     csvPF.writeCSVfile(Ent.Plural(entityType))
+
+
+#def buildGAPIDataStudioServiceObject():
+#  _, ds = buildGAPIServiceObject(API.DATASTUDIO, _getAdminEmail(), displayError=True)
+#  if not ds:
+#    sys.exit(GM.Globals[GM.SYSEXITRC])
+#  return ds
+#
+#def doPrintShowDataStudio():
+#  ds = buildGAPIDataStudioServiceObject()
+#  assets = callGAPIpages(ds.assets(), 'search', 'assets',
+#                                fields='nextPageToken,assets)')
+#  print(assets)
 
 # Mobile command utilities
 MOBILE_ACTION_CHOICE_MAP = {
@@ -52173,6 +52210,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_COURSEWORK:	doPrintCourseWork,
       Cmd.ARG_CROS:		doPrintCrOSDevices,
       Cmd.ARG_CROSACTIVITY:	doPrintCrOSActivity,
+#      Cmd.ARG_DATASTUDIO:	doPrintShowDataStudio,
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
       Cmd.ARG_DEVICE:		doPrintCIDevices,
       Cmd.ARG_DEVICEUSER:	doPrintCIDeviceUsers,

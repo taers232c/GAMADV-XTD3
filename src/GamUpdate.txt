@@ -1,3 +1,7 @@
+6.01.07
+
+Following Jay's lead, added additional columns to `gam print chromehistory`.
+
 6.01.06 
 
 Updated `gam whatis <EmailItem>` to check if `<EmailItem>` is an unmanaged account
