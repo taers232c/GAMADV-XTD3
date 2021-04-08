@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.01.07'
+__version__ = '6.01.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18341,9 +18341,10 @@ def doDeleteChromePolicy():
 #	ou|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 def doUpdateChromePolicy():
   cp = buildGAPIObject(API.CHROMEPOLICY)
+  cv = None
   customer = _getCustomersCustomerIdWithC()
   schemas = buildChromeSchemas(cp)
-  app_id = orgUnit = printer_id = None
+  app_id = channelMap = orgUnit = printer_id = None
   body = {'requests': []}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -18394,9 +18395,11 @@ def doUpdateChromePolicy():
           mg = re.compile(r'^([a-z]+)-(\d+)$').match(value)
           if mg:
             channel = mg.group(1).lower().replace('_', '')
-            if channel not in CHROME_CHANNEL_CHOICE_MAP:
-              invalidChoiceExit(value, CHROME_CHANNEL_CHOICE_MAP, True)
-            milestone = getRelativeMilestone(CHROME_CHANNEL_CHOICE_MAP[channel], int(mg.group(2)))
+            if channelMap is None:
+              cv, channelMap = getPlatformChannelMap(cv, Ent.CHROME_CHANNEL)
+            if channel not in channelMap:
+              invalidChoiceExit(value, channelMap, True)
+            cv, milestone = getRelativeMilestone(cv, channelMap[channel], int(mg.group(2)))
             if not milestone:
               Cmd.Backup()
               invalidArgumentExit(value)
@@ -20158,9 +20161,34 @@ def doPrintShowChromeVersions():
   if csvPF:
     csvPF.writeCSVfile('Chrome Versions')
 
-def getRelativeMilestone(channel='stable', minus=0):
+def getPlatformChannelMap(cv, entityType):
+  if cv is None:
+    cv = buildGAPIObjectNoAuthentication(API.CHROMEVERSIONHISTORY)
+  if entityType == Ent.CHROME_PLATFORM:
+    svc = cv.platforms()
+    parent = 'chrome'
+    field = 'platformType'
+  else: # elif entityType == Ent.CHROME_CHANNEL:
+    svc = cv.platforms().channels()
+    parent = 'chrome/platforms/all'
+    field = 'channelType'
+  try:
+    pcitems = callGAPIpages(svc, 'list', CHROME_VERSIONHISTORY_ITEMS[entityType],
+                            throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                            parent=parent, fields=f'nextPageToken,{CHROME_VERSIONHISTORY_ITEMS[entityType]}')
+    pcMap = {'all': 'all'}
+    for pcitem in pcitems:
+      pcType = pcitem[field].lower()
+      pcMap[pcType.replace('_', '')] = pcType
+  except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+    entityActionFailedWarning([entityType, None], str(e))
+    pcMap = {}
+  return (cv, pcMap)
+
+def getRelativeMilestone(cv, channel, minus):
   ''' takes a channel and minus_versions like stable and -1. returns current given  milestone number '''
-  cv = buildGAPIObjectNoAuthentication(API.CHROMEVERSIONHISTORY)
+  if cv is None:
+    cv = buildGAPIObjectNoAuthentication(API.CHROMEVERSIONHISTORY)
   try:
     releases = callGAPIpages(cv.platforms().channels().versions().releases(), 'list', 'releases',
                              throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
@@ -20168,7 +20196,7 @@ def getRelativeMilestone(channel='stable', minus=0):
                              fields='nextPageToken,releases(version)')
   except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.CHROME_RELEASE, None], str(e))
-    return ''
+    return (cv, '')
   milestones = []
   # Note that milestones are usually sequential but some numbers
   # may be skipped. For example, there was no Chrome 82 stable.
@@ -20180,35 +20208,15 @@ def getRelativeMilestone(channel='stable', minus=0):
         milestones.append(milestone)
   milestones.sort(reverse=True)
   try:
-    return milestones[minus]
+    return (cv, milestones[minus])
   except IndexError:
-    return ''
+    return (cv, '')
 
 CHROME_HISTORY_ENTITY_CHOICE_MAP = {
   'platforms': Ent.CHROME_PLATFORM,
   'channels': Ent.CHROME_CHANNEL,
   'versions': Ent.CHROME_VERSION,
   'releases': Ent.CHROME_RELEASE,
-  }
-CHROME_PLATFORM_CHOICE_MAP = {
-  'all': 'all',
-  'android': 'android',
-  'ios': 'ios',
-  'lacros': 'lacros',
-  'linux': 'linux',
-  'mac': 'mac',
-  'macarm64': 'mac_arm64',
-  'webview': 'webview',
-  'win': 'win',
-  'win64': 'win64',
-  }
-CHROME_CHANNEL_CHOICE_MAP = {
-  'beta': 'beta',
-  'canary': 'canary',
-  'canaryasan': 'canary_asan',
-  'dev': 'dev',
-  'extended': 'extended',
-  'stable': 'stable',
   }
 CHROME_VERSIONHISTORY_ORDERBY_CHOICE_MAP = {
   Ent.CHROME_VERSION:  {
@@ -20228,11 +20236,11 @@ CHROME_VERSIONHISTORY_ORDERBY_CHOICE_MAP = {
     }
   }
 CHROME_VERSIONHISTORY_TITLES = {
-  Ent.CHROME_PLATFORM: ['platformType'],
-  Ent.CHROME_CHANNEL:  ['platformType', 'channelType'],
-  Ent.CHROME_VERSION: ['platformType', 'channelType', 'version',
+  Ent.CHROME_PLATFORM: ['platform'],
+  Ent.CHROME_CHANNEL:  ['channel', 'platform'],
+  Ent.CHROME_VERSION: ['version', 'channel', 'platform',
                        'major_version', 'minor_version', 'build', 'patch'],
-  Ent.CHROME_RELEASE: ['platformType', 'channelType','version',
+  Ent.CHROME_RELEASE: ['version', 'channel', 'platform',
                        'major_version', 'minor_version', 'build', 'patch',
                        'fraction', 'serving.startTime', 'serving.endTime']
 
@@ -20286,29 +20294,38 @@ CHROME_VERSIONHISTORY_TIMEOBJECTS = {
 
 def doPrintShowChromeHistory():
   def addDetailFields(citem):
-    if 'channelType' not in citem:
+    for key in list(citem):
+      if key.endswith('Type'):
+        citem[key[:-4]] = citem.pop(key)
+    if 'channel' in citem:
+      citem['channel'] = citem['channel'].lower()
+    else:
       channel_match = re.search(r"\/channels\/([^/]*)", citem['name'])
       if channel_match:
         try:
-          citem['channelType'] = channel_match.group(1)
+          citem['channel'] = channel_match.group(1)
         except IndexError:
           pass
-    if 'platformType' not in citem:
+    if 'platform' in citem:
+      citem['platform'] = citem['platform'].lower()
+    else:
       platform_match = re.search(r"\/platforms\/([^/]*)", citem['name'])
       if platform_match:
         try:
-          citem['platformType'] = platform_match.group(1)
+          citem['platform'] = platform_match.group(1)
         except IndexError:
           pass
     if citem.get('version', '').count('.') == 3:
       citem['major_version'], citem['minor_version'], citem['build'], citem['patch'] = citem['version'].split('.')
+    citem.pop('name')
 
   def _printItem(citem):
     addDetailFields(citem)
+    keyField = CHROME_VERSIONHISTORY_TITLES[entityType][0]
     if FJQC.formatJSON:
       if (((not csvPF.rowFilter and not csvPF.rowDropFilter)) or
           csvPF.CheckRowTitles(flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType]))):
-        csvPF.WriteRowNoFilter({'name': citem['name'],
+        csvPF.WriteRowNoFilter({keyField: citem[keyField],
                                 'JSON': json.dumps(cleanJSON(citem),
                                                    ensure_ascii=False, sort_keys=True)})
     else:
@@ -20316,22 +20333,28 @@ def doPrintShowChromeHistory():
 
   def _showItem(citem, i=0, count=0):
     addDetailFields(citem)
+    keyField = CHROME_VERSIONHISTORY_TITLES[entityType][0]
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(citem), ensure_ascii=False, sort_keys=True))
     else:
-      printEntity([entityType, citem['name']], i, count)
+      printEntity([entityType, citem[keyField]], i, count)
       Ind.Increment()
-      showJSON(None, citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType], sortDictKeys=False)
+      citem = flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType])
+      for field in CHROME_VERSIONHISTORY_TITLES[entityType]:
+        if field in citem:
+          printKeyValueList([field, citem[field]])
       Ind.Decrement()
 
   cv = buildGAPIObjectNoAuthentication(API.CHROMEVERSIONHISTORY)
-  csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
+  entityType = getChoice(CHROME_HISTORY_ENTITY_CHOICE_MAP, mapChoice=True)
+  csvPF = CSVPrintFile(CHROME_VERSIONHISTORY_TITLES[entityType][0:1]) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  platformMap = None
+  channelMap = None
   cplatform = 'all'
   channel = 'all'
   version = 'all'
   kwargs = {}
-  entityType = getChoice(CHROME_HISTORY_ENTITY_CHOICE_MAP, mapChoice=True)
   if entityType in {Ent.CHROME_VERSION, Ent.CHROME_RELEASE}:
     OBY = OrderBy(CHROME_VERSIONHISTORY_ORDERBY_CHOICE_MAP[entityType])
   while Cmd.ArgumentsRemaining():
@@ -20339,9 +20362,13 @@ def doPrintShowChromeHistory():
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif entityType != Ent.CHROME_PLATFORM and myarg == 'platform':
-      cplatform = getChoice(CHROME_PLATFORM_CHOICE_MAP, mapChoice=True)
+      if platformMap is None:
+        _, platformMap = getPlatformChannelMap(cv, Ent.CHROME_PLATFORM)
+      cplatform = getChoice(platformMap, mapChoice=True)
     elif entityType in {Ent.CHROME_VERSION, Ent.CHROME_RELEASE} and myarg == 'channel':
-      channel = getChoice(CHROME_CHANNEL_CHOICE_MAP, mapChoice=True)
+      if channelMap is None:
+        _, channelMap = getPlatformChannelMap(cv, Ent.CHROME_CHANNEL)
+      channel = getChoice(channelMap, mapChoice=True)
     elif entityType == Ent.CHROME_RELEASE and myarg == 'version':
       version = getString(Cmd.OB_CHROME_VERSION)
     elif entityType in {Ent.CHROME_VERSION, Ent.CHROME_RELEASE} and myarg == 'orderby':
@@ -20351,7 +20378,7 @@ def doPrintShowChromeHistory():
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if csvPF and not FJQC.formatJSON:
-    csvPF.AddTitles(CHROME_VERSIONHISTORY_TITLES[entityType])
+    csvPF.AddTitles(CHROME_VERSIONHISTORY_TITLES[entityType][1:])
   if entityType == Ent.CHROME_PLATFORM:
     svc = cv.platforms()
     parent = 'chrome'

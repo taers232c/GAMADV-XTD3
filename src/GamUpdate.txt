@@ -1,3 +1,9 @@
+6.01.08
+
+Following Jay's lead, cleaned up field names in `gam print chromehistory`.
+
+Following Jay's lead, added new license SKU `Google Workspace Frontline
+
 6.01.07
 
 Following Jay's lead, added additional columns to `gam print chromehistory`.

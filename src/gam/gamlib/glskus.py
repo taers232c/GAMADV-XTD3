@@ -87,6 +87,8 @@ _SKUS = {
     'product': 'Google-Apps', 'aliases': ['wsbizstart', 'workspacebusinessstarter'], 'displayName': 'Google Workspace Business Starter'},
   '1010020028': {
     'product': 'Google-Apps', 'aliases': ['wsbizstan', 'workspacebusinessstandard'], 'displayName': 'Google Workspace Business Standard'},
+  '1010020030': {
+    'product': 'Google-Apps', 'aliases': ['workspacefrontline', 'workspacefrontlineworker'], 'displayName': 'Google Workspace Frontline'},
   '1010340002': {
     'product': '101034', 'aliases': ['gsbau', 'businessarchived', 'gsuitebusinessarchived'], 'displayName': 'G Suite Business Archived'},
   '1010340001': {
