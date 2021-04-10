@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.01.08'
+__version__ = '6.01.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17942,14 +17942,13 @@ BROWSER_ORDERBY_CHOICE_MAP = {
 #	[sortheaders] [formatjson [quotechar <Character>]]
 def doPrintShowBrowsers():
   def _printBrowser(browser):
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(browser, timeObjects=BROWSER_TIME_OBJECTS)):
-        csvPF.WriteRowNoFilter({'deviceId': browser['deviceId'],
-                                'JSON': json.dumps(cleanJSON(browser, timeObjects=BROWSER_TIME_OBJECTS),
-                                                   ensure_ascii=False, sort_keys=True)})
-      return
     row = flattenJSON(browser, timeObjects=BROWSER_TIME_OBJECTS)
-    csvPF.WriteRowTitles(row)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'deviceId': browser['deviceId'],
+                              'JSON': json.dumps(cleanJSON(browser, timeObjects=BROWSER_TIME_OBJECTS),
+                                                 ensure_ascii=False, sort_keys=True)})
 
   cbcm = buildGAPIObject(API.CBCM)
   customerId = _getCustomerIdNoC()
@@ -18014,7 +18013,8 @@ def doPrintShowBrowsers():
                                  orderBy=orderBy, sortOrder=sortOrder, fields=fields)
         if not csvPF:
           jcount = len(browsers)
-          performActionNumItems(jcount, Ent.CHROME_BROWSER)
+          if not FJQC.formatJSON:
+            performActionNumItems(jcount, Ent.CHROME_BROWSER)
           Ind.Increment()
           j = 0
           for browser in browsers:
@@ -18083,7 +18083,8 @@ def doCreateBrowserToken():
     browser = callGAPI(cbcm.enrollmentTokens(), 'create',
                        throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
                        customer=customerId, body=body)
-    entityActionPerformed([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, browser['token']])
+    if not FJQC.formatJSON:
+      entityActionPerformed([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, browser['token']])
     Ind.Increment()
     _showBrowserToken(browser, FJQC, 0, 0)
     Ind.Decrement()
@@ -18139,14 +18140,13 @@ BROWSER_TOKEN_FIELDS_CHOICE_MAP = {
 #	[sortheaders] [formatjson [quotechar <Character>]]
 def doPrintShowBrowserTokens():
   def _printBrowserToken(browser):
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS)):
-        csvPF.WriteRowNoFilter({'token': browser['token'],
-                                'JSON': json.dumps(cleanJSON(browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS),
-                                                   ensure_ascii=False, sort_keys=True)})
-      return
     row = flattenJSON(browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS)
-    csvPF.WriteRowTitles(row)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'token': browser['token'],
+                              'JSON': json.dumps(cleanJSON(browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS),
+                                                 ensure_ascii=False, sort_keys=True)})
 
   cbcm = buildGAPIObject(API.CBCM)
   customerId = _getCustomerIdNoC()
@@ -19087,15 +19087,14 @@ def doPrintCIDevices():
               deviceDict[deviceName]['users'].append(deviceUser)
       except (GAPI.invalid, GAPI.permissionDenied) as e:
         entityActionFailedWarning([entityType, None], str(e))
-    if not FJQC.formatJSON:
-      for device in devices:
-        csvPF.WriteRowTitles(flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS))
-    else:
-      for device in devices:
-        if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS)):
-          csvPF.WriteRow({'name': device['name'],
-                          'JSON': json.dumps(cleanJSON(device, timeObjects=DEVICE_TIME_OBJECTS),
-                                             ensure_ascii=False, sort_keys=True)})
+    for device in devices:
+      row = flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS)
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(row)
+      elif csvPF.CheckRowTitles(row):
+        csvPF.WriteRowNoFilter({'name': device['name'],
+                                'JSON': json.dumps(cleanJSON(device, timeObjects=DEVICE_TIME_OBJECTS),
+                                                   ensure_ascii=False, sort_keys=True)})
   csvPF.writeCSVfile('Devices')
 
 DEVICE_USER_ACTION_CHOICES = {'approve', 'block', 'cancelwipe', 'wipe'}
@@ -19232,15 +19231,14 @@ def doPrintCIDeviceUsers():
                                   pageMessage=pageMessage,
                                   customer=customer, filter=query,
                                   orderBy=OBY.orderBy, parent='devices/-', fields=fields, pageSize=20)
-      if not FJQC.formatJSON:
-        for deviceUser in deviceUsers:
-          csvPF.WriteRowTitles(flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS))
-      else:
-        for deviceUser in deviceUsers:
-          if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS)):
-            csvPF.WriteRow({'name': deviceUser['name'],
-                            'JSON': json.dumps(cleanJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS),
-                                               ensure_ascii=False, sort_keys=True)})
+      for deviceUser in deviceUsers:
+        row = flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS)
+        if not FJQC.formatJSON:
+          csvPF.WriteRowTitles(row)
+        elif csvPF.CheckRowTitles(row):
+          csvPF.WriteRowNoFilter({'name': deviceUser['name'],
+                                  'JSON': json.dumps(cleanJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS),
+                                                     ensure_ascii=False, sort_keys=True)})
     except (GAPI.invalid, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
   csvPF.writeCSVfile('Device Users')
@@ -19587,14 +19585,13 @@ def doPrintShowPrinters():
   def _printPrinter(printer):
     if not _checkPrinterInheritance(cd, printer, orgUnitId, showInherited):
       return False
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(printer, timeObjects=PRINTER_TIME_OBJECTS)):
-        csvPF.WriteRowNoFilter({'id': printer['id'],
-                                'JSON': json.dumps(cleanJSON(printer, timeObjects=PRINTER_TIME_OBJECTS),
-                                                   ensure_ascii=False, sort_keys=True)})
-      return
     row = flattenJSON(printer, timeObjects=PRINTER_TIME_OBJECTS)
-    csvPF.WriteRowTitles(row)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'id': printer['id'],
+                              'JSON': json.dumps(cleanJSON(printer, timeObjects=PRINTER_TIME_OBJECTS),
+                                                 ensure_ascii=False, sort_keys=True)})
 
   cd = buildGAPIObject(API.DIRECTORY)
   parent = _getCustomersCustomerIdWithC()
@@ -19692,13 +19689,12 @@ def doPrintShowPrinterModels():
       Ind.Decrement()
 
   def _printPrinterModel(model):
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(model)):
-        csvPF.WriteRowNoFilter({'JSON': json.dumps(cleanJSON(model),
-                                                   ensure_ascii=False, sort_keys=True)})
-      return
     row = flattenJSON(model)
-    csvPF.WriteRowTitles(row)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'JSON': json.dumps(cleanJSON(model),
+                                                 ensure_ascii=False, sort_keys=True)})
 
   cd = buildGAPIObject(API.DIRECTORY)
   parent = _getCustomersCustomerIdWithC()
@@ -19773,13 +19769,12 @@ def doPrintShowChromeApps():
   def _printApp(app):
     if showOrgUnit:
       app['orgUnitPath'] = orgUnitPath
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(app)):
-        csvPF.WriteRowNoFilter({'appId': app['appId'],
-                                'JSON': json.dumps(cleanJSON(app),
-                                                   ensure_ascii=False, sort_keys=True)})
-    else:
-      csvPF.WriteRow(flattenJSON(app, simpleLists=['permissions'], delimiter=delimiter))
+    row = flattenJSON(app, simpleLists=['permissions'], delimiter=delimiter)
+    if not FJQC.formatJSON:
+      csvPF.WriteRow(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'appId': app['appId'],
+                              'JSON': json.dumps(cleanJSON(app), ensure_ascii=False, sort_keys=True)})
 
   def _showApp(app, i=0, count=0):
     if showOrgUnit:
@@ -19907,13 +19902,12 @@ def doPrintShowChromeAppDevices():
     device['appType'] = appType
     if showOrgUnit:
       device['orgUnitPath'] = orgUnitPath
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(device)):
-        csvPF.WriteRowNoFilter({'appId': device['appId'],
-                                'JSON': json.dumps(cleanJSON(device),
-                                                   ensure_ascii=False, sort_keys=True)})
-    else:
-      csvPF.WriteRow(flattenJSON(device))
+    row = flattenJSON(device)
+    if not FJQC.formatJSON:
+      csvPF.WriteRow(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'appId': device['appId'],
+                              'JSON': json.dumps(cleanJSON(device), ensure_ascii=False, sort_keys=True)})
 
   def _showDevice(device, i=0, count=0):
     device['appId'] = appId
@@ -20049,13 +20043,12 @@ def doPrintShowChromeVersions():
       version['orgUnitPath'] = orgUnitPath
     if 'version' not in version:
       version['version'] = 'Unknown'
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(version)):
-        csvPF.WriteRowNoFilter({'version': version['version'], 'count': version['count'],
-                                'JSON': json.dumps(cleanJSON(version),
-                                                   ensure_ascii=False, sort_keys=True)})
-    else:
-      csvPF.WriteRow(flattenJSON(version))
+    row = flattenJSON(version)
+    if not FJQC.formatJSON:
+      csvPF.WriteRow(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'version': version['version'], 'count': version['count'],
+                              'JSON': json.dumps(cleanJSON(version), ensure_ascii=False, sort_keys=True)})
 
   def _showVersion(version, i=0, count=0):
     if showOrgUnit:
@@ -20321,15 +20314,13 @@ def doPrintShowChromeHistory():
 
   def _printItem(citem):
     addDetailFields(citem)
-    keyField = CHROME_VERSIONHISTORY_TITLES[entityType][0]
-    if FJQC.formatJSON:
-      if (((not csvPF.rowFilter and not csvPF.rowDropFilter)) or
-          csvPF.CheckRowTitles(flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType]))):
-        csvPF.WriteRowNoFilter({keyField: citem[keyField],
-                                'JSON': json.dumps(cleanJSON(citem),
-                                                   ensure_ascii=False, sort_keys=True)})
-    else:
-      csvPF.WriteRow(flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType]))
+    row = flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType])
+    if not FJQC.formatJSON:
+      csvPF.WriteRow(row)
+    elif csvPF.CheckRowTitles(row):
+      keyField = CHROME_VERSIONHISTORY_TITLES[entityType][0]
+      csvPF.WriteRowNoFilter({keyField: citem[keyField],
+                              'JSON': json.dumps(cleanJSON(citem), ensure_ascii=False, sort_keys=True)})
 
   def _showItem(citem, i=0, count=0):
     addDetailFields(citem)
@@ -20417,19 +20408,6 @@ def doPrintShowChromeHistory():
       _printItem(citem)
   if csvPF:
     csvPF.writeCSVfile(Ent.Plural(entityType))
-
-
-#def buildGAPIDataStudioServiceObject():
-#  _, ds = buildGAPIServiceObject(API.DATASTUDIO, _getAdminEmail(), displayError=True)
-#  if not ds:
-#    sys.exit(GM.Globals[GM.SYSEXITRC])
-#  return ds
-#
-#def doPrintShowDataStudio():
-#  ds = buildGAPIDataStudioServiceObject()
-#  assets = callGAPIpages(ds.assets(), 'search', 'assets',
-#                                fields='nextPageToken,assets)')
-#  print(assets)
 
 # Mobile command utilities
 MOBILE_ACTION_CHOICE_MAP = {
@@ -20690,9 +20668,9 @@ def doPrintMobileDevices():
   def _printMobile(mobile):
     if FJQC.formatJSON:
       if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS)):
-        csvPF.WriteRow({'resourceId': mobile['resourceId'],
-                        'JSON': json.dumps(cleanJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS),
-                                           ensure_ascii=False, sort_keys=True)})
+        csvPF.WriteRowNoFilter({'resourceId': mobile['resourceId'],
+                                'JSON': json.dumps(cleanJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS),
+                                                   ensure_ascii=False, sort_keys=True)})
       return
     row = {}
     for attrib in mobile:
@@ -32566,14 +32544,13 @@ CI_USERINVITATION_STATE_CHOICE_MAP = {
 def doPrintShowCIUserInvitations():
   def _printUserInvitation(invitation):
     invitation['email'] = isolateCIUserInvitatonsEmail(invitation['name'])
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS)):
-        csvPF.WriteRowNoFilter({'email': invitation['email'],
-                                'JSON': json.dumps(cleanJSON(invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS),
-                                                   ensure_ascii=False, sort_keys=True)})
-      return
     row = flattenJSON(invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS)
-    csvPF.WriteRowTitles(row)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'email': invitation['email'],
+                              'JSON': json.dumps(cleanJSON(invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS),
+                                                 ensure_ascii=False, sort_keys=True)})
 
   ci = buildGAPICIUserInvitationsServiceObject()
   customer = _getCustomersCustomerIdWithC()
@@ -38370,33 +38347,38 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
 def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
   if myarg == 'localfile':
     parameters[DFA_LOCALFILEPATH] = os.path.expanduser(getString(Cmd.OB_FILE_NAME))
-    try:
-      f = open(parameters[DFA_LOCALFILEPATH], 'rb')
-      f.close()
-      # See http://stackoverflow.com/a/39501288/1709587 for explanation.
-      mtime = os.path.getmtime(parameters[DFA_LOCALFILEPATH])
-      parameters[DFA_MODIFIED_TIME] = formatLocalSecondsTimestamp(mtime)
-      if not updateCmd:
-        if platform.system() == 'Windows':
-          ctime = os.path.getctime(parameters[DFA_LOCALFILEPATH])
-        else:
-          stat = os.stat(parameters[DFA_LOCALFILEPATH])
-          if hasattr(stat, 'st_birthtime'):
-            ctime = stat.st_birthtime
+    if parameters[DFA_LOCALFILEPATH] != '-':
+      try:
+        f = open(parameters[DFA_LOCALFILEPATH], 'rb')
+        f.close()
+        # See http://stackoverflow.com/a/39501288/1709587 for explanation.
+        mtime = os.path.getmtime(parameters[DFA_LOCALFILEPATH])
+        parameters[DFA_MODIFIED_TIME] = formatLocalSecondsTimestamp(mtime)
+        if not updateCmd:
+          if platform.system() == 'Windows':
+            ctime = os.path.getctime(parameters[DFA_LOCALFILEPATH])
           else:
-            # We're probably on Linux. No easy way to get creation dates here,
-            # so we'll settle for when its content was last modified.
-            ctime = stat.st_mtime
-        parameters[DFA_CREATED_TIME] = formatLocalSecondsTimestamp(ctime)
-    except IOError as e:
-      Cmd.Backup()
-      usageErrorExit(f'{parameters[DFA_LOCALFILEPATH]}: {str(e)}')
-    parameters[DFA_LOCALFILENAME] = os.path.basename(parameters[DFA_LOCALFILEPATH])
-    if assignLocalName:
-      body.setdefault('name', parameters[DFA_LOCALFILENAME])
-    body['mimeType'] = mimetypes.guess_type(parameters[DFA_LOCALFILEPATH])[0]
-    if body['mimeType'] is None:
-      body['mimeType'] = 'application/octet-stream'
+            stat = os.stat(parameters[DFA_LOCALFILEPATH])
+            if hasattr(stat, 'st_birthtime'):
+              ctime = stat.st_birthtime
+            else:
+              # We're probably on Linux. No easy way to get creation dates here,
+              # so we'll settle for when its content was last modified.
+              ctime = stat.st_mtime
+          parameters[DFA_CREATED_TIME] = formatLocalSecondsTimestamp(ctime)
+      except IOError as e:
+        Cmd.Backup()
+        usageErrorExit(f'{parameters[DFA_LOCALFILEPATH]}: {str(e)}')
+      parameters[DFA_LOCALFILENAME] = os.path.basename(parameters[DFA_LOCALFILEPATH])
+      if assignLocalName:
+        body.setdefault('name', parameters[DFA_LOCALFILENAME])
+      body['mimeType'] = mimetypes.guess_type(parameters[DFA_LOCALFILEPATH])[0]
+      if body['mimeType'] is None:
+        body['mimeType'] = 'application/octet-stream'
+    else:
+      parameters[DFA_LOCALFILENAME] = '-'
+      if body.get('mimeType') is None:
+        body['mimeType'] = 'application/octet-stream'
     parameters[DFA_LOCALMIMETYPE] = body['mimeType']
   elif myarg in {'convert', 'ocr'}:
     deprecatedArgument(myarg)
@@ -38474,7 +38456,10 @@ def setPreservedFileTimes(body, parameters, updateCmd):
 
 def getMediaBody(parameters):
   try:
-    media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
+    if parameters[DFA_LOCALFILEPATH] != '-':
+      media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
+    else:
+      media_body = googleapiclient.http.MediaIoBaseUpload(io.BytesIO(sys.stdin.buffer.read()), mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
     if media_body.size() == 0:
       media_body = None
     return media_body
@@ -41742,7 +41727,7 @@ def createDriveFile(users):
     else:
       getDriveFileAttribute(myarg, body, parameters, True, False)
   if parameters[DFA_LOCALFILEPATH]:
-    if parameters[DFA_PRESERVE_FILE_TIMES]:
+    if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, False)
     media_body = getMediaBody(parameters)
   if csvPF:
@@ -42073,7 +42058,7 @@ def updateDriveFile(users):
     else:
       getDriveFileAttribute(myarg, body, parameters, assignLocalName, True)
   if operation == 'update' and parameters[DFA_LOCALFILEPATH]:
-    if parameters[DFA_PRESERVE_FILE_TIMES]:
+    if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, True)
     if not sheetEntity:
       media_body = getMediaBody(parameters)
@@ -45898,6 +45883,8 @@ DRIVEFILE_BASIC_PERMISSION_FIELDS = [
   'allowFileDiscovery', 'expirationTime', 'deleted'
   ]
 
+DRIVEFILE_PERMISSIONS_FOR_VIEW_CHOICES = ['published']
+
 def getDriveFilePermissionsFields(myarg, fieldsList):
   if myarg in DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP:
     fieldsList.append(DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP[myarg])
@@ -45917,11 +45904,13 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
 
 # gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
+#	[includepermissionsforview published]
 #	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
 # gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
+#	[includepermissionsforview published]
 #	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson] [adminaccess|asadmin]
@@ -45930,6 +45919,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
   FJQC = FormatJSONQuoteChar(csvPF)
   fileIdEntity = getDriveFileEntity()
   oneItemPerRow = pmselect = showTitles = False
+  includePermissionsForView = None
   fieldsList = []
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   PM = PermissionMatch()
@@ -45955,6 +45945,8 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       pmselect = True
     elif PM.ProcessArgument(myarg):
       pass
+    elif myarg == 'includepermissionsforview':
+      includePermissionsForView = getChoice(DRIVEFILE_PERMISSIONS_FOR_VIEW_CHOICES)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   fields = getItemFieldsFromFieldsList('permissions', fieldsList, True)
@@ -45979,6 +45971,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
         permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
                                     useDomainAdminAccess=useDomainAdminAccess,
+                                    includePermissionsForView=includePermissionsForView,
                                     fileId=fileId, fields=fields, supportsAllDrives=True)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.insufficientAdministratorPrivileges) as e:
@@ -52237,7 +52230,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_COURSEWORK:	doPrintCourseWork,
       Cmd.ARG_CROS:		doPrintCrOSDevices,
       Cmd.ARG_CROSACTIVITY:	doPrintCrOSActivity,
-#      Cmd.ARG_DATASTUDIO:	doPrintShowDataStudio,
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
       Cmd.ARG_DEVICE:		doPrintCIDevices,
       Cmd.ARG_DEVICEUSER:	doPrintCIDeviceUsers,

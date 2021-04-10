@@ -3381,11 +3381,13 @@ gam info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles] [formatjson]
 gam show drivefileacls <SharedDriveEntityAdmin>
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
+        [includepermissionsforview published]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
 gam print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
+        [includepermissionsforview published]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]]
@@ -3409,11 +3411,13 @@ gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermis
         [showtitles] [formatjson] adminaccess
 gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
+        [includepermissionsforview published]
         [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] adminaccess
 gam <UserTypeEntity> print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
+        [includepermissionsforview published]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]] adminaccess
@@ -4416,11 +4420,13 @@ gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDo
         [showtitles] [formatjson]
 gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
+        [includepermissionsforview published]
         [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
 gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
+        [includepermissionsforview published]
         [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]]
@@ -4890,7 +4896,7 @@ gam <UserTypeEntity> delete filters <FilterIDEntity>
 gam <UserTypeEntity> info filters <FilterIDEntity>
 gam <UserTypeEntity> show filters [labelidsonly]
 gam <UserTypeEntity> print filters [labelidsonly] [todrive <ToDriveAttribute>*]
-        [formatjson] [quotechar <Character>]
+        [formatjson [quotechar <Character>]]
 
 # Users - Gmail - Forwarding
 

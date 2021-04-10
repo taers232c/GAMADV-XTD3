@@ -1,8 +1,16 @@
+6.01.09
+
+Added support for `localfile -` in `gam <UserTypeEntity> create|update drivefile` which allows
+commands/programs to output data to stdout which can then be uploaded to a Google Drive file.
+```
+generatedata | gam user user@domain.com create drivefile drivefilename test.csv localfile - mimetype gsheet
+```
+
 6.01.08
 
 Following Jay's lead, cleaned up field names in `gam print chromehistory`.
 
-Following Jay's lead, added new license SKU `Google Workspace Frontline
+Following Jay's lead, added new license SKU `Google Workspace Frontline`.
 
 6.01.07
 
