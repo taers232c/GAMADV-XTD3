@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.01.09'
+__version__ = '6.02.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4562,7 +4562,8 @@ def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
   return (userEmail, sitesObject)
 
 # Convert UID to email address
-def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None, checkForCustomerId=False, ciGroupsAPI=False):
+def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None,
+                             checkForCustomerId=False, ciGroupsAPI=False, aliasAllowed=True):
   if emailTypes is None:
     emailTypes = ['user']
   elif not isinstance(emailTypes, list):
@@ -4572,7 +4573,7 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None, checkF
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID, ciGroupsAPI=ciGroupsAPI)
   if ciGroupsAPI and emailAddressOrUID.startswith('groups/'):
     return emailAddressOrUID
-  if normalizedEmailAddressOrUID.find('@') > 0:
+  if normalizedEmailAddressOrUID.find('@') > 0 and aliasAllowed:
     return normalizedEmailAddressOrUID
   if cd is None:
     cd = buildGAPIObject(API.DIRECTORY)
@@ -12467,9 +12468,9 @@ def doPrintShowAdmins():
       unknownArgumentExit()
   try:
     admins = callGAPIpages(cd.roleAssignments(), 'list', 'items',
-                           throwReasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
+                           throwReasons=[GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
                            customer=GC.Values[GC.CUSTOMER_ID], userKey=userKey, roleId=roleId, fields=PRINT_ADMIN_FIELDS)
-  except GAPI.invalid:
+  except (GAPI.invalid, GAPI.userNotFound):
     entityUnknownWarning(Ent.USER, userKey)
     return
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
@@ -46878,6 +46879,321 @@ def deleteUsersAliases(users):
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       entityUnknownWarning(Ent.USER, user, i, count)
 
+DATASTUDIO_ASSETTYPE_CHOICE_MAP = {
+  'report': 'REPORT',
+  'datasource': 'DATA_SOURCE'
+  }
+
+def initDataStudioAssetSelectionParameters():
+  return {'assetTypes': 'REPORT', 'owner': None, 'title': None, 'includeTrashed': False}
+
+def getDataStudioAssetSelectionParameters(myarg, parameters):
+  if myarg == 'assettype':
+    parameters['assetTypes'] = getChoice(DATASTUDIO_ASSETTYPE_CHOICE_MAP, mapChoice=True)
+  elif myarg == 'title':
+    parameters['title'] = getString(Cmd.OB_STRING)
+  elif myarg == 'owner':
+    parameters['owner'] = getEmailAddress(noUid=True)
+  elif myarg == 'includetrashed':
+    parameters['includeTrashed'] = True
+  else:
+    return False
+  return True
+
+def _validateUserGetDataStudioAssetIds(user, i, count, entity):
+  if entity:
+    if entity['dict']:
+      entityList = [{'name': item, 'title': item} for item in entity['dict'][user]]
+    else:
+      entityList = [{'name': item, 'title': item} for item in entity['list']]
+  else:
+    entityList = []
+  user, ds = buildGAPIServiceObject(API.DATASTUDIO, user, i, count)
+  if not ds:
+    return (user, None, None, 0)
+  return (user, ds, entityList, len(entityList))
+
+def _getDataStudioAssets(ds, user, i, count, parameters, fields, orderBy=None):
+  printGettingAllEntityItemsForWhom(Ent.DATASTUDIO_ASSET, user, i, count)
+  try:
+    assets = callGAPIpages(ds.assets(), 'search', 'assets',
+                           pageMessage=getPageMessage(),
+                           throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
+                           **parameters, orderBy=orderBy, fields=fields)
+    return  (assets, len(assets))
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.permissionDenied) as e:
+    entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+  except GAPI.serviceNotAvailable:
+    entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  return (None, 0)
+
+DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP = {
+  'title': 'title'
+  }
+DATASTUDIO_ASSETS_TIME_OBJECTS = ['updateTime', 'updateByMeTime', 'createTime', 'lastViewByMeTime']
+
+# gam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
+#	[([assettype report|datasource] [title <String>]
+#	  [owner <Emailddress>] [includetrashed])]
+#	[orderby title [ascending|descending]]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show datastudioassets
+#	[([assettype report|datasource] [title <String>]
+#	  [owner <Emailddress>] [includetrashed])]
+#	[orderby title [ascending|descending]]
+#	[formatjson]
+def printShowDataStudioAssets(users):
+  def _printAsset(asset, user):
+    row = flattenJSON(asset, flattened={'User': user})
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'User': user, 'title': asset['title'],
+                              'JSON': json.dumps(cleanJSON(asset, timeObjects=DATASTUDIO_ASSETS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+
+  def _showAsset(asset):
+    if FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(asset, timeObjects=DATASTUDIO_ASSETS_TIME_OBJECTS), ensure_ascii=False, sort_keys=False))
+    else:
+      printEntity([Ent.DATASTUDIO_ASSET, asset['title']], j, jcount)
+      Ind.Increment()
+      showJSON(None, asset, timeObjects=DATASTUDIO_ASSETS_TIME_OBJECTS)
+      Ind.Decrement()
+
+  csvPF = CSVPrintFile(['User', 'title']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  OBY = OrderBy(DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP)
+  parameters = initDataStudioAssetSelectionParameters()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if getDataStudioAssetSelectionParameters(myarg, parameters):
+      pass
+    elif myarg == 'orderby':
+      OBY.GetChoice()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, ds = buildGAPIServiceObject(API.DATASTUDIO, user, i, count)
+    if not ds:
+      continue
+    assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, 'nextPageToken,assets', OBY.orderBy)
+    if assets is None:
+      continue
+    if not csvPF:
+      if not FJQC.formatJSON:
+        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DATASTUDIO_ASSET, i, count)
+      Ind.Increment()
+      j = 0
+      for asset in assets:
+        j += 1
+        _showAsset(asset)
+      Ind.Decrement()
+    else:
+      for asset in assets:
+        _printAsset(asset, user)
+  if csvPF:
+    csvPF.writeCSVfile('Data Studio Assets')
+
+def _showDataStudioPermissions(user, asset, permissions, j, jcount, FJQC):
+  if FJQC is not None and FJQC.formatJSON:
+    permissions['User'] = user
+    permissions['assetId'] = asset['name']
+    printLine(json.dumps(cleanJSON(permissions), ensure_ascii=False, sort_keys=False))
+  else:
+    permissions = permissions['permissions']
+    if permissions:
+      printEntity([Ent.DATASTUDIO_ASSET, asset['title'], Ent.DATASTUDIO_PERMISSION, ''], j, jcount)
+    for role in ['OWNER', 'EDITOR', 'VIEWER']:
+      members = permissions.get(role, {}).get('members', [])
+      if members:
+        lrole = role.lower()
+        Ind.Increment()
+        for member in members:
+          printKeyValueList([lrole, member])
+        Ind.Decrement()
+
+DATASTUDIO_PERMISSION_FUNCTION_CHOICE_MAP = {
+  Act.ADD: 'addMembers',
+  Act.DELETE: 'revokeAllPermissions',
+  Act.UPDATE: 'patch'
+  }
+
+DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP = {
+  'editor': 'EDITOR',
+  'owner': 'OWNER',
+  'viewer': 'VIEWER'
+  }
+
+DATASTUDIO_PERMISSION_MODIFIER_MAP = {
+  Act.ADD: Act.MODIFIER_TO,
+  Act.DELETE: Act.MODIFIER_FROM,
+  Act.UPDATE: Act.MODIFIER_FOR
+  }
+
+# gam <UserTypeEntity> add datastudiopermissions
+#	[([assettype report|datasource] [title <String>]
+#	  [owner <Emailddress>] [includetrashed]) |
+#	 (assetids <DataStudioAssetIDEntity>)]
+#	(role editor|owner|viewer members <DataStudioPermissionEntity>)+
+#	[nodetails]
+# gam <UserTypeEntity> delete datastudiopermissions
+#	([[assettype report|datasource] [title <String>]
+#	  [owner <Emailddress>] [includetrashed]) |
+#	 (assetids <DataStudioAssetIDEntity>)]
+#	members <DataStudioPermissionEntity>
+#	[nodetails]
+def processDataStudioPermissions(users):
+  action = Act.Get()
+  if action == Act.CREATE:
+    action = Act.ADD
+  function = DATASTUDIO_PERMISSION_FUNCTION_CHOICE_MAP[action]
+  modifier = DATASTUDIO_PERMISSION_MODIFIER_MAP[action]
+  parameters = initDataStudioAssetSelectionParameters()
+  permissions = {}
+  assetIdEntity = None
+  showDetails = True
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if getDataStudioAssetSelectionParameters(myarg, parameters):
+      pass
+    elif myarg in {'assetid', 'assetids'}:
+      assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSET_ID)
+    elif action == Act.ADD and myarg == 'role':
+      permissions.setdefault('permissions', {})
+      role = getChoice(DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
+      permissions['permissions'].setdefault(role, {'members': []})
+      permissions['permissions'][role]['members'].extend(getEntityList(Cmd.OB_DATASTUDIO_ASSET_MEMBERS_ENTITY))
+    elif action == Act.UPDATE and myarg == 'role':
+      permissions.setdefault('permissions', {})
+      role = getChoice(DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
+      permissions['permissions'].setdefault(role, {'members': []})
+      permissions['permissions'][role]['members'].extend(getEntityList(Cmd.OB_DATASTUDIO_ASSET_MEMBERS_ENTITY))
+    elif action == Act.DELETE and myarg == 'members':
+      permissions.setdefault('permissions', {})
+      role = None
+      permissions['permissions'].setdefault(role, {'members': []})
+      permissions['permissions'][role]['members'].extend(getEntityList(Cmd.OB_DATASTUDIO_ASSET_MEMBERS_ENTITY))
+    elif myarg == 'nodetails':
+      showDetails = False
+    else:
+      unknownArgumentExit()
+  if not permissions:
+    if action in {Act.ADD, Act.UPDATE}:
+      missingArgumentExit('role editor|owner|viewer members')
+    else:
+      missingArgumentExit('members')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, ds, assets, jcount = _validateUserGetDataStudioAssetIds(user, i, count, assetIdEntity)
+    if not ds:
+      continue
+    if assetIdEntity is None:
+      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, 'nextPageToken,assets(name,title)', None)
+      if assets is None:
+        continue
+    entityPerformActionSubItemModifierNumItems([Ent.USER, user], Ent.DATASTUDIO_PERMISSION, modifier, jcount, Ent.DATASTUDIO_ASSET, i, count)
+    j = 0
+    for asset in assets:
+      j += 1
+      for role in permissions['permissions']:
+        if action == Act.ADD:
+          body = {'name': asset['name'], 'role': role, 'members': permissions['permissions'][role]['members']}
+        elif action == Act.DELETE:
+          body = {'name': asset['name'], 'members': permissions['permissions'][role]['members']}
+        else: #elif action == Act.UPDATE
+          body = {'name': asset['name']}
+          body.update(permissions)
+        try:
+          results = callGAPI(ds.permissions(), function,
+                             throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
+                             assetId=asset['name'], body=body)
+          entityActionPerformed([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title'], Ent.DATASTUDIO_PERMISSION, ''], j, jcount)
+          if showDetails:
+            _showDataStudioPermissions(user, asset, results, j, jcount, None)
+        except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title']], str(e), j, jcount)
+          continue
+        except GAPI.serviceNotAvailable:
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+          break
+
+# gam <UserTypeEntity> print datastudiopermissions [todrive <ToDriveAttribute>*]
+#	[([assettype report|datasource] [title <String>]
+#	  [owner <Emailddress>] [includetrashed]) |
+#	 (assetids <DataStudioAssetIDEntity>)]
+#	[role editor|owner|viewer]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show datastudiopermissions
+#	[([assettype report|datasource] [title <String>]
+#	  [owner <Emailddress>] [includetrashed]) |
+#	 (assetids <DataStudioAssetIDEntity>)[
+#	[role editor|owner|viewer]
+#	[formatjson]
+def printShowDataStudioPermissions(users):
+  def _printDataStudioPermissions(user, asset, permissions):
+    row = flattenJSON(permissions, flattened={'User': user, 'assetId': asset['name']},
+                      simpleLists=['members'], delimiter=delimiter)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'User': user, 'assetId': asset['name'],
+                              'JSON': json.dumps(cleanJSON(permissions), ensure_ascii=False, sort_keys=True)})
+
+  csvPF = CSVPrintFile(['User', 'assetId']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  parameters = initDataStudioAssetSelectionParameters()
+  assetIdEntity = None
+  role = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if getDataStudioAssetSelectionParameters(myarg, parameters):
+      pass
+    elif myarg in {'assetid', 'assetids'}:
+      assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
+    elif myarg == 'role':
+      role = getChoice(DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, ds, assets, jcount = _validateUserGetDataStudioAssetIds(user, i, count, assetIdEntity)
+    if not ds:
+      continue
+    if assetIdEntity is None:
+      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, 'nextPageToken,assets(name,title)', None)
+      if assets is None:
+        continue
+    if not csvPF and not FJQC.formatJSON:
+      entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DATASTUDIO_ASSET, i, count)
+    j = 0
+    for asset in assets:
+      j += 1
+      try:
+        permissions = callGAPI(ds.permissions(), 'get',
+                               throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
+                               assetId=asset['name'], role=role, fields='permissions')
+      except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title']], str(e), j, jcount)
+        continue
+      except GAPI.serviceNotAvailable:
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+      if not csvPF:
+        Ind.Increment()
+        _showDataStudioPermissions(user, asset, permissions, j, jcount, FJQC)
+        Ind.Decrement()
+      else:
+        _printDataStudioPermissions(user, asset, permissions)
+  if csvPF:
+    csvPF.writeCSVfile('Data Studio Permissions')
+
 def _validateSubkeyRoleGetGroups(user, role, origUser, userGroupLists, i, count):
   roleLower = role.lower()
   if roleLower in GROUP_ROLES_MAP:
@@ -50290,6 +50606,7 @@ def processDelegates(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    user = convertUIDtoEmailAddress(user, cd=cd, aliasAllowed=False)
     user, gmail, delegates, jcount = _validateUserGetObjectList(user, i, count, delegateEntity)
     if jcount == 0:
       continue
@@ -50297,7 +50614,7 @@ def processDelegates(users):
     j = 0
     for delegate in delegates:
       j += 1
-      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd)
+      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd, aliasAllowed=False)
       try:
         if function == 'create':
           callGAPI(gmail.users().settings().delegates(), function,
@@ -52834,6 +53151,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_CONTACT:		createUserContact,
   Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
   Cmd.ARG_CONTACTGROUP:		createUserContactGroup,
+  Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
   Cmd.ARG_DELEGATE:		processDelegates,
   Cmd.ARG_DRIVEFILE:		createDriveFile,
   Cmd.ARG_DRIVEFILEACL:		createDriveFileACL,
@@ -52929,6 +53247,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
       Cmd.ARG_CONTACTGROUP:	deleteUserContactGroups,
       Cmd.ARG_CONTACTPHOTO:	deleteUserContactPhoto,
+      Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
       Cmd.ARG_DELEGATE:		processDelegates,
       Cmd.ARG_DRIVEFILE:	deleteDriveFile,
       Cmd.ARG_DRIVEFILEACL:	deleteDriveFileACLs,
@@ -53041,6 +53360,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CONTACT:		printShowUserContacts,
       Cmd.ARG_CONTACTDELEGATE:	printShowContactDelegates,
       Cmd.ARG_CONTACTGROUP:	printShowUserContactGroups,
+      Cmd.ARG_DATASTUDIOASSET:	printShowDataStudioAssets,
+      Cmd.ARG_DATASTUDIOPERMISSION:	printShowDataStudioPermissions,
       Cmd.ARG_DELEGATE:		printShowDelegates,
       Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
       Cmd.ARG_DRIVEFILEACL:	printShowDriveFileACLs,
@@ -53095,6 +53416,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CONTACT:		printShowUserContacts,
       Cmd.ARG_CONTACTDELEGATE:	printShowContactDelegates,
       Cmd.ARG_CONTACTGROUP:	printShowUserContactGroups,
+      Cmd.ARG_DATASTUDIOASSET:	printShowDataStudioAssets,
+      Cmd.ARG_DATASTUDIOPERMISSION:	printShowDataStudioPermissions,
       Cmd.ARG_DELEGATE:		printShowDelegates,
       Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
       Cmd.ARG_DRIVEFILEACL:	printShowDriveFileACLs,
@@ -53198,6 +53521,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CONTACT:		updateUserContacts,
       Cmd.ARG_CONTACTGROUP:	updateUserContactGroup,
       Cmd.ARG_CONTACTPHOTO:	updateUserContactPhoto,
+#      Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
       Cmd.ARG_DELEGATE:		updateDelegates,
       Cmd.ARG_DRIVEFILE:	updateDriveFile,
       Cmd.ARG_DRIVEFILEACL:	updateDriveFileACLs,
@@ -53259,6 +53583,8 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CONTACTDELEGATES:	Cmd.ARG_CONTACTDELEGATE,
   Cmd.ARG_CONTACTGROUPS:	Cmd.ARG_CONTACTGROUP,
   Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,
+  Cmd.ARG_DATASTUDIOASSETS:	Cmd.ARG_DATASTUDIOASSET,
+  Cmd.ARG_DATASTUDIOPERMISSIONS:	Cmd.ARG_DATASTUDIOPERMISSION,
   Cmd.ARG_DELEGATES:		Cmd.ARG_DELEGATE,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
   Cmd.ARG_DRIVEFILESHORTCUTS:	Cmd.ARG_DRIVEFILESHORTCUT,

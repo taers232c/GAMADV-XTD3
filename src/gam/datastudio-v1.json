@@ -1,0 +1,473 @@
+{
+  "auth": {
+    "oauth2": {
+      "scopes": {
+        "https://www.googleapis.com/auth/datastudio": {
+          "description": "View and manage your Data Studio"
+        }, 
+        "https://www.googleapis.com/auth/datastudio.readonly": {
+          "description": "View your Data Studio"
+        }
+      }
+    }
+  }, 
+  "basePath": "",
+  "baseUrl": "https://datastudio.googleapis.com/v1/",
+  "batchPath": "batch",
+  "canonicalName": "datastudio",
+  "description": "The Data Studio API allows Admins to manage Data Studio assets and permissions.",
+  "discoveryVersion": "v1",
+  "documentationLink": "https://developers.google.com/datastudio/api/reference",
+  "fullyEncodeReservedExpansion": true,
+  "icons": {
+    "x16": "http://www.google.com/images/icons/product/search-16.gif",
+    "x32": "http://www.google.com/images/icons/product/search-32.gif"
+  },
+  "id": "datastudio:v1",
+  "kind": "discovery#restDescription",
+  "name": "datastudio",
+  "ownerDomain": "google.com",
+  "ownerName": "Google",
+  "packagePath": "admin",
+  "parameters": {
+    "$.xgafv": {
+      "description": "V1 error format.",
+      "enum": [
+        "1",
+        "2"
+      ],
+      "enumDescriptions": [
+        "v1 error format",
+        "v2 error format"
+      ],
+      "location": "query",
+      "type": "string"
+    },
+    "access_token": {
+      "description": "OAuth access token.",
+      "location": "query",
+      "type": "string"
+    },
+    "alt": {
+      "default": "json",
+      "description": "Data format for response.",
+      "enum": [
+        "json",
+        "media",
+        "proto"
+      ],
+      "enumDescriptions": [
+        "Responses with Content-Type of application/json",
+        "Media download with context-dependent Content-Type",
+        "Responses with Content-Type of application/x-protobuf"
+      ],
+      "location": "query",
+      "type": "string"
+    },
+    "callback": {
+      "description": "JSONP",
+      "location": "query",
+      "type": "string"
+    },
+    "fields": {
+      "description": "Selector specifying which fields to include in a partial response.",
+      "location": "query",
+      "type": "string"
+    },
+    "key": {
+      "description": "API key. Your API key identifies your project and provides you with API access, quota, and reports. Required unless you provide an OAuth 2.0 token.",
+      "location": "query",
+      "type": "string"
+    },
+    "oauth_token": {
+      "description": "OAuth 2.0 token for the current user.",
+      "location": "query",
+      "type": "string"
+    },
+    "prettyPrint": {
+      "default": "true",
+      "description": "Returns response with indentations and line breaks.",
+      "location": "query",
+      "type": "boolean"
+    },
+    "quotaUser": {
+      "description": "Available to use for quota purposes for server-side applications. Can be any arbitrary string assigned to a user, but should not exceed 40 characters.",
+      "location": "query",
+      "type": "string"
+    },
+    "uploadType": {
+      "description": "Legacy upload protocol for media (e.g. \"media\", \"multipart\").",
+      "location": "query",
+      "type": "string"
+    },
+    "upload_protocol": {
+      "description": "Upload protocol for media (e.g. \"raw\", \"multipart\").",
+      "location": "query",
+      "type": "string"
+    }
+  },
+  "protocol": "rest",
+  "resources": {
+    "assets": {
+      "methods": {
+        "search": {
+          "description": "Search for Data Studio assets",
+          "flatPath": "assets:search",
+          "httpMethod": "GET",
+          "id": "datastudio.assets.search",
+          "parameterOrder": [],
+          "parameters": {
+            "assetTypes": {
+              "enumDescriptions": [
+                "A data source asset.",
+                "A report asset."
+              ],
+              "enum": [
+                "DATA_SOURCE",
+                "REPORT"
+              ],
+              "type": "string",
+              "location": "query",
+              "description": "The asset types to be included in the search.",
+              "required": true
+            },
+            "title": {
+              "description": "The title of the asset.",
+              "location": "query",
+              "type": "string"
+            },
+            "includeTrashed": {
+              "description": "Whether assets in the trash should be included in the search.",
+              "location": "query",
+              "type": "string"
+            },
+            "owner": {
+              "description": "The owner of the asset.",
+              "location": "query",
+              "type": "string"
+            },
+            "orderBy": {
+              "description": "How the results should be ordered. Comma separated. Only \"title\" is currently supported.",
+              "location": "query",
+              "type": "string"
+            },
+            "pageSize": {
+              "description": "Determines how many assets are returned in each response. ",
+              "format": "int32",
+              "location": "query",
+              "minimum": "1",
+              "type": "integer"
+            },
+            "pageToken": {
+              "description": "Token to specify the next page in the list.",
+              "location": "query",
+              "type": "string"
+            }
+          },
+          "path": "assets:search",
+          "response": {
+            "$ref": "Assets"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/datastudio",
+            "https://www.googleapis.com/auth/datastudio.readonly"
+          ]
+        }
+      }
+    },
+    "permissions": {
+      "methods": {
+        "get": {
+          "description": "Get permissions for a given Data Studio asset.",
+          "flatPath": "assets/{assetId}/permissions",
+          "httpMethod": "GET",
+          "id": "datastudio.permissions.get",
+          "parameterOrder": [
+	    "assetId"
+          ],
+          "parameters": {
+            "assetId": {
+              "description": "The id of the asset.",
+              "location": "path",
+              "required": true,
+              "type": "string"
+            },
+            "role": {
+              "description": "The role of the permission.",
+              "location": "query",
+              "type": "string"
+            }
+          },
+          "path": "assets/{assetId}/permissions",
+          "response": {
+            "$ref": "Permissions"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/datastudio",
+            "https://www.googleapis.com/auth/datastudio.readonly"
+          ]
+        },
+        "addMembers": {
+          "description": "Adds members to a given Data Studio asset.",
+          "flatPath": "assets/{assetId}/permissions:addMembers",
+          "httpMethod": "POST",
+          "id": "datastudio.permissions.addMembers",
+          "path": "assets/{assetId}/permissions:addMembers",
+          "parameterOrder": [
+	    "assetId"
+          ],
+          "parameters": {
+            "assetId": {
+              "description": "The id of the asset.",
+              "location": "path",
+              "required": true,
+              "type": "string"
+	    }
+          },
+          "request": {
+            "$ref": "AddMembers"
+          },
+          "response": {
+            "$ref": "Permissions"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/datastudio"
+          ]
+        },
+        "patch": {
+          "description": "Updates permissions for a given Data Studio asset.",
+          "flatPath": "assets/{assetId}/permissions",
+          "httpMethod": "PATCH",
+          "id": "datastudio.permissions.patch",
+          "path": "assets/{assetId}/permissions",
+          "parameterOrder": [
+	    "assetId"
+          ],
+          "parameters": {
+            "assetId": {
+              "description": "The id of the asset.",
+              "location": "path",
+              "required": true,
+              "type": "string"
+	    }
+          },
+          "request": {
+            "$ref": "PatchPermissions"
+          },
+          "response": {
+            "$ref": "Permissions"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/datastudio"
+          ]
+        },
+        "revokeAllPermissions": {
+          "description": "Completely removes members from a given Data Studio asset.",
+          "flatPath": "assets/{assetId}/permissions:revokeAllPermissions",
+          "httpMethod": "POST",
+          "id": "datastudio.permissions.revokeAllPermissions",
+          "path": "assets/{assetId}/permissions:revokeAllPermissions",
+          "parameterOrder": [
+	    "assetId"
+          ],
+          "parameters": {
+            "assetId": {
+              "description": "The id of the asset.",
+              "location": "path",
+              "required": true,
+              "type": "string"
+            }
+          },
+          "request": {
+            "$ref": "RemoveMembers"
+          },
+          "response": {
+            "$ref": "Permissions"
+          },
+          "scopes": [
+            "https://www.googleapis.com/auth/datastudio"
+          ]
+        }
+      }
+    }
+  },
+  "rootUrl": "https://datastudio.googleapis.com/v1/",
+  "schemas": {
+    "Asset": {
+      "description": "JSON template for an asset.",
+      "id": "Asset",
+      "properties": {
+        "name": {
+          "description": "The name (ID) of the asset.",
+          "type": "string"
+        },
+        "title": {
+          "description": "The title of the asset.",
+          "type": "string"
+        },
+        "assetType": {
+          "description": "The type of the asset.",
+          "type": "string"
+        },
+        "trashed": {
+          "description": "Value indicating if the asset is in the trash.",
+          "type": "string"
+        },
+	"updateTime": {
+          "description": "Date the asset was last modified.",
+          "type": "string"
+        },
+	"updateByMeTime": {
+          "description": "Date the asset was last modified by me.",
+          "type": "string"
+        },
+	"createTime": {
+          "description": "Date the asset was created.",
+          "type": "string"
+        },
+	"lastViewByMeTime": {
+          "description": "Date the asset was last viewed by me.",
+          "type": "string"
+        },
+        "owner": {
+          "description": "The owner of the asset.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "Assets": {
+      "id": "Assets",
+      "properties": {
+        "assets": {
+          "description": "List of assets.",
+          "items": {
+            "$ref": "Asset"
+          },
+          "type": "array"
+        },
+        "nextPageToken": {
+          "description": "Token used to access the next page of this result. To access the next page, use this token's value in the `pageToken` query string of this request.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "MembersList": {
+      "description": "JSON template for a list of members.",
+      "id": "MembersList",
+      "properties": {
+        "members": {
+          "description": "A list of members.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "type": "object"
+    },
+    "PermissionMembers": {
+      "description": "JSON template for permission members.",
+      "id": "PermissionMembers",
+      "properties": {
+        "EDITOR": {
+          "description": "A list of editor members.",
+	  "id": "EDITOR",
+	  "properties": {
+            "$ref": "MembersList"
+          }
+        },
+        "OWNER": {
+          "description": "A list of owner members.",
+	  "id": "OWNER",
+	  "properties": {
+            "$ref": "MembersList"
+          }
+        },
+        "VIEWER": {
+          "description": "A list of viewer members.",
+	  "id": "VIEWER",
+	  "properties": {
+            "$ref": "MembersList"
+          }
+        }
+      },
+      "type": "object"
+    },
+    "Permissions": {
+      "description": "JSON template for a permission.",
+      "id": "Permissions",
+      "properties": {
+        "permissions": {
+          "description": "A map of role to members.",
+          "$ref": "PermissionMembers"
+        },
+        "etag": {
+          "description": "ETag of the resource.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "PatchPermissions": {
+      "description": "JSON template for a permissions patch.",
+      "id": "PatchPermissions",
+      "properties": {
+        "name": {
+          "description": "The name (ID) of the asset.",
+          "type": "string"
+        },
+        "permissions": {
+          "description": "A map of role to members.",
+          "$ref": "PermissionMembers"
+        }
+      },
+      "type": "object"
+    },
+    "AddMembers": {
+      "description": "JSON template for an asset role and members to add.",
+      "id": "AddMembers",
+      "properties": {
+        "name": {
+          "description": "The name (ID) of the asset.",
+          "type": "string"
+        },
+        "role": {
+          "description": "The role to add members to.",
+          "type": "string"
+        },
+        "members": {
+          "description": "The members to add.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "type": "object"
+    },
+    "RemoveMembers": {
+      "description": "JSON template for an asset members to ren=move.",
+      "id": "RemoveMembers",
+      "properties": {
+        "name": {
+          "description": "The name (ID) of the asset.",
+          "type": "string"
+        },
+        "members": {
+          "description": "The members to remove.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+    "type": "object"
+    }
+  },
+  "servicePath": "",
+  "title": "Data Studio API",
+  "version": "v1",
+  "version_module": true
+}

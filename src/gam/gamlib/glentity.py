@@ -120,6 +120,9 @@ class GamEntity():
   CROS_DEVICE = 'cros'
   CUSTOMER_DOMAIN = 'cudo'
   CUSTOMER_ID = 'cuid'
+  DATASTUDIO_ASSET = 'dsas'
+  DATASTUDIO_ASSETID = 'dsai'
+  DATASTUDIO_PERMISSION = 'dspe'
   DEFAULT_LANGUAGE = 'dfla'
   DELEGATE = 'dele'
   DELETED_USER = 'del'
@@ -363,6 +366,9 @@ class GamEntity():
     CROS_DEVICE: ['CrOS Devices', 'CrOS Device'],
     CUSTOMER_DOMAIN: ['Customer Domains', 'Customer Domain'],
     CUSTOMER_ID: ['Customer IDs', 'Customer ID'],
+    DATASTUDIO_ASSET: ['Data Studio Assets', 'Data Studio Asset'],
+    DATASTUDIO_ASSETID: ['Data Studio Asset IDs', 'Data Studio Asset ID'],
+    DATASTUDIO_PERMISSION: ['Data Studio Permissions', 'Data Studio Permission'],
     DEFAULT_LANGUAGE: ['Default Language', 'Default Language'],
     DELEGATE: ['Delegates', 'Delegate'],
     DELETED_USER: ['Deleted Users', 'Deleted User'],

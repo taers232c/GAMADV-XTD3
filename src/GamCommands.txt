@@ -187,8 +187,6 @@ If an item contains spaces, it should be surrounded by ".
         Google-Chrome-Device-Management |
         Google-Drive-storage |
         Google-Vault
-<ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
-
 <SKUID> ::=
         nv:<String>:<String> |
         20gb | drive20gb | googledrivestorage20gb | Google-Drive-storage-20GB |
@@ -264,7 +262,7 @@ If an item contains spaces, it should be surrounded by ".
         never|
         now|today
 <RegularExpression> ::= <String>
-        See: https://docs.python.org/3.7/library/re.html
+        See: https://docs.python.org/3.9/library/re.html
 <ProjectID> ::= <String>
         Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <ServiceAccountName> ::= <String>
@@ -314,6 +312,12 @@ If an item contains spaces, it should be surrounded by ".
 <CourseWorkState> ::= draft|published|deleted
 <CrOSID> ::= <String>
 <CustomerID> ::= <String>
+<DataStudioAssetID> ::= <String>
+<DataStudioPermission> ::=
+        user:<EmailAddress>|
+        group:<EmailAddress>|
+        domain:<DomainName>|
+        serviceAccount:<EmailAddress>
 <DeliverySetting> ::=
         allmail|
         abridged|daily|
@@ -472,8 +476,8 @@ If an item contains spaces, it should be surrounded by ".
         (tdsheet (id:<Number>)|<String>)|
         (tdsheettimestamp [<Boolean>] [tdsheettimeformat <String>])
         ([tdsheetdaysoffset <Number>] [tdsheethoursoffset <Number])|
-        (tdtimestamp [<Boolean>] [tdtimeformat <String>])|
-        ([tddaysoffset <Number>] [tdhoursoffset <Number])|
+        (tdtimestamp [<Boolean>] [tdtimeformat <String>]
+            [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
         (tdcellwrap clip|overflow|wrap)|
@@ -512,6 +516,8 @@ If an item contains spaces, it should be surrounded by ".
 <CourseWorkIDList> ::= "<CourseWorkID>(,<CourseWorkID>)*"
 <CourseWorkStateList> ::= all|"<CourseWorkState>(,<CourseWorkState>)*"
 <CrOSIDList> ::= "<CrOSID>(,<CrOSID>)*"
+<DataStudioAssetIDList> ::= "<DataStudioAssetID>(,<DataStudioAssetID>)*"
+<DataStudioPermissionList> ::= "<DataStudioPermission>(,<DataStudioPermission>)*"
 <DeviceIDList> ::= "<DeviceID>(,<DeviceID>)*"
 <DeviceUserList> ::= "<DeviceUserID>(,<DeviceUserID>)*"
 <DomainNameList> ::= "<DomainName>(,<DomainName>)*"
@@ -632,9 +638,10 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (all users|users_ns|users_susp|users_ns_susp)|
         (user <UserItem>)|
         (users <UserList>)|
+        (oauthuser)
         (domains|domains_ns|domains_susp <DomainNameListList>)|
-        (group|group_ns|group_susp <GroupItem>)|
-        (groups|groups_ns|groups_susp <GroupList>)|
+        (group|group_ns|group_susp|group_inde <GroupItem>)|
+        (groups|groups_ns|groups_susp|groups_inde <GroupList>)|
         (group_inde <GroupItem>)|(groups_inde <GroupList>)|
         (group_users|group_users_ns|group_users_susp <GroupList>
                 [members] [managers] [owners]
@@ -670,7 +677,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
-        (csvkmd users|groups|groups_ns_|groups_susp|groups_inde|ous|ous_ns|ous_susp|
+        (csvkmd users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
                 (<FileName>|(gsheet <UserGoogleSheet>)
@@ -691,9 +698,11 @@ Specify a collection of items by directly specifying them; the item type is dete
 <FileSelector> ::=
         file <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]
 <CSVFileSelector> ::=
-        csvfile (<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
-                [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
+        csvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
+                [fields <FieldNameList>]
+                (matchfield|skipfield <FieldName> <RegularExpression>)*
+                [delimiter <Character>]
 <CSVkmdSelector> ::=
         csvkmd <FileName>|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
@@ -710,31 +719,47 @@ Specify a collection of items by directly specifying them; the item type is dete
         (query:<QueryBrowser>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryBrowser>) |
         (browserou <OrgUnitItem>) | (browserous <OrgUnitList>) |
         <FileSelector> | <CSVFileSelector>
-<CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<ClassroomInvitationIDEntity> ::= <ClassroomInvitationIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<ContactEntity> ::= <ContactIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<ContactGroupEntity> ::= <ContactGroupList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<CourseAliasEntity> ::= <CourseAliasList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<CourseEntity> ::= <CourseIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
-<CourseAnnouncementIDEntity> ::= <CourseAnnouncementIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
-<CourseSubmissionIDEntity> ::= <CourseSubmissionIDList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
-<CourseTopicIDEntity> ::= <CourseTopicIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
-<CourseTopicEntity> ::= <CourseTopicList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<CourseWorkIDEntity> ::= <CourseWorkIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
-<CourseMaterialIDEntity> ::= <CourseMaterialIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
+<CalendarACLScopeEntity> ::=
+        <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CalendarEntity> ::=
+        <CalendarList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<ClassroomInvitationIDEntity> ::=
+        <ClassroomInvitationIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<ContactEntity> ::=
+        <ContactIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<ContactGroupEntity> ::=
+        <ContactGroupList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CourseAliasEntity> ::=
+        <CourseAliasList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CourseEntity> ::=
+        <CourseIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+<CourseAnnouncementIDEntity> ::=
+        <CourseAnnouncementIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
+<CourseSubmissionIDEntity> ::=
+        <CourseSubmissionIDList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
+<CourseTopicIDEntity> ::=
+        <CourseTopicIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
+<CourseWorkIDEntity> ::=
+        <CourseWorkIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
+<CourseMaterialIDEntity> ::=
+        <CourseMaterialIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>
 <CrOSEntity> ::=
         <CrOSIDList> | (cros_sn <SerialNumberList>) |
-        (query:<QueryCrOS>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryCrOS>)
-<DeviceEntity> ::=
+        (query:<QueryCrOS>) | (query:orgunitpath:<OrgUnitPath>) | (query <QueryCrOS>)
+<DataStudioAssetIDEntity> ::=
+        <DataStudioAssetIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DataStudioPermissionEntity> ::=
+        <DataStudioPermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DeviceIDEntity> ::=
         <DeviceIDList> | (device_sn <SerialNumber>)
-        (query:<QueryDevice>)|(query <QueryDevice>)
+        (query:<QueryDevice>) | (query <QueryDevice>)
 <DeviceFileEntity> ::=
         <TimeList> |
         (first|last|allexceptfirst|allexceptlast <Number>) |
         (before|after <Time>) | (range <Time> <Time>) |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<DomainNameEntity> ::= <DomainNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DomainNameEntity> ::=
+        <DomainNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFileIDEntity> ::=
         <DriveFileItem> |
         (id <DriveFileItem>) | (id:<DriveFileItem>) |
@@ -782,11 +807,62 @@ Specify a collection of items by directly specifying them; the item type is dete
         ownedby_any |
         ownedby_me |
         ownedby_others |
-        root|mydrive |
+        root | mydrive |
         rootwithorphans|mydrivewithorphans |
         sharedwithme_all |
         sharedwithme_mydrive |
         sharedwithme_notmydrive
+<DriveFileEntity> ::=
+        <DriveFileIDEntity> |
+        <DriveFileNameEntity> |
+        <DriveFileQueryEntity> |
+        <DriveFileQueryShortcut> |
+        root | mydrive |
+        <SharedDriveIDEntity> [<SharedDriveFileQueryShortcut>] |
+        <SharedDriveNameEntity> [<SharedDriveFileQueryShortcut>] |
+        <SharedDriveFileNameEntity> |
+        <SharedDriveFileQueryEntity> |
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)
+<DriveFilePermissionEntity> ::=
+        <DriveFilePermissionList> |
+        (json [charset <Charset>] <JSONData>) | (json file <FileName> [charset <Charset>]) |
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DriveFilePermissionIDEntity> ::=
+        <DriveFilePermissionIDList> |
+        (json [charset <Charset>] <JSONData>) | (json file <FileName> [charset <Charset>]) |
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DriveFileRevisionIDEntity> ::=
+        (<DriveFileRevisionID>) | (id[ |:]<DriveFileRevisionID>) (ids[ |:]<DriveFileRevisionIDList>)
+        (first|last|allexceptfirst|allexceptlast <Number>)|
+        (before|after <Time>) | (range <Time> <Time>)|
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<EmailAddressEntity> ::=
+        <EmailAddressList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<FilterIDEntity> ::=
+        <FilterIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<EventIDEntity> ::=
+        <EventIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<GroupEntity> ::=
+        <GroupList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<GuardianEntity> ::=
+        <GuardianList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<GuardianInvitationIDEntity> ::=
+        <GuardianInvitationIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<MessageIDEntity> ::=
+        <MessageIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<MobileEntity> ::=
+        <MobileIDList> |
+        (query:<QueryMobile>) | (query <QueryMobile>)
+<OrgUnitEntity> ::=
+        <OrgUnitList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+<PrinterIDEntity> ::=
+        <PrinterIDList> | <FileSelector> | <CSVFileSelector>
+<RecipientEntity> ::=
+        <EmailAddressEntity> | (select <UserTypeEntity>)
+<ResourceEntity> ::=
+        <ResourceIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+<SchemaEntity> ::=
+        <SchemaNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <SharedDriveIDEntity> ::=
         <DriveFileItem> |
         (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
@@ -807,55 +883,14 @@ Specify a collection of items by directly specifying them; the item type is dete
         (teamdrivequery <QueryDriveFile>) | (teamdrivequery:<QueryDriveFile>)
 <SharedDriveFileQueryShortcut> ::=
         all_files | all_folders | all_google_files | all_non_google_files | all_items
-<DriveFileEntity> ::=
-        <DriveFileIDEntity> |
-        <DriveFileNameEntity> |
-        <DriveFileQueryEntity> |
-        <DriveFileQueryShortcut> |
-        root | mydrive |
-        <SharedDriveIDEntity> [<SharedDriveFileQueryShortcut>] |
-        <SharedDriveNameEntity> [<SharedDriveFileQueryShortcut>] |
-        <SharedDriveFileNameEntity> |
-        <SharedDriveFileQueryEntity> |
-        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
-<DriveFilePermissionEntity> ::=
-        <DriveFilePermissionList> |
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
-        <FileSelector> |
-        <CSVFileSelector> |
-        <CSVkmdSelector> |
-        <CSVDataSelector>
-<DriveFilePermissionIDEntity> ::=
-        <DriveFilePermissionIDList> |
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
-        <FileSelector> |
-        <CSVFileSelector> |
-        <CSVkmdSelector> |
-        <CSVDataSelector>
-<DriveFileRevisionIDEntity> ::=
-        (<DriveFileRevisionID>) | (id <DriveFileRevisionID>) | (id:<DriveFileRevisionID>) | (ids <DriveFileRevisionIDList>) | (ids:<DriveFileRevisionIDList>) |
-        (first|last|allexceptfirst|allexceptlast <Number>) |
-        (before|after <Time>) | (range <Time> <Time>) |
-        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<EmailAddressEntity> ::= <EmailAddressList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<FilterIDEntity> ::= <FilterIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<GroupEntity> ::= <GroupList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<GuardianEntity> ::= <GuardianList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<GuardianInvitationIDEntity> ::= <GuardianInvitationIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<MessageIDEntity> ::= <MessageIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<MobileEntity> ::=
-        <MobileIDList> |
-        (query:<QueryMobile>)|(query <QueryMobile>)
-<OrgUnitEntity> ::= <OrgUnitList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
-<PrinterIDEntity> ::= <PrinterIDList> | <FileSelector> | <CSVFileSelector>
-<RecipientEntity> ::= <EmailAddressEntity> | (select <UserTypeEntity>)
-<ResourceEntity> ::= <ResourceIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
-<SchemaEntity> ::= <SchemaNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
-<SiteACLScopeEntity>::= <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<SiteEntity> ::= <SiteList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<SharedDriveEntity> ::= <SharedDriveID> | (teamdriveid <SharedDriveID>) | (teamdriveid:<SharedDriveID>) | (teamdrive <SharedDriveName>) | (teamdrive:<SharedDriveName>)
-<ThreadIDEntity> ::= <ThreadIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<UserEntity> ::= <UserList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<SiteACLScopeEntity> ::=
+        <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<SiteEntity> ::=
+        <SiteList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<ThreadIDEntity> ::=
+        <ThreadIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<UserEntity> ::=
+        <UserList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 # Meta Commands
 
@@ -1059,7 +1094,7 @@ gam whatis <EmailItem> [noinfo]
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
 <CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
-<CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CalendarACLScopeEntity> ::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 gam calendars <CalendarEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam calendars <CalendarEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
@@ -3192,7 +3227,7 @@ gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
 <CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
-<CalendarACLScopeEntity>::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CalendarACLScopeEntity> ::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 gam resource <ResourceID> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam resource <ResourceID> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
@@ -3259,7 +3294,7 @@ gam <UserTypeEntity> sendemail [recipient|to <RecipientEntity>]
 
 <SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteACLScopeList> ::= "<SiteACLScope>(,<SiteACLScope>)*"
-<SiteACLScopeEntity>::= <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<SiteACLScopeEntity> ::= <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 <SiteAttribute> ::=
         (categories <String>)|
@@ -4004,7 +4039,7 @@ gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttrib
         <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
 <CalendarACLScopeList> ::=
         <CalendarACLScope>(,<CalendarACLScope>)*
-<CalendarACLScopeEntity>::=
+<CalendarACLScopeEntity> ::=
         <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 <CalendarEmailNotificatonEventType> ::=
@@ -4213,6 +4248,53 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
         (updatestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)*
         (updateentitystatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)*
 
+# Users - Data Studuo
+
+<DataStudioPermission> ::=
+        user:<EmailAddress>|
+        group:<emailAddress>|
+        domain:<DomainName>|
+        serviceAccount:<EmailAddress>
+<DataStudioPermissionList> ::= "<DataStudioPermission>(,<DataStudioPermission>)*"
+<DataStudioPermissionEntity> ::= <DataStudioPermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+
+gam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
+        [([assettype report|datasource] [title <String>]
+          [owner <Emailddress>] [includetrashed])]
+        [orderby title [ascending|descending]]
+        [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> show datastudioassets
+        [([assettype report|datasource] [title <String>]
+          [owner <Emailddress>] [includetrashed])]
+        [orderby title [ascending|descending]]
+        [formatjson]
+
+gam <UserTypeEntity> add datastudiopermissions
+        [([assettype report|datasource] [title <String>]
+          [owner <Emailddress>] [includetrashed]) |
+         (assetids <DataStudioAssetIDEntity>)]
+        (role editor|owner|viewer members <DataStudioPermissionsEntity>)+
+        [nodetails]
+gam <UserTypeEntity> delete datastudiopermissions
+        [([assettype report|datasource] [title <String>]
+          [owner <Emailddress>] [includetrashed]) |
+         (assetids <DataStudioAssetIDEntity>)]
+        members <DataStudioPermissionsEntity>
+        [nodetails]
+
+gam <UserTypeEntity> print datastudiopermissions [todrive <ToDriveAttribute>*]
+        [([assettype report|datasource] [title <String>]
+          [owner <Emailddress>] [includetrashed]) |
+         (assetids <DataStudioAssetIDEntity>)]
+        [role editor|owner|viewer]
+        [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> show datastudiopermissions
+        [([assettype report|datasource] [title <String>]
+          [owner <Emailddress>] [includetrashed]) |
+         (assetids <DataStudioAssetIDEntity>)]
+        [role editor|owner|viewer]
+        [formatjson]
+
 # Users - Drive
 
 <DriveFileOrderByFieldName> ::=
@@ -4262,7 +4344,7 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
         (indexabletext <String>)|
         (keeprevisionforever|pinned)|
         (lastviewedbyme <Time>)|
-        (localfile <FileName>)|
+        (localfile <FileName>|-)|
         (mimetype <MimeType>)|
         (ocrlanguage <Language>)|
         (preservefiletimes [<Boolean>])|
@@ -4351,7 +4433,7 @@ gam <UserTypeEntity> get document <DriveFileEntity>
 
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>]
         [(format <FileFormatList>)|(gsheet|csvsheet <SheetEntity>)] [exportsheetaspdf <String>]
-        [targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
+        [targetfolder <FilePath>] [targetname <FileName>|-] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
 gam <UserTypeEntity> purge drivefile <DriveFileEntity>

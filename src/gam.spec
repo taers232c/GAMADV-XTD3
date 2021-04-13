@@ -11,6 +11,7 @@ extra_files = [
     ('cbcm-v1.1beta1.json', '.'),
     ('contacts-v3.json', '.'),
     ('contactdelegation-v1.json', '.'),
+    ('datastudio-v1.json', '.'),
     ('sites-v1.json', '.'),
     ('versionhistory-v1.json', '.')
     ]

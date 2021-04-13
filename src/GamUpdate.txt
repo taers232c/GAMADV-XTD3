@@ -1,3 +1,17 @@
+6.02.00
+
+Following Jay's lead, aliases are converted to primary email addresses when adding delegates.
+
+Added commands to display Data Studio assets and display/manage Data Studio permissions.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-DataStudio
+
+To use these commands you must add the 'Data Studio API' to your project and update your service account authorization.
+```
+gam update project
+gam user user@domain.com check serviceaccount
+```
+This is a first release from me, experiment and use with caution.
+
 6.01.09
 
 Added support for `localfile -` in `gam <UserTypeEntity> create|update drivefile` which allows
