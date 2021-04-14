@@ -4273,13 +4273,13 @@ gam <UserTypeEntity> add datastudiopermissions
         [([assettype report|datasource] [title <String>]
           [owner <Emailddress>] [includetrashed]) |
          (assetids <DataStudioAssetIDEntity>)]
-        (role editor|owner|viewer members <DataStudioPermissionsEntity>)+
+        (role editor|owner|viewer members <DataStudioPermissionEntity>)+
         [nodetails]
 gam <UserTypeEntity> delete datastudiopermissions
         [([assettype report|datasource] [title <String>]
           [owner <Emailddress>] [includetrashed]) |
          (assetids <DataStudioAssetIDEntity>)]
-        members <DataStudioPermissionsEntity>
+        members <DataStudioPermissionEntity>
         [nodetails]
 
 gam <UserTypeEntity> print datastudiopermissions [todrive <ToDriveAttribute>*]

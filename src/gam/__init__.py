@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.02.00'
+__version__ = '6.02.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -47059,7 +47059,7 @@ def processDataStudioPermissions(users):
     if getDataStudioAssetSelectionParameters(myarg, parameters):
       pass
     elif myarg in {'assetid', 'assetids'}:
-      assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSET_ID)
+      assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
     elif action == Act.ADD and myarg == 'role':
       permissions.setdefault('permissions', {})
       role = getChoice(DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)

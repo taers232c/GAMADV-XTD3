@@ -1,3 +1,7 @@
+6.02.01
+
+Fixed bug in `gam <UserTypeEntity> add datastudiopermissions` that caused a trap.
+
 6.02.00
 
 Following Jay's lead, aliases are converted to primary email addresses when adding delegates.
@@ -5,7 +9,7 @@ Following Jay's lead, aliases are converted to primary email addresses when addi
 Added commands to display Data Studio assets and display/manage Data Studio permissions.
 * https://github.com/taers232c/GAMADV-XTD3/wiki/Users-DataStudio
 
-To use these commands you must add the 'Data Studio API' to your project and update your service account authorization.
+To use these commands you must add the `Data Studio API` to your project and update your service account authorization.
 ```
 gam update project
 gam user user@domain.com check serviceaccount
