@@ -1,3 +1,10 @@
+6.02.03
+
+Added optional argument `convertalias` to all commands that manipulate Gmail delegates.
+If not specified, the extra API call introduced in 6.02.00 to convert potential delegate email aliases
+to primary email addresses is not performed; if you specify an alias as a delegate, the command will fail.
+If you know that all of the delegate email addresses are primary, you can omit `convertalias` and avoid the extra API calls.
+
 6.02.02
 
 Thanks to Jay's assistance in getting a Data Studio API discovery document,

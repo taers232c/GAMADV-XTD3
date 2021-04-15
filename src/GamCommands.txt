@@ -4944,10 +4944,10 @@ gam <UserTypeEntity> deprovision|deprov [popimap] [signout] [turnoff2sv]
 
 # Users - Gmail - Delegates
 
-gam <UserTypeEntity> delegate to <UserEntity>
-gam <UserTypeEntity> create|add delegate|delegates <UserEntity>
-gam <UserTypeEntity> delete delegate|delegates <UserEntity>
-gam <UserTypeEntity> update delegate|delegates [<UserEntity>]
+gam <UserTypeEntity> delegate to [convertalias] <UserEntity>
+gam <UserTypeEntity> create|add delegate|delegates [convertalias] <UserEntity>
+gam <UserTypeEntity> delete delegate|delegates [convertalias] <UserEntity>
+gam <UserTypeEntity> update delegate|delegates [convertalias] [<UserEntity>]
 gam <UserTypeEntity> show delegates|delegate [shownames] [csv]
 gam <UserTypeEntity> print delegates|delegate [todrive <ToDriveAttribute>*] [shownames]
 

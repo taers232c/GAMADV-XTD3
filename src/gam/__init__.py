@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.02.02'
+__version__ = '6.02.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -50629,17 +50629,17 @@ def printShowMessages(users):
 def printShowThreads(users):
   printShowMessagesThreads(users, Ent.THREAD)
 
-# gam <UserTypeEntity> create|add delegate|delegates <UserEntity>
-# gam <UserTypeEntity> delete delegate|delegates <UserEntity>
+# gam <UserTypeEntity> create|add delegate|delegates [convertalias] <UserEntity>
+# gam <UserTypeEntity> delete delegate|delegates [convertalias] <UserEntity>
 def processDelegates(users):
   cd = buildGAPIObject(API.DIRECTORY)
   function = 'delete' if Act.Get() == Act.DELETE else 'create'
+  aliasAllowed = not checkArgumentPresent(['convertalias'])
   delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user = convertUIDtoEmailAddress(user, cd=cd, aliasAllowed=False)
     user, gmail, delegates, jcount = _validateUserGetObjectList(user, i, count, delegateEntity)
     if jcount == 0:
       continue
@@ -50647,7 +50647,7 @@ def processDelegates(users):
     j = 0
     for delegate in delegates:
       j += 1
-      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd, aliasAllowed=False)
+      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd, aliasAllowed=aliasAllowed)
       try:
         if function == 'create':
           callGAPI(gmail.users().settings().delegates(), function,
@@ -50665,15 +50665,16 @@ def processDelegates(users):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     Ind.Decrement()
 
-# gam <UserTypeEntity> delegate to <UserEntity>
+# gam <UserTypeEntity> delegate to [convertalias] <UserEntity>
 def delegateTo(users):
   checkArgumentPresent('to', required=True)
   processDelegates(users)
 
-# gam <UserTypeEntity> update delegate|delegates [<UserEntity>]
+# gam <UserTypeEntity> update delegate|delegates [convertalias] [<UserEntity>]
 def updateDelegates(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  aliasAllowed = not checkArgumentPresent(['convertalias'])
   if Cmd.ArgumentsRemaining():
-    cd = buildGAPIObject(API.DIRECTORY)
     delegateEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DELEGATE)
     checkForExtraneousArguments()
   else:
@@ -50707,7 +50708,7 @@ def updateDelegates(users):
     for delegate in delegates:
       j += 1
       if delegateEntity is not None or delegate['verificationStatus'] == 'accepted':
-        delegateEmail = delegate['delegateEmail'] if delegateEntity is None else convertUIDtoEmailAddress(delegate, cd=cd)
+        delegateEmail = delegate['delegateEmail'] if delegateEntity is None else convertUIDtoEmailAddress(delegate, cd=cd, aliasAllowed=aliasAllowed)
         try:
           callGAPI(gmail.users().settings().delegates(), 'create',
                    throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
