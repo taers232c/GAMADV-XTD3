@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.02.01'
+__version__ = '6.02.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -46913,6 +46913,18 @@ def _validateUserGetDataStudioAssetIds(user, i, count, entity):
     return (user, None, None, 0)
   return (user, ds, entityList, len(entityList))
 
+def _getDataStudioAssetByID(ds, user, i, count, assetId):
+  printGettingAllEntityItemsForWhom(Ent.DATASTUDIO_ASSET, user, i, count)
+  try:
+    return callGAPI(ds.assets(), 'get',
+                    throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
+                    name=f'assets/{assetId}')
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.permissionDenied) as e:
+    entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+  except GAPI.serviceNotAvailable:
+    entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  return None
+
 def _getDataStudioAssets(ds, user, i, count, parameters, fields, orderBy=None):
   printGettingAllEntityItemsForWhom(Ent.DATASTUDIO_ASSET, user, i, count)
   try:
@@ -46934,13 +46946,15 @@ DATASTUDIO_ASSETS_TIME_OBJECTS = ['updateTime', 'updateByMeTime', 'createTime', 
 
 # gam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
 #	[([assettype report|datasource] [title <String>]
-#	  [owner <Emailddress>] [includetrashed])]
-#	[orderby title [ascending|descending]]
+#	  [owner <Emailddress>] [includetrashed]
+#	  [orderby title [ascending|descending]]) |
+#	 (assetids <DataStudioAssetIDEntity>)]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show datastudioassets
 #	[([assettype report|datasource] [title <String>]
-#	  [owner <Emailddress>] [includetrashed])]
-#	[orderby title [ascending|descending]]
+#	  [owner <Emailddress>] [includetrashed]
+#	  [orderby title [ascending|descending]]) |
+#	 (assetids <DataStudioAssetIDEntity>)]
 #	[formatjson]
 def printShowDataStudioAssets(users):
   def _printAsset(asset, user):
@@ -46964,10 +46978,13 @@ def printShowDataStudioAssets(users):
   FJQC = FormatJSONQuoteChar(csvPF)
   OBY = OrderBy(DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP)
   parameters = initDataStudioAssetSelectionParameters()
+  assetIdEntity = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if getDataStudioAssetSelectionParameters(myarg, parameters):
       pass
+    elif myarg in {'assetid', 'assetids'}:
+      assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
     elif myarg == 'orderby':
       OBY.GetChoice()
     else:
@@ -46975,12 +46992,13 @@ def printShowDataStudioAssets(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, ds = buildGAPIServiceObject(API.DATASTUDIO, user, i, count)
+    user, ds, assets, jcount = _validateUserGetDataStudioAssetIds(user, i, count, assetIdEntity)
     if not ds:
       continue
-    assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, 'nextPageToken,assets', OBY.orderBy)
-    if assets is None:
-      continue
+    if assetIdEntity is None:
+      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, 'nextPageToken,assets', OBY.orderBy)
+      if assets is None:
+        continue
     if not csvPF:
       if not FJQC.formatJSON:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DATASTUDIO_ASSET, i, count)
@@ -46988,11 +47006,17 @@ def printShowDataStudioAssets(users):
       j = 0
       for asset in assets:
         j += 1
-        _showAsset(asset)
+        if assetIdEntity:
+          asset = _getDataStudioAssetByID(ds, user, i, count, asset['name'])
+        if asset:
+          _showAsset(asset)
       Ind.Decrement()
     else:
       for asset in assets:
-        _printAsset(asset, user)
+        if assetIdEntity:
+          asset = _getDataStudioAssetByID(ds, user, i, count, asset['name'])
+        if asset:
+          _printAsset(asset, user)
   if csvPF:
     csvPF.writeCSVfile('Data Studio Assets')
 
@@ -47014,16 +47038,22 @@ def _showDataStudioPermissions(user, asset, permissions, j, jcount, FJQC):
           printKeyValueList([lrole, member])
         Ind.Decrement()
 
-DATASTUDIO_PERMISSION_FUNCTION_CHOICE_MAP = {
-  Act.ADD: 'addMembers',
-  Act.DELETE: 'revokeAllPermissions',
-  Act.UPDATE: 'patch'
-  }
-
-DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP = {
+DATASTUDIO_VIEW_PERMISSION_ROLE_CHOICE_MAP = {
   'editor': 'EDITOR',
   'owner': 'OWNER',
-  'viewer': 'VIEWER'
+  'viewer': 'VIEWER',
+  }
+
+DATASTUDIO_ADD_UPDATE_PERMISSION_ROLE_CHOICE_MAP = {
+  'editor': 'EDITOR',
+  'viewer': 'VIEWER',
+  }
+
+DATASTUDIO_DELETE_PERMISSION_ROLE_CHOICE_MAP = {
+  'any': None,
+  'editor': None,
+  'owner': None,
+  'viewer': None,
   }
 
 DATASTUDIO_PERMISSION_MODIFIER_MAP = {
@@ -47034,21 +47064,29 @@ DATASTUDIO_PERMISSION_MODIFIER_MAP = {
 
 # gam <UserTypeEntity> add datastudiopermissions
 #	[([assettype report|datasource] [title <String>]
-#	  [owner <Emailddress>] [includetrashed]) |
+#	  [owner <Emailddress>] [includetrashed]
+#	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
-#	(role editor|owner|viewer members <DataStudioPermissionEntity>)+
+#	(role editor|viewer <DataStudioPermissionEntity>)+
 #	[nodetails]
 # gam <UserTypeEntity> delete datastudiopermissions
 #	([[assettype report|datasource] [title <String>]
-#	  [owner <Emailddress>] [includetrashed]) |
+#	  [owner <Emailddress>] [includetrashed]
+#	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
-#	members <DataStudioPermissionEntity>
+#	(role any <DataStudioPermissionEntity>)+
+#	[nodetails]
+# gam <UserTypeEntity> update datastudiopermissions
+#	[([assettype report|datasource] [title <String>]
+#	  [owner <Emailddress>] [includetrashed]
+#	  [orderby title [ascending|descending]]) |
+#	 (assetids <DataStudioAssetIDEntity>)]
+#	(role editor|viewer <DataStudioPermissionEntity>)+
 #	[nodetails]
 def processDataStudioPermissions(users):
   action = Act.Get()
   if action == Act.CREATE:
     action = Act.ADD
-  function = DATASTUDIO_PERMISSION_FUNCTION_CHOICE_MAP[action]
   modifier = DATASTUDIO_PERMISSION_MODIFIER_MAP[action]
   parameters = initDataStudioAssetSelectionParameters()
   permissions = {}
@@ -47060,19 +47098,12 @@ def processDataStudioPermissions(users):
       pass
     elif myarg in {'assetid', 'assetids'}:
       assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
-    elif action == Act.ADD and myarg == 'role':
+    elif myarg == 'role':
       permissions.setdefault('permissions', {})
-      role = getChoice(DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
-      permissions['permissions'].setdefault(role, {'members': []})
-      permissions['permissions'][role]['members'].extend(getEntityList(Cmd.OB_DATASTUDIO_ASSET_MEMBERS_ENTITY))
-    elif action == Act.UPDATE and myarg == 'role':
-      permissions.setdefault('permissions', {})
-      role = getChoice(DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
-      permissions['permissions'].setdefault(role, {'members': []})
-      permissions['permissions'][role]['members'].extend(getEntityList(Cmd.OB_DATASTUDIO_ASSET_MEMBERS_ENTITY))
-    elif action == Act.DELETE and myarg == 'members':
-      permissions.setdefault('permissions', {})
-      role = None
+      if action in {Act.ADD, Act.UPDATE}:
+        role = getChoice(DATASTUDIO_ADD_UPDATE_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
+      else:
+        role = getChoice(DATASTUDIO_DELETE_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
       permissions['permissions'].setdefault(role, {'members': []})
       permissions['permissions'][role]['members'].extend(getEntityList(Cmd.OB_DATASTUDIO_ASSET_MEMBERS_ENTITY))
     elif myarg == 'nodetails':
@@ -47099,17 +47130,17 @@ def processDataStudioPermissions(users):
     for asset in assets:
       j += 1
       for role in permissions['permissions']:
-        if action == Act.ADD:
-          body = {'name': asset['name'], 'role': role, 'members': permissions['permissions'][role]['members']}
-        elif action == Act.DELETE:
-          body = {'name': asset['name'], 'members': permissions['permissions'][role]['members']}
-        else: #elif action == Act.UPDATE
-          body = {'name': asset['name']}
-          body.update(permissions)
         try:
-          results = callGAPI(ds.permissions(), function,
-                             throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
-                             assetId=asset['name'], body=body)
+          body = {'name': asset['name'], 'members': permissions['permissions'][role]['members']}
+          if action in {Act.DELETE, Act.UPDATE}:
+            results = callGAPI(ds.assets().permissions(), 'revokeAllPermissions',
+                               throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
+                               name=asset['name'], body=body)
+          if action in {Act.ADD, Act.UPDATE}:
+            body['role'] = role
+            results = callGAPI(ds.assets().permissions(), 'addMembers',
+                               throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
+                               name=asset['name'], body=body)
           entityActionPerformed([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title'], Ent.DATASTUDIO_PERMISSION, ''], j, jcount)
           if showDetails:
             _showDataStudioPermissions(user, asset, results, j, jcount, None)
@@ -47122,13 +47153,15 @@ def processDataStudioPermissions(users):
 
 # gam <UserTypeEntity> print datastudiopermissions [todrive <ToDriveAttribute>*]
 #	[([assettype report|datasource] [title <String>]
-#	  [owner <Emailddress>] [includetrashed]) |
+#	  [owner <Emailddress>] [includetrashed]
+#	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
 #	[role editor|owner|viewer]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show datastudiopermissions
 #	[([assettype report|datasource] [title <String>]
-#	  [owner <Emailddress>] [includetrashed]) |
+#	  [owner <Emailddress>] [includetrashed]
+#	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)[
 #	[role editor|owner|viewer]
 #	[formatjson]
@@ -47155,7 +47188,7 @@ def printShowDataStudioPermissions(users):
     elif myarg in {'assetid', 'assetids'}:
       assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
     elif myarg == 'role':
-      role = getChoice(DATASTUDIO_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
+      role = getChoice(DATASTUDIO_VIEW_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
     elif myarg == 'delimiter':
       delimiter = getCharacter()
     else:
@@ -47176,9 +47209,9 @@ def printShowDataStudioPermissions(users):
     for asset in assets:
       j += 1
       try:
-        permissions = callGAPI(ds.permissions(), 'get',
+        permissions = callGAPI(ds.assets(), 'getPermissions',
                                throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
-                               assetId=asset['name'], role=role, fields='permissions')
+                               name=asset['name'], role=role)
       except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title']], str(e), j, jcount)
         continue
@@ -53521,7 +53554,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CONTACT:		updateUserContacts,
       Cmd.ARG_CONTACTGROUP:	updateUserContactGroup,
       Cmd.ARG_CONTACTPHOTO:	updateUserContactPhoto,
-#      Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
+      Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
       Cmd.ARG_DELEGATE:		updateDelegates,
       Cmd.ARG_DRIVEFILE:	updateDriveFile,
       Cmd.ARG_DRIVEFILEACL:	updateDriveFileACLs,

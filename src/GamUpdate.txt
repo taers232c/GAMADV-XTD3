@@ -1,3 +1,9 @@
+6.02.02
+
+Thanks to Jay's assistance in getting a Data Studio API discovery document,
+updated the Data Studio permissions commands.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-DataStudio
+
 6.02.01
 
 Fixed bug in `gam <UserTypeEntity> add datastudiopermissions` that caused a trap.
