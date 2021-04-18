@@ -76,7 +76,7 @@ IAM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
 USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile' # profile
 VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
-REQUIRED_SCOPES = ['email', 'profile']
+REQUIRED_SCOPES = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile']
 REQUIRED_SCOPES_SET = set(REQUIRED_SCOPES)
 #
 REFRESH_PERM_ERRORS = [

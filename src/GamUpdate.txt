@@ -1,3 +1,10 @@
+6.02.04
+
+Updated code to handle the following error:
+```
+ERROR: Authentication Token Error - Not all requested scopes were granted by the authorization server, missing scopes , https://sites.google.com/feeds, email, https://www.google.com/m8/feeds, profile.
+```
+
 6.02.03
 
 Added optional argument `convertalias` to all commands that manipulate Gmail delegates.

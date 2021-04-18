@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.02.03'
+__version__ = '6.02.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3508,6 +3508,8 @@ def SetGlobalVariables():
     os.environ['SSL_CERT_FILE'] = GC.Values[GC.CACERTS_PEM]
     httplib2.CA_CERTS = GC.Values[GC.CACERTS_PEM]
     return True
+# Needs to be set so oauthlib doesn't puke when Google changes our scopes
+  os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
 # We're done, nothing else to do
   return False
 
