@@ -3633,7 +3633,7 @@ def handleOAuthTokenError(e, softErrors):
   stderrErrorMsg(f'Authentication Token Error - {errMsg}')
   APIAccessDeniedExit()
 
-def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False):
+def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnly=False):
   if not noDASA and GC.Values[GC.ENABLE_DASA]:
     jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=False)
     if jsonData:
@@ -3653,13 +3653,15 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False):
     try:
       jsonDict = json.loads(jsonData)
       if 'client_id' in jsonDict:
-        scopesList = jsonDict.get('scopes', API.REQUIRED_SCOPES)
-        if set(scopesList) == API.REQUIRED_SCOPES_SET:
-          if exitOnError:
-            systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
-          return (None, None)
+        if not refreshOnly:
+          if set(jsonDict.get('scopes', API.REQUIRED_SCOPES)) == API.REQUIRED_SCOPES_SET:
+            if exitOnError:
+              systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
+            return (None, None)
+        else:
+          GM.Globals[GM.CREDENTIALS_SCOPES] = set(jsonDict.pop('scopes', API.REQUIRED_SCOPES))
         token_expiry = jsonDict.get('token_expiry', REFRESH_EXPIRY)
-        creds = google.oauth2.credentials.Credentials.from_authorized_user_file(GC.Values[GC.OAUTH2_TXT], scopesList)
+        creds = google.oauth2.credentials.Credentials.from_authorized_user_info(jsonDict)
         if 'id_token_jwt' not in jsonDict:
           creds.token = jsonDict['token']
           creds._id_token = jsonDict['id_token']
@@ -3680,11 +3682,15 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False):
         else:
           importCredentials = jsonDict['credentials'][API.GAM_SCOPES]
         if importCredentials:
-          scopesList = importCredentials.get('scopes', API.REQUIRED_SCOPES)
-          if set(scopesList) == API.REQUIRED_SCOPES_SET:
-            if exitOnError:
-              systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
-            return (None, None)
+          if not refreshOnly:
+            scopesList = importCredentials.get('scopes', API.REQUIRED_SCOPES)
+            if set(scopesList) == API.REQUIRED_SCOPES_SET:
+              if exitOnError:
+                systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
+              return (None, None)
+          else:
+            GM.Globals[GM.CREDENTIALS_SCOPES] = set(importCredentials.pop('scopes', API.REQUIRED_SCOPES))
+            scopesList = None
           info = {
             'client_id': importCredentials['client_id'],
             'client_secret': importCredentials['client_secret'],
@@ -3709,7 +3715,7 @@ def _getValueFromOAuth(field, credentials=None):
   if not GM.Globals[GM.DECODED_ID_TOKEN]:
     request = transportCreateRequest()
     if credentials is None:
-      credentials = getClientCredentials()
+      credentials = getClientCredentials(refreshOnly=True)
     elif credentials.expired:
       credentials.refresh(request)
     GM.Globals[GM.DECODED_ID_TOKEN] = google.oauth2.id_token.verify_oauth2_token(credentials.id_token, request)
@@ -3726,7 +3732,7 @@ def writeClientCredentials(creds, filename):
     'client_secret': creds.client_secret,
     'id_token': creds.id_token,
     'refresh_token': creds.refresh_token,
-    'scopes': sorted(creds.scopes),
+    'scopes': sorted(creds.scopes or GM.Globals[GM.CREDENTIALS_SCOPES]),
     'token': creds.token,
     'token_expiry': creds.expiry.strftime(YYYYMMDDTHHMMSSZ_FORMAT),
     'token_uri': creds.token_uri,
@@ -3747,13 +3753,13 @@ def writeClientCredentials(creds, filename):
   else:
     writeStdout(json.dumps(creds_data, ensure_ascii=False, sort_keys=True, indent=2)+'\n')
 
-def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, api=None, noDASA=False):
+def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, api=None, noDASA=False, refreshOnly=False):
   """Gets OAuth2 credentials which are guaranteed to be fresh and valid.
      Locks during read and possible write so that only one process will
      attempt refresh/write when running in parallel. """
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
-    writeCreds, credentials = getOauth2TxtCredentials(api=api, noDASA=noDASA)
+    writeCreds, credentials = getOauth2TxtCredentials(api=api, noDASA=noDASA, refreshOnly=refreshOnly)
     if not credentials:
       invalidOauth2TxtExit()
     if credentials.expired or forceRefresh:
@@ -3909,7 +3915,7 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
 
 def getGDataOAuthToken(gdataObj, credentials=None):
   if not credentials:
-    credentials = getClientCredentials()
+    credentials = getClientCredentials(refreshOnly=True)
   try:
     credentials.refresh(transportCreateRequest())
   except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
@@ -4441,7 +4447,7 @@ def readDiscoveryFile(api_version):
     invalidDiscoveryJsonExit(disc_file)
 
 def buildGAPIObject(api):
-  credentials = getClientCredentials(api=api)
+  credentials = getClientCredentials(api=api, refreshOnly=True)
   httpObj = transportAuthorizedHttp(credentials, http=getHttpObj(cache=GM.Globals[GM.CACHE_DIR]))
   service = getService(api, httpObj)
   if not GC.Values[GC.ENABLE_DASA]:
@@ -4450,7 +4456,7 @@ def buildGAPIObject(api):
     except KeyError:
       API_Scopes = set(API.VAULT_SCOPES) if api == API.VAULT else set()
     GM.Globals[GM.CURRENT_CLIENT_API] = api
-    GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API_Scopes.intersection(credentials.scopes)
+    GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API_Scopes.intersection(GM.Globals[GM.CREDENTIALS_SCOPES])
     if api not in {API.OAUTH2, API.CHROMEVERSIONHISTORY} and not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
       systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
     if not GC.Values[GC.DOMAIN]:
@@ -4502,8 +4508,8 @@ def buildGAPIObjectNoAuthentication(api):
 
 def initGDataObject(gdataObj, api):
   GM.Globals[GM.CURRENT_CLIENT_API] = api
-  credentials = getClientCredentials(noDASA=True)
-  GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API.getClientScopesSet(api).intersection(credentials.scopes)
+  credentials = getClientCredentials(noDASA=True, refreshOnly=True)
+  GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = API.getClientScopesSet(api).intersection(GM.Globals[GM.CREDENTIALS_SCOPES])
   if not GM.Globals[GM.CURRENT_CLIENT_API_SCOPES]:
     systemErrorExit(NO_SCOPES_FOR_API_RC, Msg.NO_SCOPES_FOR_API.format(API.getAPIName(api)))
   getGDataOAuthToken(gdataObj, credentials)

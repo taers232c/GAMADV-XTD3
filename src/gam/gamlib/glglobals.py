@@ -37,6 +37,8 @@ CACHE_DISCOVERY_ONLY = 'gcdo'
 CLASSROOM_SERVICE_NOT_AVAILABLE = 'csna'
 # Convert to local time
 CONVERT_TO_LOCAL_TIME = 'ctlt'
+# Credentials scopes
+CREDENTIALS_SCOPES = 'crsc'
 # csvfile keyfield <FieldName> [delimiter <Character>] (matchfield <FieldName> <MatchPattern>)* [datafield <FieldName>(:<FieldName>*) [delimiter <String>]]
 # { key: [datafieldvalues]}
 CSV_DATA_DICT = 'csdd'
@@ -173,6 +175,7 @@ Globals = {
   CACHE_DISCOVERY_ONLY: True,
   CLASSROOM_SERVICE_NOT_AVAILABLE: False,
   CONVERT_TO_LOCAL_TIME: False,
+  CREDENTIALS_SCOPES: set(),
   CSV_DATA_DICT: {},
   CSV_KEY_FIELD: None,
   CSV_SUBKEY_FIELD: None,
