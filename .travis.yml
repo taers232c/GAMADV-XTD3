@@ -10,7 +10,7 @@ env:
     - BUILD_OPENSSL_VERSION=1.1.1k
     - MIN_OPENSSL_VERSION=1.1.1i
     - PATCHELF_VERSION=0.12
-    - PYINSTALLER_COMMIT=40c9abce2d8de879e414fd377c933dccaab1e156
+    - PYINSTALLER_COMMIT=e20e74c03768d432d48665b8ef1e02511b16e4be
 cache:
   directories:
     - $HOME/.cache/pip
