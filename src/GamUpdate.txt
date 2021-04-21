@@ -1,3 +1,25 @@
+6.03.00
+
+As the Contacts API is being deprecated in June, additional support for the People API has been added.
+This is the first step of many required to make the transition.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/People
+
+The existing commands `get profilephoto`, `print|show peopleprofile` have been changed to use
+Service Account Access to avoid having to make additional Directory API calls to convert the user email address to the people ID.
+
+To use these features you must add the `People API` to your project and authorize the appropriate scopes:
+* `Client Access` - `People Directory API - read only`.
+* `Service Account Access`
+  * `People Directory API - read only`: https://www.googleapis.com/auth/directory.readonly
+  * `OAuth2 API`: https://www.googleapis.com/auth/userinfo.profile
+```
+gam update project
+gam oauth create
+gam user user@domain.com check serviceaccount
+```
+
+Following Jay's lead, added new license SKU `Cloud Search`.
+
 6.02.04
 
 Updated code to handle the following error:

@@ -17,7 +17,11 @@ cd ~
 
 # Use official Python.org version of Python which is backwards compatible
 # with older MacOS versions
-export pyfile=python-$BUILD_PYTHON_VERSION-macosx10.9.pkg
+if [ "$PLATFORM" == "x86_64" ]; then
+  export pyfile=python-$BUILD_PYTHON_VERSION-macosx10.9.pkg
+else
+  export pyfile=python-$BUILD_PYTHON_VERSION-macos11.pkg
+fi
 /bin/rm -f $pyfile
 
 wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$pyfile

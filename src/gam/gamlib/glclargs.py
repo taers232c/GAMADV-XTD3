@@ -512,6 +512,7 @@ class GamCLArgs():
   ARG_OUTREE = 'outree'
   ARG_OWNERSHIP = 'ownership'
   ARG_PARTICIPANTS = 'participants'
+  ARG_PEOPLE = 'people'
   ARG_PEOPLEPROFILE = 'peopleprofile'
   ARG_PERMISSION = 'permission'
   ARG_PERMISSIONS = 'permissions'

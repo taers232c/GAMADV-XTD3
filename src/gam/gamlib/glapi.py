@@ -51,6 +51,7 @@ IAP = 'iap'
 LICENSING = 'licensing'
 OAUTH2 = 'oauth2'
 PEOPLE = 'people'
+PEOPLE_DIRECTORY = 'peopledirectory'
 PRINTERS = 'printers'
 PUBSUB = 'pubsub'
 REPORTS = 'reports'
@@ -76,7 +77,7 @@ IAM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
 USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile' # profile
 VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
-REQUIRED_SCOPES = ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile']
+REQUIRED_SCOPES = [USERINFO_EMAIL_SCOPE, USERINFO_PROFILE_SCOPE]
 REQUIRED_SCOPES_SET = set(REQUIRED_SCOPES)
 #
 REFRESH_PERM_ERRORS = [
@@ -164,6 +165,7 @@ _INFO = {
   LICENSING: {'name': 'License Manager API', 'version': 'v1', 'v2discovery': True},
   OAUTH2: {'name': 'OAuth2 API', 'version': 'v2', 'v2discovery': False},
   PEOPLE: {'name': 'People API', 'version': 'v1', 'v2discovery': True},
+  PEOPLE_DIRECTORY: {'name': 'People Directory API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'people'},
   PRINTERS: {'name': 'Directory API Printers', 'version': 'directory_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   PUBSUB: {'name': 'Pub / Sub API', 'version': 'v1', 'v2discovery': True},
   REPORTS: {'name': 'Reports API', 'version': 'reports_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
@@ -322,6 +324,10 @@ _CLIENT_SCOPES = [
    'api': PEOPLE,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/contacts'},
+  {'name': 'People Directory API - read only',
+   'api': PEOPLE_DIRECTORY,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/directory.readonly'},
   {'name': 'Directory API - Printers',
    'api': PRINTERS,
    'subscopes': READONLY,
@@ -456,10 +462,18 @@ _SVCACCT_SCOPES = [
    'api': IAM,
    'subscopes': [],
    'scope': IAM_SCOPE},
+  {'name': 'OAuth2 API',
+   'api': OAUTH2,
+   'subscopes': [],
+   'scope': USERINFO_PROFILE_SCOPE},
   {'name': 'People API',
    'api': PEOPLE,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/contacts'},
+  {'name': 'People Directory API - read only',
+   'api': PEOPLE_DIRECTORY,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/directory.readonly'},
   {'name': 'Sheets API',
    'api': SHEETS,
    'subscopes': READONLY,

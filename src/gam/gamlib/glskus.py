@@ -29,6 +29,7 @@ _PRODUCTS = {
   '101031': 'G Suite Workspace for Education',
   '101033': 'Google Voice',
   '101034': 'G Suite Archived',
+  '101035': 'Cloud Search',
   '101037': 'G Suite Workspace for Education',
   'Google-Apps': 'Google Workspace',
   'Google-Chrome-Device-Management': 'Google Chrome Device Management',
@@ -62,6 +63,8 @@ _SKUS = {
     'product': '101033', 'aliases': ['gvstandard', 'voicestandard', 'googlevoicestandard'], 'displayName': 'Google Voice Standard'},
   '1010330002': {
     'product': '101033', 'aliases': ['gvpremier', 'voicepremier', 'googlevoicepremier'], 'displayName': 'Google Voice Premier'},
+  '1010350001': {
+    'product': '101035', 'aliases': ['cloudsearch'], 'displayName': 'Cloud Search'},
   '1010370001': {
     'product': '101037', 'aliases': ['gwetlu', 'workspaceeducationupgrade'], 'displayName': 'Google Workspace for Education: Teaching and Learning Upgrade'},
   'Google-Apps': {

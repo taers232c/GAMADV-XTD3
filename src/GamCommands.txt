@@ -182,6 +182,7 @@ If an item contains spaces, it should be surrounded by ".
         101031 |
         101033 |
         101034 |
+        101035 |
         101037 |
         Google-Apps |
         Google-Chrome-Device-Management |
@@ -201,6 +202,7 @@ If an item contains spaces, it should be surrounded by ".
         cdm | chrome | googlechromedevicemanagement | Google-Chrome-Device-Management |
         cloudidentity | identity | 1010010001 |
         cloudidentitypremium | identitypremium | 1010050001 |
+        cloudsearch | 1010350001 |
         gsuitebasic | gafb | gafw | basic | Google-Apps-For-Business |
         gsuitebusiness | gau | gsb | unlimited | Google-Apps-Unlimited |
         gsuitebusinessarchived | gsbau | businessarchived | 1010340002 |
@@ -2217,7 +2219,7 @@ gam print course-participants [todrive <ToDriveAttribute>*]
         title|
         topicid|
         updatetime|
-	workid|
+        workid|
         worktype
 <CourseWorkFieldNameList> ::= "<CourseWorkFieldName>(,<CourseWorkFieldName>)*"
 
@@ -2957,6 +2959,60 @@ gam print orgs|ous [todrive <ToDriveAttribute>*] [showparent] [toplevelonly] [fr
         [mincroscount <Number>] [maxcroscount <Number>]
         [minusercount <Number>] [maxusercount <Number>]
 gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
+
+# People
+
+<PeopleSourceName> ::=
+        contact|
+        profile
+<PeopleSourceNameList> ::= "<PeopleSourceName>(,<PeopleSourceName>)*"
+
+<PeopleMergeSourceName> ::=
+        contact
+<PeopleMergeSourceNameList> ::= "<PeopleMergeSourceName>(,<PeopleMergeSourceName>)*"
+
+<PeopleFieldName> ::=
+        addresses|
+        ageranges|
+        biographies|
+        birthdays|
+        calendarurls|
+        clientdata|
+        coverphotos|
+        emailaddresses|
+        events|
+        externalids|
+        genders|
+        imclients|
+        interests|
+        locales|
+        locations|
+        memberships|
+        metadata|
+        misckeywords|
+        names|
+        nicknames|
+        occupations|
+        organizations|
+        phonenumbers|
+        photos|
+        relations|
+        sipaddresses|
+        skills|
+        urls|
+        userdefined
+<PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
+
+gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
+        [query <String>]
+        [sources <PeopleSourceNameList>]
+        [mergesources <PeopleMergeSourceNameList>]
+        [fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
+gam [<UserTypeEntity>] show people
+        [query <String>]
+        [sources <PeopleSourceNameList>]
+        [mergesources <PeopleMergeSourceNameList>]
+        [fields <PeopleFieldNameList>] [formatjson]
 
 # Printers
 
@@ -3927,8 +3983,8 @@ gam print users [todrive <ToDriveAttribute>*]
          [limittoou <OrgUnitPath>] [deleted_only|only_deleted])
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [groups|groupsincolumns] [license|licenses|licence|licences]
-	[schemas|custom|customschemas all|<SchemaNameList>]
-	[emailpart|emailparts|username]
+        [schemas|custom|customschemas all|<SchemaNameList>]
+        [emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
@@ -3939,8 +3995,8 @@ Print fields for specified users.
 gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [groups|groupsincolumns] [license|licenses|licence|licences]
-	[schemas|custom|customschemas all|<SchemaNameList>]
-	[emailpart|emailparts|username]
+        [schemas|custom|customschemas all|<SchemaNameList>]
+        [emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
@@ -3949,8 +4005,8 @@ gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [orderby <UserOrderByFieldName> [ascending|descending]]
         [groups|groupsincolumns] [license|licenses|licence|licences]
-	[schemas|custom|customschemas all|<SchemaNameList>]
-	[emailpart|emailparts|username]
+        [schemas|custom|customschemas all|<SchemaNameList>]
+        [emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
@@ -4046,7 +4102,7 @@ gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttrib
         eventcreation|eventchange|eventcancellation|eventresponse|agenda
 <CalendarEmailNotificatonEventTypeList> ::=
         "<CalendarEmailNotificatonEventType>(,<CalendarEmailNotificatonEventType>)*"
-				   
+
 <CalendarAttribute> ::=
         (backgroundcolor <ColorValue>)|
         (color <CalendarColorName>)|
@@ -5164,7 +5220,7 @@ gam <UserTypeEntity> show messages|threads
 gam <UserTypeEntity> print messages|threads [todrive <ToDriveAttribute>*]
         (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])*
          [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-	[labelmatchpattern <RegularExpression>]
+        [labelmatchpattern <RegularExpression>]
         [countsonly|positivecountsonly] [useronly]
         [headers all|<SMTPHeaderList>]
         [showlabels] [showbody] [showsize] [showsnippet]
