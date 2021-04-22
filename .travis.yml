@@ -79,10 +79,10 @@ jobs:
       name: "MacOS"
       language: generic
       osx_image: xcode12.4
-#    - os: osx
-#      name: "MacOS 11"
-#      language: generic
-@      osx_image: xcode12.4
+    - os: osx
+      name: "MacOS 11"
+      language: generic
+      osx_image: xcode12.4
     - os: windows
       name: "Windows 64-bit"
       language: shell
