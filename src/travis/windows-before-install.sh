@@ -32,9 +32,10 @@ fi
 until powershell ".\\${python_file} /quiet InstallAllUsers=1 TargetDir=c:\\python"; do echo "trying python again..."; done
 export python=/c/python/python.exe
 until [ -f $python ]; do sleep 1; done
+ls -l /c/
+ls -l /c/python
 export PATH=$PATH:/c/python/scripts
 export pip=/c/python/scripts/pip.exe
-ls -l /c/python/scripts
 
 # OpenSSL
 echo "Installing OpenSSL..."
