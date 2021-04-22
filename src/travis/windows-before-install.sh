@@ -29,11 +29,9 @@ if [ ! -e $python_file ]; then
   echo "Downloading $python_file..."
   wget --quiet https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$python_file
 fi
-until powershell ".\\${python_file} /quiet InstallAllUsers=1 TargetDir=c:\\python"; do echo "trying python again..."; done
+until powershell ".\\${python_file} /quiet InstallAllUsers=1 TargetDir=c:\\python include_lib=1 include_pip=1"; do echo "trying python again..."; done
 export python=/c/python/python.exe
 until [ -f $python ]; do sleep 1; done
-ls -l /c/
-ls -l /c/python
 export PATH=$PATH:/c/python/scripts
 export pip=/c/python/scripts/pip.exe
 
