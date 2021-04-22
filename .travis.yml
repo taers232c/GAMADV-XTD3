@@ -79,10 +79,6 @@ jobs:
       name: "MacOS"
       language: generic
       osx_image: xcode12.4
-    - os: osx
-      name: "MacOS 11"
-      language: generic
-      osx_image: xcode12.4
     - os: windows
       name: "Windows 64-bit"
       language: shell
@@ -99,8 +95,8 @@ before_install:
 - export SCRIPT_OS_NAME="${GAMOS}";
 - if [ "${TRAVIS_JOB_NAME}" == "Windows 32-bit" ]; then
     export PLATFORM="x86";
-#  elif [ "${TRAVIS_JOB_NAME}" == "MacOS 11" ]; then
-#    export PLATFORM="universal2";
+  elif [ "${TRAVIS_JOB_NAME}" == "MacOS 11" ]; then
+    export PLATFORM="universal2";
   elif [ "${TRAVIS_CPU_ARCH}" == "amd64" ]; then
     export PLATFORM="x86_64";
   else
