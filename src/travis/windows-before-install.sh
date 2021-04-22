@@ -31,9 +31,9 @@ if [ ! -e $python_file ]; then
 fi
 until powershell ".\\${python_file} /quiet InstallAllUsers=1 TargetDir=c:\\python include_lib=1 include_pip=1"; do echo "trying python again..."; done
 export python=/c/python/python.exe
-until [ -f $python ]; do sleep 1; done
-export PATH=$PATH:/c/python/scripts
 export pip=/c/python/scripts/pip.exe
+until [ -f $pip ]; do echo "waiting for pip"; ls -l /c/python; sleep 1; done
+export PATH=$PATH:/c/python/scripts
 
 # OpenSSL
 echo "Installing OpenSSL..."
