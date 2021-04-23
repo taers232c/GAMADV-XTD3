@@ -15,12 +15,20 @@ export mypath=$(pwd)
 cd ~
 
 # .NET Core
-#echo "Installing Net-Framework-Core..."
-#until powershell Install-WindowsFeature Net-Framework-Core; do echo "trying .net again..."; done
+echo "Installing Net-Framework-Core..."
+until powershell Install-WindowsFeature Net-Framework-Core; do echo "Trying .NET install again..."; done
+
+# Chocolatey
+echo "Upgrading Chocolatey.."
+until choco upgrade chocolatey -y; do echo "Trying Chocolatey upgrade again..."; done
 
 # VS 2015
-#echo "Installing Visual Studio 2015.."
-#until choco install vcbuildtools; do echo "Trying Visual Studio again..."; done
+echo "Upgrading Visual Studio 2015.."
+until choco upgrade vcbuildtools -y; do echo "Trying Visual Studio upgrade again..."; done
+
+# WIX Toolset
+echo "Upgrading WIX Toolset.."
+until choco upgrade wixtoolset -y; do echo "Trying WIX Toolset upgrade again..."; done
 
 # Python
 echo "Installing Python..."
@@ -49,9 +57,6 @@ if [[ "$PLATFORM" == "x86_64" ]]; then
   cp -v /c/python/DLLs/libssl-1_1-x64.dll /c/python/DLLs/libssl-1_1.dll
   cp -v /c/python/DLLs/libcrypto-1_1-x64.dll /c/python/DLLs/libcrypto-1_1.dll
 fi
-
-# WIX Toolset
-until cinst -y wixtoolset; do echo "trying wix install again..."; done
 
 cd $mypath
 
