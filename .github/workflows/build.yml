@@ -1,0 +1,134 @@
+name: Build and test GAM
+
+on:
+  push:
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+    working-directory: src
+
+env:
+  BUILD_PYTHON_VERSION: "3.9.4"
+  MIN_PYTHON_VERSION: "3.9.4"
+  BUILD_OPENSSL_VERSION: "1.1.1k"
+  MIN_OPENSSL_VERSION: "1.1.1i"
+  PATCHELF_VERSION: "0.12"
+  # PYINSTALLER_VERSION can be full commit hash or version like v4.20
+  PYINSTALLER_VERSION: "e20e74c03768d432d48665b8ef1e02511b16e4be"
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-2019
+            jid: 5
+            goal: "build"
+            gamos: "windows"
+            python: 3.9.4
+            pyarch: "x64" 
+            platform: "x86_64"
+          - os: windows-2019
+            jid: 6
+            goal: "build"
+            gamos: "windows"
+            platform: "x86"
+            python: 3.9.4
+            pyarch: "x86"
+
+    steps:
+
+      - uses: actions/checkout@master
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Cache multiple paths
+        uses: actions/cache@v2
+        if: matrix.goal != 'test'
+        with:
+          path: |
+            ~/python
+            ~/ssl
+          key: ${{ matrix.os }}-${{ matrix.jid }}-20210407
+
+      - name: Set env variables
+        env:
+          GAMOS: ${{ matrix.gamos }}
+          GOAL: ${{ matrix.goal }}
+          JID: ${{ matrix.jid }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          echo "GAMOS=${GAMOS}" >> $GITHUB_ENV
+          echo "GOAL=${GOAL}" >> $GITHUB_ENV
+          echo "JID=${JID}" >> $GITHUB_ENV
+          echo "PLATFORM=${PLATFORM}" >> $GITHUB_ENV
+          uname -a
+
+      - name: Use pre-compiled Python for testing and Windows
+        if: matrix.python != ''
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: ${{ matrix.pyarch }}
+
+      - name: Set env variables for pre-compiled Python
+        if: matrix.goal == 'test'
+        run: |
+             export python=$(which python3)
+             export pip=$(which pip3)
+             export gam="${python} -m gam"
+             export gampath="$(readlink -e .)"
+             echo -e "python: $python\npip: $pip\ngam: $gam\ngampath: $gampath"
+             echo "python=${python}" >> $GITHUB_ENV
+             echo "pip=${pip}" >> $GITHUB_ENV
+             echo "gam=${gam}" >> $GITHUB_ENV
+             echo "gampath=${gampath}" >> $GITHUB_ENV
+             echo "RUNNING: apt update..."
+             sudo apt-get -qq --yes update > /dev/null
+             sudo apt-get -qq --yes install swig libpcsclite-dev
+
+      - name: Build and install Python, OpenSSL and PyInstaller
+        if: matrix.goal != 'test' && steps.cache-primes.outputs.cache-hit != 'true'
+        run: |
+             set +e
+             source ../.github/actions/${GAMOS}-before-install.sh
+             echo "PATH=$PATH" >> $GITHUB_ENV # keep gnutools for MacOS
+             echo "python=$python" >> $GITHUB_ENV
+             echo "pip=$pip" >> $GITHUB_ENV
+             echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
+             echo -e "Python: $python\nPip: $pip\nLD_LIB...: $LD_LIBRARY_PATH"
+             export url="https://codeload.github.com/pyinstaller/pyinstaller/tar.gz/${PYINSTALLER_VERSION}"
+             echo "Downloading ${url}"
+             curl -o pyinstaller.tar.gz --compressed "${url}"
+             tar xf pyinstaller.tar.gz
+             cd "pyinstaller-${PYINSTALLER_VERSION}/bootloader"
+             if [ "${PLATFORM}" == "x86" ]; then
+               BITS="32"
+             else
+               BITS="64"
+             fi
+             $python ./waf all --target-arch=${BITS}bit
+             cd ..
+             $python setup.py install
+             #$pip install pyinstaller
+
+      - name: Install pip requirements
+        if: matrix.os != 'self-hosted'
+        run: |
+             set +e
+             $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U --force-reinstall
+
+             $pip install --upgrade -r requirements.txt
+
+      - name: Build GAM with PyInstaller
+        if: matrix.goal != 'test'
+        run: |
+             set +e
+             source ../.github/actions/${GAMOS}-install.sh
+             echo "gampath=$gampath" >> $GITHUB_ENV
+             echo "gam=$gam" >> $GITHUB_ENV
+             echo -e "GAM: ${gam}\nGAMPATH: ${gampath}\nGAMVERSION: ${GAMVERSION}"

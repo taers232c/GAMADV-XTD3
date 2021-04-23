@@ -1,3 +1,6 @@
+echo "RUNNING: apt update..."
+sudo apt-get -qq --yes update > /dev/null
+sudo apt-get -qq --yes install swig libpcsclite-dev
 if [[ "$TRAVIS_JOB_NAME" == *"Testing" ]]; then
   export python="python"
   export pip="pip"
@@ -5,20 +8,14 @@ if [[ "$TRAVIS_JOB_NAME" == *"Testing" ]]; then
   echo "running tests with this version"
 else
   export whereibelong=$(pwd)
-  echo "We are running on Ubuntu $TRAVIS_DIST $PLATFORM"
+  echo "We are running on $ImageOS $ImageVersion"
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
   cpucount=$(nproc --all)
   echo "This device has $cpucount CPUs for compiling..."
-  echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" > /tmp/resolv.conf
-  sudo cp /tmp/resolv.conf /etc
-  sudo apt-get -qq --yes update > /dev/null
-  sudo apt-get -qq --yes install xz-utils > /dev/null
   SSLVER=$(~/ssl/bin/openssl version)
   SSLRESULT=$?
   PYVER=$(~/python/bin/python3 -V)
   PYRESULT=$?
-  sudo apt-get -qq --yes install libxml2-dev > /dev/null
-  sudo apt-get -qq --yes install libxslt-dev > /dev/null
   if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
     echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
     if [ $SSLRESULT -ne 0 ]; then
@@ -38,14 +35,10 @@ else
     rm -rf python
     mkdir ssl
     mkdir python
-    echo "RUNNING: apt update..."
-    sudo apt-get -qq --yes update > /dev/null
     echo "RUNNING: apt upgrade..."
     sudo apt-mark hold openssh-server
-    if [[ "$DIST_UPGRADE" == "true" ]]; then
-      sudo apt-get -qq --yes upgrade
-      sudo apt-get -qq --yes --with-new-pkgs upgrade
-    fi
+    sudo apt-get --yes upgrade
+    sudo apt-get --yes --with-new-pkgs upgrade
     echo "Installing build tools..."
     sudo apt-get -qq --yes install build-essential
     echo "Installing deps for python3"
@@ -101,13 +94,10 @@ else
   python=~/python/bin/python3
   pip=~/python/bin/pip3
 
-  if ([ "${TRAVIS_DIST}" == "precise" ] || [ "${TRAVIS_DIST}" == "trusty" ] || [ "${TRAVIS_DIST}" == "xenial" ]) && [ "${PLATFORM}" == "x86_64" ]; then
+  if ([ "${ImageOS}" == "ubuntu16" ]) && [ "${HOSTTYPE}" == "x86_64" ]; then
     echo "Installing deps for StaticX..."
     if [ ! -d patchelf-$PATCHELF_VERSION ]; then
       echo "Downloading PatchELF $PATCHELF_VERSION"
-#      wget https://nixos.org/releases/patchelf/patchelf-$PATCHELF_VERSION/patchelf-$PATCHELF_VERSION.tar.bz2
-#      tar xf patchelf-$PATCHELF_VERSION.tar.bz2
-#      cd patchelf-$PATCHELF_VERSION
       wget https://github.com/NixOS/patchelf/archive/$PATCHELF_VERSION.tar.gz 
       tar xf $PATCHELF_VERSION.tar.gz
       cd patchelf-$PATCHELF_VERSION/
@@ -119,11 +109,5 @@ else
     $pip install staticx
   fi
 
-  $pip install --upgrade git+git://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_COMMIT
-
   cd $whereibelong
 fi
-
-echo "Upgrading pip packages..."
-$pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
-$pip install --upgrade -r src/requirements.txt
