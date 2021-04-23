@@ -32,7 +32,7 @@ fi
 until powershell ".\\${python_file} /quiet InstallAllUsers=1 TargetDir=c:\\python include_lib=1 include_pip=1"; do echo "trying python again..."; done
 export python=/c/python/python.exe
 export pip=/c/python/scripts/pip.exe
-until [ -f $pip ]; do echo "waiting for pip"; ls -l /c/python; sleep 1; done
+until [ -f $pip ]; do echo "waiting for pip"; ls -l /c/python; sleep 10; done
 export PATH=$PATH:/c/python/scripts
 
 # OpenSSL
@@ -51,7 +51,7 @@ if [[ "$PLATFORM" == "x86_64" ]]; then
 fi
 
 # WIX Toolset
-#until cinst -y wixtoolset; do echo "trying wix install again..."; done
+until cinst -y wixtoolset; do echo "trying wix install again..."; done
 
 cd $mypath
 
