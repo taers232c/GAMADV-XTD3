@@ -1,8 +1,4 @@
-if [[ "$PLATFORM" == "x86_64" ]]; then
-  export WIX_BITS="x64"
-elif [[ "$PLATFORM" == "x86" ]]; then
-  export WIX_BITS="x86"
-fi
+cd src
 echo "compiling GAM with pyinstaller..."
 export gampath="dist/gamadv-xtd3"
 rm -rf $gampath
@@ -13,7 +9,6 @@ export gam="${gampath}/gam"
 echo "running compiled GAM..."
 $gam version
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
-#export GAMVERSION=$($gam version simple)
 cp LICENSE $gampath/
 cp license.rtf $gampath/
 cp gam-setup.bat $gampath/
