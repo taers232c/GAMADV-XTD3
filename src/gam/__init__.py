@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.00'
+__version__ = '6.03.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -40772,7 +40772,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
 #	[maxfiles <Integer>] [nodataheaders <String>]
-#	[countsonly [summary none|only|plus]] [countsrowfilter]
+#	[countsonly [summary none|only|plus] [showsource]] [countsrowfilter]
 #	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
 #	[showdrivename] [showparentsidsaslist] [showpermissionslast]
@@ -40917,11 +40917,13 @@ def printFileList(users):
       if childEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
         _printChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
 
-  def writeMimeTypeCountsRow(user, mimeTypeCounts):
+  def writeMimeTypeCountsRow(user, source, mimeTypeCounts):
     total = 0
     for mimeTypeCount in iter(mimeTypeCounts.values()):
       total += mimeTypeCount
     row = {'Owner': user, 'Total': total}
+    if showSource:
+      row['Source'] = source
     row.update(mimeTypeCounts)
     if not countsRowFilter:
       csvPFco.WriteRowTitlesNoFilter(row)
@@ -40931,7 +40933,7 @@ def printFileList(users):
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
   addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = noRecursion = \
-    showParentsIdsAsList = showDepth = showParent = False
+    showParentsIdsAsList = showDepth = showParent = showSource = False
   maxdepth = -1
   nodataFields = []
   simpleLists = ['permissionIds', 'spaces']
@@ -40986,6 +40988,11 @@ def printFileList(users):
       csvPFco.SetZeroBlankMimeTypeCounts(True)
     elif myarg == 'summary':
       summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'showsource':
+      showSource = True
+      if countsOnly:
+        csvPFco.SetTitles(['Owner', 'Source', 'Total'])
+        csvPFco.SetSortAllTitles()
     elif myarg == 'delimiter':
       delimiter = getCharacter()
     elif myarg == 'showparentsidsaslist':
@@ -41145,7 +41152,7 @@ def printFileList(users):
               summaryMimeTypeCounts.setdefault(mimeType, 0)
               summaryMimeTypeCounts[mimeType] += mtcount
           if summary != FILECOUNT_SUMMARY_ONLY:
-            writeMimeTypeCountsRow(user, mimeTypeCounts)
+            writeMimeTypeCountsRow(user, fileIdEntity.get('teamdrive', {}).get('driveId', 'root'), mimeTypeCounts)
         continue
       extendFileTreeParents(drive, fileTree, fields)
       DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
@@ -41157,6 +41164,8 @@ def printFileList(users):
     j = 0
     for fileId in fileIdEntity['list']:
       j += 1
+      if showSource:
+        mimeTypeCounts = {}
       fileEntry = fileTree.get(fileId)
       if fileEntry:
         fileEntryInfo = fileEntry['info']
@@ -41184,9 +41193,22 @@ def printFileList(users):
           _printFileInfo(drive, user, fileEntryInfo.copy())
       if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and not noRecursion:
         _printChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
+      if countsOnly:
+        if showSource:
+          if summary != FILECOUNT_SUMMARY_NONE:
+            for mimeType, mtcount in iter(mimeTypeCounts.items()):
+              summaryMimeTypeCounts.setdefault(mimeType, 0)
+              summaryMimeTypeCounts[mimeType] += mtcount
+          if summary != FILECOUNT_SUMMARY_ONLY:
+            writeMimeTypeCountsRow(user, fileId, mimeTypeCounts)
     if countsOnly:
-      if summary != FILECOUNT_SUMMARY_ONLY:
-        writeMimeTypeCountsRow(user, mimeTypeCounts)
+      if not showSource:
+        if summary != FILECOUNT_SUMMARY_NONE:
+          for mimeType, mtcount in iter(mimeTypeCounts.items()):
+            summaryMimeTypeCounts.setdefault(mimeType, 0)
+            summaryMimeTypeCounts[mimeType] += mtcount
+        if summary != FILECOUNT_SUMMARY_ONLY:
+          writeMimeTypeCountsRow(user, 'Various', mimeTypeCounts)
   if not countsOnly:
     if not csvPF.rows:
       setSysExitRC(NO_ENTITIES_FOUND_RC)
@@ -41248,7 +41270,7 @@ def printFileList(users):
     if not csvPFco.rows:
       setSysExitRC(NO_ENTITIES_FOUND_RC)
     if summary != FILECOUNT_SUMMARY_NONE:
-      writeMimeTypeCountsRow(FILECOUNT_SUMMARY_USER, summaryMimeTypeCounts)
+      writeMimeTypeCountsRow(FILECOUNT_SUMMARY_USER, 'Various', summaryMimeTypeCounts)
     csvPFco.todrive = csvPF.todrive
     if not countsRowFilter:
       csvPFco.SetRowFilter([])

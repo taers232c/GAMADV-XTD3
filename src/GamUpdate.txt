@@ -1,3 +1,8 @@
+6.03.01
+
+Added option `showsource` to `gam <UserTypeEntity> print filelist countsonly` that adds an additional
+column `Source` that indicates the top level folder ID from which the counts are derived.
+
 6.03.00
 
 As the Contacts API is being deprecated in June, additional support for the People API has been added.
