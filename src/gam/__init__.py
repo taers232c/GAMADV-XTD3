@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.01'
+__version__ = '6.03.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2725,9 +2725,9 @@ def checkAPICallsRate():
   if GM.Globals[GM.RATE_CHECK_COUNT] >= GC.Values[GC.API_CALLS_RATE_LIMIT]:
     current = time.time()
     delta = int(current-GM.Globals[GM.RATE_CHECK_START])
-    if 0 <= delta < 100:
-      delta = (100-delta)+3
-      error_message = f'API calls per 100 seconds limit {GC.Values[GC.API_CALLS_RATE_LIMIT]} exceeded'
+    if 0 <= delta < 60:
+      delta = (60-delta)+3
+      error_message = f'API calls per 60 seconds limit {GC.Values[GC.API_CALLS_RATE_LIMIT]} exceeded'
       writeStderr(f'{WARNING_PREFIX}{error_message}: Backing off: {delta} seconds\n')
       flushStderr()
       time.sleep(delta)
