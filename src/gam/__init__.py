@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.02'
+__version__ = '6.03.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -32692,7 +32692,6 @@ def printShowPeopleProfile(users):
 
   csvPF = CSVPrintFile(['User', 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  peopleLookupUser = None
   fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -32704,18 +32703,12 @@ def printShowPeopleProfile(users):
     elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'peoplelookupuser':
-      peopleLookupUser = getEmailAddress()
+      deprecatedArgument(myarg)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not fieldsList:
     fieldsList.append('names,emailAddresses')
   personFields = ','.join(set(fieldsList))
-  if peopleLookupUser:
-    _, people = buildGAPIServiceObject(API.PEOPLE, peopleLookupUser)
-    if not people:
-      return
-  else:
-    people = buildGAPIObject(API.PEOPLE)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -32764,7 +32757,7 @@ def _printShowPeople(users, entityType):
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(row)
     elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({entityType: user,
+      csvPF.WriteRowNoFilter({entityTypeName: user, 'resourceName': person['resourceName'],
                               'JSON': json.dumps(cleanJSON(person),
                                                  ensure_ascii=False, sort_keys=True)})
 
@@ -32781,7 +32774,7 @@ def _printShowPeople(users, entityType):
     people = buildGAPIObject(API.PEOPLE)
   entityTypeName = Ent.Singular(entityType)
   function = 'listDirectoryPeople'
-  csvPF = CSVPrintFile([entityTypeName], 'sortall') if Act.csvFormat() else None
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   sources = []
   mergeSources = []
@@ -32822,7 +32815,7 @@ def _printShowPeople(users, entityType):
                                  throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
                                  sources=list(set(sources)), mergeSources=list(set(mergeSources)),
                                  readMask=fields,
-                                 fields=f'nextPageToken,people({fields})', **kwargs)
+                                 fields=f'nextPageToken,people', **kwargs)
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
     if not csvPF:
@@ -32839,7 +32832,104 @@ def _printShowPeople(users, entityType):
       for person in entityList:
         _printPerson(user, person)
   if csvPF:
-    csvPF.writeCSVfile(Ent.Plural(Ent.PEOPLE))
+    csvPF.writeCSVfile('People')
+
+def printShowPeople(users):
+  _printShowPeople(users, Ent.USER)
+
+def doPrintShowPeople():
+  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+
+PEOPLE_CONTACT_ORDERBY_CHOICE_MAP = {
+  'firstname': 'FIRST_NAME_ASCENDING',
+  'lastname': 'LAST_NAME_ASCENDING',
+  'lastmodified': 'LAST_MODIFIED_',
+  }
+
+# gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
+#	[query <String>]
+#	[fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show peoplecontacts
+#	[query <String>]
+#	[fields <PeopleFieldNameList>] [formatjson]
+def printShowUserPeopleContacts(users):
+  def _printPerson(user, person):
+    row = flattenJSON(person, flattened={'User': user})
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'User': user, 'resourceName': person['resourceName'],
+                              'JSON': json.dumps(cleanJSON(person),
+                                                 ensure_ascii=False, sort_keys=True)})
+
+  def _showPerson(user, person, i, count):
+    if not FJQC.formatJSON:
+      printEntity([Ent.USER, user], i, count)
+      Ind.Increment()
+      showJSON(None, person)
+      Ind.Decrement()
+    else:
+      printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
+
+  csvPF = CSVPrintFile(['User', 'resourceName']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  sources = ['READ_SOURCE_TYPE_CONTACT']
+  fieldsList = []
+  query = None
+  sortOrder = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'allfields':
+      for field in PEOPLE_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
+    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'query':
+      query = getString(Cmd.OB_QUERY)
+    elif myarg == 'orderby':
+      sortOrder = getChoice(PEOPLE_CONTACT_ORDERBY_CHOICE_MAP, mapChoice=True)
+      if sortOrder == 'LAST_MODIFIED_':
+        sortOrder += getChoice(SORTORDER_CHOICE_MAP, defaultChoice='DESCENDING', mapChoice=True)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    printGettingAllEntityItemsForWhom(Ent.PEOPLE, user, i, count, query=query)
+    try:
+      if not query:
+        entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
+                                   pageMessage=getPageMessage(),
+                                   throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
+                                   resourceName='people/me', sources=sources, personFields=fields,
+                                   sortOrder=sortOrder, fields='nextPageToken,connections')
+      else:
+        entityList = callGAPI(people.people(), 'searchContacts',
+                              throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
+                              sources=sources, readMask=fields, query=query)['results']
+    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      ClientAPIAccessDeniedExit()
+    if not csvPF:
+      jcount = len(entityList)
+      if not FJQC.formatJSON:
+        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.PEOPLE, i, count)
+      Ind.Increment()
+      j = 0
+      for person in entityList:
+        j += 1
+        _showPerson(user, person, j, jcount)
+      Ind.Decrement()
+    else:
+      for person in entityList:
+        _printPerson(user, person)
+  if csvPF:
+    csvPF.writeCSVfile('People Contacts')
 
 SITEVERIFICATION_METHOD_CHOICE_MAP = {
   'cname': 'DNS_CNAME',
@@ -32850,12 +32940,6 @@ SITEVERIFICATION_METHOD_CHOICE_MAP = {
   'file': 'FILE',
   'site': 'FILE',
   }
-
-def printShowPeople(users):
-  _printShowPeople(users, Ent.USER)
-
-def doPrintShowPeople():
-  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 # gam create verify|verification <DomainName>
 def doCreateSiteVerification():
@@ -53563,6 +53647,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_MESSAGE:		printShowMessages,
       Cmd.ARG_PEOPLE:		printShowPeople,
+      Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
       Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
@@ -53621,6 +53706,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LANGUAGE:		showLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
       Cmd.ARG_PEOPLE:		printShowPeople,
+      Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
       Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
       Cmd.ARG_POP:		showPop,
       Cmd.ARG_PROFILE:		showProfile,
@@ -53793,6 +53879,8 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_MEMBERS:		Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_MESSAGES:		Cmd.ARG_MESSAGE,
   Cmd.ARG_OAUTH:		Cmd.ARG_TOKEN,
+  Cmd.ARG_PEOPLECONTACTS:	Cmd.ARG_PEOPLECONTACT,
+  Cmd.ARG_PEOPLEPROFILES:	Cmd.ARG_PEOPLEPROFILE,
   Cmd.ARG_PERMISSIONS:		Cmd.ARG_PERMISSION,
   Cmd.ARG_POP3:			Cmd.ARG_POP,
   Cmd.ARG_SECCALS:		Cmd.ARG_CALENDAR,

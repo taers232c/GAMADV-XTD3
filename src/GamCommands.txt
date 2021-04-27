@@ -5323,7 +5323,7 @@ gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [fro
 gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
 gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addonly|removeonly] [preview] [actioncsv]
 
-# Users - People - Profile
+# Users - People - Contacts and Profile
 
 <PeopleFieldName> ::=
         addresses|
@@ -5357,11 +5357,22 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
         userdefined
 <PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
 
-gam <UserTypeEntity> show peopleprofile
-        [allfields|(fields <PeopleFieldNameList>)] [peoplelookupuser <EmailAddress>]
+gam <UserTypeEntity> show peoplecontacts
+        [query <String>]
+        [orderby firstname|lastname|(lastmodified asdending)|(lastnodified descending)
+        [allfields|(fields <PeopleFieldNameList>)]
         [formatjson]
-gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
-        [allfields|(fields <PeopleFieldNameList>)] [peoplelookupuser <EmailAddress>]
+gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
+        [query <String>]
+        [orderby firstname|lastname|(lastmodified asdending)|(lastnodified descending)
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson [quotechar <Character>]]
+
+gam <UserTypeEntity> show peopleprofiles
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
+gam <UserTypeEntity> print peopleprofiles [todrive <ToDriveAttribute>*]
+        [allfields|(fields <PeopleFieldNameList>)]
         [formatjson [quotechar <Character>]]
 
 # Users - Photo
