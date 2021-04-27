@@ -32815,7 +32815,7 @@ def _printShowPeople(users, entityType):
                                  throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
                                  sources=list(set(sources)), mergeSources=list(set(mergeSources)),
                                  readMask=fields,
-                                 fields=f'nextPageToken,people', **kwargs)
+                                 fields='nextPageToken,people', **kwargs)
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
     if not csvPF:
@@ -32910,9 +32910,10 @@ def printShowUserPeopleContacts(users):
                                    resourceName='people/me', sources=sources, personFields=fields,
                                    sortOrder=sortOrder, fields='nextPageToken,connections')
       else:
-        entityList = callGAPI(people.people(), 'searchContacts',
-                              throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
-                              sources=sources, readMask=fields, query=query)['results']
+        results = callGAPI(people.people(), 'searchContacts',
+                           throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
+                           sources=sources, readMask=fields, query=query)
+        entityList = results.get('results', [])
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
     if not csvPF:
