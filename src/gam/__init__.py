@@ -23250,14 +23250,14 @@ def doPrintGroupMembers():
   def getNameFromPeople(memberId):
     try:
       info = callGAPI(people.people(), 'get',
-                      throwReasons=[GAPI.NOT_FOUND],
+                      throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                       resourceName=f'people/{memberId}', personFields='names')
       if 'names' in info:
         for sourceType in ['PROFILE', 'CONTACT']:
           for name in info['names']:
             if name['metadata']['source']['type'] == sourceType:
               return name['displayName']
-    except GAPI.notFound:
+    except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       pass
     return ''
 
@@ -32633,6 +32633,40 @@ def checkCIUserIsInvitable(users):
       return
   csvPF.writeCSVfile('Invitable Users')
 
+def _showPerson(user, person, entityType, i, count, FJQC):
+  if not FJQC.formatJSON:
+    printEntity([entityType, user], i, count)
+    Ind.Increment()
+    showJSON(None, person)
+    Ind.Decrement()
+  else:
+    printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
+
+def _printPerson(user, person, entityTypeName, csvPF, FJQC):
+  row = flattenJSON(person, flattened={entityTypeName: user})
+  if not FJQC.formatJSON:
+    csvPF.WriteRowTitles(row)
+  elif csvPF.CheckRowTitles(row):
+    csvPF.WriteRowNoFilter({entityTypeName: user, 'resourceName': person['resourceName'],
+                            'JSON': json.dumps(cleanJSON(person),
+                                               ensure_ascii=False, sort_keys=True)})
+
+def _printPersonEntityList(entityList, entityType, user, i, count, csvPF, FJQC):
+  if not csvPF:
+    jcount = len(entityList)
+    if not FJQC.formatJSON:
+      entityPerformActionNumItems([entityType, user], jcount, Ent.PEOPLE, i, count)
+    Ind.Increment()
+    j = 0
+    for person in entityList:
+      j += 1
+      _showPerson(user, person, entityType, j, jcount, FJQC)
+    Ind.Decrement()
+  else:
+    entityTypeName = Ent.Singular(entityType)
+    for person in entityList:
+      _printPerson(user, person, entityTypeName, csvPF, FJQC)
+
 PEOPLE_FIELDS_CHOICE_MAP = {
   'addresses': 'addresses',
   'ageranges': 'ageRanges',
@@ -32672,25 +32706,9 @@ PEOPLE_FIELDS_CHOICE_MAP = {
 #	[allfields|(fields <PeopleFieldNameList>)]
 #	[formatjson]
 def printShowPeopleProfile(users):
-  def _printPerson(user, person):
-    row = flattenJSON(person, flattened={'User': user})
-    if not FJQC.formatJSON:
-      csvPF.WriteRowTitles(row)
-    elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'User': user, 'resourceName': person['resourceName'],
-                              'JSON': json.dumps(cleanJSON(person),
-                                                 ensure_ascii=False, sort_keys=True)})
-
-  def _showPerson(user, person, i, count):
-    if not FJQC.formatJSON:
-      printEntity([Ent.USER, user], i, count)
-      Ind.Increment()
-      showJSON(None, person)
-      Ind.Decrement()
-    else:
-      printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
-
-  csvPF = CSVPrintFile(['User', 'resourceName']) if Act.csvFormat() else None
+  entityType = Ent.USER
+  entityTypeName = Ent.Singular(entityType)
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   while Cmd.ArgumentsRemaining():
@@ -32719,16 +32737,14 @@ def printShowPeopleProfile(users):
       printGettingEntityItemForWhom(Ent.PEOPLE_PROFILE, user, i, count)
     try:
       result = callGAPI(people.people(), 'get',
-                        throwReasons=GAPI.PEOPLE_GET_THROW_REASONS,
+                        throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                         resourceName='people/me', personFields=personFields)
-      if not csvPF:
-        _showPerson(user, result, i, count)
-      else:
-        _printPerson(user, result)
-    except GAPI.notFound:
-      entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.serviceNotAvailable, GAPI.forbidden):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      ClientAPIAccessDeniedExit()
+    if not csvPF:
+      _showPerson(user, result, entityType, i, count, FJQC)
+    else:
+      _printPerson(user, result, entityTypeName, csvPF, FJQC)
   if csvPF:
     csvPF.writeCSVfile('People Profiles')
 
@@ -32743,33 +32759,15 @@ PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
 
 # gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
 #	[query <String>]
-#	[sources <PeopleSourceNameList>]
-#	[mergesources <PeopleMergeSourceNameList>]
+#	[sources <PeopleSourceName>]
+#	[mergesources <PeopleMergeSourceName>]
 #	[fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
 # gam [<UserTypeEntity>] show people
 #	[query <String>]
-#	[sources <PeopleSourceNameList>]
-#	[mergesources <PeopleMergeSourceNameList>]
+#	[sources <PeopleSourceName>]
+#	[mergesources <PeopleMergeSourceName>]
 #	[fields <PeopleFieldNameList>] [formatjson]
 def _printShowPeople(users, entityType):
-  def _printPerson(user, person):
-    row = flattenJSON(person, flattened={entityTypeName: user})
-    if not FJQC.formatJSON:
-      csvPF.WriteRowTitles(row)
-    elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({entityTypeName: user, 'resourceName': person['resourceName'],
-                              'JSON': json.dumps(cleanJSON(person),
-                                                 ensure_ascii=False, sort_keys=True)})
-
-  def _showPerson(user, person, i, count):
-    if not FJQC.formatJSON:
-      printEntity([entityType, user], i, count)
-      Ind.Increment()
-      showJSON(None, person)
-      Ind.Decrement()
-    else:
-      printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
-
   if entityType == Ent.DOMAIN:
     people = buildGAPIObject(API.PEOPLE)
   entityTypeName = Ent.Singular(entityType)
@@ -32812,25 +32810,13 @@ def _printShowPeople(users, entityType):
     try:
       entityList = callGAPIpages(people.people(), function, 'people',
                                  pageMessage=getPageMessage(),
-                                 throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
+                                 throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                                  sources=list(set(sources)), mergeSources=list(set(mergeSources)),
                                  readMask=fields,
                                  fields='nextPageToken,people', **kwargs)
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    if not csvPF:
-      jcount = len(entityList)
-      if not FJQC.formatJSON:
-        entityPerformActionNumItems([entityType, user], jcount, Ent.PEOPLE, i, count)
-      Ind.Increment()
-      j = 0
-      for person in entityList:
-        j += 1
-        _showPerson(user, person, j, jcount)
-      Ind.Decrement()
-    else:
-      for person in entityList:
-        _printPerson(user, person)
+    _printPersonEntityList(entityList, entityType, user, i, count, csvPF, FJQC)
   if csvPF:
     csvPF.writeCSVfile('People')
 
@@ -32853,25 +32839,9 @@ PEOPLE_CONTACT_ORDERBY_CHOICE_MAP = {
 #	[query <String>]
 #	[fields <PeopleFieldNameList>] [formatjson]
 def printShowUserPeopleContacts(users):
-  def _printPerson(user, person):
-    row = flattenJSON(person, flattened={'User': user})
-    if not FJQC.formatJSON:
-      csvPF.WriteRowTitles(row)
-    elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'User': user, 'resourceName': person['resourceName'],
-                              'JSON': json.dumps(cleanJSON(person),
-                                                 ensure_ascii=False, sort_keys=True)})
-
-  def _showPerson(user, person, i, count):
-    if not FJQC.formatJSON:
-      printEntity([Ent.USER, user], i, count)
-      Ind.Increment()
-      showJSON(None, person)
-      Ind.Decrement()
-    else:
-      printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
-
-  csvPF = CSVPrintFile(['User', 'resourceName']) if Act.csvFormat() else None
+  entityType = Ent.USER
+  entityTypeName = Ent.Singular(entityType)
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   sources = ['READ_SOURCE_TYPE_CONTACT']
   fieldsList = []
@@ -32906,29 +32876,17 @@ def printShowUserPeopleContacts(users):
       if not query:
         entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
                                    pageMessage=getPageMessage(),
-                                   throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
+                                   throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                                    resourceName='people/me', sources=sources, personFields=fields,
                                    sortOrder=sortOrder, fields='nextPageToken,connections')
       else:
         results = callGAPI(people.people(), 'searchContacts',
-                           throwReasons=GAPI.PEOPLE_LIST_THROW_REASONS,
+                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                            sources=sources, readMask=fields, query=query)
         entityList = results.get('results', [])
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    if not csvPF:
-      jcount = len(entityList)
-      if not FJQC.formatJSON:
-        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.PEOPLE, i, count)
-      Ind.Increment()
-      j = 0
-      for person in entityList:
-        j += 1
-        _showPerson(user, person, j, jcount)
-      Ind.Decrement()
-    else:
-      for person in entityList:
-        _printPerson(user, person)
+    _printPersonEntityList(entityList, entityType, user, i, count, csvPF, FJQC)
   if csvPF:
     csvPF.writeCSVfile('People Contacts')
 

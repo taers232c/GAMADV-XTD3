@@ -2965,11 +2965,9 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 <PeopleSourceName> ::=
         contact|
         profile
-<PeopleSourceNameList> ::= "<PeopleSourceName>(,<PeopleSourceName>)*"
 
 <PeopleMergeSourceName> ::=
         contact
-<PeopleMergeSourceNameList> ::= "<PeopleMergeSourceName>(,<PeopleMergeSourceName>)*"
 
 <PeopleFieldName> ::=
         addresses|
@@ -3005,13 +3003,13 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 
 gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
         [query <String>]
-        [sources <PeopleSourceNameList>]
-        [mergesources <PeopleMergeSourceNameList>]
+        [sources <PeopleSourceName>]
+        [mergesources <PeopleMergeSourceName>]
         [fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
 gam [<UserTypeEntity>] show people
         [query <String>]
-        [sources <PeopleSourceNameList>]
-        [mergesources <PeopleMergeSourceNameList>]
+        [sources <PeopleSourceName>]
+        [mergesources <PeopleMergeSourceName>]
         [fields <PeopleFieldNameList>] [formatjson]
 
 # Printers
@@ -5330,16 +5328,20 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
         ageranges|
         biographies|
         birthdays|
-        braggingrights|
+        calendarurls|
+        clientdata|
         coverphotos|
         emailaddresses|
         events|
+        externalids|
         genders|
         imclients|
         interests|
         locales|
+        locations|
         memberships|
         metadata|
+        misckeywords|
         names|
         nicknames|
         occupations|
@@ -5347,12 +5349,8 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
         phonenumbers|
         photos|
         relations|
-        relationshipinterests|
-        relationshipstatuses|
-        residences|
         sipaddresses|
         skills|
-        taglines|
         urls|
         userdefined
 <PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
