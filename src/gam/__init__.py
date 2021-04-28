@@ -32633,16 +32633,16 @@ def checkCIUserIsInvitable(users):
       return
   csvPF.writeCSVfile('Invitable Users')
 
-def _showPerson(user, person, entityType, i, count, FJQC):
+def _showPerson(userEntityType, user, entityType, person, i, count, FJQC):
   if not FJQC.formatJSON:
-    printEntity([entityType, user], i, count)
+    printEntity([userEntityType, user, entityType, ''], i, count)
     Ind.Increment()
     showJSON(None, person)
     Ind.Decrement()
   else:
     printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
 
-def _printPerson(user, person, entityTypeName, csvPF, FJQC):
+def _printPerson(entityTypeName, user, person, csvPF, FJQC):
   row = flattenJSON(person, flattened={entityTypeName: user})
   if not FJQC.formatJSON:
     csvPF.WriteRowTitles(row)
@@ -32651,21 +32651,21 @@ def _printPerson(user, person, entityTypeName, csvPF, FJQC):
                             'JSON': json.dumps(cleanJSON(person),
                                                ensure_ascii=False, sort_keys=True)})
 
-def _printPersonEntityList(entityList, entityType, user, i, count, csvPF, FJQC):
+def _printPersonEntityList(entityType, entityList, userEntityType, user, i, count, csvPF, FJQC):
   if not csvPF:
     jcount = len(entityList)
     if not FJQC.formatJSON:
-      entityPerformActionNumItems([entityType, user], jcount, Ent.PEOPLE, i, count)
+      entityPerformActionNumItems([userEntityType, user], jcount, entityType, i, count)
     Ind.Increment()
     j = 0
     for person in entityList:
       j += 1
-      _showPerson(user, person, entityType, j, jcount, FJQC)
+      _showPerson(userEntityType, user, entityType, person, j, jcount, FJQC)
     Ind.Decrement()
   else:
-    entityTypeName = Ent.Singular(entityType)
+    entityTypeName = Ent.Singular(userEntityType)
     for person in entityList:
-      _printPerson(user, person, entityTypeName, csvPF, FJQC)
+      _printPerson(entityTypeName, user, person, csvPF, FJQC)
 
 PEOPLE_FIELDS_CHOICE_MAP = {
   'addresses': 'addresses',
@@ -32737,20 +32737,25 @@ def printShowPeopleProfile(users):
       printGettingEntityItemForWhom(Ent.PEOPLE_PROFILE, user, i, count)
     try:
       result = callGAPI(people.people(), 'get',
-                        throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                        throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                         resourceName='people/me', personFields=personFields)
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.PEOPLE_PROFILE, user, i, count)
+      continue
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
     if not csvPF:
-      _showPerson(user, result, entityType, i, count, FJQC)
+      _showPerson(entityType, user, Ent.PEOPLE_PROFILE, result, i, count, FJQC)
     else:
-      _printPerson(user, result, entityTypeName, csvPF, FJQC)
+      _printPerson(entityTypeName, user, result, csvPF, FJQC)
   if csvPF:
     csvPF.writeCSVfile('People Profiles')
 
 PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP = {
   'contact': 'DIRECTORY_SOURCE_TYPE_DOMAIN_CONTACT',
-  'profile': 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE'
+  'contacts': 'DIRECTORY_SOURCE_TYPE_DOMAIN_CONTACT',
+  'profile': 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE',
+  'profiles': 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE'
   }
 
 PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
@@ -32769,12 +32774,12 @@ PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
 #	[fields <PeopleFieldNameList>] [formatjson]
 def _printShowPeople(users, entityType):
   if entityType == Ent.DOMAIN:
-    people = buildGAPIObject(API.PEOPLE)
+    people = buildGAPIObject(API.PEOPLE_DIRECTORY)
   entityTypeName = Ent.Singular(entityType)
   function = 'listDirectoryPeople'
   csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  sources = []
+  sources = [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP['profile']]
   mergeSources = []
   fieldsList = []
   kwargs = {}
@@ -32785,10 +32790,10 @@ def _printShowPeople(users, entityType):
     elif myarg == 'allfields':
       for field in PEOPLE_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
-    elif getFieldsList(myarg, PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, sources, fieldsArg='sources'):
-      pass
-    elif getFieldsList(myarg, PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP, mergeSources, fieldsArg='mergesources'):
-      pass
+    elif myarg in {'source', 'sources'}:
+      sources = [getChoice(PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, mapChoice=True)]
+    elif myarg in {'mergesource', 'mergesources'}:
+      mergeSources = [getChoice(PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP, mapChoice=True)]
     elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'query':
@@ -32796,8 +32801,12 @@ def _printShowPeople(users, entityType):
       function = 'searchDirectoryPeople'
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if not sources:
-    sources = [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP['profile']]
+  if sources[0] == 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE':
+    peopleEntityType = Ent.PEOPLE_PROFILE
+    CSVTitle = 'People Profiles'
+  else:
+    peopleEntityType = Ent.CONTACT
+    CSVTitle = 'Contacts'
   fields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -32806,19 +32815,18 @@ def _printShowPeople(users, entityType):
       user, people = buildGAPIServiceObject(API.PEOPLE_DIRECTORY, user, i, count)
       if not people:
         continue
-    printGettingAllEntityItemsForWhom(Ent.PEOPLE, user, i, count, query=kwargs.get('query'))
+    printGettingAllEntityItemsForWhom(peopleEntityType, user, i, count, query=kwargs.get('query'))
     try:
       entityList = callGAPIpages(people.people(), function, 'people',
                                  pageMessage=getPageMessage(),
                                  throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                                 sources=list(set(sources)), mergeSources=list(set(mergeSources)),
-                                 readMask=fields,
-                                 fields='nextPageToken,people', **kwargs)
+                                 sources=sources, mergeSources=mergeSources,
+                                 readMask=fields, fields='nextPageToken,people', **kwargs)
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    _printPersonEntityList(entityList, entityType, user, i, count, csvPF, FJQC)
+    _printPersonEntityList(peopleEntityType, entityList, entityType, user, i, count, csvPF, FJQC)
   if csvPF:
-    csvPF.writeCSVfile('People')
+    csvPF.writeCSVfile(CSVTitle)
 
 def printShowPeople(users):
   _printShowPeople(users, Ent.USER)
@@ -32871,7 +32879,7 @@ def printShowUserPeopleContacts(users):
     user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
     if not people:
       continue
-    printGettingAllEntityItemsForWhom(Ent.PEOPLE, user, i, count, query=query)
+    printGettingAllEntityItemsForWhom(Ent.CONTACT, user, i, count, query=query)
     try:
       if not query:
         entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
@@ -32886,7 +32894,7 @@ def printShowUserPeopleContacts(users):
         entityList = results.get('results', [])
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    _printPersonEntityList(entityList, entityType, user, i, count, csvPF, FJQC)
+    _printPersonEntityList(Ent.CONTACT, entityList, entityType, user, i, count, csvPF, FJQC)
   if csvPF:
     csvPF.writeCSVfile('People Contacts')
 
