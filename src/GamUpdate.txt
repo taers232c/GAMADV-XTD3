@@ -3,6 +3,9 @@
 Added commands to display user's contacts using the People API.
 * https://github.com/taers232c/GAMADV-XTD3/wiki/Users-People
 
+Simplifed commands for displaying domain conatcts/profiles with the People API.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/People
+
 6.03.02
 
 Changed the time window for `api_calls_rate_check` from 100 seconds to 60 seconds as Google

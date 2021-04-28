@@ -2963,11 +2963,11 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 # People
 
 <PeopleSourceName> ::=
-        contact|
-        profile
+        contact|contacts|
+        profile|profiles
 
 <PeopleMergeSourceName> ::=
-        contact
+        contact|contacts
 
 <PeopleFieldName> ::=
         addresses|
@@ -3001,11 +3001,27 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
         userdefined
 <PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
 
+gam print domaincontacts [todrive <ToDriveAttribute>*]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
+gam print domainprofiles [todrive <ToDriveAttribute>*]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
 gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
         [query <String>]
         [sources <PeopleSourceName>]
         [mergesources <PeopleMergeSourceName>]
         [fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
+gam show domaincontacts
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [fields <PeopleFieldNameList>] [formatjson]
+gam show domainprofiles
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [fields <PeopleFieldNameList>] [formatjson]
 gam [<UserTypeEntity>] show people
         [query <String>]
         [sources <PeopleSourceName>]

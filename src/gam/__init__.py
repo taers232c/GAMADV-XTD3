@@ -32760,8 +32760,17 @@ PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP = {
 
 PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
   'contact': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
+  'contacts': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
   }
 
+# gam print domaincontacts [todrive <ToDriveAttribute>*]
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
+# gam print domainprofiles [todrive <ToDriveAttribute>*]
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
 # gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
 #	[query <String>]
 #	[sources <PeopleSourceName>]
@@ -32772,14 +32781,22 @@ PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
 #	[sources <PeopleSourceName>]
 #	[mergesources <PeopleMergeSourceName>]
 #	[fields <PeopleFieldNameList>] [formatjson]
-def _printShowPeople(users, entityType):
+# gam show domaincontacts
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[fields <PeopleFieldNameList>] [formatjson]
+# gam show domainprofiles
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[fields <PeopleFieldNameList>] [formatjson]
+def _printShowPeople(users, entityType, source):
   if entityType == Ent.DOMAIN:
     people = buildGAPIObject(API.PEOPLE_DIRECTORY)
   entityTypeName = Ent.Singular(entityType)
   function = 'listDirectoryPeople'
   csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  sources = [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP['profile']]
+  sources = [] if source is None else [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP[source]]
   mergeSources = []
   fieldsList = []
   kwargs = {}
@@ -32790,7 +32807,7 @@ def _printShowPeople(users, entityType):
     elif myarg == 'allfields':
       for field in PEOPLE_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
-    elif myarg in {'source', 'sources'}:
+    elif source is None and myarg in {'source', 'sources'}:
       sources = [getChoice(PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, mapChoice=True)]
     elif myarg in {'mergesource', 'mergesources'}:
       mergeSources = [getChoice(PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP, mapChoice=True)]
@@ -32801,12 +32818,14 @@ def _printShowPeople(users, entityType):
       function = 'searchDirectoryPeople'
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if not sources:
+    sources = ['DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE']
   if sources[0] == 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE':
-    peopleEntityType = Ent.PEOPLE_PROFILE
+    peopleEntityType = Ent.DOMAIN_PROFILE
     CSVTitle = 'People Profiles'
   else:
-    peopleEntityType = Ent.CONTACT
-    CSVTitle = 'Contacts'
+    peopleEntityType = Ent.DOMAIN_CONTACT
+    CSVTitle = 'People Contacts'
   fields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -32829,10 +32848,16 @@ def _printShowPeople(users, entityType):
     csvPF.writeCSVfile(CSVTitle)
 
 def printShowPeople(users):
-  _printShowPeople(users, Ent.USER)
+  _printShowPeople(users, Ent.USER, None)
 
 def doPrintShowPeople():
-  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, None)
+
+def doPrintShowPeopleDomainContacts():
+  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'contact')
+
+def doPrintShowPeopleDomainProfiles():
+  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'profile')
 
 PEOPLE_CONTACT_ORDERBY_CHOICE_MAP = {
   'firstname': 'FIRST_NAME_ASCENDING',
@@ -52781,6 +52806,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSER:	doPrintCIDeviceUsers,
       Cmd.ARG_DOMAIN:		doPrintShowDomains,
       Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
+      Cmd.ARG_DOMAINCONTACT:	doPrintShowPeopleDomainContacts,
+      Cmd.ARG_DOMAINPROFILE:	doPrintShowPeopleDomainProfiles,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
@@ -52865,6 +52892,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
       Cmd.ARG_DOMAIN:		doPrintShowDomains,
       Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
+      Cmd.ARG_DOMAINCONTACT:	doPrintShowPeopleDomainContacts,
+      Cmd.ARG_DOMAINPROFILE:	doPrintShowPeopleDomainProfiles,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
@@ -53014,6 +53043,8 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_DEVICEUSERS:		Cmd.ARG_DEVICEUSER,
   Cmd.ARG_DOMAINS:		Cmd.ARG_DOMAIN,
   Cmd.ARG_DOMAINALIASES:	Cmd.ARG_DOMAINALIAS,
+  Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_DOMAINCONTACT,
+  Cmd.ARG_DOMAINPROFILES:	Cmd.ARG_DOMAINPROFILE,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
   Cmd.ARG_EXPORT:		Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_EXPORTS:		Cmd.ARG_VAULTEXPORT,

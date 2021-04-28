@@ -133,9 +133,11 @@ class GamEntity():
   DEVICE_USER = 'devu'
   DEVICE_USER_CLIENT_STATE = 'ducs'
   DISCOVERY_JSON_FILE = 'disc'
-  DOCUMENT = 'doc'
+  DOCUMENT = 'doc '
   DOMAIN = 'doma'
   DOMAIN_ALIAS = 'doal'
+  DOMAIN_CONTACT = 'doco'
+  DOMAIN_PROFILE = 'dopr'
   DRIVE_FILE = 'dfil'
   DRIVE_FILE_ID = 'fili'
   DRIVE_FILE_NAME = 'filn'
@@ -382,6 +384,8 @@ class GamEntity():
     DOCUMENT: ['Documents', 'Document'],
     DOMAIN: ['Domains', 'Domain'],
     DOMAIN_ALIAS: ['Domain Aliases', 'Domain Alias'],
+    DOMAIN_CONTACT: ['Domain Contacts', 'Domain Contact'],
+    DOMAIN_PROFILE: ['Domain Profiles', 'Domain Profile'],
     DRIVE_FILE: ['Drive Files', 'Drive File'],
     DRIVE_FILE_ID: ['Drive File IDs', 'Drive File ID'],
     DRIVE_FILE_NAME: ['Drive File Names', 'Drive File Name'],
