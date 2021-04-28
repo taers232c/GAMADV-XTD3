@@ -5339,6 +5339,12 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
 
 # Users - People - Contacts and Profile
 
+<OtherContactFieldName> ::=
+        emailaddresses|
+        phonenumbers|
+        names
+<OtherContactFieldNameList> ::= "<OtherContactFieldName>(,<OtherContactFieldName>)*"
+
 <PeopleFieldName> ::=
         addresses|
         ageranges|
@@ -5371,6 +5377,22 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
         userdefined
 <PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
 
+gam <UserTypeEntity> show peopleprofiles
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
+gam <UserTypeEntity> print peopleprofiles [todrive <ToDriveAttribute>*]
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson [quotechar <Character>]]
+
+gam <UserTypeEntity> show othercontacts
+        [query <String>]
+        [allfields|(fields <OtherContactFieldNameList>)]
+        [formatjson]
+gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
+        [query <String>]
+        [allfields|(fields <OtherContactFieldNameList>)]
+        [formatjson [quotechar <Character>]]
+
 gam <UserTypeEntity> show peoplecontacts
         [query <String>]
         [orderby firstname|lastname|(lastmodified asdending)|(lastnodified descending)
@@ -5382,12 +5404,18 @@ gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
         [allfields|(fields <PeopleFieldNameList>)]
         [formatjson [quotechar <Character>]]
 
-gam <UserTypeEntity> show peopleprofiles
-        [allfields|(fields <PeopleFieldNameList>)]
-        [formatjson]
-gam <UserTypeEntity> print peopleprofiles [todrive <ToDriveAttribute>*]
-        [allfields|(fields <PeopleFieldNameList>)]
-        [formatjson [quotechar <Character>]]
+<PeopleContactGroupFieldName> ::=
+        clientdata|
+        grouptype|
+        membercount|
+        metadata|
+        name
+<PeopleContactGroupFieldNameList> ::= "<PeopleContactGroupFieldName>(,<PeopleContactGroupFieldName>)*"
+
+gam <UserTypeEntity> print peoplecontactgroups [todrive <ToDriveAttribute>*]
+        [fields <PeoplaContactGroupFieldNameList>] [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> show peoplacontactgroups
+        [fields <PeoplaContactGroupFieldNameList>] [formatjson]
 
 # Users - Photo
 

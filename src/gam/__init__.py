@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.03'
+__version__ = '6.03.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3898,7 +3898,7 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
     GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES].get(scopesOrAPI, [])
     if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:
       systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
-    if scopesOrAPI in {API.PEOPLE, API.PEOPLE_DIRECTORY}:
+    if scopesOrAPI in {API.PEOPLE, API.PEOPLE_DIRECTORY, API.PEOPLE_OTHERCONTACTS}:
       GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES].append(API.USERINFO_PROFILE_SCOPE)
   else:
     GM.Globals[GM.CURRENT_SVCACCT_API] = ''
@@ -32904,7 +32904,7 @@ def printShowUserPeopleContacts(users):
     user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
     if not people:
       continue
-    printGettingAllEntityItemsForWhom(Ent.CONTACT, user, i, count, query=query)
+    printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=query)
     try:
       if not query:
         entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
@@ -32919,9 +32919,114 @@ def printShowUserPeopleContacts(users):
         entityList = results.get('results', [])
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    _printPersonEntityList(Ent.CONTACT, entityList, entityType, user, i, count, csvPF, FJQC)
+    _printPersonEntityList(Ent.PEOPLE_CONTACT, entityList, entityType, user, i, count, csvPF, FJQC)
   if csvPF:
     csvPF.writeCSVfile('People Contacts')
+
+PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP = {
+  'emailaddresses': 'emailAddresses',
+  'names': 'names',
+  'phonenumbers': 'phoneNumbers',
+  }
+
+# gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
+#	[query <String>]
+#	[fields <OtherContactFieldNameList>] [formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show othercontacts
+#	[query <String>]
+#	[fields <OtherContactFieldNameList>] [formatjson]
+def printShowUserOtherContacts(users):
+  entityType = Ent.USER
+  entityTypeName = Ent.Singular(entityType)
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  query = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'allfields':
+      for field in PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList)
+    elif getFieldsList(myarg, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'query':
+      query = getString(Cmd.OB_QUERY)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses,phoneNumbers'
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
+    if not people:
+      continue
+    printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=query)
+    try:
+      if not query:
+        entityList = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
+                                   pageMessage=getPageMessage(),
+                                   throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                   readMask=fields, fields='nextPageToken,otherContacts')
+      else:
+        results = callGAPI(people.otherContacts(), 'search',
+                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                           readMask=fields, query=query)
+        entityList = results.get('results', [])
+    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      ClientAPIAccessDeniedExit()
+    _printPersonEntityList(Ent.OTHER_CONTACT, entityList, entityType, user, i, count, csvPF, FJQC)
+  if csvPF:
+    csvPF.writeCSVfile('Other Contacts')
+
+PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP = {
+  'clientdata': 'clientData',
+  'grouptype': 'groupType',
+  'membercount': 'memberCount',
+  'metadata': 'metadata',
+  'name': 'name',
+  }
+
+# gam <UserTypeEntity> print peoplecontactgroups [todrive <ToDriveAttribute>*]
+#	[fields <PeoplaContactGroupFieldNameList>] [formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show peoplacontactgroups
+#	[fields <PeoplaContactGroupFieldNameList>] [formatjson]
+def printShowUserPeopleContactGroups(users):
+  entityType = Ent.USER
+  entityTypeName = Ent.Singular(entityType)
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'allfields':
+      for field in PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList)
+    elif getFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = ','.join(set(fieldsList)) if fieldsList else None
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACTGROUP, user, i, count)
+    try:
+      entityList = callGAPIpages(people.contactGroups(), 'list', 'contactGroups',
+                                 pageMessage=getPageMessage(),
+                                 throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                 groupFields=fields, fields='nextPageToken,contactGroups')
+    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      ClientAPIAccessDeniedExit()
+    _printPersonEntityList(Ent.PEOPLE_CONTACTGROUP, entityList, entityType, user, i, count, csvPF, FJQC)
+  if csvPF:
+    csvPF.writeCSVfile('People Contact Groupss')
 
 SITEVERIFICATION_METHOD_CHOICE_MAP = {
   'cname': 'DNS_CNAME',
@@ -53644,8 +53749,10 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GUARDIAN:		printShowGuardians,
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_MESSAGE:		printShowMessages,
+      Cmd.ARG_OTHERCONTACT:	printShowUserOtherContacts,
       Cmd.ARG_PEOPLE:		printShowPeople,
       Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
+      Cmd.ARG_PEOPLECONTACTGROUP:	printShowUserPeopleContactGroups,
       Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
@@ -53703,8 +53810,10 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_LANGUAGE:		showLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
+      Cmd.ARG_OTHERCONTACT:	printShowUserOtherContacts,
       Cmd.ARG_PEOPLE:		printShowPeople,
       Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
+      Cmd.ARG_PEOPLECONTACTGROUP:	printShowUserPeopleContactGroups,
       Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
       Cmd.ARG_POP:		showPop,
       Cmd.ARG_PROFILE:		showProfile,
@@ -53877,7 +53986,9 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_MEMBERS:		Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_MESSAGES:		Cmd.ARG_MESSAGE,
   Cmd.ARG_OAUTH:		Cmd.ARG_TOKEN,
+  Cmd.ARG_OTHERCONTACTS:	Cmd.ARG_OTHERCONTACT,
   Cmd.ARG_PEOPLECONTACTS:	Cmd.ARG_PEOPLECONTACT,
+  Cmd.ARG_PEOPLECONTACTGROUPS:	Cmd.ARG_PEOPLECONTACTGROUP,
   Cmd.ARG_PEOPLEPROFILES:	Cmd.ARG_PEOPLEPROFILE,
   Cmd.ARG_PERMISSIONS:		Cmd.ARG_PERMISSION,
   Cmd.ARG_POP3:			Cmd.ARG_POP,

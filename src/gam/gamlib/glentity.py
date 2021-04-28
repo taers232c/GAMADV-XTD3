@@ -196,11 +196,14 @@ class GamEntity():
   OAUTH2_TXT_FILE = 'oaut'
   OAUTH2SERVICE_JSON_FILE = 'oau2'
   ORGANIZATIONAL_UNIT = 'org'
+  OTHER_CONTACT = 'otco'
   OWNER = 'ownr'
   OWNER_ID = 'owid'
   PAGE_SIZE = 'page'
   PARENT_ORGANIZATIONAL_UNIT = 'porg'
   PARTICIPANT = 'part'
+  PEOPLE_CONTACT = 'peco'
+  PEOPLE_CONTACTGROUP = 'pecg'
   PEOPLE_PHOTO = 'peph'
   PEOPLE_PROFILE = 'pepr'
   PERMISSION = 'perm'
@@ -444,11 +447,14 @@ class GamEntity():
     OAUTH2_TXT_FILE: ['Client OAuth2 File', 'Client OAuth2 File'],
     OAUTH2SERVICE_JSON_FILE: ['Service Account OAuth2 File', 'Service Account OAuth2 File'],
     ORGANIZATIONAL_UNIT: ['Organizational Units', 'Organizational Unit'],
+    OTHER_CONTACT: ['Other Contacts', 'Other Contact'],
     OWNER: ['Owners', 'Owner'],
     OWNER_ID: ['Owner IDs', 'Owner ID'],
     PAGE_SIZE: ['Page Size', 'Page Size'],
     PARENT_ORGANIZATIONAL_UNIT: ['Parent Organizational Units', 'Parent Organizational Unit'],
     PARTICIPANT: ['Participants', 'Participant'],
+    PEOPLE_CONTACT: ['People Contacts', 'Person Contact'],
+    PEOPLE_CONTACTGROUP: ['People Contact Groups', 'People Contact Group'],
     PEOPLE_PHOTO: ['People Photos', 'Person Photo'],
     PEOPLE_PROFILE: ['People Profiles', 'People Profile'],
     PERMISSION: ['Permissions', 'Permission'],

@@ -52,6 +52,7 @@ LICENSING = 'licensing'
 OAUTH2 = 'oauth2'
 PEOPLE = 'people'
 PEOPLE_DIRECTORY = 'peopledirectory'
+PEOPLE_OTHERCONTACTS = 'peopleothercontacts'
 PRINTERS = 'printers'
 PUBSUB = 'pubsub'
 REPORTS = 'reports'
@@ -166,6 +167,7 @@ _INFO = {
   OAUTH2: {'name': 'OAuth2 API', 'version': 'v2', 'v2discovery': False},
   PEOPLE: {'name': 'People API', 'version': 'v1', 'v2discovery': True},
   PEOPLE_DIRECTORY: {'name': 'People Directory API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'people'},
+  PEOPLE_OTHERCONTACTS: {'name': 'People  API - Other Contacts', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'people'},
   PRINTERS: {'name': 'Directory API Printers', 'version': 'directory_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
   PUBSUB: {'name': 'Pub / Sub API', 'version': 'v1', 'v2discovery': True},
   REPORTS: {'name': 'Reports API', 'version': 'reports_v1', 'v2discovery': False, 'mappedAPI': 'admin'},
@@ -320,14 +322,14 @@ _CLIENT_SCOPES = [
    'api': LICENSING,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/apps.licensing'},
-  {'name': 'People API',
-   'api': PEOPLE,
-   'subscopes': READONLY,
-   'scope': 'https://www.googleapis.com/auth/contacts'},
   {'name': 'People Directory API - read only',
    'api': PEOPLE_DIRECTORY,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/directory.readonly'},
+  {'name': 'People API',
+   'api': PEOPLE,
+   'subscopes': READONLY,
+   'scope': 'https://www.googleapis.com/auth/contacts'},
   {'name': 'Directory API - Printers',
    'api': PRINTERS,
    'subscopes': READONLY,
@@ -470,6 +472,10 @@ _SVCACCT_SCOPES = [
    'api': PEOPLE,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/contacts'},
+  {'name': 'People API - Other Contacts - read only',
+   'api': PEOPLE_OTHERCONTACTS,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/contacts.other.readonly'},
   {'name': 'People Directory API - read only',
    'api': PEOPLE_DIRECTORY,
    'subscopes': [],

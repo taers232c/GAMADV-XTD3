@@ -1,3 +1,18 @@
+6.03.04
+
+Added commands to display user's other contacts using the People API.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-People
+
+To use this feature you must add the `People API` to your project and authorize the appropriate scopes:
+* `People API - Other Contacts - read only`: https://www.googleapis.com/auth/contacts.other.readonly
+```
+gam update project
+gam user user@domain.com check serviceaccount
+```
+
+Added commands to display user's contact groups using the People API.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-People
+
 6.03.03
 
 Added commands to display user's contacts using the People API.
