@@ -20,65 +20,65 @@ cache:
 jobs:
   fast_finish: true
   include:
-    - os: linux
-      name: "Linux 64-bit Focal"
-      dist: focal
-      language: shell
-      env:
-        - DIST_UPGRADE=true
-    - os: linux
-      name: "Linux 64-bit Bionic"
-      dist: bionic
-      language: shell
-      env:
-        - DIST_UPGRADE=true
-    - os: linux
-      name: "Linux 64-bit Xenial"
-      dist: xenial
-      language: shell
-      env:
-        - DIST_UPGRADE=false
-    - os: linux
-      name: "Linux 64-bit Trusty"
-      dist: trusty
-      language: shell
-      env:
-        - DIST_UPGRADE=true
-    - os: linux
-      name: "Linux 64-bit Precise"
-      dist: precise
-      language: shell
-      env:
-        - DIST_UPGRADE=true
-        - PATCHELF_VERSION=0.9
-    - os: linux
-      name: "Linux ARM64 Focal"
-      dist: focal
-      arch: arm64
-      language: shell
-      env:
-        - DIST_UPGRADE=false
-      filter_secrets: false
-    - os: linux
-      name: "Linux ARM64 Bionic"
-      dist: bionic
-      arch: arm64
-      language: shell
-      env:
-        - DIST_UPGRADE=false
-      filter_secrets: false
-    - os: linux
-      name: "Linux ARM64 Xenial"
-      dist: xenial
-      arch: arm64
-      language: shell
-      env:
-        - DIST_UPGRADE=true
-      filter_secrets: false
-    - os: osx
-      name: "MacOS"
-      language: generic
-      osx_image: xcode12.4
+#    - os: linux
+#      name: "Linux 64-bit Focal"
+#      dist: focal
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=true
+#    - os: linux
+#      name: "Linux 64-bit Bionic"
+#      dist: bionic
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=true
+#    - os: linux
+#      name: "Linux 64-bit Xenial"
+#      dist: xenial
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=false
+#    - os: linux
+#      name: "Linux 64-bit Trusty"
+#      dist: trusty
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=true
+#    - os: linux
+#      name: "Linux 64-bit Precise"
+#      dist: precise
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=true
+#        - PATCHELF_VERSION=0.9
+#    - os: linux
+#      name: "Linux ARM64 Focal"
+#      dist: focal
+#      arch: arm64
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=false
+#      filter_secrets: false
+#    - os: linux
+#      name: "Linux ARM64 Bionic"
+#      dist: bionic
+#      arch: arm64
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=false
+#      filter_secrets: false
+#    - os: linux
+#      name: "Linux ARM64 Xenial"
+#      dist: xenial
+#      arch: arm64
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=true
+#      filter_secrets: false
+#    - os: osx
+#      name: "MacOS"
+#      language: generic
+#      osx_image: xcode12.4
     - os: windows
       name: "Windows 64-bit"
       language: shell

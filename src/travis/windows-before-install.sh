@@ -23,8 +23,8 @@ until powershell Install-WindowsFeature Net-Framework-Core; do echo "Trying .NET
 #until choco upgrade chocolatey -y; do echo "Trying Chocolatey upgrade again..."; done
 
 # VS 2015
-#echo "Upgrading Visual Studio 2015.."
-#until choco upgrade vcbuildtools -y; do echo "Trying Visual Studio upgrade again..."; done
+echo "Upgrading Visual Studio 2015.."
+until choco upgrade vcbuildtools -y; do echo "Trying Visual Studio upgrade again..."; done
 
 # WIX Toolset
 echo "Upgrading WIX Toolset.."
@@ -63,25 +63,25 @@ cd $mypath
 $pip install --upgrade pip
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirements.txt
-$pip install --upgrade pyinstaller
+#$pip install --upgrade pyinstaller
 # Install PyInstaller from source and build bootloader
 # to try and avoid getting flagged as malware since
 # lots of malware uses PyInstaller default bootloader
 # https://stackoverflow.com/questions/53584395/how-to-recompile-the-bootloader-of-pyinstaller
-#echo "Downloading PyInstaller..."
-#wget --quiet https://github.com/pyinstaller/pyinstaller/archive/$PYINSTALLER_COMMIT.tar.gz
-#tar xf $PYINSTALLER_COMMIT.tar.gz
-#mv pyinstaller-$PYINSTALLER_COMMIT pyinstaller
-#cd pyinstaller/bootloader
-#echo "bootloader before:"
-#md5sum ../PyInstaller/bootloader/Windows-${BITS}bit/*
+echo "Downloading PyInstaller..."
+wget --quiet https://github.com/pyinstaller/pyinstaller/archive/$PYINSTALLER_COMMIT.tar.gz
+tar xf $PYINSTALLER_COMMIT.tar.gz
+mv pyinstaller-$PYINSTALLER_COMMIT pyinstaller
+cd pyinstaller/bootloader
+echo "bootloader before:"
+md5sum ../PyInstaller/bootloader/Windows-${BITS}bit/*
 #
-#$python ./waf all --target-arch=${BITS}bit --msvc_version "msvc 14.0"
+$python ./waf all --target-arch=${BITS}bit --msvc_version "msvc 14.0"
 #
-#echo "bootloader after:"
-#md5sum ../PyInstaller/bootloader/Windows-${BITS}bit/*
-#echo "PATH: $PATH"
-#cd ..
-#$python setup.py install
+echo "bootloader after:"
+md5sum ../PyInstaller/bootloader/Windows-${BITS}bit/*
+echo "PATH: $PATH"
+cd ..
+$python setup.py install
 echo "cd to $mypath"
 cd $mypath
