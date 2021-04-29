@@ -5292,14 +5292,21 @@ gam <UserTypeEntity> print vacation [compact] [enabledonly] [todrive <ToDriveAtt
 
 # Users - Gmail - Settings
 
-gam <UserTypeEntity> imap|imap4 <Boolean> [noautoexpunge] [expungebehavior archive|deleteforever|trash] [maxfoldersize 0|1000|2000|5000|10000]
+gam <UserTypeEntity> imap|imap4 <Boolean>
+        [noautoexpunge] [expungebehavior archive|deleteforever|trash]
+        [maxfoldersize 0|1000|2000|5000|10000]
 gam <UserTypeEntity> show imap|imap4
+gam <UserTypeEntity> print imap|imap4 [todrive <ToDriveAttribute>*]
 
-gam <UserTypeEntity> pop|pop3 <Boolean> [for allmail|newmail|mailfromnowon|fromnowown] [action keep|leaveininbox|archive|delete|trash|markread]
+gam <UserTypeEntity> pop|pop3 <Boolean>
+        [for allmail|newmail|mailfromnowon|fromnowon]
+        [action keep|leaveininbox|archive|delete|trash|markread]
 gam <UserTypeEntity> show pop|pop3
+gam <UserTypeEntity> print pop|pop3 [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> language <Language>
 gam <UserTypeEntity> show language
+gam <UserTypeEntity> print language [todrive <ToDriveAttribute>*]
 
 # Users - Groups
 

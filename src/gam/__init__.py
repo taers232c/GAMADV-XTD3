@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.04'
+__version__ = '6.03.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3082,7 +3082,8 @@ def SetGlobalVariables():
     try:
       with open(fileName, 'r') as f:
         config.read_file(f)
-    except (configparser.MissingSectionHeaderError, configparser.ParsingError) as e:
+    except (configparser.DuplicateOptionError, configparser.DuplicateSectionError,
+            configparser.MissingSectionHeaderError, configparser.ParsingError) as e:
       systemErrorExit(CONFIG_ERROR_RC, formatKeyValueList('',
                                                           [Ent.Singular(Ent.CONFIG_FILE), fileName,
                                                            Msg.INVALID, str(e)],
@@ -7113,6 +7114,22 @@ def writeEntityNoHeaderCSVFile(entityType, entityList):
   GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER] = False
   csvPF.writeCSVfile(Ent.Plural(entityType))
 
+def getTodriveOnly(csvPF):
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      unknownArgumentExit()
+
+def getTodriveFJQCOnly(csvPF, FJQC, addTitle=False, noExit=False):
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, addTitle, noExit)
+
 DEFAULT_SKIP_OBJECTS = {'kind', 'etag', 'etags', '@type'}
 
 # Clean a JSON object
@@ -9940,12 +9957,7 @@ CUSTOMER_USER_CHOICES = {'customer', 'user'}
 def doReportUsageParameters():
   report = getChoice(CUSTOMER_USER_CHOICES)
   csvPF = CSVPrintFile(['parameter'], 'sortall')
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   rep = buildGAPIObject(API.REPORTS)
   if report == 'customer':
     service = rep.customerUsageReports()
@@ -11829,12 +11841,7 @@ def doPrintShowDomainAliases():
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(['domainAliasName'], DOMAIN_ALIAS_SORT_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  getTodriveFJQCOnly(csvPF, FJQC, True)
   try:
     domainAliases = callGAPIitems(cd.domainAliases(), 'list', 'domainAliases',
                                   throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
@@ -12158,12 +12165,7 @@ def doPrintShowDomains():
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(['domainName'], DOMAIN_SORT_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  getTodriveFJQCOnly(csvPF, FJQC, True)
   try:
     domains = callGAPIitems(cd.domains(), 'list', 'domains',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
@@ -12224,12 +12226,7 @@ def doPrintShowPrivileges():
 
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(PRINT_PRIVILEGES_FIELDS, 'sortall') if Act.csvFormat() else None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   privileges = _listPrivileges(cd)
   if not csvPF:
     count = len(privileges)
@@ -13819,12 +13816,7 @@ def doPrintAddresses():
   titlesList = ['Type', 'Email']
   userFields = ['primaryEmail', 'aliases', 'suspended']
   groupFields = ['email', 'aliases']
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   csvPF.SetTitles(titlesList)
   printGettingAllAccountEntities(Ent.USER)
   try:
@@ -23580,12 +23572,7 @@ def doPrintShowGroupTree():
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(['email', 'name'], 'sortall', ['parents']) if Act.csvFormat() else None
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   groupParents = {}
   i = 0
   count = len(entityList)
@@ -26437,12 +26424,7 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC):
 def _getCalendarPrintShowACLOptions(entityType, titles):
   csvPF = CSVPrintFile(titles, 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  getTodriveFJQCOnly(csvPF, FJQC, True)
   return (csvPF, FJQC)
 
 # gam calendars <CalendarEntity> print acls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
@@ -27763,12 +27745,7 @@ def _showCalendarSettings(calendar, j, jcount):
 def doCalendarsPrintShowSettings(calIds):
   csvPF = CSVPrintFile(['calendarId'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  getTodriveFJQCOnly(csvPF, FJQC, True)
   count = len(calIds)
   i = 0
   for calId in calIds:
@@ -28067,12 +28044,7 @@ SCHEMAS_INDEXED_TITLES = ['fields']
 def doPrintShowUserSchemas():
   csvPF = CSVPrintFile(SCHEMAS_SORT_TITLES, 'sortall', SCHEMAS_INDEXED_TITLES) if Act.csvFormat() else None
   cd = buildGAPIObject(API.DIRECTORY)
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   try:
     result = callGAPI(cd.schemas(), 'list',
                       throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
@@ -30160,12 +30132,7 @@ def _processSiteACLs(users, entityType):
     role = None
   actionPrintShow = action in [Act.PRINT, Act.SHOW]
   ACLScopeEntity = getCalendarSiteACLScopeEntity() if not actionPrintShow else {}
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   modifier = SITE_ACTION_TO_MODIFIER_MAP[action]
   sitesManager = SitesManager()
   i, count, users = getEntityArgument(users)
@@ -32609,12 +32576,7 @@ def checkCIUserIsInvitable(users):
   ci = buildGAPICIUserInvitationsServiceObject()
   customer = _getCustomersCustomerIdWithC()
   csvPF = CSVPrintFile(['invitableUsers'])
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -36363,12 +36325,7 @@ def doPrintShowClassroomInvitations():
 def printShowClassroomProfile(users):
   croom = buildGAPIObject(API.CLASSROOM)
   csvPF = CSVPrintFile(['emailAddress', 'id', 'name.givenName', 'name.familyName', 'name.fullName', 'photoUrl'], indexedTitles=['permissions']) if Act.csvFormat() else None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -37143,12 +37100,7 @@ def printShowCalendars(users):
 def printShowCalSettings(users):
   csvPF = CSVPrintFile(['User'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  getTodriveFJQCOnly(csvPF, FJQC, True)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -49221,12 +49173,7 @@ def watchGmail(users):
 # gam <UserTypeEntity> show gmailprofile
 def printShowGmailProfile(users):
   csvPF = CSVPrintFile(['emailAddress'], 'sortall') if Act.csvFormat() else None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -51694,12 +51641,7 @@ def infoForwardingAddresses(users):
 # gam <UserTypeEntity> show forwardingaddresses
 def printShowForwardingAddresses(users):
   csvPF = CSVPrintFile(['User', 'forwardingEmail', 'verificationStatus']) if Act.csvFormat() else None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      unknownArgumentExit()
+  getTodriveOnly(csvPF)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -51782,9 +51724,11 @@ def setImap(users):
     i += 1
     _setImap(user, body, i, count)
 
+# gam <UserTypeEntity> print imap|imap4 [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show imap|imap4
-def showImap(users):
-  checkForExtraneousArguments()
+def printShowImap(users):
+  csvPF = CSVPrintFile(['User', 'enabled']) if Act.csvFormat() else None
+  getTodriveOnly(csvPF)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -51795,9 +51739,14 @@ def showImap(users):
       result = callGAPI(gmail.users().settings(), 'getImap',
                         throwReasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
-      _showImap(user, i, count, result)
+      if not csvPF:
+        _showImap(user, i, count, result)
+      else:
+        csvPF.WriteRowTitles(flattenJSON(result, flattened={'User': user}))
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('IMAP')
 
 def _showPop(user, i, count, result):
   enabled = result['accessWindow'] != 'disabled'
@@ -51845,9 +51794,11 @@ def setPop(users):
     i += 1
     _setPop(user, body, i, count)
 
+# gam <UserTypeEntity> print pop|pop3 [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show pop|pop3
-def showPop(users):
-  checkForExtraneousArguments()
+def printShowPop(users):
+  csvPF = CSVPrintFile(['User', 'enabled']) if Act.csvFormat() else None
+  getTodriveOnly(csvPF)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -51858,9 +51809,14 @@ def showPop(users):
       result = callGAPI(gmail.users().settings(), 'getPop',
                         throwReasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
-      _showPop(user, i, count, result)
+      if not csvPF:
+        _showPop(user, i, count, result)
+      else:
+        csvPF.WriteRowTitles(flattenJSON(result, flattened={'User': user, 'enabled': result['accessWindow'] != 'disabled'}))
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('POP')
 
 # gam <UserTypeEntity> language <Language>
 def setLanguage(users):
@@ -51880,9 +51836,11 @@ def setLanguage(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
+# gam <UserTypeEntity> print language [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show language
-def showLanguage(users):
-  checkForExtraneousArguments()
+def printShowLanguage(users):
+  csvPF = CSVPrintFile(['User', 'displayLanguage']) if Act.csvFormat() else None
+  getTodriveOnly(csvPF)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -51893,9 +51851,14 @@ def showLanguage(users):
       result = callGAPI(gmail.users().settings(), 'getLanguage',
                         throwReasons=GAPI.GMAIL_THROW_REASONS,
                         userId='me')
-      printEntity([Ent.USER, user, Ent.LANGUAGE, result['displayLanguage']], i, count)
+      if not csvPF:
+        printEntity([Ent.USER, user, Ent.LANGUAGE, result['displayLanguage']], i, count)
+      else:
+        csvPF.WriteRowTitles(flattenJSON(result, flattened={'User': user}))
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Language')
 
 SIG_REPLY_HTML = 0
 SIG_REPLY_COMPACT = 1
@@ -53747,13 +53710,16 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GROUP:		printShowUserGroups,
       Cmd.ARG_GROUPSLIST:	printUserGroupsList,
       Cmd.ARG_GUARDIAN:		printShowGuardians,
+      Cmd.ARG_IMAP:		printShowImap,
       Cmd.ARG_LABEL:		printShowLabels,
+      Cmd.ARG_LANGUAGE:		printShowLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
       Cmd.ARG_OTHERCONTACT:	printShowUserOtherContacts,
       Cmd.ARG_PEOPLE:		printShowPeople,
       Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
       Cmd.ARG_PEOPLECONTACTGROUP:	printShowUserPeopleContactGroups,
       Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
+      Cmd.ARG_POP:		printShowPop,
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SHEETRANGE:	printShowSheetRanges,
@@ -53806,16 +53772,16 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GMAILPROFILE:	printShowGmailProfile,
       Cmd.ARG_GROUP:		printShowUserGroups,
       Cmd.ARG_GUARDIAN:		printShowGuardians,
-      Cmd.ARG_IMAP:		showImap,
+      Cmd.ARG_IMAP:		printShowImap,
       Cmd.ARG_LABEL:		printShowLabels,
-      Cmd.ARG_LANGUAGE:		showLanguage,
+      Cmd.ARG_LANGUAGE:		printShowLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
       Cmd.ARG_OTHERCONTACT:	printShowUserOtherContacts,
       Cmd.ARG_PEOPLE:		printShowPeople,
       Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
       Cmd.ARG_PEOPLECONTACTGROUP:	printShowUserPeopleContactGroups,
       Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
-      Cmd.ARG_POP:		showPop,
+      Cmd.ARG_POP:		printShowPop,
       Cmd.ARG_PROFILE:		showProfile,
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
