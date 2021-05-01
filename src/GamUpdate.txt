@@ -1,3 +1,20 @@
+6.03.06
+
+Added enhanced commands for displaying Chrome Policy schemas.
+```
+gam info chromeschema <SchemaName>
+        <ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+        [formatjson]
+gam show chromeschemas
+        [filter <String>]
+        <ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+        [formatjson]
+gam print chromschemas [todrive <ToDriveAttribute>*]
+        [filter <String>]
+        <ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+        [[formatjson [quotechar <Character>]]
+```
+
 6.03.05
 
 Added commands to print Gmail imap/pop/language settings to CSV files.

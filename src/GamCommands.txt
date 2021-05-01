@@ -1795,6 +1795,19 @@ gam delete chromepolicy <SchemaName>+
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 gam show chromepolicies
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+
+gam info chromeschema <SchemaName>
+        <ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+        [formatjson]
+gam show chromeschemas
+        [filter <String>]
+        <ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+        [formatjson]
+gam print chromschemas [todrive <ToDriveAttribute>*]
+        [filter <String>]
+        <ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+        [[formatjson [quotechar <Character>]]
+
 gam show chromeschemas
         [filter <String>]
 

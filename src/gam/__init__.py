@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.05'
+__version__ = '6.03.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18510,9 +18510,119 @@ def _getChromePolicySchemaName():
     name = f'customers/{GC.Values[GC.CUSTOMER_ID]}/policySchemas/{name}'
   return name
 
+def _showChromePolicySchema(schema, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(schema), ensure_ascii=False, sort_keys=True))
+  else:
+    printEntity([Ent.CHROME_POLICY_SCHEMA, schema['name']], i, count)
+    Ind.Increment()
+    showJSON(None, schema)
+    Ind.Decrement()
+
+CHROME_POLICY_SCHEMA_FIELDS_CHOICE_MAP = {
+  'accessrestrictions': 'accessRestrictions',
+  'additionaltargetkeynames': 'additionalTargetKeyNames',
+  'definition': 'definition',
+  'fielddescriptions': 'fieldDescriptions',
+  'name': 'name',
+  'notices': 'notices',
+  'policydescription': 'policyDescription',
+  'schemaname': 'schemaName',
+  'supporturi': 'supportUri',
+  }
+
+# gam info chromeschema <SchemaName>
+#	<ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+#	[formatjson]
+def doInfoChromePolicySchemas():
+  cp = buildGAPIObject(API.CHROMEPOLICY)
+  FJQC = FormatJSONQuoteChar()
+  fieldsList = []
+  name = _getChromePolicySchemaName()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if getFieldsList(myarg, CHROME_POLICY_SCHEMA_FIELDS_CHOICE_MAP, fieldsList, initialField='name'):
+      pass
+    else:
+      FJQC.GetFormatJSON(myarg)
+  fields = getFieldsFromFieldsList(fieldsList)
+  try:
+    schema = callGAPI(cp.customers().policySchemas(), 'get',
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                            name=name, fields=fields)
+    _showChromePolicySchema(schema, FJQC, 0, 0)
+  except GAPI.notFound:
+    entityUnknownWarning(Ent.CHROME_POLICY_SCHEMA, name)
+  except (GAPI.badRequest, GAPI.forbidden):
+    accessErrorExit(None)
+
 # gam show chromeschemas
 #	[filter <String>]
+#	<ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+#	[formatjson]
+# gam print chromschemas [todrive <ToDriveAttribute>*]
+#	[filter <String>]
+#	<ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
+#	[[formatjson [quotechar <Character>]]
 def doPrintShowChromeSchemas():
+  def _printChromePolicySchema(schema):
+    if FJQC.formatJSON:
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(schema)):
+        csvPF.WriteRowNoFilter({'name': schema['name'],
+                                'JSON': json.dumps(cleanJSON(schema),
+                                                   ensure_ascii=False, sort_keys=True)})
+      return
+    row = flattenJSON(schema)
+    csvPF.WriteRowTitles(row)
+
+  if checkArgumentPresent('std'):
+    doShowChromeSchemasStd()
+    return
+  cp = buildGAPIObject(API.CHROMEPOLICY)
+  parent = _getCustomersCustomerIdWithC()
+  csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  pfilter = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'filter':
+      pfilter = getString(Cmd.OB_STRING)
+    elif getFieldsList(myarg, CHROME_POLICY_SCHEMA_FIELDS_CHOICE_MAP, fieldsList, initialField='name'):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = getItemFieldsFromFieldsList('policySchemas', fieldsList)
+  printGettingAllAccountEntities(Ent.CHROME_POLICY_SCHEMA, pfilter)
+  pageMessage = getPageMessage()
+  try:
+    schemas = callGAPIpages(cp.customers().policySchemas(), 'list', 'policySchemas',
+                            pageMessage=pageMessage,
+                            throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                            parent=parent, filter=pfilter, fields=fields)
+    if not csvPF:
+      jcount = len(schemas)
+      performActionNumItems(jcount, Ent.CHROME_POLICY_SCHEMA)
+      Ind.Increment()
+      j = 0
+      for schema in schemas:
+        j += 1
+        _showChromePolicySchema(schema, FJQC, j, jcount)
+      Ind.Decrement()
+    else:
+      for schema in schemas:
+        _printChromePolicySchema(schema)
+  except GAPI.invalidInput as e:
+    entityActionFailedWarning([Ent.CHROME_POLICY, None], invalidQuery(pfilter) if pfilter else str(e))
+  except (GAPI.badRequest, GAPI.forbidden):
+    accessErrorExit(None)
+  if csvPF:
+    csvPF.writeCSVfile('Chrome Policy Schemas')
+
+# gam show chromeschemas std [filter <String>]
+def doShowChromeSchemasStd():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   sfilter = None
   while Cmd.ArgumentsRemaining():
@@ -27666,10 +27776,10 @@ def _printShowCalendarEvents(origUser, user, origCal, calIds, count, calendarEve
         row['events'] = jcount
         csvPF.WriteRow(row)
 
-# gam calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperties>*
+# gam calendars <CalendarEntity> print events <EventSelectEntity> <EventDisplayProperties>*
 #	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
-# gam calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperties>*
+# gam calendars <CalendarEntity> show events <EventSelectEntity> <EventDisplayProperties>*
 #	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson]
 def doCalendarsPrintShowEvents(calIds):
@@ -37734,10 +37844,10 @@ def infoCalendarEvents(users):
     _infoCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity, FJQC, fieldsList)
     Ind.Decrement()
 
-# gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>*
+# gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectEntity> <EventDisplayProperties>*
 #	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
-# gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>*
+# gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectEntity> <EventDisplayProperties>*
 #	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson]
 def printShowCalendarEvents(users):
@@ -52791,6 +52901,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALIAS:		doInfoAliases,
       Cmd.ARG_BUILDING:		doInfoBuilding,
       Cmd.ARG_BROWSER:		doInfoBrowsers,
+      Cmd.ARG_CHROMESCHEMA:	doInfoChromePolicySchemas,
       Cmd.ARG_CIGROUP:		doInfoCIGroups,
       Cmd.ARG_CIGROUPMEMBERS:	doInfoCIGroupMembers,
       Cmd.ARG_CONTACT:		doInfoDomainContacts,
@@ -52854,6 +52965,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
       Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
       Cmd.ARG_CHROMEHISTORY:	doPrintShowChromeHistory,
+      Cmd.ARG_CHROMESCHEMA:	doPrintShowChromeSchemas,
       Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
       Cmd.ARG_CIGROUP:		doPrintCIGroups,
       Cmd.ARG_CIGROUPMEMBERS:	doPrintCIGroupMembers,
