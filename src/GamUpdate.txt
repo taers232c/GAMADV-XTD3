@@ -1,3 +1,17 @@
+6.03.08
+
+Added commands to display specific domain profiles and user's contacts using the People API.
+```
+gam info domainprofiles <PeopleResourceNameEntity>
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
+gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
+```
+* https://github.com/taers232c/GAMADV-XTD3/wiki/People
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-People
+
 6.03.07
 
 Updated code to properly set the values for the following Chrome Policy schema values:

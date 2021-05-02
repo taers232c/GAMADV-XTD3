@@ -397,6 +397,7 @@ If an item contains spaces, it should be surrounded by ".
 <ParameterKey> ::= <String>
 <ParameterValue> ::= <String>
 <Password> ::= <String>
+<PeopleResourceName> ::= people/<String>
 <PrinterID> ::= <String>
 <ProjectID> ::= <String>
         Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
@@ -550,6 +551,7 @@ If an item contains spaces, it should be surrounded by ".
 <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
 <MobileIDList> ::= "<MobileID>(,<MobileID>)*"
 <OrgUnitList> ::= "<OrgUnitItem>(,<OrgUnitItem>)*"
+<PeopleResourceNameList> ::= "<PeopleResourceName>(,<PeopleResourceName>)*"
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
 <QueryBrowserList> ::= "<QueryBrowser>(,<QueryBrowser>)*"
@@ -857,6 +859,8 @@ Specify a collection of items by directly specifying them; the item type is dete
         (query:<QueryMobile>) | (query <QueryMobile>)
 <OrgUnitEntity> ::=
         <OrgUnitList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+<PeopleResourceNameEntity> ::=
+        <PeopleResourceNameNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
 <PrinterIDEntity> ::=
         <PrinterIDList> | <FileSelector> | <CSVFileSelector>
 <RecipientEntity> ::=
@@ -1012,7 +1016,8 @@ gam show svcaccts [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter 
         [showsakeys all|system|user]
 gam print svcaccts [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
         [showsakeys all|system|user]
-        [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+        [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 gam create sakey [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 gam update sakey [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
@@ -1104,13 +1109,15 @@ gam calendars <CalendarEntity> delete acls|calendaracls [<CalendarACLRole>] <Cal
 gam calendars <CalendarEntity> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
 
 gam calendars <CalendarEntity> show acls|calendaracls [formatjson]
-gam calendars <CalendarEntity> print acls|calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam calendars <CalendarEntity> print acls|calendaracls [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 gam calendar <CalendarEntity> create|add <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
 gam calendar <CalendarEntity> update <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
 gam calendar <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
 gam calendar <CalendarEntity> showacl [formatjson]
-gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 <AttendeeAttendance> ::= optional|required
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
@@ -1326,10 +1333,12 @@ gam calendar|calendars <CalendarEntity> info events [<EventEntity>] [maxinstance
         [formatjson]
 gam calendar|calendars <CalendarEntity> show events [<EventSelectEntity>] <EventDisplayProperty>*
         [fields <EventFieldNameList>] [showdayofweek]
-        [countsonly] [formatjson]
+        [countsonly]
+        [formatjson]
 gam calendar|calendars <CalendarEntity> print events [<EventSelectEntity>] <EventDisplayProperty>*
         [fields <EventFieldNameList>] [showdayofweek]
-        [countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
+        [countsonly]
+        [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
 gam calendar <CalendarEntity> addevent <EventAttribute>+ [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [<EventNotificationAttribute>]
@@ -1337,7 +1346,8 @@ gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <Cal
 gam calendar <CalendarEntity> updateevent <EventID> [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> wipe
 gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
-        [countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
+        [countsonly]
+        [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
 <CalendarSettings> ::=
         (description <String>)|
@@ -1346,7 +1356,8 @@ gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayPr
         (timezone <TimeZone>)
 
 gam calendar|calendars <CalendarEntity> show settings [formatjson]
-gam calendar|calendars <CalendarEntity> print settings [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam calendar|calendars <CalendarEntity> print settings [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 
 # Chrome Browser Cloud Management
@@ -1439,7 +1450,8 @@ gam print browsers [todrive <ToDriveAttribute>*]
         [querytime.* <Time>]
         [orderby <BrowserOrderByFieldName> [ascending|descending]]
         [basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
-        [sortheaders] [formatjson [quotechar <Character>]]
+        [sortheaders]
+        [formatjson [quotechar <Character>]]
 
 gam create browsertoken
         [ou|org|orgunit|browserou <OrgUnitPath>] [expire|expires <Time>]
@@ -1472,7 +1484,8 @@ gam print browsertokens [todrive <ToDriveAttribute>*]
         [querytime.* <Time>]
         [orderby <BrowserTokenFieldName> [ascending|descending]]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
-        [sortheaders] [formatjson [quotechar <Character>]]
+        [sortheaders]
+        [formatjson [quotechar <Character>]]
 
 # Chrome Installed Apps Counts
 
@@ -1672,13 +1685,15 @@ gam info cros <CrOSEntity> [nolists] [listlimit <Number>]
         [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [timerangeorder ascending|descending]
-        [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
+        [downloadfile latest|<Time>] [targetfolder <FilePath>]
+        [formatjson]
 
 gam <CrOSTypeEntity> info [nolists] [listlimit <Number>]
         [start <Date>] [end <Date>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [timerangeorder ascending|descending]
-        [downloadfile latest|<Time>] [targetfolder <FilePath>] [formatjson]
+        [downloadfile latest|<Time>] [targetfolder <FilePath>]
+        [formatjson]
 
 Print fields for selected CrOS devices; use these options to select CrOS devices:
         [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
@@ -1695,7 +1710,8 @@ gam print cros [todrive <ToDriveAttribute>*]
         [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
         [timerangeorder ascending|descending]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-        [sortheaders] [formatjson [quotechar <Character>]]
+        [sortheaders]
+        [formatjson [quotechar <Character>]]
 
 Print fields for specified CrOS devices.
 
@@ -1705,7 +1721,8 @@ gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
         [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [timerangeorder ascending|descending]
-        [sortheaders] [formatjson [quotechar <Character>]]
+        [sortheaders]
+        [formatjson [quotechar <Character>]]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
         [start <Date>] [end <Date>]
@@ -1713,7 +1730,8 @@ gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
         [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
         [timerangeorder ascending|descending]
-        [sortheaders] [formatjson [quotechar <Character>]]
+        [sortheaders]
+        [formatjson [quotechar <Character>]]
 
 The first column will always be deviceId; the remaining field names will be sorted if allfields, basic, full or sortheaders is specified;
 otherwise, the remaining field names will appear in the order specified.
@@ -1746,7 +1764,8 @@ gam print crosactivity [todrive <ToDriveAttribute>*]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
         [listlimit <Number>] [timerangeorder ascending|descending]
-        [delimiter <Character>] [formatjson [quotechar <Character>]]
+        [delimiter <Character>]
+        [formatjson [quotechar <Character>]]
 
 Print activity for specified CrOS devices.
 
@@ -1755,14 +1774,16 @@ gam print crosactivity [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
         [listlimit <Number>] [timerangeorder ascending|descending]
-        [delimiter <Character>] [formatjson [quotechar <Character>]]
+        [delimiter <Character>]
+        [formatjson [quotechar <Character>]]
 
 gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
         [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
         [listlimit <Number>] [timerangeorder ascending|descending]
-        [delimiter <Character>] [formatjson [quotechar <Character>]]
+        [delimiter <Character>]
+        [formatjson [quotechar <Character>]]
 
 The basic column headers are: deviceId,annotatedAssetId,annotatedLocation,serialNumber,orgUnitPath.
 
@@ -1960,13 +1981,16 @@ gam delete contactphotos <ContactEntity>|<ContactSelection>
 
 gam info contacts <ContactEntity>
         [basic|full] [showgroups]
-        [fields <ContactFieldNameList>] [formatjson]
+        [fields <ContactFieldNameList>]
+        [formatjson]
 gam show contacts <ContactSelection>
         [basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>] [formatjson]
+        [fields <ContactFieldNameList>]
+        [formatjson]
 gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
         [basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <ContactFieldNameList>]
+        [formatjson [quotechar <Character>]]
 
 <UserContactSelection> ::=
         [query <QueryContact>]
@@ -1986,13 +2010,16 @@ gam <UserTypeEntity> delete contacts <ContactEntity>|<UserContactSelection>
 
 gam <UserTypeEntity> info contacts <ContactEntity>
         [basic|full] [showgroups]
-        [fields <ContactFieldNameList>] [formatjson]
+        [fields <ContactFieldNameList>]
+        [formatjson]
 gam <UserTypeEntity> show contacts <UserContactSelection>
         [basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>] [formatjson]
+        [fields <ContactFieldNameList>]
+        [formatjson]
 gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
         [basic|full|countsonly] [showgroups|showgroupnameslist] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <ContactFieldNameList>]
+        [formatjson [quotechar <Character>]]
 
 gam <UserTypeEntity> update contactphotos <ContactEntity>|<UserContactSelection>
         [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
@@ -2014,13 +2041,16 @@ gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*] [updated_
 
 gam info gal <ContactEntity>
         [basic|full]
-        [fields <ContactFieldNameList>] [formatjson]
+        [fields <ContactFieldNameList>]
+        [formatjson]
 gam show gal <ContactSelection>
         [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>] [formatjson]
+        [fields <ContactFieldNameList>]
+        [formatjson]
 gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
         [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <ContactFieldNameList>]
+        [formatjson [quotechar <Character>]]
 
 # Contacts - Delegation
 gam <UserTypeEntity> create contactdelegate <UserEntity>
@@ -2140,19 +2170,23 @@ gam courses <CourseEntity> sync teachers [addonly|removeonly] [makefirstteachero
 gam courses <CourseEntity> sync students [addonly|removeonly] <UserTypeEntity>
 
 gam info course <CourseID> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
-        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+        [formatjson]
 gam info courses <CourseEntity> [owneremail] [alias|aliases] [show all|students|teachers] [countsonly]
-        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+        [formatjson]
 gam print courses [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
         [owneremail] [owneremailmatchpattern <RegularExpression>]
         [alias|aliases|aliasesincolumns [delimiter <Character>]]
         [show all|students|teachers] [countsonly]
-        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>]
+        [formatjson [quotechar <Character>]]
         [timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-participants [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-        [show all|students|teachers] [formatjson [quotechar <Character>]]
+        [show all|students|teachers]
+        [formatjson [quotechar <Character>]]
 
 <CourseAnnouncementFieldName> ::=
         alternatelink|
@@ -2245,20 +2279,23 @@ gam print course-announcements [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (announcementids <CourseAnnouncementIDEntity>)|((announcementstates <CourseAnnouncementStateList>)*
         (orderby <CourseAnnouncementOrderByFieldName> [ascending|descending])*)
-        [showcreatoremails|creatoremail] [fields <CourseAnnouncementFieldNameList>] [formatjson [quotechar <Character>]]
+        [showcreatoremails|creatoremail] [fields <CourseAnnouncementFieldNameList>]
+        [formatjson [quotechar <Character>]]
         [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-materials [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (materialids <CourseMaterialIDEntity>)|((materialstates <CourseMaterialStateList>)*
         (orderby <CourseMaterialOrderByFieldName> [ascending|descending])*)
-        [showcreatoremails|creatoremail] [showtopicnames] [fields <CourseMaterialFieldNameList>] [formatjson [quotechar <Character>]]
+        [showcreatoremails|creatoremail] [showtopicnames] [fields <CourseMaterialFieldNameList>]
+        [formatjson [quotechar <Character>]]
         [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-submissions [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
         (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
         (submissionids <CourseSubmissionIDEntity>)|((submissionstates <CourseSubmissionStateList>)*) [late|notlate]
-        [fields <CourseSubmissionFieldNameList>] [formatjson [quotechar <Character>]] [showuserprofile]
+        [fields <CourseSubmissionFieldNameList>]
+        [formatjson [quotechar <Character>]] [showuserprofile]
         [timefilter creationtime|updatetime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 gam print course-topics [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
@@ -2269,13 +2306,15 @@ gam print course-works [todrive <ToDriveAttribute>*]
         (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] states <CourseStateList>])
         (workids <CourseWorkIDEntity>)|((workstates <CourseWorkStateList>)*
         (orderby <CourseWorkOrderByFieldName> [ascending|descending])*)
-        [showcreatoremails|creatoremail] [showtopicnames] [fields <CourseWorkFieldNameList>] [formatjson [quotechar <Character>]]
+        [showcreatoremails|creatoremail] [showtopicnames] [fields <CourseWorkFieldNameList>]
+        [formatjson [quotechar <Character>]]
         [timefilter creationtime|updatetime|scheduledtime] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
 
 # Classroom - Invitations
 
 gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
-        [adminaccess|asadmin] [csvformat] [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+        [adminaccess|asadmin] [csvformat] [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> accept classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
 gam <UserTypeEntity> delete classroominvitation (ids <ClassroomInvitationIDEntity>)|([courses <CourseEntity>] [role all|owner|student|teacher])
 gam <UserTypeEntity> show classroominvitations [role all|owner|student|teacher]
@@ -2284,9 +2323,11 @@ gam <UserTypeEntity> print classroominvitations [todrive <ToDriveAttribute>*] [r
         [formatjson [quotechar <Character>]]
 
 gam show classroominvitations (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-        [role all|owner|student|teacher] [formatjson]
+        [role all|owner|student|teacher]
+        [formatjson]
 gam print classroominvitations [todrive <ToDriveAttribute>*] (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
-        [role all|owner|student|teacher] [formatjson [quotechar <Character>]]
+        [role all|owner|student|teacher]
+        [formatjson [quotechar <Character>]]
 
 # Classroom - Guardians
 
@@ -2303,9 +2344,11 @@ gam <UserTypeEntity> delete guardian|guardians <GuardianEntity> [accepted|invita
 gam <UserTypeEntity> clear guardian|guardians [accepted|invitations|all]
 gam <UserTypeEntity> sync guardian|guardians <GuardianEntity>
 gam <UserTypeEntity> show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
-        [showstudentemails] [formatjson]
+        [showstudentemails]
+        [formatjson]
 gam <UserTypeEntity> print guardian|guardians [todrive <ToDriveAttribute>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
-        [showstudentemails] [formatjson [quotechar <Character>]]
+        [showstudentemails]
+        [formatjson [quotechar <Character>]]
 
 ## Selected students, old style
 
@@ -2314,14 +2357,17 @@ gam cancel guardianinvitation|guardianinvitations <GuardianInvitationID> <Studen
 gam delete guardian|guardians <GuardianItem> <StudentItem> [accepted|invitations|all]
 gam show guardian|guardians [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
         [student <StudentItem>] [<UserTypeEntity>]
-        [showstudentemails] [formatjson]
+        [showstudentemails]
+        [formatjson]
 gam print guardian|guardians [todrive <ToDriveAttribute>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
         [student <StudentItem>] [<UserTypeEntity>]
-        [showstudentemails] [formatjson [quotechar <Character>]]
+        [showstudentemails]
+        [formatjson [quotechar <Character>]]
 
 ## All students
 gam print guardian|guardians [todrive <ToDriveAttribute>*] [accepted|invitations|all] [states <GuardianInvitationStateList>] [invitedguardian <EmailAddress>]
-        [showstudentemails] [formatjson [quotechar <Character>]]
+        [showstudentemails]
+        [formatjson [quotechar <Character>]]
 
 # Classroom User Profiles
 
@@ -2385,15 +2431,18 @@ gam create|add domain <DomainName>
 gam update domain <DomainName> primary
 gam delete domain <DomainName>
 
-gam info domain [<DomainName>] [formatjson]
-gam print domains [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam info domain [<DomainName>]
+        [formatjson]
+gam print domains [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 gam show domains [formatjson]
 
 gam create|add domainalias|aliasdomain <DomainAlias> <DomainName>
 gam delete domainalias|aliasdomain <DomainAlias>
 
 gam info domainalias|aliasdomain <DomainAlias> [formatjson]
-gam print domainaliases|aliasdomains [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam print domainaliases|aliasdomains [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 gam show domainaliases|aliasdomains [formatjson]
 
 # Groups
@@ -2929,7 +2978,8 @@ gam delete mobile <MobileEntity>
         deviceid|email|lastsync|model|name|os|status|type
 
 gam info mobile <MobileEntity>
-        [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>] [formatjson]
+        [basic|full|allfields] <MobileFieldName>* [fields <MobileFieldNameList>]
+        [formatjson]
 gam print mobile [todrive <ToDriveAttribute>*]
         [(query <QueryMobile>)|(queries <QueryMobileList>) (querytime.* <Time>)*]
         [orderby <MobileOrderByFieldName> [ascending|descending]]
@@ -3017,29 +3067,40 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 gam print domaincontacts [todrive <ToDriveAttribute>*]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
-gam print domainprofiles [todrive <ToDriveAttribute>*]
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
-gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
-        [query <String>]
-        [sources <PeopleSourceName>]
-        [mergesources <PeopleMergeSourceName>]
-        [fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson [quotechar <Character>]]
 gam show domaincontacts
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [fields <PeopleFieldNameList>] [formatjson]
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
+
+gam info domainprofiles <PeopleResourceNameEntity>
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
+gam print domainprofiles [todrive <ToDriveAttribute>*]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson [quotechar <Character>]]
 gam show domainprofiles
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [fields <PeopleFieldNameList>] [formatjson]
-gam [<UserTypeEntity>] show people
-        [query <String>]
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
+
+gam print people [todrive <ToDriveAttribute>*]
         [sources <PeopleSourceName>]
+        [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [fields <PeopleFieldNameList>] [formatjson]
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson [quotechar <Character>]]
+gam show people
+        [sources <PeopleSourceName>]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
 
 # Printers
 
@@ -3078,12 +3139,14 @@ gam delete printer
                 [delimiter <Character>])
 
 gam info printer <PrinterID>
-        [fields <PrinterFieldNameList>] [formatjson]
+        [fields <PrinterFieldNameList>]
+        [formatjson]
 gam show printers
         [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
          (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
         [filter <String>] [showinherited [<Boolean>]
-        [fields <PrinterFieldNameList>] [formatjson]
+        [fields <PrinterFieldNameList>]
+        [formatjson]
 gam print printers [todrive <ToDriveAttribute>*]
         [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
          (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
@@ -3294,18 +3357,22 @@ gam print features [todrive <ToDriveAttribute>*]
 gam create|add resource <ResourceID> <Name> <ResourceAttribute>*
 gam update resource <ResourceID> <ResourceAttribute>*
 gam delete resource <ResourceID>
-gam info resource <ResourceID> [acls] [calendar] [formatjson]
+gam info resource <ResourceID> [acls] [calendar]
+        [formatjson]
 
 gam update resources <ResourceEntity> <ResourceAttribute>*
 gam delete resources <ResourceEntity>
-gam info resources <ResourceEntity> [acls] [calendar] [formatjson]
+gam info resources <ResourceEntity> [acls] [calendar]
+        [formatjson]
 
 gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
         [query <String>]
-        [acls] [calendar] [convertcrnl] [formatjson]
+        [acls] [calendar] [convertcrnl]
+        [formatjson]
 gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
         [query <String>]
-        [acls] [calendar] [convertcrnl] [formatjson [quotechar <Character>]]
+        [acls] [calendar] [convertcrnl]
+        [formatjson [quotechar <Character>]]
 
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
 <CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
@@ -3318,7 +3385,8 @@ gam resource <ResourceID> delete acls|calendaracls <CalendarACLRole>] <CalendarA
 gam resource <ResourceID> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
 
 gam resource <ResourceID> show acls|calendaracls [formatjson]
-gam resource <ResourceID> print acls|calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam resource <ResourceID> print acls|calendaracls [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 gam resources <ResourceEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam resources <ResourceEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
@@ -3326,7 +3394,8 @@ gam resources <ResourceEntity> delete acls|calendaracls <CalendarACLRole>] <Cale
 gam resources <ResourceEntity> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
 
 gam resources <ResourceEntity> show acls|calendaracls [formatjson]
-gam resources <ResourceEntity> print acls|calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam resources <ResourceEntity> print acls|calendaracls [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 # Schemas
 
@@ -3437,14 +3506,18 @@ gam unhide teamdrive <SharedDriveEntity>
 gam update teamdrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsFieldName> <Boolean>)*
-gam info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
-gam show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
+gam info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
+        [formatjson]
+gam show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
+        [formatjson]
 gam print teamdrives [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [fields <SharedDriveFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <SharedDriveFieldNameList>]
+        [formatjson [quotechar <Character>]]
 gam show teamdrives
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [fields <SharedDriveFieldNameList>] [formatjson]
+        [fields <SharedDriveFieldNameList>]
+        [formatjson]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
@@ -3453,16 +3526,20 @@ gam <UserTypeEntity> create|add teamdrive <Name> adminaccess
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
 gam <UserTypeEntity> delete teamdrive <SharedDriveEntity> adminaccess
-gam <UserTypeEntity> info teamdrive <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>] [formatjson]
-gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> info teamdrive <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>]
+        [formatjson]
+gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>]
+        [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
         adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
         [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
-        [fields <SharedDriveFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <SharedDriveFieldNameList>]
+        [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdrives
         adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
         [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
-        [fields <SharedDriveFieldNameList>] [formatjson]
+        [fields <SharedDriveFieldNameList>]
+        [formatjson]
 
 These commands are used to manage the ACLs on the Team Drives themselves, not the files/folders on the Team Drives.
 
@@ -3496,7 +3573,8 @@ gam update drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
 gam info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
-        [showtitles] [formatjson]
+        [showtitles]
+        [formatjson]
 gam show drivefileacls <SharedDriveEntityAdmin>
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
@@ -3526,7 +3604,8 @@ gam <UserTypeEntity> update drivefileacl <SharedDriveEntityAdmin> <DriveFilePerm
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails] adminaccess
 gam <UserTypeEntity> delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
 gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
-        [showtitles] [formatjson] adminaccess
+        [showtitles]
+        [formatjson] adminaccess
 gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
@@ -3702,7 +3781,8 @@ gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|m
         (shareddrives|teamdrives <SharedDriveIDList>) | (rooms <RoomList>)
         [scope <all_data|held_data|unprocessed_data>]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
-        [excludedrafts <Boolean>] [format mbox|pst] [showconfidentialmodecontent <Boolean>]
+        [excludedrafts <Boolean>]
+        [format mbox|pst] [showconfidentialmodecontent <Boolean>]
         [includerooms <Boolean>] [covereddata calllogs|textmessages|voicemails]
         [includeshareddrives|includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>] [includeaccessinfo <Boolean>]
         [region any|europe|us] [showdetails]
@@ -3948,7 +4028,8 @@ gam info user [<UserItem>]
         [nolicenses|nolicences|licenses|licences]
         [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
-        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
+        [formatjson]
 
 gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
@@ -3973,7 +4054,8 @@ gam info users <UserTypeEntity>
         [nolicenses|nolicences|licenses|licences]
         [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
-        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
+        [formatjson]
 
 gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
@@ -3998,7 +4080,8 @@ gam <UserTypeEntity> info users
         [nolicenses|nolicences|licenses|licences]
         [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
-        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
+        [formatjson]
 
 Print fields for selected users; use these options to select users:
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
@@ -4162,7 +4245,8 @@ gam <UserTypeEntity> print calendars [todrive <ToDriveAttribute>*] [permissions]
         [formatjson] [delimiter <Character>] [quotechar <Character>]
 
 gam <UserTypeEntity> show calsettings [formatjson]
-gam <UserTypeEntity> print calsettings [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> print calsettings [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 Create, modify and remove calendars for a user
 
@@ -4178,7 +4262,8 @@ gam <UserTypeEntity> delete calendaracls <UserCalendarEntity> <CalendarACLRole>]
 
 gam <UserTypeEntity> info calendaracls <UserCalendarEntity> <CalendarACLScopeEntity> [formatjson]
 gam <UserTypeEntity> show calendaracls <UserCalendarEntity> [formatjson]
-gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 Transfer ownership of a selection of users calendars to another user
 
@@ -4312,10 +4397,12 @@ gam <UserTypeEntity> info events <UserCalendarEntity> [<EventEntity>] [maxinstan
         [formatjson]
 gam <UserTypeEntity> show events <UserCalendarEntity> [<EventSelectEntity>] <EventDisplayProperty>*
         [fields <EventFieldNameList>] [showdayofweek]
-        [countsonly] [formatjson]
+        [countsonly]
+        [formatjson]
 gam <UserTypeEntity> print events <UserCalendarEntity> [<EventSelectEntity>] <EventDisplayProperty>*
         [fields <EventFieldNameList>] [showdayofweek]
-        [countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
+        [countsonly]
+        [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
         [<EventNotificationAttribute>] [splitupdate] [doit]
@@ -4536,7 +4623,8 @@ gam <UserTypeEntity> trash drivefile <DriveFileEntity>
 gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 
 gam <UserTypeEntity> info drivefile <DriveFileEntity>
-        [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
+        [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+        [formatjson]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
 
 gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
@@ -4594,7 +4682,8 @@ gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionI
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [showtitles]
 gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
-        [showtitles] [formatjson]
+        [showtitles]
+        [formatjson]
 gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
@@ -4615,7 +4704,8 @@ gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionID
         <PermissionMatch>* [<PermissionMatchAction>]
 
 gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
-gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 <RevisionsFieldName> ::=
         filesize|
@@ -4889,7 +4979,8 @@ gam <UserTypeEntity> collect orphans
         permissionmatchaction|pma process|skip
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
-        [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
+        [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+        [formatjson]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
 gam <UserTypeEntity> show filepath <DriveFileEntity>
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -5413,16 +5504,32 @@ gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
         [allfields|(fields <OtherContactFieldNameList>)]
         [formatjson [quotechar <Character>]]
 
+gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
 gam <UserTypeEntity> show peoplecontacts
         [query <String>]
-        [orderby firstname|lastname|(lastmodified asdending)|(lastnodified descending)
-        [allfields|(fields <PeopleFieldNameList>)]
+        [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
+        [allfields|(allfields|(fields <PeopleFieldNameList>))]
         [formatjson]
 gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
         [query <String>]
-        [orderby firstname|lastname|(lastmodified asdending)|(lastnodified descending)
+        [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
+        [allfields|(allfields|(fields <PeopleFieldNameList>))]
+        [formatjson [quotechar <Character>]]
+
+gam <UserTypeEntity> print people [todrive <ToDriveAttribute>*]
+        [sources <PeopleSourceName>]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
         [allfields|(fields <PeopleFieldNameList>)]
         [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> show people
+        [sources <PeopleSourceName>]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
 
 <PeopleContactGroupFieldName> ::=
         clientdata|
@@ -5433,9 +5540,11 @@ gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
 <PeopleContactGroupFieldNameList> ::= "<PeopleContactGroupFieldName>(,<PeopleContactGroupFieldName>)*"
 
 gam <UserTypeEntity> print peoplecontactgroups [todrive <ToDriveAttribute>*]
-        [fields <PeoplaContactGroupFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <PeoplaContactGroupFieldNameList>]
+        [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show peoplacontactgroups
-        [fields <PeoplaContactGroupFieldNameList>] [formatjson]
+        [fields <PeoplaContactGroupFieldNameList>]
+        [formatjson]
 
 # Users - Photo
 
@@ -5472,15 +5581,20 @@ gam <UserTypeEntity> update teamdrive <SharedDriveEntity> [adminaccess|asadmin] 
 gam <UserTypeEntity> delete teamdrive <SharedDriveEntity>
 gam <UserTypeEntity> hide teamdrive <SharedDriveEntity>
 gam <UserTypeEntity> unhide teamdrive <SharedDriveEntity>
-gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
-gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
-gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>] [formatjson]
+gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
+        [formatjson]
+gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
+        [formatjson]
+gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
+        [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
         [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
-        [fields <SharedDriveFieldNameList>] [formatjson [quotechar <Character>]]
+        [fields <SharedDriveFieldNameList>]
+        [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdrives
         [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
-        [fields <SharedDriveFieldNameList>] [formatjson]
+        [fields <SharedDriveFieldNameList>]
+        [formatjson]
 
 # Users - Force Signout and Turn Off 2-Step Verification
 
@@ -5550,12 +5664,14 @@ gam <UserTypeEntity> append sheetrange <DriveFileEntity>
          (json file <FileName> [charset <Charset>]))
         [overwrite|insertrows]
         [raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-        [includevaluesinresponse [<Boolean>]] [formatjson]
+        [includevaluesinresponse [<Boolean>]]
+        [formatjson]
 gam <UserTypeEntity> update sheetrange <DriveFileEntity>
         ((json [charset <Charset>] <SpreadsheetJSONRangeValues>|<SpreadsheetJSONRangeValuesList>)+
          (json file <FileName> [charset <Charset>])+)
         [raw|userentered] [formula|formattedvalue|unformattedvalue] [serialnumber|formattedstring]
-        [includevaluesinresponse [<Boolean>]] [formatjson]
+        [includevaluesinresponse [<Boolean>]]
+        [formatjson]
 
 gam <UserTypeEntity> clear sheetrange <DriveFileEntity>
         (range <SpreadsheetRange>)+ (rangelist <SpreadsheetRangeList>)*

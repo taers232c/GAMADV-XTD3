@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.07'
+__version__ = '6.03.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -29763,7 +29763,6 @@ class SitesManager():
       fields.setdefault(fieldName, [])
       fields[fieldName].append(fieldValue)
 
-
     GetActivityField('Summary', ['title', 'text'])
     GetActivityField('Updated', ['updated', 'text'])
     for author in activity_entry.author:
@@ -32620,7 +32619,6 @@ def doCheckCIUserInvitations():
   except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.USER_INVITATION, f'{user}'], str(e))
 
-
 def infoCIUserInvitations(name, user, ci, FJQC):
   try:
     invitation = callGAPI(ci.customers().userinvitations(), 'get',
@@ -32739,7 +32737,7 @@ def checkCIUserIsInvitable(users):
 
 def _showPerson(userEntityType, user, entityType, person, i, count, FJQC):
   if not FJQC.formatJSON:
-    printEntity([userEntityType, user, entityType, ''], i, count)
+    printEntity([userEntityType, user, entityType, person['resourceName']], i, count)
     Ind.Increment()
     showJSON(None, person)
     Ind.Decrement()
@@ -32828,9 +32826,7 @@ def printShowPeopleProfile(users):
       deprecatedArgument(myarg)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if not fieldsList:
-    fieldsList.append('names,emailAddresses')
-  personFields = ','.join(set(fieldsList))
+  personFields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -32862,113 +32858,109 @@ PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP = {
   'profiles': 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE'
   }
 
+PEOPLE_READ_SOURCES_CHOICE_MAP = {
+  'contact': 'READ_SOURCE_TYPE_CONTACT',
+  'contacts': 'READ_SOURCE_TYPE_CONTACT',
+  'profile': 'READ_SOURCE_TYPE_PROFILE',
+  'profiles': 'READ_SOURCE_TYPE_PROFILE'
+  }
+
 PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
   'contact': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
   'contacts': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
   }
 
-
-def _infoPeople(users, entityType, source):
+def _infoPeople(users, entityType):
   if entityType == Ent.DOMAIN:
     people = buildGAPIObject(API.PEOPLE_DIRECTORY)
-  entityTypeName = Ent.Singular(entityType)
+    source = 'profile'
+    peopleEntityType = Ent.DOMAIN_PROFILE
+  else:
+    source = 'contact'
+    peopleEntityType = Ent.PEOPLE_CONTACT
   entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
-  contactIdLists = entityList if isinstance(entityList, dict) else None
-  showContactGroups = False
+  resourceNameLists = entityList if isinstance(entityList, dict) else None
   FJQC = FormatJSONQuoteChar()
-  sources = [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP[source]]
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP[source]]
   fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'showgroups':
-      showContactGroups = True
-    elif source is None and myarg in {'source', 'sources'}:
-      sources = [getChoice(PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, mapChoice=True)]
-    elif myarg == 'allfields':
+    if myarg == 'allfields':
       for field in PEOPLE_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
     elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
-      if CONTACT_GROUPS in fieldsList:
-        showContactGroups = True
+      pass
     else:
       FJQC.GetFormatJSON(myarg)
-  if sources[0] == 'READ_SOURCE_TYPE_PROFILE':
-    peopleEntityType = Ent.DOMAIN_PROFILE
-  else:
-    peopleEntityType = Ent.DOMAIN_CONTACT if entityType == Ent.DOMAIN else Ent.PEOPLE_CONTACT
-  personFields = ','.join(set(fieldsList))
+  personFields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    if contactIdLists:
-      entityList = contactIdLists[user]
-    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
-    if not people:
-      continue
-    contactGroupIDs = None
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    if entityType != Ent.DOMAIN:
+      user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+      if not people:
+        continue
     j = 0
     jcount = len(entityList)
     if not FJQC.formatJSON:
-      entityPerformActionNumItems([peopleEntityType, user], jcount, peopleEntityType, i, count)
+      entityPerformActionNumItems([entityType, user], jcount, peopleEntityType, i, count)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND_RC)
       continue
     Ind.Increment()
-    for contact in entityList:
+    for resourceName in entityList:
       j += 1
       try:
         result = callGAPI(people.people(), 'get',
-                          throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                          resourceName=contact, personFields=personFields)
-      except GAPI.notFound:
-        entityUnknownWarning(Ent.PEOPLE_PROFILE, user, i, count)
+                          bailOnInternalError=True,
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                          resourceName=resourceName, sources=sources, personFields=personFields)
+      except (GAPI.notFound, GAPI.internalError):
+        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
         continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
       _showPerson(entityType, user, peopleEntityType, result, j, jcount, FJQC)
     Ind.Decrement()
 
-# gam info domaincontacts
-#	[fields <PeopleFieldNameList>] [formatjson]
-def doInfoPeopleDomainContact():
-  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'contact')
-
-# gam info domainprofiles
-#	[fields <PeopleFieldNameList>] [formatjson]
+# gam info domainprofiles <PeopleResourceNameEntity>
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
 def doInfoPeopleDomainProfile():
-  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'profile')
+  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-# gam <UserTypeEntity> info peoplecontacts
-#	[fields <PeopleFieldNameList>] [formatjson]
+# gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
 def infoPeopleContact(users):
-  _infoPeople(users, Ent.USER, 'contact')
+  _infoPeople(users, Ent.USER)
 
 # gam print domaincontacts [todrive <ToDriveAttribute>*]
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
-# gam print domainprofiles [todrive <ToDriveAttribute>*]
-#	[query <String>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
-# gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
-#	[query <String>]
-#	[sources <PeopleSourceName>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
-# gam [<UserTypeEntity>] show people
-#	[query <String>]
-#	[sources <PeopleSourceName>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[fields <PeopleFieldNameList>] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson [quotechar <Character>]]
 # gam show domaincontacts
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[fields <PeopleFieldNameList>] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+# gam print domainprofiles [todrive <ToDriveAttribute>*]
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson [quotechar <Character>]]
 # gam show domainprofiles
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[fields <PeopleFieldNameList>] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+# gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
+#	[sources <PeopleSourceName>]
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson [quotechar <Character>]]
+# gam [<UserTypeEntity>] show people
+#	[sources <PeopleSourceName>]
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
 def _printShowPeople(users, entityType, source):
   if entityType == Ent.DOMAIN:
     people = buildGAPIObject(API.PEOPLE_DIRECTORY)
@@ -33047,16 +33039,18 @@ PEOPLE_CONTACT_ORDERBY_CHOICE_MAP = {
 
 # gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
 #	[query <String>]
-#	[fields <PeopleFieldNameList>] [formatjson [quotechar <Character>]]
+#	[orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show peoplecontacts
 #	[query <String>]
-#	[fields <PeopleFieldNameList>] [formatjson]
+#	[orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
 def printShowUserPeopleContacts(users):
   entityType = Ent.USER
   entityTypeName = Ent.Singular(entityType)
   csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  sources = ['READ_SOURCE_TYPE_CONTACT']
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
   fieldsList = []
   query = None
   sortOrder = None
@@ -53023,7 +53017,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSERSTATE:	doInfoCIDeviceUserState,
       Cmd.ARG_DOMAIN:		doInfoDomain,
       Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
-      Cmd.ARG_DOMAINCONTACT:	doInfoPeopleDomainContact,
       Cmd.ARG_DOMAINPROFILE:	doInfoPeopleDomainProfile,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
       Cmd.ARG_INSTANCE:		doInfoInstance,
@@ -54150,6 +54143,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_DATASTUDIOASSETS:	Cmd.ARG_DATASTUDIOASSET,
   Cmd.ARG_DATASTUDIOPERMISSIONS:	Cmd.ARG_DATASTUDIOPERMISSION,
   Cmd.ARG_DELEGATES:		Cmd.ARG_DELEGATE,
+  Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_DOMAINCONTACT,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
   Cmd.ARG_DRIVEFILESHORTCUTS:	Cmd.ARG_DRIVEFILESHORTCUT,
   Cmd.ARG_EVENTS:		Cmd.ARG_EVENT,
