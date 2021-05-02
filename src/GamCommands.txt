@@ -1808,7 +1808,7 @@ gam print chromschemas [todrive <ToDriveAttribute>*]
         <ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
         [[formatjson [quotechar <Character>]]
 
-gam show chromeschemas
+gam show chromeschemas std
         [filter <String>]
 
 # Chrome Apps/Versions

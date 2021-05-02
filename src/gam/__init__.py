@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.06'
+__version__ = '6.03.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18350,6 +18350,24 @@ def doDeleteChromePolicy():
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
 
+CHROME_SCHEMA_TYPE_MESSAGE = {
+  'chrome.users.SessionLength':
+    {'field': 'sessiondurationlimit', 'casedField': 'sessionDurationLimit',
+     'type': 'duration', 'minVal': 1, 'maxVal': 1440, 'scale': 60},
+  'chrome.users.BrowserSwitcherDelayDuration':
+    {'field': 'browserswitcherdelayduration', 'casedField': 'browserSwitcherDelayDuration',
+     'type': 'duration', 'minVal': 0, 'maxVal': 30, 'scale': 1},
+  'chrome.users.MaxInvalidationFetchDelay':
+    {'field': 'maxinvalidationfetchdelay', 'casedField': 'maxInvalidationFetchDelay',
+     'type': 'duration', 'minVal': 1, 'maxVal': 30, 'scale': 1},
+  'chrome.users.SecurityTokenSessionSettings':
+    {'field': 'securitytokensessionnotificationseconds', 'casedField': 'securityTokenSessionNotificationSeconds',
+     'type': 'duration', 'minVal': 0, 'maxVal': 9999, 'scale': 1},
+  'chrome.users.PrintingMaxSheetsAllowed':
+    {'field': 'printingmaxsheetsallowednullable', 'casedField': 'printingMaxSheetsAllowedNullable',
+     'type': 'value', 'minVal': 1, 'maxVal': None, 'scale': 1},
+  }
+
 # gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
 #	ou|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 def doUpdateChromePolicy():
@@ -18368,14 +18386,25 @@ def doUpdateChromePolicy():
     elif myarg == 'appid':
       app_id = getString(Cmd.OB_APP_ID)
     elif myarg in schemas:
-      body['requests'].append({'policyValue': {'policySchema': schemas[myarg]['name'],
-                                               'value': {}},
+      schemaName = schemas[myarg]['name']
+      body['requests'].append({'policyValue': {'policySchema': schemaName, 'value': {}},
                                'updateMask': ''})
       while Cmd.ArgumentsRemaining():
         field = getArgument()
         if field in {'ou', 'org', 'orgunit', 'printerid', 'appid'} or '.' in field:
           Cmd.Backup()
           break # field is actually a new policy name or orgunit
+        # Handle TYPE_MESSAGE fields with durations or counts as a special case
+        schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName)
+        if schema and field == schema['field']:
+          casedField = schema['casedField']
+          value = getInteger(minVal=schema['minVal'], maxVal=schema['maxVal'])*schema['scale']
+          if schema['type'] == 'duration':
+            body['requests'][-1]['policyValue']['value'][casedField] = {schema['type']: f'{value}s'}
+          else:
+            body['requests'][-1]['policyValue']['value'][casedField] = {schema['type']: value}
+          body['requests'][-1]['updateMask'] += f'{casedField},'
+          continue
         if field not in schemas[myarg]['settings']:
           Cmd.Backup()
           missingChoiceExit(schemas[myarg]['settings'])
@@ -18397,11 +18426,14 @@ def doUpdateChromePolicy():
             invalidChoiceExit(value, TRUE_FALSE, True)
         elif vtype in ['TYPE_ENUM']:
           value = value.upper()
-          enum_values = schemas[myarg]['settings'][field]['enums']
-          if value not in enum_values:
-            invalidChoiceExit(value, enum_values, True)
           prefix = schemas[myarg]['settings'][field]['enum_prefix']
-          value = f'{prefix}{value}'
+          enum_values = schemas[myarg]['settings'][field]['enums']
+          if value in enum_values:
+            value = f'{prefix}{value}'
+          elif value.replace(prefix, '') in enum_values:
+            pass
+          else:
+            invalidChoiceExit(value, enum_values, True)
         elif vtype in ['TYPE_LIST']:
           value = value.split(',')
         if myarg == 'chrome.users.chromebrowserupdates' and casedField == 'targetVersionPrefixSetting':
@@ -32835,6 +32867,82 @@ PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
   'contacts': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
   }
 
+
+def _infoPeople(users, entityType, source):
+  if entityType == Ent.DOMAIN:
+    people = buildGAPIObject(API.PEOPLE_DIRECTORY)
+  entityTypeName = Ent.Singular(entityType)
+  entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
+  contactIdLists = entityList if isinstance(entityList, dict) else None
+  showContactGroups = False
+  FJQC = FormatJSONQuoteChar()
+  sources = [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP[source]]
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'showgroups':
+      showContactGroups = True
+    elif source is None and myarg in {'source', 'sources'}:
+      sources = [getChoice(PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, mapChoice=True)]
+    elif myarg == 'allfields':
+      for field in PEOPLE_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
+    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      if CONTACT_GROUPS in fieldsList:
+        showContactGroups = True
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if sources[0] == 'READ_SOURCE_TYPE_PROFILE':
+    peopleEntityType = Ent.DOMAIN_PROFILE
+  else:
+    peopleEntityType = Ent.DOMAIN_CONTACT if entityType == Ent.DOMAIN else Ent.PEOPLE_CONTACT
+  personFields = ','.join(set(fieldsList))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if contactIdLists:
+      entityList = contactIdLists[user]
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    contactGroupIDs = None
+    j = 0
+    jcount = len(entityList)
+    if not FJQC.formatJSON:
+      entityPerformActionNumItems([peopleEntityType, user], jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      try:
+        result = callGAPI(people.people(), 'get',
+                          throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                          resourceName=contact, personFields=personFields)
+      except GAPI.notFound:
+        entityUnknownWarning(Ent.PEOPLE_PROFILE, user, i, count)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+      _showPerson(entityType, user, peopleEntityType, result, j, jcount, FJQC)
+    Ind.Decrement()
+
+# gam info domaincontacts
+#	[fields <PeopleFieldNameList>] [formatjson]
+def doInfoPeopleDomainContact():
+  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'contact')
+
+# gam info domainprofiles
+#	[fields <PeopleFieldNameList>] [formatjson]
+def doInfoPeopleDomainProfile():
+  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'profile')
+
+# gam <UserTypeEntity> info peoplecontacts
+#	[fields <PeopleFieldNameList>] [formatjson]
+def infoPeopleContact(users):
+  _infoPeople(users, Ent.USER, 'contact')
+
 # gam print domaincontacts [todrive <ToDriveAttribute>*]
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
@@ -32876,13 +32984,13 @@ def _printShowPeople(users, entityType, source):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'allfields':
-      for field in PEOPLE_FIELDS_CHOICE_MAP:
-        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
     elif source is None and myarg in {'source', 'sources'}:
       sources = [getChoice(PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, mapChoice=True)]
     elif myarg in {'mergesource', 'mergesources'}:
       mergeSources = [getChoice(PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP, mapChoice=True)]
+    elif myarg == 'allfields':
+      for field in PEOPLE_FIELDS_CHOICE_MAP:
+        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
     elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'query':
@@ -52915,6 +53023,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSERSTATE:	doInfoCIDeviceUserState,
       Cmd.ARG_DOMAIN:		doInfoDomain,
       Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
+      Cmd.ARG_DOMAINCONTACT:	doInfoPeopleDomainContact,
+      Cmd.ARG_DOMAINPROFILE:	doInfoPeopleDomainProfile,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
       Cmd.ARG_INSTANCE:		doInfoInstance,
       Cmd.ARG_GAL:		doInfoGAL,
@@ -53752,6 +53862,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CIGROUPMEMBERS:	infoCIGroupMembers,
       Cmd.ARG_CONTACT:		infoUserContacts,
       Cmd.ARG_CONTACTGROUP:	infoUserContactGroups,
+      Cmd.ARG_PEOPLECONTACT:	infoPeopleContact,
       Cmd.ARG_DRIVEFILE:	showFileInfo,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,
       Cmd.ARG_EVENT:		infoCalendarEvents,

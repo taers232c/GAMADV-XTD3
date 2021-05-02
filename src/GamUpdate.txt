@@ -1,3 +1,12 @@
+6.03.07
+
+Updated code to properly set the values for the following Chrome Policy schema values:
+* chrome.users.SessionLength - sessionDurationLimit
+* chrome.users.BrowserSwitcherDelayDuration - browserSwitcherDelayDuration
+* chrome.users.MaxInvalidationFetchDelay - maxInvalidationFetchDelay
+* chrome.users.SecurityTokenSessionSettings - securityTokenSessionNotificationSeconds
+* chrome.users.PrintingMaxSheetsAllowed - printingMaxSheetsAllowedNullable
+
 6.03.06
 
 Added enhanced commands for displaying Chrome Policy schemas.
