@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.08'
+__version__ = '6.03.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18470,30 +18470,97 @@ def doUpdateChromePolicy():
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
 
+CHROME_POLICY_SORT_TITLES = ['name', 'orgUnitPath', 'parentOrgUnitPath']
+CHROME_POLICY_INDEXED_TITLES = ['fields']
+
 # gam show chromepolicies
+#	[filter <String>]
 #	ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+#	[formatjson]
+# gam print chromepolicies [todrive <ToDriveAttribute>*]
+#	[filter <String>]
+#	ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+#	[[formatjson [quotechar <Character>]]
 def doPrintShowChromePolicies():
+  def normalizedPolicy(policy):
+    norm = {'name': policy['value']['policySchema']}
+    if printerId:
+      norm['printerId'] = printerId
+    elif appId:
+      norm['appId'] = appId
+    orgUnitId = policy.get('targetKey', {}).get('targetResource')
+    norm['orgUnitPath'] = convertOrgUnitIDtoPath(cd, orgUnitId) if orgUnitId else 'Unknown'
+    orgUnitId = policy.get('sourceKey', {}).get('targetResource')
+    norm['parentOrgUnitPath'] = convertOrgUnitIDtoPath(cd, orgUnitId) if orgUnitId else 'Unknown'
+    norm['fields'] = []
+    name = policy['value']['policySchema']
+    # Handle TYPE_MESSAGE fields with durations or counts as a special case
+    schema = CHROME_SCHEMA_TYPE_MESSAGE.get(name)
+    values = policy.get('value', {}).get('value', {})
+    for setting, value in values.items():
+      if schema and setting == schema['casedField']:
+        value = value.get(schema['type'], '')
+        if value:
+          if value.endswith('s'):
+            value = value[:-1]
+          value = int(value) // schema['scale']
+      elif isinstance(value, str) and value.find('_ENUM_') != -1:
+        value = value.split('_ENUM_')[-1]
+      elif isinstance(value, list):
+        value = ','.join(value)
+      norm['fields'].append({'name': setting, 'value': value})
+    return norm
+
+  def _showPolicy(policy, j, jcount):
+    policy = normalizedPolicy(policy)
+    if FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(policy), ensure_ascii=False, sort_keys=True))
+    else:
+      printKeyValueListWithCount([policy['name']], j, jcount)
+      Ind.Increment()
+      showJSON(None, policy, sortDictKeys=False)
+      Ind.Decrement()
+
+  def _printPolicy(policy):
+    policy = normalizedPolicy(policy)
+    row = flattenJSON(policy)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'name': policy['name'],
+                              'JSON': json.dumps(cleanJSON(policy),
+                                                 ensure_ascii=False, sort_keys=True)})
+
+
   cp = buildGAPIObject(API.CHROMEPOLICY)
+  cd = buildGAPIObject(API.DIRECTORY)
   customer = _getCustomersCustomerIdWithC()
-  app_id = orgUnit = printer_id = None
+  csvPF = CSVPrintFile(['name'], indexedTitles=CHROME_POLICY_INDEXED_TITLES) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  appId = orgUnit = policySchemaFilter = printerId = None
+  body = {'policyTargetKey': {'targetResource': None}}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg in {'ou', 'org', 'orgunit'}:
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'filter':
+      policySchemaFilter = getString(Cmd.OB_STRING)
+    elif myarg in {'ou', 'org', 'orgunit'}:
       orgUnitPath, orgUnit = _getOrgunitsOrgUnitIdPath(getString(Cmd.OB_ORGUNIT_PATH))
-    elif myarg == 'printerid':
-      printer_id = getString(Cmd.OB_PRINTER_ID)
-    elif myarg == 'appid':
-      app_id = getString(Cmd.OB_APP_ID)
+      body['policyTargetKey']['targetResource'] = orgUnit
+    elif (not printerId and not appId) and myarg == 'printerid':
+      printerId = getString(Cmd.OB_PRINTER_ID)
+    elif (not printerId and not appId) and myarg == 'appid':
+      appId = getString(Cmd.OB_APP_ID)
     else:
-      unknownArgumentExit()
-  if not orgUnit:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if not body['policyTargetKey']['targetResource']:
     missingArgumentExit('orgunit')
-  body = {'policyTargetKey': {'targetResource': orgUnit}}
-  if printer_id:
-    body['policyTargetKey']['additionalTargetKeys'] = {'printer_id': printer_id}
+  if printerId:
+    body['policyTargetKey']['additionalTargetKeys'] = {'printerId': printerId}
     namespaces = ['chrome.printers']
-  elif app_id:
-    body['policyTargetKey']['additionalTargetKeys'] = {'app_id': app_id}
+  elif appId:
+    body['policyTargetKey']['additionalTargetKeys'] = {'appId': appId}
     namespaces = ['chrome.users.apps',
                   'chrome.devices.managedGuest.apps',
                   'chrome.devices.kiosk.apps',
@@ -18505,36 +18572,48 @@ def doPrintShowChromePolicies():
 #                  'chrome.devices.managedGuest',
 #                  'chrome.devices.kiosk',
                  ]
+  if csvPF and not FJQC.formatJSON:
+    csvPF.SetSortTitles(CHROME_POLICY_SORT_TITLES)
+    if printerId:
+      csvPF.AddSortTitles(['printerId'])
+    elif appId:
+      csvPF.AddSortTitles(['appId'])
+  policies = []
   for namespace in namespaces:
-    body['policySchemaFilter'] = f'{namespace}.*'
+    body['policySchemaFilter'] = f'{namespace}.*' if not policySchemaFilter else policySchemaFilter
+    printGettingAllEntityItemsForWhom(Ent.CHROME_POLICY, orgUnitPath, query=body['policySchemaFilter'])
+    pageMessage = getPageMessage()
     try:
-      policies = callGAPIpages(cp.customers().policies(), 'resolve','resolvedPolicies',
-                                 throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
-                                 customer=customer,
-                                 body=body)
+      policies.extend(callGAPIpages(cp.customers().policies(), 'resolve','resolvedPolicies',
+                                    pageMessage=pageMessage,
+                                    throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
+                                    customer=customer, body=body))
     except GAPI.notFound as e:
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
       continue
     except (GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.CHROME_POLICY, body['policySchemaFilter']], str(e))
       continue
-    kvList = []
-    if printer_id:
-      kvList.extend(['printerid', printer_id])
-    elif app_id:
-      kvList.extend(['appid', app_id])
-    printEntityKVList([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], kvList)
-    for policy in sorted(policies, key=lambda k: k.get('value', {}).get('policySchema', '')):
-      name = policy.get('value', {}).get('policySchema', '')
-      printBlankLine()
-      printKeyValueList([name])
-      Ind.Increment()
-      values = policy.get('value', {}).get('value', {})
-      for setting, value in values.items():
-        if isinstance(value, str) and value.find('_ENUM_') != -1:
-          value = value.split('_ENUM_')[-1]
-        printKeyValueList([f'{setting}', f'{value}'])
-      Ind.Decrement()
+  if not csvPF:
+    jcount = len(policies)
+    if not FJQC.formatJSON:
+      kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath]
+      if printerId:
+        kvList.extend([Ent.PRINTER_ID, printerId])
+      elif appId:
+        kvList.extend([Ent.APP_ID, appId])
+      entityPerformActionNumItems(kvList, jcount, Ent.CHROME_POLICY)
+    Ind.Increment()
+    j = 0
+    for policy in sorted(policies, key=lambda k: k['value']['policySchema']):
+      j += 1
+      _showPolicy(policy, j, jcount)
+    Ind.Decrement()
+  else:
+    for policy in sorted(policies, key=lambda k: k['value']['policySchema']):
+      _printPolicy(policy)
+  if csvPF:
+    csvPF.writeCSVfile(f'Chrome Policies - {orgUnitPath}')
 
 def _getChromePolicySchemaName():
   name = getString(Cmd.OB_SCHEMA_NAME)
@@ -18598,14 +18677,13 @@ def doInfoChromePolicySchemas():
 #	[[formatjson [quotechar <Character>]]
 def doPrintShowChromeSchemas():
   def _printChromePolicySchema(schema):
-    if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(schema)):
-        csvPF.WriteRowNoFilter({'name': schema['name'],
-                                'JSON': json.dumps(cleanJSON(schema),
-                                                   ensure_ascii=False, sort_keys=True)})
-      return
     row = flattenJSON(schema)
-    csvPF.WriteRowTitles(row)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'name': schema['name'],
+                              'JSON': json.dumps(cleanJSON(schema),
+                                                 ensure_ascii=False, sort_keys=True)})
 
   if checkArgumentPresent('std'):
     doShowChromeSchemasStd()
@@ -18636,7 +18714,8 @@ def doPrintShowChromeSchemas():
                             parent=parent, filter=pfilter, fields=fields)
     if not csvPF:
       jcount = len(schemas)
-      performActionNumItems(jcount, Ent.CHROME_POLICY_SCHEMA)
+      if not FJQC.formatJSON:
+        performActionNumItems(jcount, Ent.CHROME_POLICY_SCHEMA)
       Ind.Increment()
       j = 0
       for schema in schemas:
@@ -53068,6 +53147,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
       Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
       Cmd.ARG_CHROMEHISTORY:	doPrintShowChromeHistory,
+      Cmd.ARG_CHROMEPOLICY:	doPrintShowChromePolicies,
       Cmd.ARG_CHROMESCHEMA:	doPrintShowChromeSchemas,
       Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
       Cmd.ARG_CIGROUP:		doPrintCIGroups,

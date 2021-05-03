@@ -1,3 +1,13 @@
+6.03.09
+
+Added command to print Chrome policies.
+```
+gam print chromepolicies [todrive <ToDriveAttribute>*]
+        [filter <String>]
+        ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+        [[formatjson [quotechar <Character>]]
+```
+
 6.03.08
 
 Added commands to display specific domain profiles and user's contacts using the People API.

@@ -456,7 +456,7 @@ _SVCACCT_SCOPES = [
    'api': GMAIL,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/gmail.settings.basic'},
-  {'name': 'Gmail API - Settings Sharing (Forwarding, Aliases)',
+  {'name': 'Gmail API - Settings Sharing (Aliases, Delegates, Forwarding)',
    'api': GMAIL,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/gmail.settings.sharing'},

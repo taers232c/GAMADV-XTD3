@@ -54,6 +54,7 @@ class GamEntity():
   ALIAS_TARGET = 'alit'
   API = 'api '
   APP_ACCESS_SETTINGS = 'apps'
+  APP_ID = 'appi'
   APP_NAME = 'appn'
   APPLICATION_SPECIFIC_PASSWORD = 'aspa'
   ARROWS_ENABLED = 'arro'
@@ -213,6 +214,7 @@ class GamEntity():
   PHOTO = 'phot'
   POP_ENABLED = 'popa'
   PRINTER = 'prin'
+  PRINTER_ID = 'prid'
   PRINTER_MODEL = 'prmd'
   PRIVILEGE = 'priv'
   PRODUCT = 'prod'
@@ -305,6 +307,7 @@ class GamEntity():
     ALIAS_TARGET: ['Alias Targets', 'Alias Target'],
     API: ['APIs', 'API'],
     APP_ACCESS_SETTINGS: ['Application Access Settings', 'Application Access Settings'],
+    APP_ID: ['Application IDs', 'Application ID'],
     APP_NAME: ['Application Names', 'Application Name'],
     APPLICATION_SPECIFIC_PASSWORD: ['Application Specific Password IDs', 'Application Specific Password ID'],
     ARROWS_ENABLED: ['Personal Indicator Arrows Enabled', 'Personal Indicator Arrows Enabled'],
@@ -464,6 +467,7 @@ class GamEntity():
     PHOTO: ['Photos', 'Photo'],
     POP_ENABLED: ['POP Enabled', 'POP Enabled'],
     PRINTER: ['Printers', 'Printer'],
+    PRINTER_ID: ['Printer IDs', 'Printer ID'],
     PRINTER_MODEL: ['Printer Models', 'Printer Model'],
     PRIVILEGE: ['Privileges', 'Privilege'],
     PRODUCT: ['Products', 'Product'],
