@@ -1,3 +1,11 @@
+6.03.10
+
+Fixed bug in `gam create course ... copyfrom <CourseID> ... copytopics ... copymaterialsfiles true materialstates "all"`
+that generated the following error:
+```
+ERROR: 400: invalidArgument - Request contains an invalid argument.
+```
+
 6.03.09
 
 Added command to print Chrome policies.

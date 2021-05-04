@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.09'
+__version__ = '6.03.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33883,6 +33883,14 @@ class CourseAttributes():
           continue
         if self.copyMaterialsFiles:
           self.CopyMaterials(tdrive, newCourseId, body, Ent.COURSE_MATERIAL_ID, courseMaterialId, teacherFolderId)
+        topicId = body.pop('topicId', None)
+        if self.copyTopics:
+          if topicId:
+            topicName = self.topicsById.get(topicId)
+            if topicName:
+              newTopicId = newTopicsByName.get(topicName)
+              if newTopicId:
+                body['topicId'] = newTopicId
         try:
           result = callGAPI(tcroom.courses().courseWorkMaterials(), 'create',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
