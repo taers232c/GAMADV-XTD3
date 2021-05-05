@@ -1,3 +1,11 @@
+6.03.11
+
+Upgraded to Python 3.9.5.
+
+Following Jay's lead, Google time is now checked against admin.googleapis.com rather than www.googleapis.com.
+
+Updated code to convert the Shared Drive file field `trashedTime` from UTC according to `gam.cfg timezone`.
+
 6.03.10
 
 Fixed bug in `gam create course ... copyfrom <CourseID> ... copytopics ... copymaterialsfiles true materialstates "all"`

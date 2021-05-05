@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.10'
+__version__ = '6.03.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -230,6 +230,7 @@ MIMETYPE_TEXT_HTML = 'text/html'
 MIMETYPE_TEXT_PLAIN = 'text/plain'
 
 GOOGLE_NAMESERVERS = ['8.8.8.8', '8.8.4.4']
+GOOGLE_TIMECHECK_LOCATION = 'admin.googleapis.com'
 NEVER_DATE = '1970-01-01'
 NEVER_DATETIME = '1970-01-01 00:00'
 NEVER_TIME = '1970-01-01T00:00:00.000Z'
@@ -7341,7 +7342,7 @@ def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None
 
 TIME_OFFSET_UNITS = [('day', SECONDS_PER_DAY), ('hour', SECONDS_PER_HOUR), ('minute', SECONDS_PER_MINUTE), ('second', 1)]
 
-def getLocalGoogleTimeOffset(testLocation='www.googleapis.com'):
+def getLocalGoogleTimeOffset(testLocation=GOOGLE_TIMECHECK_LOCATION):
   # we disable SSL verify so we can still get time even if clock
   # is way off. This could be spoofed / MitM but we'll fail for those
   # situations everywhere else but here.
@@ -7421,7 +7422,7 @@ def getOSPlatform():
 def doVersion(checkForArgs=True):
   forceCheck = 0
   extended = timeOffset = simple = False
-  testLocation = 'www.googleapis.com'
+  testLocation = GOOGLE_TIMECHECK_LOCATION
   if checkForArgs:
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -9382,7 +9383,7 @@ def checkServiceAccount(users):
   else:
     timeStatus = 'FAIL'
   Ind.Increment()
-  printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format('www.googleapis.com', offsetFormatted), timeStatus)
+  printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(GOOGLE_TIMECHECK_LOCATION, offsetFormatted), timeStatus)
   Ind.Decrement()
   oa2 = buildGAPIObject(API.OAUTH2)
   printMessage(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION)
@@ -31908,10 +31909,17 @@ def infoUsers(entityList):
                       throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
                       userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
       if getGroups:
+        kwargs = {}
+        if GC.Values[GC.ENABLE_DASA]:
+            # Allows groups.list() to function but will limit
+            # returned groups to those in same domain as user
+            # so only do this for DASA admins
+            kwargs['domain'] = GC.Values[GC.DOMAIN]
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=user['primaryEmail'], orderBy='email', fields='nextPageToken,groups(name,email)')
+                                 userKey=user['primaryEmail'], orderBy='email',
+                                 fields='nextPageToken,groups(name,email)', **kwargs)
         except (GAPI.forbidden, GAPI.domainNotFound):
 ### Print some message
           groups = []
@@ -39841,7 +39849,7 @@ FILEINFO_FIELDS_TITLES = ['name', 'mimeType']
 FILEPATH_FIELDS_TITLES = ['name', 'id', 'mimeType', 'parents']
 
 def _getDriveTimeObjects():
-  timeObjects = ['createdTime', 'viewedByMeTime', 'modifiedByMeTime', 'modifiedTime', 'restrictionTime', 'sharedWithMeTime']
+  timeObjects = ['createdTime', 'viewedByMeTime', 'modifiedByMeTime', 'modifiedTime', 'restrictionTime', 'sharedWithMeTime', 'trashedTime']
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     _mapDrive3TitlesToDrive2(timeObjects, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
   return set(timeObjects)
