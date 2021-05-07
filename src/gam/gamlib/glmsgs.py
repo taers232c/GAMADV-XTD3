@@ -387,6 +387,7 @@ UPLOADING_NEW_PUBLIC_CERTIFICATE_TO_GOOGLE = 'Uploading new public certificate t
 USED = 'Used'
 USER_BELONGS_TO_N_GROUPS_THAT_MAP_TO_ORGUNITS = 'User belongs to {0} groups ({1}) that map to OUs'
 USER_CANCELLED = 'User cancelled'
+USER_HAS_MULTIPLE_DIRECT_OR_INHERITED_MEMBERSHIPS_IN_GROUP = 'User has multiple direct or inherited memberships in group'
 USER_IN_OTHER_DOMAIN = '{0}: {1} in other domain.'
 USER_IS_NOT_ORGANIZER = 'User is not organizer, use anyorganizer option to override'
 USER_NOT_IN_MATCHUSERS = 'User not in matchusers'

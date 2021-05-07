@@ -172,6 +172,7 @@ class GamEntity():
   GROUP_ALIAS = 'gali'
   GROUP_EMAIL = 'gale'
   GROUP_MEMBERSHIP = 'gmem'
+  GROUP_MEMBERSHIP_TREE = 'gmtr'
   GROUP_SETTINGS = 'gset'
   GROUP_TREE = 'gtre'
   GUARDIAN = 'guar'
@@ -190,6 +191,7 @@ class GamEntity():
   MEMBER = 'memb'
   MEMBER_NOT_SUSPENDED = 'mns'
   MEMBER_SUSPENDED = 'msup'
+  MEMBERSHIP_TREE = 'metr'
   MESSAGE = 'mesg'
   MOBILE_DEVICE = 'mobi'
   NAME = 'name'
@@ -425,6 +427,7 @@ class GamEntity():
     GROUP_ALIAS: ['Group Aliases', 'Group Alias'],
     GROUP_EMAIL: ['Group Emails', 'Group Email'],
     GROUP_MEMBERSHIP: ['Group Memberships', 'Group Membership'],
+    GROUP_MEMBERSHIP_TREE: ['Group Membership Trees', 'Group Membership Tree'],
     GROUP_SETTINGS: ['Group Settings', 'Group Settings'],
     GROUP_TREE: ['Group Trees', 'Group Tree'],
     GUARDIAN: ['Guardians', 'Guardian'],
@@ -443,6 +446,7 @@ class GamEntity():
     MEMBER: ['Members', 'Member'],
     MEMBER_NOT_SUSPENDED: ['Members (Not suspended)', 'Member (Not suspended)'],
     MEMBER_SUSPENDED: ['Members (Suspended)', 'Member (Suspended)'],
+    MEMBERSHIP_TREE: ['Membership Trees', 'Membership Tree'],
     MESSAGE: ['Messages', 'Message'],
     MOBILE_DEVICE: ['Mobile Devices', 'Mobile Device'],
     NAME: ['Names', 'Name'],
