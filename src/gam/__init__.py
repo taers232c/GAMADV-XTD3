@@ -18433,7 +18433,8 @@ def doUpdateChromePolicy():
         field = getArgumentEmptyAllowed()
         # Allow an empty field/value pair which makes processing an input CSV file with schemas with different numbers of fields easy
         if not field:
-          Cmd.Advance()
+          if Cmd.ArgumentsRemaining():
+            Cmd.Advance()
           continue
         if field in {'ou', 'org', 'orgunit', 'printerid', 'appid'} or '.' in field:
           Cmd.Backup()
