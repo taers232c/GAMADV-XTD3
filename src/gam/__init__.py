@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.12'
+__version__ = '6.03.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1230,6 +1230,22 @@ def getInteger(minVal=None, maxVal=None):
   if Cmd.ArgumentsRemaining():
     try:
       number = int(Cmd.Current().strip())
+      if ((minVal is None) or (number >= minVal)) and ((maxVal is None) or (number <= maxVal)):
+        Cmd.Advance()
+        return number
+    except ValueError:
+      pass
+    invalidArgumentExit(integerLimits(minVal, maxVal))
+  missingArgumentExit(integerLimits(minVal, maxVal))
+
+def getIntegerEmptyAllowed(minVal=None, maxVal=None, default=0):
+  if Cmd.ArgumentsRemaining():
+    number = Cmd.Current().strip()
+    if not number:
+      Cmd.Advance()
+      return default
+    try:
+      number = int(number)
       if ((minVal is None) or (number >= minVal)) and ((maxVal is None) or (number <= maxVal)):
         Cmd.Advance()
         return number
@@ -4937,7 +4953,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
                              fields='nextPageToken,memberships(name,memberKey(id),roles(name),type)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
             GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
-            GAPI.systemError, GAPI.permissionDenied) as e:
+            GAPI.systemError, GAPI.permissionDenied):
       entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail)
       _incrEntityDoesNotExist(Ent.CLOUD_IDENTITY_GROUP)
       return
@@ -18399,7 +18415,7 @@ CHROME_SCHEMA_TYPE_MESSAGE = {
      'type': 'duration', 'minVal': 0, 'maxVal': 30, 'scale': 1},
   'chrome.users.MaxInvalidationFetchDelay':
     {'field': 'maxinvalidationfetchdelay', 'casedField': 'maxInvalidationFetchDelay',
-     'type': 'duration', 'minVal': 1, 'maxVal': 30, 'scale': 1},
+     'type': 'duration', 'minVal': 1, 'maxVal': 30, 'scale': 1, 'default': 10},
   'chrome.users.SecurityTokenSessionSettings':
     {'field': 'securitytokensessionnotificationseconds', 'casedField': 'securityTokenSessionNotificationSeconds',
      'type': 'duration', 'minVal': 0, 'maxVal': 9999, 'scale': 1},
@@ -18443,7 +18459,10 @@ def doUpdateChromePolicy():
         schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName)
         if schema and field == schema['field']:
           casedField = schema['casedField']
-          value = getInteger(minVal=schema['minVal'], maxVal=schema['maxVal'])*schema['scale']
+          if 'default' not in  schema:
+            value = getInteger(minVal=schema['minVal'], maxVal=schema['maxVal'])*schema['scale']
+          else:
+            value = getIntegerEmptyAllowed(minVal=schema['minVal'], maxVal=schema['maxVal'], default=schema['default'])*schema['scale']
           if schema['type'] == 'duration':
             body['requests'][-1]['policyValue']['value'][casedField] = {schema['type']: f'{value}s'}
           else:
@@ -18515,16 +18534,27 @@ def doUpdateChromePolicy():
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
 
-CHROME_POLICY_SORT_TITLES = ['name', 'orgUnitPath', 'parentOrgUnitPath']
+CHROME_POLICY_SORT_TITLES = ['name', 'orgUnitPath', 'parentOrgUnitPath', 'direct']
 CHROME_POLICY_INDEXED_TITLES = ['fields']
+
+CHROME_POLICY_SHOW_ALL = -1
+CHROME_POLICY_SHOW_DIRECT = True
+CHROME_POLICY_SHOW_INHERITED = False
+CHROME_POLICY_SHOW_CHOICE_MAP = {
+  'all': CHROME_POLICY_SHOW_ALL,
+  'direct': CHROME_POLICY_SHOW_DIRECT,
+  'inherited': CHROME_POLICY_SHOW_INHERITED
+  }
 
 # gam show chromepolicies
 #	[filter <String>]
 #	ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+#	[show all|direct|inherited]
 #	[formatjson]
 # gam print chromepolicies [todrive <ToDriveAttribute>*]
 #	[filter <String>]
 #	ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+#	[show all|direct|inherited]
 #	[[formatjson [quotechar <Character>]]
 def doPrintShowChromePolicies():
   def normalizedPolicy(policy):
@@ -18535,8 +18565,9 @@ def doPrintShowChromePolicies():
       norm['appId'] = appId
     orgUnitId = policy.get('targetKey', {}).get('targetResource')
     norm['orgUnitPath'] = convertOrgUnitIDtoPath(cd, orgUnitId) if orgUnitId else 'Unknown'
-    orgUnitId = policy.get('sourceKey', {}).get('targetResource')
-    norm['parentOrgUnitPath'] = convertOrgUnitIDtoPath(cd, orgUnitId) if orgUnitId else 'Unknown'
+    parentOrgUnitId = policy.get('sourceKey', {}).get('targetResource')
+    norm['parentOrgUnitPath'] = convertOrgUnitIDtoPath(cd, parentOrgUnitId) if parentOrgUnitId else 'Unknown'
+    norm['direct'] = orgUnitId == parentOrgUnitId
     norm['fields'] = []
     name = policy['value']['policySchema']
     # Handle TYPE_MESSAGE fields with durations or counts as a special case
@@ -18558,23 +18589,25 @@ def doPrintShowChromePolicies():
 
   def _showPolicy(policy, j, jcount):
     policy = normalizedPolicy(policy)
-    if FJQC.formatJSON:
-      printLine(json.dumps(cleanJSON(policy), ensure_ascii=False, sort_keys=True))
-    else:
-      printKeyValueListWithCount([policy['name']], j, jcount)
-      Ind.Increment()
-      showJSON(None, policy, sortDictKeys=False)
-      Ind.Decrement()
+    if showPolicies in (CHROME_POLICY_SHOW_ALL, policy['direct']):
+      if FJQC.formatJSON:
+        printLine(json.dumps(cleanJSON(policy), ensure_ascii=False, sort_keys=True))
+      else:
+        printKeyValueListWithCount([policy['name']], j, jcount)
+        Ind.Increment()
+        showJSON(None, policy, sortDictKeys=False)
+        Ind.Decrement()
 
   def _printPolicy(policy):
     policy = normalizedPolicy(policy)
-    row = flattenJSON(policy)
-    if not FJQC.formatJSON:
-      csvPF.WriteRowTitles(row)
-    elif (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'name': policy['name'],
-                              'JSON': json.dumps(cleanJSON(policy),
-                                                 ensure_ascii=False, sort_keys=True)})
+    if showPolicies in (CHROME_POLICY_SHOW_ALL, policy['direct']):
+      row = flattenJSON(policy)
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(row)
+      elif (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(row):
+        csvPF.WriteRowNoFilter({'name': policy['name'],
+                                'JSON': json.dumps(cleanJSON(policy),
+                                                   ensure_ascii=False, sort_keys=True)})
 
 
   cp = buildGAPIObject(API.CHROMEPOLICY)
@@ -18583,6 +18616,7 @@ def doPrintShowChromePolicies():
   csvPF = CSVPrintFile(['name'], indexedTitles=CHROME_POLICY_INDEXED_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   appId = orgUnit = policySchemaFilter = printerId = None
+  showPolicies = CHROME_POLICY_SHOW_ALL
   body = {'policyTargetKey': {'targetResource': None}}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -18597,6 +18631,8 @@ def doPrintShowChromePolicies():
       printerId = getString(Cmd.OB_PRINTER_ID)
     elif (not printerId and not appId) and myarg == 'appid':
       appId = getString(Cmd.OB_APP_ID)
+    elif myarg == 'show':
+      showPolicies = getChoice(CHROME_POLICY_SHOW_CHOICE_MAP, mapChoice=True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not body['policyTargetKey']['targetResource']:
@@ -18647,7 +18683,7 @@ def doPrintShowChromePolicies():
         kvList.extend([Ent.PRINTER_ID, printerId])
       elif appId:
         kvList.extend([Ent.APP_ID, appId])
-      entityPerformActionNumItems(kvList, jcount, Ent.CHROME_POLICY)
+      entityPerformActionModifierNumItems(kvList, Msg.MAXIMUM_OF, jcount, Ent.CHROME_POLICY)
     Ind.Increment()
     j = 0
     for policy in sorted(policies, key=lambda k: k['value']['policySchema']):
@@ -24947,7 +24983,7 @@ def getCIGroupMembers(ci, groupName, memberRoles, membersList, membersSet, i, co
                                  fields='nextPageToken,memberships(*)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
   except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
           GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
-          GAPI.systemError, GAPI.permissionDenied) as e:
+          GAPI.systemError, GAPI.permissionDenied):
     entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupName, i, count)
     return
   if not memberOptions[MEMBEROPTION_RECURSIVE]:
@@ -25182,7 +25218,7 @@ def doShowCIGroupMembers():
         return
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
             GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
-            GAPI.systemError, GAPI.permissionDenied) as e:
+            GAPI.systemError, GAPI.permissionDenied):
       if depth == 0:
         entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
       return

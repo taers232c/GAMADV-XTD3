@@ -1817,10 +1817,12 @@ gam delete chromepolicy <SchemaName>+
 gam show chromepolicies
         [filter <String>]
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+        [show all|direct|inherited]
         [formatjson]
 gam print chromepolicies [todrive <ToDriveAttribute>*]
         [filter <String>]
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+        [show all|direct|inherited]
         [[formatjson [quotechar <Character>]]
 
 gam info chromeschema <SchemaName>

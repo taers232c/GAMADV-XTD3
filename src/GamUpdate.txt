@@ -1,10 +1,26 @@
+6.03.13
+
+Added option `show all|direct|inherited` to `gam print|show chromepolicies` which allows selection of
+policies by whether the policy is set directly on the OU or is inherited from a parent OU; the default is `all`.
+A Boolean field/column, `direct`, has been added to the output. This makes copying only direct policies from one OU to another easy.
+```
+# Display direct policies
+gam redirect csv ChromePolicies.csv print chromepolicies ou "/Path/To/OU1" show direct
+gam csv ChromePolicies.csv gam update chromepolicy "~name" "~fields.0.name" "~fields.0.value" "~fields.1.name" "~fields.1.value" ou "/Path/To/OU2"
+
+# Display all policies, select direct on update
+gam redirect csv ChromePolicies.csv print chromepolicies ou "/Path/To/OU1"
+gam config csv_input_row_filter "direct:boolean:true" csv ChromePolicies.csv gam update chromepolicy "~name" "~fields.0.name" "~fields.0.value" "~fields.1.name" "~fields.1.value" ou "/Path/To/OU2"
+```
+
 6.03.12
 
 Updated `gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+` to allow empty
 `<Field> <Value>` pairs. This makes copying a set of policies from one OU to another easy
 without having to deal with policies with differing numbers of fields.
 ```
-gam csv ChromePolicies.csv gam update chromepolicy "~name" "~fields.0.name" "~fields.0.value" "~fields.1.name" "~fields.1.value" ou "/Path/To/OU"
+gam redirect csv ChromePolicies.csv print chromepolicies ou "/Path/To/OU1"
+gam csv ChromePolicies.csv gam update chromepolicy "~name" "~fields.0.name" "~fields.0.value" "~fields.1.name" "~fields.1.value" ou "/Path/To/OU2"
 ```
 
 Following Jay's lead, added option 'grouptree` to `gam info user` and `membertree` to `gam info cigroup`.
