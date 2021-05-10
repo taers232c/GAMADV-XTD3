@@ -1,3 +1,11 @@
+6.03.14
+
+Added code to handle the following errors when adding an ACL on a Team Drive file.
+```
+ERROR: 403: cannotShareTeamDriveWithNonGoogleAccounts - Cannot share a shared drive with non Google accounts.
+ERROR: 400: shareOutNotPermitted - Bad Request. User message: "This email address is linked to a personal Google Account. <Your domain> doesn't allow sharing with personal accounts."
+```
+
 6.03.13
 
 Added option `show all|direct|inherited` to `gam print|show chromepolicies` which allows selection of

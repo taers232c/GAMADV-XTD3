@@ -47,6 +47,7 @@ CANNOT_REMOVE_OWNER = 'cannotRemoveOwner'
 CANNOT_SHARE_GROUPS_WITHLINK = 'cannotShareGroupsWithLink'
 CANNOT_SHARE_USERS_WITHLINK = 'cannotShareUsersWithLink'
 CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS = 'cannotShareTeamDriveTopFolderWithAnyoneOrDomains'
+CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS = 'cannotShareTeamDriveWithNonGoogleAccounts'
 CANNOT_UPDATE_PERMISSION = 'cannotUpdatePermission'
 CONDITION_NOT_MET = 'conditionNotMet'
 CONFLICT = 'conflict'
@@ -128,6 +129,7 @@ REVISION_NOT_FOUND = 'revisionNotFound'
 REVISIONS_NOT_SUPPORTED = 'revisionsNotSupported'
 SERVICE_LIMIT = 'serviceLimit'
 SERVICE_NOT_AVAILABLE = 'serviceNotAvailable'
+SHARE_OUT_NOT_PERMITTED = 'shareOutNotPermitted'
 SHARE_OUT_NOT_PERMITTED_TO_USER = 'shareOutNotPermittedToUser'
 SHARING_RATE_LIMIT_EXCEEDED = 'sharingRateLimitExceeded'
 SYSTEM_ERROR = 'systemError'
@@ -167,8 +169,9 @@ DRIVE_GET_THROW_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND]
 DRIVE3_CREATE_ACL_THROW_REASONS = [INVALID, INVALID_SHARING_REQUEST, OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
                                    NOT_FOUND, TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION,
                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, SHARING_RATE_LIMIT_EXCEEDED,
-                                   SHARE_OUT_NOT_PERMITTED_TO_USER,
+                                   SHARE_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED_TO_USER,
                                    CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
+                                   CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS,
                                    OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
@@ -179,8 +182,9 @@ DRIVE3_UPDATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID_OWNERSHIP_TRANSFER, CANN
                                    OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
                                    NOT_FOUND, TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION,
                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, SHARING_RATE_LIMIT_EXCEEDED,
-                                   SHARE_OUT_NOT_PERMITTED_TO_USER,
+                                   SHARE_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED_TO_USER,
                                    CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
+                                   CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS,
                                    OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
@@ -329,6 +333,8 @@ class cannotShareGroupsWithLink(Exception):
 class cannotShareUsersWithLink(Exception):
   pass
 class cannotShareTeamDriveTopFolderWithAnyoneOrDomains(Exception):
+  pass
+class cannotShareTeamDriveWithNonGoogleAccounts(Exception):
   pass
 class cannotUpdatePermission(Exception):
   pass
@@ -488,6 +494,8 @@ class serviceLimit(Exception):
   pass
 class serviceNotAvailable(Exception):
   pass
+class shareOutNotPermitted(Exception):
+  pass
 class shareOutNotPermittedToUser(Exception):
   pass
 class sharingRateLimitExceeded(Exception):
@@ -550,6 +558,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_SHARE_GROUPS_WITHLINK: cannotShareGroupsWithLink,
   CANNOT_SHARE_USERS_WITHLINK: cannotShareUsersWithLink,
   CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS: cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
+  CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS: cannotShareTeamDriveWithNonGoogleAccounts,
   CANNOT_UPDATE_PERMISSION: cannotUpdatePermission,
   CONDITION_NOT_MET: conditionNotMet,
   CONFLICT: conflict,
@@ -629,6 +638,7 @@ REASON_EXCEPTION_MAP = {
   REVISIONS_NOT_SUPPORTED: revisionsNotSupported,
   SERVICE_LIMIT: serviceLimit,
   SERVICE_NOT_AVAILABLE: serviceNotAvailable,
+  SHARE_OUT_NOT_PERMITTED: shareOutNotPermitted,
   SHARE_OUT_NOT_PERMITTED_TO_USER: shareOutNotPermittedToUser,
   SHARING_RATE_LIMIT_EXCEEDED: sharingRateLimitExceeded,
   SYSTEM_ERROR: systemError,
