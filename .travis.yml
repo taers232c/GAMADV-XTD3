@@ -50,7 +50,7 @@ jobs:
       dist: precise
       language: shell
       env:
-        - DIST_UPGRADE=true
+        - DIST_UPGRADE=false
         - PATCHELF_VERSION=0.9
     - os: linux
       name: "Linux ARM64 Focal"
