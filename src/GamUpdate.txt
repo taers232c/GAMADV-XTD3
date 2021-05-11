@@ -1,3 +1,7 @@
+6.03.15
+
+Fixed bug in `gam update cigroup` where `dynamic <QueryDynamicGroup>` was makrked as invalid.
+
 6.03.14
 
 Added code to handle the following errors when adding an ACL on a Team Drive file.

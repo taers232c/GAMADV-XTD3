@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.14'
+__version__ = '6.03.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5424,7 +5424,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       printGotAccountEntities(totalLen-prevLen)
       prevLen = totalLen
   else:
-    systemErrorExit(UNKNOWN_ERROR_RC, 'getUsersToModify coding error')
+    systemErrorExit(UNKNOWN_ERROR_RC, 'getItemsToModify coding error')
   for errorType in [ENTITY_ERROR_DNE, ENTITY_ERROR_INVALID]:
     if entityError[errorType] > 0:
       Cmd.SetLocation(entityLocation-1)
@@ -23910,7 +23910,7 @@ def doCreateCIGroup():
 
 # gam update cigroups <GroupEntity> [email <EmailAddress>]
 #	[copyfrom <GroupItem>] <GroupAttribute>*
-#	[security|makesecuritygroup]
+#	[security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
 # gam update cigroups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly] [notsuspended|suspended]
 #	[expire|expires <Time>] [preview] [actioncsv]
@@ -24091,6 +24091,10 @@ def doUpdateCIGroups():
         ci_body['groupKey'] = {'id': getEmailAddress(noUid=True)}
       elif myarg == 'getbeforeupdate':
         getBeforeUpdate = True
+      elif myarg == 'dynamic':
+        ci_body.setdefault('dynamicGroupMetadata', {'queries': []})
+        ci_body['dynamicGroupMetadata']['queries'].append({'resourceType': 'USER',
+                                                           'query': getString(Cmd.OB_QUERY)})
       elif myarg in {'security', 'makesecuritygroup'}:
         ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
                              'cloudidentity.googleapis.com/groups.security': ''}
@@ -33983,10 +33987,10 @@ class CourseAttributes():
       if tdrive is None:
         return
     if self.members in {'all', 'students'}:
-      addParticipants = [student['profile']['emailAddress'] for student in self.students]
+      addParticipants = [student['profile']['emailAddress'] for student in self.students if 'emailAddress' in student['profile']]
       _batchAddItemsToCourse(self.croom, newCourseId, i, count, addParticipants, Ent.STUDENT)
     if self.members in {'all', 'teachers'}:
-      addParticipants = [teacher['profile']['emailAddress'] for teacher in self.teachers if teacher['profile']['id'] != ownerId]
+      addParticipants = [teacher['profile']['emailAddress'] for teacher in self.teachers if teacher['profile']['id'] != ownerId and 'emailAddress' in teacher['profile']]
       _batchAddItemsToCourse(self.croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
     if self.copyTopics:
       try:
@@ -34221,6 +34225,7 @@ def _doUpdateCourses(entityList):
                                    GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE],
                      courseId=courseId, body={'userId': newOwner}, fields='')
             modifier = Act.MODIFIER_WITH_NEW_TEACHER_OWNER
+            time.sleep(10)
             complete = False
           except (GAPI.notFound, GAPI.backendError, GAPI.forbidden):
             entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], getPhraseDNEorSNA(newOwner), i, count)

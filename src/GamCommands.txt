@@ -2732,7 +2732,7 @@ gam show group-members
 gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
         [makeowner] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
 gam update cigroup <GroupEntity> [copyfrom <GroupItem>] <GroupAttribute>
-        [security|makesecuritygroup]
+        [security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
 gam update cigroups <GroupEntity> create|add [<GroupRole>]
         [usersonly|groupsonly] [notsuspended|suspended]
         [expire|expires <Time>] [preview] [actioncsv]
