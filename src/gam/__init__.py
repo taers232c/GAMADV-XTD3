@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.15'
+__version__ = '6.03.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7538,7 +7538,9 @@ def initializeLogging():
   logging.getLogger().addHandler(nh)
 
 def saveNonPickleableValues():
-  savedValues = {GM.STDOUT: {}, GM.STDERR: {}}
+  savedValues = {GM.STDOUT: {}, GM.STDERR: {}, GM.SAVED_STDOUT: None}
+  savedValues[GM.SAVED_STDOUT] = GM.Globals[GM.SAVED_STDOUT]
+  GM.Globals[GM.SAVED_STDOUT] = None
   savedValues[GM.STDOUT][GM.REDIRECT_FD] = GM.Globals[GM.STDOUT].get(GM.REDIRECT_FD, None)
   GM.Globals[GM.STDOUT].pop(GM.REDIRECT_FD, None)
   savedValues[GM.STDERR][GM.REDIRECT_FD] = GM.Globals[GM.STDERR].get(GM.REDIRECT_FD, None)
@@ -7550,6 +7552,7 @@ def saveNonPickleableValues():
   return savedValues
 
 def restoreNonPickleableValues(savedValues):
+  GM.Globals[GM.SAVED_STDOUT] = savedValues[GM.SAVED_STDOUT]
   GM.Globals[GM.STDOUT][GM.REDIRECT_FD] = savedValues[GM.STDOUT][GM.REDIRECT_FD]
   GM.Globals[GM.STDERR][GM.REDIRECT_FD] = savedValues[GM.STDERR][GM.REDIRECT_FD]
   GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDOUT][GM.REDIRECT_MULTI_FD]

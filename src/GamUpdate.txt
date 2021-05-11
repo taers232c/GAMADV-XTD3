@@ -1,3 +1,10 @@
+6.03.16
+
+Fixed code to avoid trap on Windows when doing the following:
+```
+gam config debug_level 1 redirect stdout foo.txt multiprocess ..
+```
+
 6.03.15
 
 Fixed bug in `gam update cigroup` where `dynamic <QueryDynamicGroup>` was makrked as invalid.
