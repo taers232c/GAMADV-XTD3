@@ -65,11 +65,11 @@ if [ ! -e $zipfile ]; then
 fi
 unzip $zipfile
 if [[ "$PLATFORM" == "x86_64" ]]; then
-  cp -v ~/openssl-1.1.1k/openssl-1.1/x64/bin/libcrypto-1_1-x64.dll /c/python/DLLs/libcrypto-1_1.dll
-  cp -v ~/openssl-1.1.1k/openssl-1.1/x64/bin/libssl-1_1-x64.dll /c/python/DLLs/libssl-1_1.dll
+  cp -v ~/openssl-1.1/x64/bin/libcrypto-1_1-x64.dll /c/python/DLLs/libcrypto-1_1.dll
+  cp -v ~/penssl-1.1/x64/bin/libssl-1_1-x64.dll /c/python/DLLs/libssl-1_1.dll
 else
-  cp -v ~/openssl-1.1.1k/openssl-1.1/x86/bin/libcrypto-1_1.dll /c/python/DLLs/
-  cp -v ~/openssl-1.1.1k/openssl-1.1/x86/bin/libssl-1_1.dll /c/python/DLLs/
+  cp -v ~/openssl-1.1/x86/bin/libcrypto-1_1.dll /c/python/DLLs/
+  cp -v ~/openssl-1.1/x86/bin/libssl-1_1.dll /c/python/DLLs/
 fi
 
 cd $mypath
