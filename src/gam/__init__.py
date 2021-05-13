@@ -11587,9 +11587,11 @@ def doInfoResoldCustomer():
                             customerId=customerId)
     printKeyValueList(['Customer ID', customerInfo['customerId']])
     printKeyValueList(['Customer Domain', customerInfo['customerDomain']])
-    printKeyValueList(['Customer Domain Verified', customerInfo['customerDomainVerified']])
+    if 'customerDomainVerified' in customerInfo:
+      printKeyValueList(['Customer Domain Verified', customerInfo['customerDomainVerified']])
     _showCustomerAddressPhoneNumber(customerInfo)
-    printKeyValueList(['Customer Alternate Email', customerInfo['alternateEmail']])
+    if 'alternateEmail' in customerInfo:
+      printKeyValueList(['Customer Alternate Email', customerInfo['alternateEmail']])
     printKeyValueList(['Customer Admin Console URL', customerInfo['resourceUiUrl']])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], str(e))
