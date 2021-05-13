@@ -49,11 +49,11 @@ jobs:
 #            goal: "build"
 #            gamos: "linux"
 #            platform: "arm64"
-          - os: macos-10.15
-            jid: 4
-            goal: "build"
-            gamos: "macos"
-            platform: "x86_64"
+#          - os: macos-10.15
+#            jid: 4
+#            goal: "build"
+#            gamos: "macos"
+#            platform: "x86_64"
           - os: windows-2019
             jid: 5
             goal: "build"
@@ -170,12 +170,12 @@ jobs:
           PASSCODE: ${{ secrets.PASSCODE }}
         run: |
              export gampath="$(readlink -e .)"
-             echo $gampath
+             echo "gampath=$gampath"
              export GAMCFGDIR="$gampath/ConfigGitHub"
-             echo $GAMCFGDIR
+             echo "GAMCDFDIR=$GAMCFGDIR"
              source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
              ls -l $GAMCFGDIR
-             ls gam-$GAMVERSION-*
+             ls gamadv-xtd3-$GAMVERSION-*
              for gamfile in gamadv-xtd3-$GAMVERSION-*; do
                echo "Uploading file ${gamfile} to Google Drive..."
                fileid=$($gam user ross.scroggs@rdschool.org add drivefile localfile $gamfile drivefilename $gamfile parentid root returnidonly)
