@@ -43387,7 +43387,7 @@ def copyDriveFile(users):
     try:
       result = callGAPI(drive.files(), 'create',
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR,
-                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.BAD_REQUEST],
                         body=body, fields='id,webViewLink', supportsAllDrives=True)
       newFolderId = result['id']
       if returnIdLink:
@@ -43401,7 +43401,8 @@ def copyDriveFile(users):
         _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED, copyMoveOptions)
       return (newFolderId, False)
-    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError, GAPI.teamDriveHierarchyTooDeep) as e:
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError,
+            GAPI.teamDriveHierarchyTooDeep, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

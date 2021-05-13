@@ -5,6 +5,11 @@ Fixed code to avoid trap on Windows when doing the following:
 gam config debug_level 1 redirect stdout foo.txt multiprocess ..
 ```
 
+Updated code to handle the following error in `gam copy drivefile`:
+```
+ERROR: 400: badRequest - Bad Request
+```
+
 6.03.15
 
 Fixed bug in `gam update cigroup` where `dynamic <QueryDynamicGroup>` was makrked as invalid.
