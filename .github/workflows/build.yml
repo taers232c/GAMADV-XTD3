@@ -156,8 +156,11 @@ jobs:
 
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
+        env: # Or as an environment variable
+          PASSCODE: ${{ secrets.PASSCODE }}
         run: |
              set +e
+             source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
              source ../.github/actions/${GAMOS}-install.sh
              ls -alRF $gampath
              echo "gampath=$gampath" >> $GITHUB_ENV
@@ -166,19 +169,13 @@ jobs:
 
       - name: Upload to Google Drive, build only.
         if: github.event_name == 'push' && matrix.goal != 'test'
-        env: # Or as an environment variable
-          PASSCODE: ${{ secrets.PASSCODE }}
         run: |
              export gampath="$(readlink -e .)"
              echo "gampath=$gampath"
-             export GAMCFGDIR="$gampath/ConfigGitHub"
-             echo "GAMCDFDIR=$GAMCFGDIR"
-             source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
-             ls -l $GAMCFGDIR
-             ls gamadv-xtd3-$GAMVERSION-*
+             ls -l gamadv-xtd3-$GAMVERSION-*
              for gamfile in gamadv-xtd3-$GAMVERSION-*; do
                echo "Uploading file ${gamfile} to Google Drive..."
                fileid=$($gam user ross.scroggs@rdschool.org add drivefile localfile $gamfile drivefilename $gamfile parentid root returnidonly)
                echo "file uploaded as ${fileid}, setting ACL..."
-               $gam user $gam_user add drivefileacl $fileid anyone role reader withlink
+               $gam user ross.scroggs@rdschool.org add drivefileacl $fileid anyone role reader withlink
              done
