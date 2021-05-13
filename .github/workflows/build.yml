@@ -161,7 +161,7 @@ jobs:
         run: |
              set +e
              source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
-             export GAMCFGDIR="~/ConfigGitHub"
+             export GAMCFGDIR="$gampath/ConfigGitHub"
              source ../.github/actions/${GAMOS}-install.sh
              ls -alRF $gampath
              echo "gampath=$gampath" >> $GITHUB_ENV
@@ -173,6 +173,7 @@ jobs:
         run: |
              export gampath="$(readlink -e .)"
              echo "gampath=$gampath"
+             echo "gamversion=$GAMVERSION"
              ls -l gamadv-xtd3-$GAMVERSION-*
              for gamfile in gamadv-xtd3-$GAMVERSION-*; do
                echo "Uploading file ${gamfile} to Google Drive..."
