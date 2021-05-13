@@ -165,11 +165,11 @@ jobs:
         if: github.event_name == 'push' && matrix.goal != 'test'
         env: # Or as an environment variable
           PASSCODE: ${{ secrets.PASSCODE }}
+	  GAMCFGDIR: "$gampath/ConfigGitHub"
         run: |
-             source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
-	     ls -l $gampath
-	     export GAMCFGDIR="$gampath/ConfigGitHub"
+	     echo $gampath
 	     echo $GAMCFGDIR
+             source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
 	     ls -l $GAMCFGDIR
              ls gam-$GAMVERSION-*
              for gamfile in gamadv-xtd3-$GAMVERSION-*; do
