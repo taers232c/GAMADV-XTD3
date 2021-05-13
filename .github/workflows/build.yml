@@ -167,7 +167,7 @@ jobs:
           PASSCODE: ${{ secrets.PASSCODE }}
         run: |
              source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
-	     export GAMCFGDIR=${gampath}/ConfigGitHub
+	     export GAMCFGDIR=$gampath/ConfigGitHub
 	     echo $GAMCFGDIR
 	     ls -l $GAMCFGDIR
              ls gam-$GAMVERSION-*
