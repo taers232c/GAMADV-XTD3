@@ -13,6 +13,7 @@ fi
 gpg --quiet --batch --yes --decrypt --passphrase="${PASSCODE}" \
     --output "${credsfile}" "${gpgfile}"
 
-tar xvvf "${credsfile}" -C "~/.gam"
-echo "~/.gam files:"
-ls -l "~/.gam
+echo "pwd:" `pwd`
+tar xvvf "${credsfile}" 
+echo "~/ConfigGitHub files:"
+ls -l ~/ConfigGitHub
