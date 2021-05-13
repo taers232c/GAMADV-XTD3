@@ -13,6 +13,6 @@ fi
 gpg --quiet --batch --yes --decrypt --passphrase="${PASSCODE}" \
     --output "${credsfile}" "${gpgfile}"
 
-tar xvvf "${credsfile}" --directory "~/.gam"
+tar xvvf "${credsfile}" -C "~/.gam"
 echo "~/.gam files:"
 ls -l "~/.gam
