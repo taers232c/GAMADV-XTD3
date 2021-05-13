@@ -105,45 +105,23 @@ jobs:
           python-version: ${{ matrix.python }}
           architecture: ${{ matrix.pyarch }}
 
-      - name: Set env variables for pre-compiled Python
-        if: matrix.goal == 'test'
-        run: |
-             export python=$(which python3)
-             export pip=$(which pip3)
-             export gam="${python} -m gam"
-             export gampath="$(readlink -e .)"
-             echo -e "python: $python\npip: $pip\ngam: $gam\ngampath: $gampath"
-             echo "python=${python}" >> $GITHUB_ENV
-             echo "pip=${pip}" >> $GITHUB_ENV
-             echo "gam=${gam}" >> $GITHUB_ENV
-             echo "gampath=${gampath}" >> $GITHUB_ENV
-             echo "RUNNING: apt update..."
-             sudo apt-get -qq --yes update > /dev/null
-
       - name: Build and install Python, OpenSSL and PyInstaller
         if: matrix.goal != 'test' && steps.cache-primes.outputs.cache-hit != 'true'
         run: |
+             export python=$(which python3)
+             export pip=$(which pip3)
+             export gampath="$(readlink -e .)"
+             echo -e "python: $python\npip: $pip\ngampath: $gampath"
+             echo "python=${python}" >> $GITHUB_ENV
+             echo "pip=${pip}" >> $GITHUB_ENV
+             echo "gampath=${gampath}" >> $GITHUB_ENV
+             echo "RUNNING: apt update..."
+             sudo apt-get -qq --yes update > /dev/null
              set +e
              source ../.github/actions/${GAMOS}-before-install.sh
              echo "PATH=$PATH" >> $GITHUB_ENV # keep gnutools for MacOS
-             echo "python=$python" >> $GITHUB_ENV
-             echo "pip=$pip" >> $GITHUB_ENV
              echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
              echo -e "Python: $python\nPip: $pip\nLD_LIB...: $LD_LIBRARY_PATH"
-             #$pip install wheel
-             #export url="https://codeload.github.com/pyinstaller/pyinstaller/tar.gz/${PYINSTALLER_VERSION}"
-             #echo "Downloading ${url}"
-             #curl -o pyinstaller.tar.gz --compressed "${url}"
-             #tar xf pyinstaller.tar.gz
-             #cd "pyinstaller-${PYINSTALLER_VERSION}/bootloader"
-             #if [ "${PLATFORM}" == "x86" ]; then
-             #  BITS="32"
-             #else
-             #  BITS="64"
-             #fi
-             #$python ./waf all --target-arch=${BITS}bit
-             #cd ..
-             #$python setup.py install
              $pip install pyinstaller
 
       - name: Install pip requirements
@@ -151,7 +129,6 @@ jobs:
         run: |
              set +e
              $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U --force-reinstall
-
              $pip install --upgrade -r requirements.txt
 
       - name: Build GAM with PyInstaller
@@ -162,9 +139,9 @@ jobs:
              set +e
              source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
              export GAMCFGDIR="$gampath/ConfigGitHub"
+             echo "GAMCFGDIR=${GAMCFGDIR}" >> $GITHUB_ENV
              source ../.github/actions/${GAMOS}-install.sh
              ls -alRF $gampath
-             echo "gampath=$gampath" >> $GITHUB_ENV
              echo "gam=$gam" >> $GITHUB_ENV
              echo -e "GAM: ${gam}\nGAMPATH: ${gampath}\nGAMVERSION: ${GAMVERSION}"
 
