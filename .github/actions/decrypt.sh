@@ -14,6 +14,6 @@ gpg --quiet --batch --yes --decrypt --passphrase="${PASSCODE}" \
     --output "${credsfile}" "${gpgfile}"
 
 mkdir -p "${gampath}/ConfigGitHub"
-tar xvvf "${credsfile}" -C "${gampath}"
+tar xvvf "${credsfile}" --directory "${gampath}"
 echo "~/ConfigGitHub files:"
 ls -l "${gampath}/ConfigGitHub"
