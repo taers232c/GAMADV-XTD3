@@ -108,6 +108,7 @@ jobs:
       - name: Build and install Python, OpenSSL and PyInstaller
         if: matrix.goal != 'test' && steps.cache-primes.outputs.cache-hit != 'true'
         run: |
+             set +e
              export python=$(which python3)
              export pip=$(which pip3)
              export gampath="$(readlink -e .)"
@@ -117,7 +118,6 @@ jobs:
              echo "gampath=${gampath}" >> $GITHUB_ENV
              #echo "RUNNING: apt update..."
              #sudo apt-get -qq --yes update > /dev/null
-             set +e
              source ../.github/actions/${GAMOS}-before-install.sh
              echo "PATH=$PATH" >> $GITHUB_ENV # keep gnutools for MacOS
              echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
@@ -143,15 +143,13 @@ jobs:
              source ../.github/actions/${GAMOS}-install.sh
              ls -alRF $gampath
              echo "gam=$gam" >> $GITHUB_ENV
+             echo "GAMVERSION=$GAMVERSION" >> $GITHUB_ENV
              echo -e "GAM: ${gam}\nGAMPATH: ${gampath}\nGAMVERSION: ${GAMVERSION}"
 
       - name: Upload to Google Drive, build only.
         if: github.event_name == 'push' && matrix.goal != 'test'
         run: |
-             export gampath="$(readlink -e .)"
-             echo "gampath=$gampath"
-             export GAMVERSION=`$gampath/gam version simple | head -n 1 | cut -c1-7`
-             echo "gamversion=$GAMVERSION"
+             set +e
              ls -l gamadv-xtd3-$GAMVERSION-*
              for gamfile in gamadv-xtd3-$GAMVERSION-*; do
                echo "Uploading file ${gamfile} to Google Drive..."
