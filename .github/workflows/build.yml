@@ -173,6 +173,7 @@ jobs:
         run: |
              export gampath="$(readlink -e .)"
              echo "gampath=$gampath"
+             export GAMVERSION=`$gampath/gam version simple | head -n 1 | cut -c1-7`
              echo "gamversion=$GAMVERSION"
              ls -l gamadv-xtd3-$GAMVERSION-*
              for gamfile in gamadv-xtd3-$GAMVERSION-*; do
