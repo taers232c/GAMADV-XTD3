@@ -13,7 +13,7 @@ env:
   BUILD_PYTHON_VERSION: "3.9.5"
   MIN_PYTHON_VERSION: "3.9.5"
   BUILD_OPENSSL_VERSION: "1.1.1k"
-  MIN_OPENSSL_VERSION: "1.1.1i"
+  MIN_OPENSSL_VERSION: "1.1.1k"
   PATCHELF_VERSION: "0.12"
   # PYINSTALLER_VERSION can be full commit hash or version like v4.20
   PYINSTALLER_VERSION: "ae28d2ce57e7f12faf01e80d26e064dbfa903e40"
@@ -58,16 +58,16 @@ jobs:
             jid: 5
             goal: "build"
             gamos: "windows"
+            python: 3.9.5 
             pyarch: "x64" 
             platform: "x86_64"
-            python: 3.9.5 
           - os: windows-2019
             jid: 6
             goal: "build"
             gamos: "windows"
+            python: 3.9.5 
             platform: "x86"
             pyarch: "x86"
-            python: 3.9.5 
 
     steps:
 
@@ -83,7 +83,7 @@ jobs:
           path: |
             ~/python
             ~/ssl
-          key: ${{ matrix.os }}-${{ matrix.jid }}-20210407
+          key: ${{ matrix.os }}-${{ matrix.jid }}-20210504
 
       - name: Set env variables
         env:
@@ -119,7 +119,6 @@ jobs:
              echo "gampath=${gampath}" >> $GITHUB_ENV
              echo "RUNNING: apt update..."
              sudo apt-get -qq --yes update > /dev/null
-             sudo apt-get -qq --yes install swig libpcsclite-dev
 
       - name: Build and install Python, OpenSSL and PyInstaller
         if: matrix.goal != 'test' && steps.cache-primes.outputs.cache-hit != 'true'
@@ -131,20 +130,21 @@ jobs:
              echo "pip=$pip" >> $GITHUB_ENV
              echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
              echo -e "Python: $python\nPip: $pip\nLD_LIB...: $LD_LIBRARY_PATH"
-             export url="https://codeload.github.com/pyinstaller/pyinstaller/tar.gz/${PYINSTALLER_VERSION}"
-             echo "Downloading ${url}"
-             curl -o pyinstaller.tar.gz --compressed "${url}"
-             tar xf pyinstaller.tar.gz
-             cd "pyinstaller-${PYINSTALLER_VERSION}/bootloader"
-             if [ "${PLATFORM}" == "x86" ]; then
-               BITS="32"
-             else
-               BITS="64"
-             fi
-             $python ./waf all --target-arch=${BITS}bit
-             cd ..
-             $python setup.py install
-             #$pip install pyinstaller
+             #$pip install wheel
+             #export url="https://codeload.github.com/pyinstaller/pyinstaller/tar.gz/${PYINSTALLER_VERSION}"
+             #echo "Downloading ${url}"
+             #curl -o pyinstaller.tar.gz --compressed "${url}"
+             #tar xf pyinstaller.tar.gz
+             #cd "pyinstaller-${PYINSTALLER_VERSION}/bootloader"
+             #if [ "${PLATFORM}" == "x86" ]; then
+             #  BITS="32"
+             #else
+             #  BITS="64"
+             #fi
+             #$python ./waf all --target-arch=${BITS}bit
+             #cd ..
+             #$python setup.py install
+             $pip install pyinstaller
 
       - name: Install pip requirements
         if: matrix.os != 'self-hosted'
@@ -159,6 +159,7 @@ jobs:
         run: |
              set +e
              source ../.github/actions/${GAMOS}-install.sh
+             ls -alRF $gampath
              echo "gampath=$gampath" >> $GITHUB_ENV
              echo "gam=$gam" >> $GITHUB_ENV
              echo -e "GAM: ${gam}\nGAMPATH: ${gampath}\nGAMVERSION: ${GAMVERSION}"
