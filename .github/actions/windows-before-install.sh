@@ -17,8 +17,8 @@ export python="python"
 export pip="pip"
 
 # pyscard needs swig, keep these two together
-choco install $CHOCOPTIONS swig
-$pip install pyscard
+#choco install $CHOCOPTIONS swig
+#$pip install pyscard
 
 # Python
 #echo "Installing Python..."
