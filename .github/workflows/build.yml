@@ -115,8 +115,8 @@ jobs:
              echo "python=${python}" >> $GITHUB_ENV
              echo "pip=${pip}" >> $GITHUB_ENV
              echo "gampath=${gampath}" >> $GITHUB_ENV
-             echo "RUNNING: apt update..."
-             sudo apt-get -qq --yes update > /dev/null
+             #echo "RUNNING: apt update..."
+             #sudo apt-get -qq --yes update > /dev/null
              set +e
              source ../.github/actions/${GAMOS}-before-install.sh
              echo "PATH=$PATH" >> $GITHUB_ENV # keep gnutools for MacOS
