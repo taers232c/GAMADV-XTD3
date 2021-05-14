@@ -24,44 +24,20 @@ jobs:
     strategy:
       matrix:
         include:
-#          - os: ubuntu-16.04
-#            jid: 1
-#            goal: "build"
-#            gamos: "linux"
-#            platform: "x86_64"
-#          - os: ubuntu-18.04
-#            jid: 2
-#            goal: "build"
-#            gamos: "linux"
-#            platform: "x86_64"
-#          - os: ubuntu-20.04
-#            jid: 3
-#            goal: "build"
-#            gamos: "linux"
-#            platform: "x86_64"
-#          - os: [self-hosted, linux, ARM]
-#            jid: 10
-#            goal: "build"
-#            gamos: "linux"
-#            platform: "arm"
-#          - os: [self-hosted, linux, ARM64]
-#            jid: 11
-#            goal: "build"
-#            gamos: "linux"
-#            platform: "arm64"
-         - os: macos-10.15
+          - os: macos-10.15
             jid: 4
             goal: "build"
             gamos: "macos"
             platform: "x86_64"
-         - os: windows-2019
+            python: 3.9.5 
+          - os: windows-2019
             jid: 5
             goal: "build"
             gamos: "windows"
             pyarch: "x64" 
             platform: "x86_64"
             python: 3.9.5 
-          - os: windows-2019
+           - os: windows-2019
             jid: 6
             goal: "build"
             gamos: "windows"
