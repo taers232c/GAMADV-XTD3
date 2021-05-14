@@ -1,6 +1,6 @@
 echo "MacOS Version Info According to Python:"
 python -c "import platform; print(platform.mac_ver())"
-echo "Xcode versionn:"
+echo "Xcode version:"
 xcodebuild -version
 export gampath="dist/gamadv-xtd3"
 rm -rf $gampath
