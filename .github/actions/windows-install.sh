@@ -13,12 +13,12 @@ export gam="${gampath}/gam"
 echo "running compiled GAM..."
 $gam version
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
-#export GAMVERSION=$($gam version simple)
 cp LICENSE $gampath/
 cp license.rtf $gampath/
 cp gam-setup.bat $gampath/
 cp Gam*.txt $gampath/
 cp cacerts.pem $gampath/
+
 GAM_ARCHIVE=gamadv-xtd3-$GAMVERSION-$GAMOS-$PLATFORM.zip
 /c/Program\ Files/7-Zip/7z.exe a -tzip $GAM_ARCHIVE $gampath -xr!.svn
 

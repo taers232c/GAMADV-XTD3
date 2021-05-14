@@ -150,6 +150,8 @@ jobs:
              set +e
              ls -l gamadv-xtd3-$GAMVERSION-*
              for gamfile in gamadv-xtd3-$GAMVERSION-*; do
+               echo "Deleting old file ${gamfile} from Google Drive..."
+               $gam user ross.scroggs@rdschool.org purge drivefile drivefilename $gamfile
                echo "Uploading file ${gamfile} to Google Drive..."
                fileid=$($gam user ross.scroggs@rdschool.org add drivefile localfile $gamfile drivefilename $gamfile parentid root returnidonly)
                echo "file uploaded as ${fileid}, setting ACL..."
