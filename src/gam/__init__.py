@@ -6371,7 +6371,8 @@ class CSVPrintFile():
 
   def MoveJSONTitlesToEnd(self, titles):
     for title in titles if isinstance(titles, list) else [titles]:
-      self.JSONtitlesList.remove(title)
+      if title in self.JSONtitlesList:
+        self.JSONtitlesList.remove(title)
       self.JSONtitlesList.append(title)
 
   def SetJSONTitles(self, titles):

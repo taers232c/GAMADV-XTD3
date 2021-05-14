@@ -138,8 +138,6 @@ jobs:
         run: |
              set +e
              source ../.github/actions/decrypt.sh ../.github/actions/creds.tar.gpg creds.tar
-             export GAMCFGDIR="$gampath/ConfigGitHub"
-             echo "GAMCFGDIR=${GAMCFGDIR}" >> $GITHUB_ENV
              source ../.github/actions/${GAMOS}-install.sh
              ls -alRF $gampath
              echo "gam=$gam" >> $GITHUB_ENV

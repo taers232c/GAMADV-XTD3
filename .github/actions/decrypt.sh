@@ -10,10 +10,13 @@ else
   echo "PASSCODE is set";
 fi
 
-gpg --quiet --batch --yes --decrypt --passphrase="${PASSCODE}" \
-    --output "${credsfile}" "${gpgfile}"
+gpg --quiet --batch --yes --decrypt --passphrase="${PASSCODE}" --output "${credsfile}" "${gpgfile}"
 
-mkdir -p "${gampath}\ConfigGitHub"
+mkdir -p "${gampath}/ConfigGitHub"
 tar xvvf "${credsfile}" --directory "${gampath}"
-echo "${gampath}\ConfigGitHub files:"
-ls -l "${gampath}\ConfigGitHub"
+echo "${gampath}/ConfigGitHub files:"
+ls -l "${gampath}/ConfigGitHub"
+mkdir -p "~/.gam"
+cp -p "${gampath}/ConfigGitHub/*" "`~/.gam"
+echo "~/.gam files:"
+ls -l "~/.gam"
