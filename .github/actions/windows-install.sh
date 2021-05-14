@@ -3,8 +3,6 @@ if [[ "$PLATFORM" == "x86_64" ]]; then
 elif [[ "$PLATFORM" == "x86" ]]; then
   export WIX_BITS="x86"
 fi
-echo "GAMCFGDIR=${GAMCFGDIR}"
-ls -l ${GAMCFGDIR}
 echo "compiling GAM with pyinstaller..."
 export gampath="dist/gamadv-xtd3"
 rm -rf $gampath
@@ -12,8 +10,6 @@ mkdir -p $gampath
 export gampath=$(readlink -e $gampath)
 pyinstaller --clean --noupx -F --distpath $gampath gam.spec
 export gam="${gampath}/gam"
-echo "GAMCFGDIR=${GAMCFGDIR}"
-ls -l ${GAMCFGDIR}
 echo "running compiled GAM..."
 $gam version
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
