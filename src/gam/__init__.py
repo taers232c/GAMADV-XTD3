@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.16'
+__version__ = '6.03.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7541,7 +7541,8 @@ def initializeLogging():
 def saveNonPickleableValues():
   savedValues = {GM.STDOUT: {}, GM.STDERR: {}, GM.SAVED_STDOUT: None}
   savedValues[GM.SAVED_STDOUT] = GM.Globals[GM.SAVED_STDOUT]
-  GM.Globals[GM.SAVED_STDOUT] = None
+  if GM.Globals[GM.SAVED_STDOUT] is not None:
+    GM.Globals[GM.SAVED_STDOUT] = True
   savedValues[GM.STDOUT][GM.REDIRECT_FD] = GM.Globals[GM.STDOUT].get(GM.REDIRECT_FD, None)
   GM.Globals[GM.STDOUT].pop(GM.REDIRECT_FD, None)
   savedValues[GM.STDERR][GM.REDIRECT_FD] = GM.Globals[GM.STDERR].get(GM.REDIRECT_FD, None)
