@@ -37,7 +37,7 @@ jobs:
             pyarch: "x64" 
             platform: "x86_64"
             python: 3.9.5 
-           - os: windows-2019
+          - os: windows-2019
             jid: 6
             goal: "build"
             gamos: "windows"
