@@ -7731,7 +7731,7 @@ def terminateStdQueueHandler(mpQueue, mpQueueHandler):
   mpQueueHandler.join()
 
 def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
-                           todrive,
+                           todrive, savedStdout,
                            csvColumnDelimiter, csvQuoteChar,
                            csvHeaderFilter, csvHeaderDropFilter,
                            csvRowFilter, csvRowDropFilter,
@@ -7746,6 +7746,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
   GM.Globals[GM.CSV_SUBKEY_FIELD] = None
   GM.Globals[GM.CSV_DATA_FIELD] = None
   GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
+  GM.Globals[GM.SAVED_STDOUT] = savedStdout
   GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = csvColumnDelimiter
   GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = csvQuoteChar
   GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
@@ -7871,7 +7872,7 @@ def MultiprocessGAMCommands(items, logCmds):
         batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
-                        GM.Globals[GM.CSV_TODRIVE],
+                        GM.Globals[GM.CSV_TODRIVE], GM.Globals[GM.SAVED_STDOUT],
                         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
                         GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER],
