@@ -7541,8 +7541,7 @@ def initializeLogging():
 def saveNonPickleableValues():
   savedValues = {GM.STDOUT: {}, GM.STDERR: {}, GM.SAVED_STDOUT: None}
   savedValues[GM.SAVED_STDOUT] = GM.Globals[GM.SAVED_STDOUT]
-  if GM.Globals[GM.SAVED_STDOUT] is not None:
-    GM.Globals[GM.SAVED_STDOUT] = True
+  GM.Globals[GM.SAVED_STDOUT] = None
   savedValues[GM.STDOUT][GM.REDIRECT_FD] = GM.Globals[GM.STDOUT].get(GM.REDIRECT_FD, None)
   GM.Globals[GM.STDOUT].pop(GM.REDIRECT_FD, None)
   savedValues[GM.STDERR][GM.REDIRECT_FD] = GM.Globals[GM.STDERR].get(GM.REDIRECT_FD, None)
@@ -7731,7 +7730,7 @@ def terminateStdQueueHandler(mpQueue, mpQueueHandler):
   mpQueueHandler.join()
 
 def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
-                           todrive, savedStdout,
+                           debugLevel, todrive,
                            csvColumnDelimiter, csvQuoteChar,
                            csvHeaderFilter, csvHeaderDropFilter,
                            csvRowFilter, csvRowDropFilter,
@@ -7741,12 +7740,12 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
     signal.signal(signal.SIGINT, signal.SIG_IGN)
   GM.Globals[GM.PID] = pid
   GM.Globals[GM.SYSEXITRC] = 0
+  GM.Globals[GM.SAVED_STDOUT] = None
   GM.Globals[GM.CSV_DATA_DICT] = {}
   GM.Globals[GM.CSV_KEY_FIELD] = None
   GM.Globals[GM.CSV_SUBKEY_FIELD] = None
   GM.Globals[GM.CSV_DATA_FIELD] = None
   GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
-  GM.Globals[GM.SAVED_STDOUT] = savedStdout
   GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = csvColumnDelimiter
   GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = csvQuoteChar
   GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
@@ -7758,8 +7757,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
     GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
   if mpQueueStdout:
     GM.Globals[GM.STDOUT] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
-    if GM.Globals[GM.SAVED_STDOUT] is not None:
-      GM.Globals[GM.SAVED_STDOUT] = sys.stdout
+    if debugLevel:
       sys.stdout = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
     mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_START, args))
   else:
@@ -7872,7 +7870,7 @@ def MultiprocessGAMCommands(items, logCmds):
         batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
-                        GM.Globals[GM.CSV_TODRIVE], GM.Globals[GM.SAVED_STDOUT] is not None,
+                        GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
                         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
                         GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER],
