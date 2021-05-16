@@ -7872,7 +7872,7 @@ def MultiprocessGAMCommands(items, logCmds):
         batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
-                        GM.Globals[GM.CSV_TODRIVE], GM.Globals[GM.SAVED_STDOUT],
+                        GM.Globals[GM.CSV_TODRIVE], GM.Globals[GM.SAVED_STDOUT] is not None,
                         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
                         GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER],
