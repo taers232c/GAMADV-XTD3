@@ -75,6 +75,8 @@ CURRENT_SVCACCT_API_SCOPES = 'csas'
 CURRENT_SVCACCT_USER = 'csa'
 # datetime.datetime.now
 DATETIME_NOW = 'dtno'
+# If debug_level > 0: extra_args['prettyPrint'] = True, httplib2.debuglevel = gam_debug_level, appsObj.debug = True
+DEBUG_LEVEL = 'dbgl'
 # Decoded ID token
 DECODED_ID_TOKEN = 'didt'
 # Index of start of <UserTypeEntity> in command line
@@ -195,6 +197,7 @@ Globals = {
   CURRENT_SVCACCT_API_SCOPES: set(),
   CURRENT_SVCACCT_USER: None,
   DATETIME_NOW: None,
+  DEBUG_LEVEL: 0,
   DECODED_ID_TOKEN: None,
   ENTITY_CL_START: 1,
   ENTITY_CL_DELAY_START: 1,

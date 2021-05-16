@@ -3418,6 +3418,9 @@ def SetGlobalVariables():
   GC.Values[GC.DOMAIN] = GC.Values[GC.DOMAIN].lower()
   if not GC.Values[GC.SMTP_FQDN]:
     GC.Values[GC.SMTP_FQDN] = None
+# Inherit debug_level if not locally defined
+  if GM.Globals[GM.PID] != 0 and GC.Values[GC.DEBUG_LEVEL] == 0:
+    GC.Values[GC.DEBUG_LEVEL] = GM.Globals[GM.DEBUG_LEVEL]
 # Create/set mode for oauth2.txt.lock
   if not GM.Globals[GM.OAUTH2_TXT_LOCK]:
     fileName = f'{GC.Values[GC.OAUTH2_TXT]}.lock'
@@ -7739,6 +7742,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
   GM.Globals[GM.PID] = pid
+  GM.Globals[GM.DEBUG_LEVEL] = debugLevel
   GM.Globals[GM.SYSEXITRC] = 0
   GM.Globals[GM.SAVED_STDOUT] = None
   GM.Globals[GM.CSV_DATA_DICT] = {}
