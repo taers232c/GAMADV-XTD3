@@ -33047,11 +33047,11 @@ def _deletePeople(users, entityType):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
 
-# gam delete domainprofiles <ContactEntity>|<ContactSelection>
-def doDeletePeopleDomainProfiles():
+# gam delete domaincontacts <PeopleResourceNameEntity>
+def doDeletePeopleDomainContacts():
   _deletePeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-# gam <UserTypeEntity> delete peoplecontacts <ContactEntity>|<UserContactSelection>
+# gam <UserTypeEntity> delete peoplecontacts <PeopleResourceNameEntity>
 def deletePeopleContacts(users):
   _deletePeople(users, Ent.USER)
 
@@ -33181,6 +33181,8 @@ PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP = {
 PEOPLE_READ_SOURCES_CHOICE_MAP = {
   'contact': 'READ_SOURCE_TYPE_CONTACT',
   'contacts': 'READ_SOURCE_TYPE_CONTACT',
+  'domaincontact': 'READ_SOURCE_TYPE_DOMAIN_CONTACT',
+  'domaincontacts': 'READ_SOURCE_TYPE_DOMAIN_CONTACT',
   'profile': 'READ_SOURCE_TYPE_PROFILE',
   'profiles': 'READ_SOURCE_TYPE_PROFILE'
   }
@@ -33190,18 +33192,16 @@ PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
   'contacts': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
   }
 
-def _infoPeople(users, entityType):
+def _infoPeople(users, entityType, source):
   if entityType == Ent.DOMAIN:
     people = buildGAPIObject(API.PEOPLE_DIRECTORY)
-    source = 'profile'
-    peopleEntityType = Ent.DOMAIN_PROFILE
+    peopleEntityType = Ent.DOMAIN_PROFILE if source == 'profile' else Ent.DOMAIN_CONTACT
   else:
-    source = 'contact'
     peopleEntityType = Ent.PEOPLE_CONTACT
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP[source]]
   entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
   resourceNameLists = entityList if isinstance(entityList, dict) else None
   FJQC = FormatJSONQuoteChar()
-  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP[source]]
   fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -33245,15 +33245,20 @@ def _infoPeople(users, entityType):
       _showPerson(entityType, user, peopleEntityType, result, j, jcount, FJQC)
     Ind.Decrement()
 
+# gam info domaincontacts <PeopleResourceNameEntity>
+#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+def doInfoPeopleDomainContacts():
+  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'domaincontact')
+
 # gam info domainprofiles <PeopleResourceNameEntity>
 #	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
 def doInfoPeopleDomainProfiles():
-  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'profile')
 
 # gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
 #	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
 def infoPeopleContacts(users):
-  _infoPeople(users, Ent.USER)
+  _infoPeople(users, Ent.USER, 'contact')
 
 # gam print domaincontacts [todrive <ToDriveAttribute>*]
 #	[query <String>]
@@ -53283,7 +53288,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSER:	doDeleteCIDeviceUser,
       Cmd.ARG_DOMAIN:		doDeleteDomain,
       Cmd.ARG_DOMAINALIAS:	doDeleteDomainAlias,
-      Cmd.ARG_DOMAINPROFILE:	doDeletePeopleDomainProfiles,
+      Cmd.ARG_DOMAINCONTACT:	doDeletePeopleDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doDeleteDriveFileACLs,
       Cmd.ARG_FEATURE:		doDeleteFeature,
       Cmd.ARG_GROUP:		doDeleteGroups,
@@ -53351,6 +53356,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSERSTATE:	doInfoCIDeviceUserState,
       Cmd.ARG_DOMAIN:		doInfoDomain,
       Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
+      Cmd.ARG_DOMAINCONTACT:	doInfoPeopleDomainContacts,
       Cmd.ARG_DOMAINPROFILE:	doInfoPeopleDomainProfiles,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
       Cmd.ARG_INSTANCE:		doInfoInstance,

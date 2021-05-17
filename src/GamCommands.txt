@@ -3072,6 +3072,10 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
         userdefined
 <PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
 
+gam delete domaincontacts <PeopleResourceNameEntity>
+gam info domaincontacts <PeopleResourceNameEntity>
+        [allfields|(fields <PeopleFieldNameList>)]
+        [formatjson]
 gam print domaincontacts [todrive <ToDriveAttribute>*]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
@@ -3083,7 +3087,6 @@ gam show domaincontacts
         [allfields|(fields <PeopleFieldNameList>)]
         [formatjson]
 
-gam delete domainprofiles <PeopleResourceNameEntity>
 gam info domainprofiles <PeopleResourceNameEntity>
         [allfields|(fields <PeopleFieldNameList>)]
         [formatjson]

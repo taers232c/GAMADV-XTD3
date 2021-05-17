@@ -1,8 +1,8 @@
 6.03.18
 
-Added commands to delete specific domain profiles and user's contacts using the People API.
+Added commands to delete specific domain contacts and user's contacts using the People API.
 ```
-gam delete domainprofiles <PeopleResourceNameEntity>
+gam delete domaincontacts <PeopleResourceNameEntity>
 gam <UserTypeEntity> delete peoplecontacts <PeopleResourceNameEntity>
 ```
 * https://github.com/taers232c/GAMADV-XTD3/wiki/People
