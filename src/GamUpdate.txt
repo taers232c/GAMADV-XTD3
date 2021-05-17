@@ -1,3 +1,7 @@
+6.03.18
+
+Updated various google libraries.
+
 6.03.17
 
 Corrected 6.03.16 code fix to avoid trap on Windows when doing the following:

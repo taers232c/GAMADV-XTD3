@@ -16,7 +16,12 @@
 
 import logging
 
+from google.auth import version as google_auth_version
 from google.auth._default import default, load_credentials_from_file
+
+
+__version__ = google_auth_version.__version__
+
 
 __all__ = ["default", "load_credentials_from_file"]
 
