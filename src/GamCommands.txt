@@ -3083,6 +3083,7 @@ gam show domaincontacts
         [allfields|(fields <PeopleFieldNameList>)]
         [formatjson]
 
+gam delete domainprofiles <PeopleResourceNameEntity>
 gam info domainprofiles <PeopleResourceNameEntity>
         [allfields|(fields <PeopleFieldNameList>)]
         [formatjson]
@@ -5512,6 +5513,7 @@ gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
         [allfields|(fields <OtherContactFieldNameList>)]
         [formatjson [quotechar <Character>]]
 
+gam <UserTypeEntity> delete peoplecontacts <PeopleResourceNameEntity>
 gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
         [allfields|(fields <PeopleFieldNameList>)]
         [formatjson]

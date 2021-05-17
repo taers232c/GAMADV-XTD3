@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.17'
+__version__ = '6.03.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33008,6 +33008,53 @@ def checkCIUserIsInvitable(users):
       return
   csvPF.writeCSVfile('Invitable Users')
 
+def _deletePeople(users, entityType):
+  if entityType == Ent.DOMAIN:
+    people = buildGAPIObject(API.PEOPLE_DIRECTORY)
+    peopleEntityType = Ent.DOMAIN_PROFILE
+  else:
+    peopleEntityType = Ent.PEOPLE_CONTACT
+  entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
+  resourceNameLists = entityList if isinstance(entityList, dict) else None
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    if entityType != Ent.DOMAIN:
+      user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+      if not people:
+        continue
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Ind.Increment()
+    for resourceName in entityList:
+      j += 1
+      try:
+        callGAPI(people.people(), 'deleteContact',
+                 bailOnInternalError=True,
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 resourceName=resourceName)
+        entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+      except (GAPI.notFound, GAPI.internalError):
+        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+    Ind.Decrement()
+
+# gam delete domainprofiles <ContactEntity>|<ContactSelection>
+def doDeletePeopleDomainProfiles():
+  _deletePeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+
+# gam <UserTypeEntity> delete peoplecontacts <ContactEntity>|<UserContactSelection>
+def deletePeopleContacts(users):
+  _deletePeople(users, Ent.USER)
+
 def _showPerson(userEntityType, user, entityType, person, i, count, FJQC):
   if not FJQC.formatJSON:
     printEntity([userEntityType, user, entityType, person['resourceName']], i, count)
@@ -33200,12 +33247,12 @@ def _infoPeople(users, entityType):
 
 # gam info domainprofiles <PeopleResourceNameEntity>
 #	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
-def doInfoPeopleDomainProfile():
+def doInfoPeopleDomainProfiles():
   _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
 # gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
 #	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
-def infoPeopleContact(users):
+def infoPeopleContacts(users):
   _infoPeople(users, Ent.USER)
 
 # gam print domaincontacts [todrive <ToDriveAttribute>*]
@@ -53236,6 +53283,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSER:	doDeleteCIDeviceUser,
       Cmd.ARG_DOMAIN:		doDeleteDomain,
       Cmd.ARG_DOMAINALIAS:	doDeleteDomainAlias,
+      Cmd.ARG_DOMAINPROFILE:	doDeletePeopleDomainProfiles,
       Cmd.ARG_DRIVEFILEACL:	doDeleteDriveFileACLs,
       Cmd.ARG_FEATURE:		doDeleteFeature,
       Cmd.ARG_GROUP:		doDeleteGroups,
@@ -53303,7 +53351,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSERSTATE:	doInfoCIDeviceUserState,
       Cmd.ARG_DOMAIN:		doInfoDomain,
       Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
-      Cmd.ARG_DOMAINPROFILE:	doInfoPeopleDomainProfile,
+      Cmd.ARG_DOMAINPROFILE:	doInfoPeopleDomainProfiles,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
       Cmd.ARG_INSTANCE:		doInfoInstance,
       Cmd.ARG_GAL:		doInfoGAL,
@@ -54093,6 +54141,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		deleteLabel,
       Cmd.ARG_LICENSE:		deleteLicense,
       Cmd.ARG_MESSAGE:		processMessages,
+      Cmd.ARG_PEOPLECONTACT:	deletePeopleContacts,
       Cmd.ARG_PERMISSION:	deletePermissions,
       Cmd.ARG_PHOTO:		deletePhoto,
       Cmd.ARG_SENDAS:		deleteInfoSendAs,
@@ -54142,7 +54191,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CIGROUPMEMBERS:	infoCIGroupMembers,
       Cmd.ARG_CONTACT:		infoUserContacts,
       Cmd.ARG_CONTACTGROUP:	infoUserContactGroups,
-      Cmd.ARG_PEOPLECONTACT:	infoPeopleContact,
+      Cmd.ARG_PEOPLECONTACT:	infoPeopleContacts,
       Cmd.ARG_DRIVEFILE:	showFileInfo,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,
       Cmd.ARG_EVENT:		infoCalendarEvents,
