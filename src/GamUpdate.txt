@@ -1,3 +1,7 @@
+6.03.19
+
+Rebuild pyinstaller bootloader on Windows to avoid false positive virus detection.
+
 6.03.18
 
 Added commands to delete specific domain contacts and user's contacts using the People API.
