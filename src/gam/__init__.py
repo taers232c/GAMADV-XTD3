@@ -51096,7 +51096,7 @@ def printShowMessagesThreads(users, entityType):
     Ind.Decrement()
     parameters['messagesProcessed'] += 1
 
-  def _getAttachmentNames(messageId, payload, attachmentNamePattern, attachmentNames):
+  def _getAttachments(messageId, payload, attachmentNamePattern, attachments):
     for part in payload.get('parts', []):
       if 'attachmentId' in part['body']:
         for header in part['headers']:
@@ -51106,10 +51106,10 @@ def printShowMessagesThreads(users, entityType):
               continue
             attachmentName = mg.group(1)
             if (not attachmentNamePattern) or attachmentNamePattern.match(attachmentName):
-              attachmentNames.append(attachmentName)
+              attachments.append((attachmentName, part['mimeType']))
             break
       else:
-        _getAttachmentNames(messageId, part, attachmentNamePattern, attachmentNames)
+        _getAttachments(messageId, part, attachmentNamePattern, attachments)
 
   def _printMessage(user, result):
     if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
@@ -51150,11 +51150,12 @@ def printShowMessagesThreads(users, entityType):
       else:
         row['Body'] = escapeCRsNLs(_getMessageBody(result['payload']))
     if show_attachments:
-      attachmentNames = []
-      _getAttachmentNames(result['id'], result['payload'], attachmentNamePattern, attachmentNames)
-      row['Attachments'] = len(attachmentNames)
-      for i, attachmentName in enumerate(attachmentNames):
-        row[f'Attachments.{i}'] = attachmentName
+      attachments = []
+      _getAttachments(result['id'], result['payload'], attachmentNamePattern, attachments)
+      row['Attachments'] = len(attachments)
+      for i, attachment in enumerate(attachments):
+        row[f'Attachments.{i}.name'] = attachment[0]
+        row[f'Attachments.{i}.mimeType'] = attachment[1]
     csvPF.WriteRowTitles(row)
     parameters['messagesProcessed'] += 1
 

@@ -2,8 +2,8 @@
 
 Added option `showattachments [attachmentnamepattern <RegularExpression>]` to
 `gam <UserTypeEntity> print messages|threads`. This adds the column `Attachments`
-that shows the number of attachments and columns `Attachments.n` that show the
-attachment names.
+that shows the number of attachments and columns `Attachments.n.name` and `Attachments.n.mimeType`
+that show the attachment names and MIME types.
 
 6.03.18
 
