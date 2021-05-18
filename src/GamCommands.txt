@@ -5354,6 +5354,7 @@ gam <UserTypeEntity> print messages|threads [todrive <ToDriveAttribute>*]
         [countsonly|positivecountsonly] [useronly]
         [headers all|<SMTPHeaderList>]
         [showlabels] [showbody] [showsize] [showsnippet]
+        [showattachments [attachmentnamepattern <RegularExpression>]]
         [convertcrnl] [delimiter <Character>]
 
 # Users - Gmail - Profile

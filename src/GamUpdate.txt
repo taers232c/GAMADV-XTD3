@@ -1,6 +1,9 @@
 6.03.19
 
-Rebuild pyinstaller bootloader on Windows to avoid false positive virus detection.
+Added option `showattachments [attachmentnamepattern <RegularExpression>]` to
+`gam <UserTypeEntity> print messages|threads`. This adds the column `Attachments`
+that shows the number of attachments and columns `Attachments.n` that show the
+attachment names.
 
 6.03.18
 

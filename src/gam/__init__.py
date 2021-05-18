@@ -51096,6 +51096,21 @@ def printShowMessagesThreads(users, entityType):
     Ind.Decrement()
     parameters['messagesProcessed'] += 1
 
+  def _getAttachmentNames(messageId, payload, attachmentNamePattern, attachmentNames):
+    for part in payload.get('parts', []):
+      if 'attachmentId' in part['body']:
+        for header in part['headers']:
+          if header['name'] in {'Content-Type', 'Content-Disposition'}:
+            mg = ATTACHMENT_NAME_PATTERN.match(header['value'])
+            if not mg:
+              continue
+            attachmentName = mg.group(1)
+            if (not attachmentNamePattern) or attachmentNamePattern.match(attachmentName):
+              attachmentNames.append(attachmentName)
+            break
+      else:
+        _getAttachmentNames(messageId, part, attachmentNamePattern, attachmentNames)
+
   def _printMessage(user, result):
     if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
       return
@@ -51134,6 +51149,12 @@ def printShowMessagesThreads(users, entityType):
         row['Body'] = _getMessageBody(result['payload'])
       else:
         row['Body'] = escapeCRsNLs(_getMessageBody(result['payload']))
+    if show_attachments:
+      attachmentNames = []
+      _getAttachmentNames(result['id'], result['payload'], attachmentNamePattern, attachmentNames)
+      row['Attachments'] = len(attachmentNames)
+      for i, attachmentName in enumerate(attachmentNames):
+        row[f'Attachments.{i}'] = attachmentName
     csvPF.WriteRowTitles(row)
     parameters['messagesProcessed'] += 1
 
@@ -51277,9 +51298,9 @@ def printShowMessagesThreads(users, entityType):
       show_size = True
     elif myarg == 'showsnippet':
       show_snippet = True
-    elif showMode and myarg == 'showattachments':
+    elif myarg == 'showattachments':
       show_attachments = True
-    elif showMode and myarg == 'attachmentnamepattern':
+    elif myarg == 'attachmentnamepattern':
       attachmentNamePattern = getREPattern(re.IGNORECASE)
     elif showMode and myarg == 'saveattachments':
       save_attachments = True
@@ -51426,12 +51447,15 @@ def printShowMessagesThreads(users, entityType):
 # gam <UserTypeEntity> print message|messages
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[labelmatchpattern <RegularExpression>]
-#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
+#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet]
+#	[showattachments [attachmentnamepattern <RegularExpression>]]
+#	[convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
 #	[countsonly|positivecountsonly] [useronly]
 # gam <UserTypeEntity> show message|messages
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[labelmatchpattern <RegularExpression>]
-#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
+#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet]
+#	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 def printShowMessages(users):
@@ -51440,12 +51464,15 @@ def printShowMessages(users):
 # gam <UserTypeEntity> print thread|threads
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[labelmatchpattern <RegularExpression>]
-#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
+#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet]
+#	[showattachments [attachmentnamepattern <RegularExpression>]]
+#	[convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
 #	[countsonly|positivecountsonly] [useronly]
 # gam <UserTypeEntity> show thread|threads
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[labelmatchpattern <RegularExpression>]
-#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet] [showattachments [attachmentnamepattern <RegularExpression>]]
+#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet]
+#	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 def printShowThreads(users):
