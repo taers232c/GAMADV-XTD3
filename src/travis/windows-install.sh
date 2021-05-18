@@ -6,7 +6,7 @@ mkdir -p $gampath
 export gampath=$(readlink -e $gampath)
 export python=/c/python/python.exe
 echo "Python Version"
-echo $python -V
+$python -V
 echo "Compile: $python -OO -m pyinstaller/PyInstaller --clean --noupx -F --distpath $gampath gam.spec"
 $python -OO -v -m pyinstaller/PyInstaller --clean --noupx -F --distpath $gampath gam.spec
 export gam="${gampath}/gam"
