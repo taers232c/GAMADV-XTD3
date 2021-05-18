@@ -4,6 +4,8 @@ export gampath="dist/gamadv-xtd3"
 rm -rf $gampath
 mkdir -p $gampath
 export gampath=$(readlink -e $gampath)
+echo "Python Version"
+echo $python -V
 echo "Compile: $python -OO -m pyinstaller/PyInstaller --clean --noupx -F --distpath $gampath gam.spec"
 $python -OO -v -m pyinstaller/PyInstaller --clean --noupx -F --distpath $gampath gam.spec
 export gam="${gampath}/gam"
