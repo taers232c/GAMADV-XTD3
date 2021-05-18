@@ -7,8 +7,8 @@ export gampath=$(readlink -e $gampath)
 export python=/c/python/python.exe
 echo "Python Version"
 $python -V
-echo "Compile: $python -OO -m pyinstaller/PyInstaller --clean --noupx -F --distpath $gampath gam.spec"
-$python -OO -v -m pyinstaller/PyInstaller --clean --noupx -F --distpath $gampath gam.spec
+echo "Compile: $python -OO -v -c  pyinstaller/pyinstaller.py --clean --noupx -F --distpath $gampath gam.spec"
+$python -OO -v -c pyinstaller/pyinstaller.py --clean --noupx -F --distpath $gampath gam.spec
 export gam="${gampath}/gam"
 echo "running compiled GAM..."
 $gam version
