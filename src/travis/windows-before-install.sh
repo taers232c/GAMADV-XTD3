@@ -85,3 +85,4 @@ cd ..
 $python setup.py install
 echo "cd to $mypath"
 cd $mypath
+ls -l
