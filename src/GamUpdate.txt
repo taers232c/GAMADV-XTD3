@@ -1,3 +1,11 @@
+6.03.20
+
+Updated `gam <UserTypeEntity> print filelist select <DriveFileEntity>` to display progress
+messages as it recurses through the folder tree.
+
+Updated `gam <UserTypeEntity> print filelist select <DriveFileEntity> norecursion` to
+retrieve the selected folder without retrieving its direct children which aren't going to be displayed.
+
 6.03.19
 
 Added option `showattachments [attachmentnamepattern <RegularExpression>]` to

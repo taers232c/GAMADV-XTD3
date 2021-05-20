@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.19'
+__version__ = '6.03.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2208,7 +2208,7 @@ def printGotAccountEntities(count):
   if GC.Values[GC.SHOW_GETTINGS]:
     writeStderr(f'{Msg.GOT} {count} {Ent.ChooseGetting(count)}{Ent.GettingPostQualifier()}\n')
 
-def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query='', qualifier='', entityType=None):
+def setGettingAllEntityItemsForWhom(entityItem, forWhom, query='', qualifier=''):
   if GC.Values[GC.SHOW_GETTINGS]:
     if query:
       Ent.SetGettingQuery(entityItem, query)
@@ -2217,6 +2217,10 @@ def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query='
     else:
       Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
+
+def printGettingAllEntityItemsForWhom(entityItem, forWhom, i=0, count=0, query='', qualifier='', entityType=None):
+  if GC.Values[GC.SHOW_GETTINGS]:
+    setGettingAllEntityItemsForWhom(entityItem, forWhom, query=query, qualifier=qualifier)
     writeStderr(f'{Msg.GETTING_ALL} {Ent.PluralGetting()}{Ent.GettingPreQualifier()} {Msg.FOR} {forWhom}{Ent.MayTakeTime(entityType)}{currentCountNL(i, count)}')
 
 def printGotEntityItemsForWhom(count):
@@ -2253,7 +2257,7 @@ def getPageMessage(showFirstLastItems=False, showDate=None):
     GM.Globals[GM.LAST_GOT_MSG_LEN] = 0
   return pageMessage
 
-def getPageMessageForWhom(forWhom=None, showFirstLastItems=False, showDate=None):
+def getPageMessageForWhom(forWhom=None, showFirstLastItems=False, showDate=None, clearLastGotMsgLen=True):
   if not GC.Values[GC.SHOW_GETTINGS]:
     return None
   if forWhom:
@@ -2267,7 +2271,7 @@ def getPageMessageForWhom(forWhom=None, showFirstLastItems=False, showDate=None)
     pageMessage += '...'
   if GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
     pageMessage += '\n'
-  else:
+  elif clearLastGotMsgLen:
     GM.Globals[GM.LAST_GOT_MSG_LEN] = 0
   return pageMessage
 
@@ -4431,7 +4435,7 @@ def _finalizeGAPIpagesResult(pageMessage):
     flushStderr()
 
 def callGAPIpages(service, function, items,
-                  pageMessage=None, messageAttribute=None, maxItems=0,
+                  pageMessage=None, messageAttribute=None, maxItems=0, noFinalize=False,
                   throwReasons=None, retryReasons=None,
                   **kwargs):
   if throwReasons is None:
@@ -4451,7 +4455,8 @@ def callGAPIpages(service, function, items,
                        **kwargs)
     pageToken, totalItems = _processGAPIpagesResult(results, items, allResults, totalItems, pageMessage, messageAttribute, entityType)
     if not pageToken or (maxItems and totalItems >= maxItems):
-      _finalizeGAPIpagesResult(pageMessage)
+      if not noFinalize:
+        _finalizeGAPIpagesResult(pageMessage)
       return allResults
     kwargs['pageToken'] = pageToken
 
@@ -41574,8 +41579,15 @@ def printFileList(users):
     q = WITH_PARENTS.format(fileEntry['id'])
     if selectSubQuery:
       q += ' and ('+selectSubQuery+')'
+    if depth == 0:
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=q)
+      pageMessage = getPageMessageForWhom()
+    else:
+      setGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, query=q)
+      pageMessage = getPageMessageForWhom(clearLastGotMsgLen=False)
     try:
       children = callGAPIpages(drive.files(), 'list', 'files',
+                               pageMessage=pageMessage, noFinalize=True,
                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                retryReasons=[GAPI.UNKNOWN_ERROR],
                                q=q, orderBy=DFF.orderBy, fields=pagesFields,
@@ -41696,7 +41708,8 @@ def printFileList(users):
     elif not fileIdEntity:
       fileIdEntity = DLP.GetFileIdEntity()
   elif not buildTree:
-    buildTree = (not fileIdEntity['dict']
+    buildTree = (not noRecursion
+                 and not fileIdEntity['dict']
                  and not fileIdEntity['query']
                  and not fileIdEntity['teamdrivefilequery']
                  and _simpleFileIdEntityList(fileIdEntity['list']))
@@ -41872,6 +41885,9 @@ def printFileList(users):
           _printFileInfo(drive, user, fileEntryInfo.copy())
       if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and not noRecursion:
         _printChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
+        if GC.Values[GC.SHOW_GETTINGS]:
+          writeStderr('\r\n')
+          flushStderr()
       if countsOnly:
         if showSource:
           if summary != FILECOUNT_SUMMARY_NONE:
