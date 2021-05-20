@@ -1,3 +1,13 @@
+6.03.21
+
+Updated the processing of `<UserTypeEntity>` to minimize memory usage when getting users directly in an OU.
+```
+ou|ou_ns|ou_susp <OrgUnitItem>
+ous|ous_ns|ous_susp <OrgUnitList>
+```
+
+Updated gam `create|update teamdrive ... customtheme <DriveFileID> <Float> <Float> <Float>` to better handle errors.
+
 6.03.20
 
 Updated `gam <UserTypeEntity> print filelist select <DriveFileEntity>` to display progress

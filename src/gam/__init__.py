@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.20'
+__version__ = '6.03.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5177,33 +5177,55 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
     prevLen = 0
     for ou in ous:
       ou = makeOrgUnitPathAbsolute(ou)
-      try:
-        if ou.startswith('id:'):
+      if ou.startswith('id:'):
+        try:
           ou = callGAPI(cd.orgunits(), 'get',
                         throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
-                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, fields='orgUnitPath')['orgUnitPath']
-        printGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-        result = callGAPIpages(cd.users(), 'list', 'users',
-                               pageMessage=getPageMessageForWhom(),
-                               throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
-                                             GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                               customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(ou, isSuspended), orderBy='email',
-                               fields=fields, maxResults=GC.Values[GC.USER_MAX_RESULTS])
-      except (GAPI.badRequest, GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError,
-              GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
-        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-        _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
-        continue
-      if directlyInOU:
-        ou = ou.lower()
-        for user in result:
-          if ou == user.get('orgUnitPath', '').lower():
-            entityList.append(user['primaryEmail'])
-      else:
-        entityList.extend([user['primaryEmail'] for user in result])
-      totalLen = len(entityList)
-      printGotEntityItemsForWhom(totalLen-prevLen)
-      prevLen = totalLen
+                        customerId=GC.Values[GC.CUSTOMER_ID],
+                        orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(ou)),
+                        fields='orgUnitPath')['orgUnitPath']
+        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest,
+                GAPI.invalidCustomerId, GAPI.loginRequired):
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
+          continue
+      ouLower = ou.lower()
+      printGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
+                                        entityType=Ent.ORGANIZATIONAL_UNIT)
+      pageMessage = getPageMessageForWhom()
+      pageToken = None
+      totalItems = 0
+      usersInOU = 0
+      while True:
+        try:
+          result = callGAPI(cd.users(), 'list',
+                            throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                          GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                            pageToken=pageToken,
+                            customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(ou, isSuspended), orderBy='email',
+                            fields=fields, maxResults=GC.Values[GC.USER_MAX_RESULTS])
+        except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest,
+                GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
+          break
+        pageToken, totalItems = _processGAPIpagesResult(result, 'users', None, totalItems, pageMessage, 'primaryEmail', Ent.USER)
+        if result:
+          users = result.get('users', [])
+          if directlyInOU:
+            for user in users:
+              if ouLower == user.get('orgUnitPath', '').lower():
+                usersInOU += 1
+                entityList.append(user['primaryEmail'])
+          else:
+            entityList.extend([user['primaryEmail'] for user in users])
+            usersInOU += len(users)
+          del result
+        if not pageToken:
+          setGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=qualifier)
+          _finalizeGAPIpagesResult(getPageMessageForWhom())
+          break
+      printGotEntityItemsForWhom(usersInOU)
   elif entityType in {Cmd.ENTITY_QUERY, Cmd.ENTITY_QUERIES}:
     cd = buildGAPIObject(API.DIRECTORY)
     queries = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_QUERY)
@@ -13242,16 +13264,19 @@ def _doInfoOrgs(entityList):
                               throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                               customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, isSuspended), orderBy='email',
                               fields='nextPageToken,users(primaryEmail,orgUnitPath)', maxResults=GC.Values[GC.USER_MAX_RESULTS])
-        printEntitiesCount(entityType, users)
+        printEntitiesCount(entityType, None)
+        usersInOU = 0
         Ind.Increment()
         orgUnitPath = orgUnitPath.lower()
         for user in users:
           if orgUnitPath == user['orgUnitPath'].lower():
             printKeyValueList([user['primaryEmail']])
+            usersInOU += 1
           elif showChildren:
             printKeyValueList([f'{user["primaryEmail"]} (child)'])
+            usersInOU += 1
         Ind.Decrement()
-        printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.ORGANIZATIONAL_UNIT)), len(users)])
+        printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.ORGANIZATIONAL_UNIT)), usersInOU])
       Ind.Decrement()
     except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
@@ -13465,7 +13490,7 @@ def doPrintOrgs():
                         throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                       GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                         pageToken=pageToken,
-                        customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, None),
+                        customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, None), orderBy='email',
                         fields='nextPageToken,users(orgUnitPath,suspended)', maxResults=GC.Values[GC.USER_MAX_RESULTS])
       except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput, GAPI.badRequest, GAPI.backendError,
               GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
@@ -47114,8 +47139,10 @@ def createTeamDrive(users, useDomainAdminAccess=False):
           while True:
             try:
               callGAPI(drive.drives(), 'update',
+                       bailOnInternalError=True,
                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
-                                                                   GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE],
+                                                                   GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE,
+                                                                   GAPI.INTERNAL_ERROR, GAPI.FILE_NOT_FOUND],
                        useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=updateBody)
               if not returnIdOnly and not csvPF:
                 entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
@@ -47126,8 +47153,13 @@ def createTeamDrive(users, useDomainAdminAccess=False):
                 entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
                 break
               time.sleep(retry*retry)
-            except GAPI.badRequest as e:
+            except (GAPI.badRequest, GAPI.internalError) as e:
               entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
+              break
+            except GAPI.fileNotFound as e:
+              entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId,
+                                         Ent.DRIVE_FILE, body.get('backgroundImageFile', {}).get('id', 'Unknown')],
+                                        str(e), i, count)
               break
         if hide:
           Act.Set(Act.HIDE)
@@ -47188,12 +47220,19 @@ def updateTeamDrive(users, useDomainAdminAccess=False):
     try:
       teamDriveId = fileIdEntity['teamdrive']['driveId']
       callGAPI(drive.drives(), 'update',
+               bailOnInternalError=True,
                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
-                                                           GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE],
+                                                           GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE,
+                                                           GAPI.INTERNAL_ERROR, GAPI.FILE_NOT_FOUND],
                useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=body)
       entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
-    except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.noManageTeamDriveAdministratorPrivilege) as e:
+    except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.internalError,
+            GAPI.noManageTeamDriveAdministratorPrivilege) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
+    except GAPI.fileNotFound as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId,
+                                 Ent.DRIVE_FILE, body.get('backgroundImageFile', {}).get('id', 'Unknown')],
+                                str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
