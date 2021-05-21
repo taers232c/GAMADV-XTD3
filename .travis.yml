@@ -1,3 +1,8 @@
+if: tag IS blank
+os: linux
+language: python
+dist: focal
+
 env:
   global:
     - BUILD_PYTHON_VERSION=3.9.5
@@ -114,18 +119,15 @@ script:
 before_deploy:
 - export TRAVIS_TAG="preview"
 - unset LD_LIBRARY_PATH
-- git tag $TRAVIS_TAG
 
 deploy:
   provider: releases
-  skip_cleanup: true
   github_token: $GITHUB_TOKEN
   file_glob: true
   overwrite: true
   file: gamadv-xtd3-$GAMVERSION-*
+  skip_cleanup: true
   draft: true
   on:
     repo: taers232c/GAMADV-XTD3
     condition: $TRAVIS_JOB_NAME != *"Testing"
-    tags: false
-    all_branches: true
