@@ -112,9 +112,9 @@ script:
 - if [[ "$TRAVIS_JOB_NAME" != *"Testing" ]]; then $gam config tls_min_version TLSv1_2 version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]; fi # expect fail since server doesn't support our TLS version
 
 before_deploy:
-- export TRAVIS_TAG="preview"
-- unset LD_LIBRARY_PATH
-- git tag $TRAVIS_TAG
+  - export TRAVIS_TAG="preview"
+  - unset LD_LIBRARY_PATH
+  - git tag $TRAVIS_TAG
 
 deploy:
   provider: releases
@@ -127,4 +127,3 @@ deploy:
   on:
     repo: taers232c/GAMADV-XTD3
     condition: $TRAVIS_JOB_NAME != *"Testing"
-    tags: true
