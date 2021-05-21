@@ -113,9 +113,9 @@ script:
 
 before_deploy:
 - export TRAVIS_TAG="preview"
+- echo "Tag: $TRAVIS_TAG"
 - unset LD_LIBRARY_PATH
 - git tag $TRAVIS_TAG
-- echo "Tag: $TRAVIS_TAG"
 
 deploy:
   provider: releases
@@ -129,3 +129,4 @@ deploy:
     repo: taers232c/GAMADV-XTD3
     condition: $TRAVIS_JOB_NAME != *"Testing"
     tags: true
+    all_branches: true
