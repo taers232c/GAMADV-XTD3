@@ -47111,7 +47111,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
         if returnIdOnly:
           writeStdout(f'{teamDriveId}\n')
         elif not csvPF:
-          entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+          entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_NAME, body['name'], Ent.TEAMDRIVE_ID, teamDriveId], i, count)
         else:
           csvPF.WriteRow({'User': user, 'name': body['name'], 'id': teamDriveId})
         doUpdate = True
@@ -47219,13 +47219,13 @@ def updateTeamDrive(users, useDomainAdminAccess=False):
       continue
     try:
       teamDriveId = fileIdEntity['teamdrive']['driveId']
-      callGAPI(drive.drives(), 'update',
-               bailOnInternalError=True,
-               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
-                                                           GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE,
-                                                           GAPI.INTERNAL_ERROR, GAPI.FILE_NOT_FOUND],
-               useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=body)
-      entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+      result = callGAPI(drive.drives(), 'update',
+                        bailOnInternalError=True,
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
+                                                                    GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE,
+                                                                    GAPI.INTERNAL_ERROR, GAPI.FILE_NOT_FOUND],
+                        useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=body, fields='name')
+      entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_NAME, result['name'], Ent.TEAMDRIVE_ID, teamDriveId], i, count)
     except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.internalError,
             GAPI.noManageTeamDriveAdministratorPrivilege) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)

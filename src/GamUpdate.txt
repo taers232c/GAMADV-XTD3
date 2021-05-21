@@ -6,7 +6,15 @@ ou|ou_ns|ou_susp <OrgUnitItem>
 ous|ous_ns|ous_susp <OrgUnitList>
 ```
 
-Updated gam `create|update teamdrive ... customtheme <DriveFileID> <Float> <Float> <Float>` to better handle errors.
+Updated `gam [<UserTypeEntity>] create|update teamdrive <Name> ... customtheme <DriveFileID> <Float> <Float> <Float>`
+to better handle errors.
+
+Updated `gam [<UserTypeEntity>] create teamdrive <Name>` to output the name of the newly created 
+Team Drive in addition to its ID.
+```
+$ gam user user@domain.com create teamdrive Test
+User: user@domain.com, Shared Drive Name: Test, Shared Drive ID: 0ALHCDtCDTx_4Uk9PVA, Created
+```
 
 6.03.20
 
