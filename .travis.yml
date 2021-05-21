@@ -118,7 +118,7 @@ before_deploy:
 deploy:
   provider: releases
   skip_cleanup: true
-  github_token: ${GITHUBTOKEN}
+  github_token: $GITHUB_TOKEN
   file_glob: true
   overwrite: true
   file: gamadv-xtd3-$GAMVERSION-*
