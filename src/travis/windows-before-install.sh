@@ -64,6 +64,7 @@ $pip install --upgrade pip
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirements.txt
 $pip install --upgrade pyinstaller
+$pip install wheel
 # Install PyInstaller from source and build bootloader
 # to try and avoid getting flagged as malware since
 # lots of malware uses PyInstaller default bootloader
