@@ -128,5 +128,5 @@ deploy:
   on:
     repo: taers232c/GAMADV-XTD3
     condition: $TRAVIS_JOB_NAME != *"Testing"
-    tags: true
+    tags: false
     all_branches: true
