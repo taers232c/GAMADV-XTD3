@@ -113,7 +113,6 @@ script:
 
 before_deploy:
 - export TRAVIS_TAG="preview"
-- echo "Tag: $TRAVIS_TAG"
 - unset LD_LIBRARY_PATH
 - git tag $TRAVIS_TAG
 
