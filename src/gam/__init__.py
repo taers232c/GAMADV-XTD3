@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.21'
+__version__ = '6.03.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -39173,7 +39173,7 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
     return False
   return True
 
-def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
+def getDriveFileAttribute(myarg, body, parameters, updateCmd):
   if myarg == 'localfile':
     parameters[DFA_LOCALFILEPATH] = os.path.expanduser(getString(Cmd.OB_FILE_NAME))
     if parameters[DFA_LOCALFILEPATH] != '-':
@@ -39199,7 +39199,7 @@ def getDriveFileAttribute(myarg, body, parameters, assignLocalName, updateCmd):
         Cmd.Backup()
         usageErrorExit(f'{parameters[DFA_LOCALFILEPATH]}: {str(e)}')
       parameters[DFA_LOCALFILENAME] = os.path.basename(parameters[DFA_LOCALFILEPATH])
-      if assignLocalName:
+      if not updateCmd:
         body.setdefault('name', parameters[DFA_LOCALFILENAME])
       body['mimeType'] = mimetypes.guess_type(parameters[DFA_LOCALFILEPATH])[0]
       if body['mimeType'] is None:
@@ -42587,7 +42587,7 @@ def createDriveFile(users):
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
-      getDriveFileAttribute(myarg, body, parameters, True, False)
+      getDriveFileAttribute(myarg, body, parameters, False)
   if parameters[DFA_LOCALFILEPATH]:
     if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, False)
@@ -42909,6 +42909,7 @@ def updateDriveFile(users):
       assignLocalName = False
     elif myarg == 'newfilename':
       body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
+      assignLocalName = False
     elif getDriveFileAddRemoveParentAttribute(myarg, parameters):
       pass
     elif myarg in {'gsheet', 'csvsheet'}:
@@ -42918,7 +42919,9 @@ def updateDriveFile(users):
     elif myarg == 'columndelimiter':
       columnDelimiter = getCharacter()
     else:
-      getDriveFileAttribute(myarg, body, parameters, assignLocalName, True)
+      getDriveFileAttribute(myarg, body, parameters, True)
+  if assignLocalName and parameters[DFA_LOCALFILENAME] and parameters[DFA_LOCALFILENAME] != '-':
+    body['name'] = parameters[DFA_LOCALFILENAME]
   if operation == 'update' and parameters[DFA_LOCALFILEPATH]:
     if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, True)

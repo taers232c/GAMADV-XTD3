@@ -1,3 +1,8 @@
+6.03.22
+
+Fixed bug in `gam <UserTypeEntity> update drivefile` where the options `retainname | (newfilename <DriveFileName>)`
+were ignored if they appeared after option `localfile <FileName>`; the options can now appear in any order.
+
 6.03.21
 
 Updated the processing of `<UserTypeEntity>` to minimize memory usage when getting users directly in an OU.
