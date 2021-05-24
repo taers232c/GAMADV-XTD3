@@ -4575,7 +4575,7 @@ gam <UserTypeEntity> show datastudiopermissions
 
 gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
         <DriveFileCreateAttribute>* [enforcesingleparent <Boolean>]
-        [csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly]
+        [csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|

@@ -1,3 +1,8 @@
+6.03.24
+
+Added option `showdetails` to `gam <UserTypeEntity> create drivefile` that adds the
+parent folder ID and MIME type to the output.
+
 6.03.23
 
 Updated `<BrowserFieldName>`:

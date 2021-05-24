@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.23'
+__version__ = '6.03.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -42588,24 +42588,31 @@ def writeReturnIdLink(returnIdLink, mimeType, result):
         return
   writeStdout(f'https://drive.google.com/file/d/{result["id"]}/edit\n')
 
+returnItemMap = {
+  'returnidonly': 'id',
+  'returnlinkonly': 'webViewLink',
+  'returneditlinkonly': 'editLink'
+  }
+
 # gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
 #	<DriveFileCreateAttribute>* [enforcesingleparent <Boolean>]
-#	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly]
+#	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
 def createDriveFile(users):
   csvPF = media_body = None
   returnIdLink = None
+  showDetails = False
   body = {}
   parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'drivefilename':
       body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
-    elif myarg == 'returnidonly':
-      returnIdLink = 'id'
-    elif myarg == 'returnlinkonly':
-      returnIdLink = 'webViewLink'
-    elif myarg == 'returneditlinkonly':
-      returnIdLink = 'editLink'
+    elif myarg in returnItemMap:
+      returnIdLink = returnItemMap[myarg]
+      showDetails = False
+    elif myarg == 'showdetails':
+      returnIdLink = None
+      showDetails = True
     elif myarg == 'csv':
       csvPF = CSVPrintFile()
     elif csvPF and myarg == 'todrive':
@@ -42619,6 +42626,8 @@ def createDriveFile(users):
   if csvPF:
     fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
     csvPF.SetTitles(['User', fileNameTitle, 'id'])
+    if showDetails:
+      csvPF.AddTitles(['parentId', 'mimeType'])
   body.setdefault('name', 'Untitled')
   Act.Set(Act.CREATE)
   i, count, users = getEntityArgument(users)
@@ -42641,17 +42650,33 @@ def createDriveFile(users):
                         ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                         useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
-                        media_body=media_body, body=body, fields='id,name,mimeType,webViewLink', supportsAllDrives=True)
+                        media_body=media_body, body=body, fields='id,name,mimeType,parents,webViewLink', supportsAllDrives=True)
+      parentId = result['parents'][0] if 'parents' in result and result['parents'] else 'Unknown'
       if returnIdLink:
         writeReturnIdLink(returnIdLink, parameters[DFA_LOCALMIMETYPE], result)
       elif not csvPF:
-        titleInfo = f'{result["name"]}({result["id"]})'
-        if parameters[DFA_LOCALFILENAME]:
-          entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, titleInfo], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)
+        kvList = [Ent.USER, user]
+        if not showDetails:
+          titleInfo = f'{result["name"]}({result["id"]})'
+          if parameters[DFA_LOCALFILENAME]:
+            kvList.extend([Ent.DRIVE_FILE, titleInfo])
+          else:
+            kvList.extend([_getEntityMimeType(result), titleInfo])
         else:
-          entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), titleInfo], i, count)
+          if result['mimeType'] != MIMETYPE_GA_FOLDER:
+            kvList.extend([Ent.DRIVE_FILE, result['name'], Ent.DRIVE_FILE_ID, result['id']])
+          else:
+            kvList.extend([Ent.DRIVE_FOLDER, result['name'], Ent.DRIVE_FOLDER_ID, result['id']])
+          kvList.extend([Ent.DRIVE_PARENT_FOLDER_ID, parentId, Ent.MIMETYPE, result['mimeType']])
+        if parameters[DFA_LOCALFILENAME]:
+          entityModifierNewValueActionPerformed(kvList, Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)
+        else:
+          entityActionPerformed(kvList, i, count)
       else:
-        csvPF.WriteRow({'User': user, fileNameTitle: result['name'], 'id': result['id']})
+        row = {'User': user, fileNameTitle: result['name'], 'id': result['id']}
+        if showDetails:
+          row.update({'parentId': parentId, 'mimeType': result['mimeType']})
+        csvPF.WriteRow(row)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body['name']], str(e), i, count)
