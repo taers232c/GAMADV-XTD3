@@ -18130,7 +18130,7 @@ def doPrintShowBrowsers():
             entityActionFailedWarning([Ent.CHROME_BROWSER, None], invalidQuery(query))
           else:
             entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
-            continue
+          return
         except GAPI.invalidOrgunit as e:
           entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
           return
