@@ -1,3 +1,11 @@
+6.03.23
+
+Updated `<BrowserFieldName>`:
+* Added `deviceidentifiershistory`
+* Removed `installedbrowserversion`
+
+Updated `gam print browsers` to avoid token expiration and minimize memory usage.
+
 6.03.22
 
 Fixed bug in `gam <UserTypeEntity> update drivefile` where the options `retainname | (newfilename <DriveFileName>)`

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.22'
+__version__ = '6.03.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4344,7 +4344,8 @@ def callGAPI(service, function,
         # The error detail indicated that we should retry this request
         # We'll refresh credentials and make another pass
         try:
-          service._http.credentials.refresh(getHttpObj())
+#          service._http.credentials.refresh(getHttpObj())
+          service._http.credentials.refresh(transportCreateRequest())
         except TypeError:
           systemErrorExit(HTTP_ERROR_RC, message)
         continue
@@ -17836,8 +17837,8 @@ BROWSER_FIELDS_CHOICE_MAP = {
   'browsers': 'browsers',
   'browserversions': 'browserVersions',
   'deviceid': 'deviceId',
+  'deviceidentifiershistory': 'deviceIdentifiersHistory',
   'extensioncount': 'extensionCount',
-  'installedbrowserversion': 'installedBrowserVersion',
   'lastactivitytime': 'lastActivityTime',
   'lastdeviceuser': 'lastDeviceUser',
   'lastdeviceusers': 'lastDeviceUsers',
@@ -18111,37 +18112,54 @@ def doPrintShowBrowsers():
     sortHeaders = False
   substituteQueryTimes(queries, queryTimes)
   if entityList is None:
+    startTime = time.time()
     for query in queries:
       printGettingAllAccountEntities(Ent.CHROME_BROWSER, query)
       pageMessage = getPageMessage()
-      try:
-        browsers = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
-                                 pageMessage=pageMessage,
-                                 throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
-                                 customer=customerId, orgUnitPath=orgUnitPath, query=query, projection=projection,
-                                 orderBy=orderBy, sortOrder=sortOrder, fields=fields)
-        if not csvPF:
-          jcount = len(browsers)
-          if not FJQC.formatJSON:
-            performActionNumItems(jcount, Ent.CHROME_BROWSER)
-          Ind.Increment()
-          j = 0
-          for browser in browsers:
-            j += 1
-            _showBrowser(browser, FJQC, j, jcount)
-          Ind.Decrement()
-        else:
-          for browser in browsers:
-            _printBrowser(browser)
-      except GAPI.invalidInput as e:
-        if query:
-          entityActionFailedWarning([Ent.CHROME_BROWSER, None], invalidQuery(query))
-        else:
+      pageToken = None
+      totalItems = 0
+      while True:
+        try:
+          feed = callGAPI(cbcm.chromebrowsers(), 'list',
+                          pageToken=pageToken,
+                          throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                          customer=customerId, orgUnitPath=orgUnitPath, query=query, projection=projection,
+                          orderBy=orderBy, sortOrder=sortOrder, fields=fields)
+        except GAPI.invalidInput as e:
+          if query:
+            entityActionFailedWarning([Ent.CHROME_BROWSER, None], invalidQuery(query))
+          else:
+            entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
+            continue
+        except GAPI.invalidOrgunit as e:
           entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
-      except GAPI.invalidOrgunit as e:
-        entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
-      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-        accessErrorExit(None)
+          return
+        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+          accessErrorExit(None)
+        pageToken, totalItems = _processGAPIpagesResult(feed, 'browsers', None, totalItems, pageMessage, 'deviceId', Ent.CHROME_BROWSER)
+        if feed:
+          browsers = feed.get('browsers', [])
+          if not csvPF:
+            jcount = len(browsers)
+            if not FJQC.formatJSON:
+              performActionNumItems(jcount, Ent.CHROME_BROWSER)
+            Ind.Increment()
+            j = 0
+            for browser in browsers:
+              j += 1
+              _showBrowser(browser, FJQC, j, jcount)
+            Ind.Decrement()
+          else:
+            for browser in browsers:
+              _printBrowser(browser)
+          del feed
+        if not pageToken:
+          _finalizeGAPIpagesResult(pageMessage)
+          break
+        currentTime = time.time()
+        if int(currentTime-startTime) > 3000:
+          cbcm = buildGAPIObject(API.CBCM)
+          startTime = currentTime
   else:
     sortRows = True
     jcount = len(entityList)
@@ -32671,6 +32689,7 @@ def doPrintUsers(entityList=None):
     if printOptions['getLicenseFeed']:
       licenses = doPrintLicenses(returnFields=['userId', 'skuId'])
   if entityList is None:
+    startTime = time.time()
     sortRows = False
     if orgUnitPath is not None and fieldsList:
       fieldsList.append('orgUnitPath')
@@ -32721,26 +32740,31 @@ def doPrintUsers(entityList=None):
           accessErrorExit(cd)
         pageToken, totalItems = _processGAPIpagesResult(feed, 'users', None, totalItems, pageMessage, 'primaryEmail', Ent.USER)
         if feed:
+          users = feed.get('users', [])
           if orgUnitPath is None:
             if not printOptions['countOnly']:
-              for user in feed.get('users', []):
+              for user in users:
                 _printUser(user, 0, 0)
             else:
-              for user in feed.get('users', []):
+              for user in users:
                 _updateDomainCounts(user['primaryEmail'])
           else:
             if not printOptions['countOnly']:
-              for user in feed.get('users', []):
+              for user in users:
                 if orgUnitPathLower == user.get('orgUnitPath', '').lower():
                   _printUser(user, 0, 0)
             else:
-              for user in feed.get('users', []):
+              for user in users:
                 if orgUnitPathLower == user.get('orgUnitPath', '').lower():
                   _updateDomainCounts(user['primaryEmail'])
           del feed
         if not pageToken:
           _finalizeGAPIpagesResult(pageMessage)
           break
+        currentTime = time.time()
+        if int(currentTime-startTime) > 3000:
+          cd = buildGAPIObject(API.DIRECTORY)
+          startTime = currentTime
   else:
     sortRows = True
 # If no individual fields were specified (allfields, basic, full) or individual fields other than primaryEmail were specified, look up each user
