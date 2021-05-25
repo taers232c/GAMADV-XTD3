@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.24'
+__version__ = '6.03.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9753,6 +9753,12 @@ def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, priv
 # gam rotate sakey|sakeys [retain_none|retain_existing|replace_current]
 #	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, clientId=None):
+  def waitForCompletion(i):
+    sleep_time = i*5
+    if i > 3:
+      sys.stdout.write(Msg.WAITING_FOR_SERVICE_ACCOUNT_CREATION_TO_COMPLETE_SLEEPING.format(sleep_time))
+    time.sleep(sleep_time)
+
   local_key_size = 2048
   body = {}
   if iam is None:
@@ -9788,23 +9794,22 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     private_key, publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
     maxRetries = 10
     printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPLOADING_NEW_PUBLIC_CERTIFICATE_TO_GOOGLE)
-    for i in range(1, maxRetries+1):
+    for retry in range(1, maxRetries+1):
       try:
         result = callGAPI(iam.projects().serviceAccounts().keys(), 'upload',
                           throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
                           name=name, body={'publicKeyData': publicKeyData})
         break
       except GAPI.notFound as e:
-        if i == maxRetries:
+        if retry == maxRetries:
           entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
           return False
-        sleep_time = i*5
-        if i > 3:
-          sys.stdout.write(Msg.WAITING_FOR_SERVICE_ACCOUNT_CREATION_TO_COMPLETE_SLEEPING.format(sleep_time))
-        time.sleep(sleep_time)
+        waitForCompletion(retry)
       except GAPI.permissionDenied:
-        entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-        return False
+        if retry == maxRetries:
+          entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+          return False
+        waitForCompletion(retry)
       except GAPI.badRequest as e:
         entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
         return False
@@ -9812,18 +9817,23 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     oauth2service_data = _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, private_key_id)
   else:
     Act.Set(Act.CREATE)
-    try:
-      result = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
-                        throwReasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
-                        name=name, body=body)
-    except GAPI.permissionDenied:
-      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-      return False
-    except GAPI.badRequest as e:
-      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
-      return False
-    oauth2service_data = base64.b64decode(result['privateKeyData']).decode(UTF8)
+    maxRetries = 10
+    for retry in range(1, maxRetries+1):
+      try:
+        result = callGAPI(iam.projects().serviceAccounts().keys(), 'create',
+                          throwReasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
+                          name=name, body=body)
+        break
+      except GAPI.permissionDenied:
+        if retry == maxRetries:
+          entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+          return False
+        waitForCompletion(retry)
+      except GAPI.badRequest as e:
+        entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
+        return False
     private_key_id = result['name'].rsplit('/', 1)[-1]
+    oauth2service_data = base64.b64decode(result['privateKeyData']).decode(UTF8)
   entityActionPerformed([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail, Ent.SVCACCT_KEY, private_key_id])
   if GM.Globals[GM.SVCACCT_SCOPES_DEFINED]:
     try:
@@ -9846,16 +9856,22 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
       keyName = key['name'].rsplit('/', 1)[-1]
       if mode == 'retainnone' or keyName == currentPrivateKeyId:
         i += 1
-        try:
-          callGAPI(iam.projects().serviceAccounts().keys(), 'delete',
-                   throwReasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
-                   name=key['name'])
-          entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
-        except GAPI.permissionDenied:
-          entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-          break
-        except GAPI.badRequest as e:
-          entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
+        maxRetries = 5
+        for retry in range(1, maxRetries+1):
+          try:
+            callGAPI(iam.projects().serviceAccounts().keys(), 'delete',
+                     throwReasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
+                     name=key['name'])
+            entityActionPerformed([Ent.SVCACCT_KEY, keyName], i, count)
+            break
+          except GAPI.permissionDenied:
+            if retry == maxRetries:
+              entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+              break
+            waitForCompletion(retry)
+          except GAPI.badRequest as e:
+            entityActionFailedWarning([Ent.SVCACCT_KEY, keyName], str(e), i, count)
+            break
         if mode != 'retainnone':
           break
     Ind.Decrement()

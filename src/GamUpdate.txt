@@ -1,3 +1,10 @@
+6.03.25
+
+Updated `gam create project` to handle Google change that causes the following error:
+```
+ERROR: 403: Permission iam.serviceAccountKeys.create is required to perform this operation on service account
+```
+
 6.03.24
 
 Added option `showdetails` to `gam <UserTypeEntity> create drivefile` that adds the
