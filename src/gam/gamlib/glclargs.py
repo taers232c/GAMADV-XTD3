@@ -54,6 +54,7 @@ class GamCLArgs():
   ENTITY_GROUP_USERS = 'group_users'
   ENTITY_GROUP_USERS_NS = 'group_users_ns'
   ENTITY_GROUP_USERS_SUSP = 'group_users_susp'
+  ENTITY_GROUP_USERS_SELECT = 'group_users_select'
   ENTITY_LICENSES = 'licenses'
   ENTITY_OAUTHUSER = 'oauthuser'
   ENTITY_OU = 'ou'
@@ -114,6 +115,7 @@ class GamCLArgs():
     ENTITY_GROUP_USERS,
     ENTITY_GROUP_USERS_NS,
     ENTITY_GROUP_USERS_SUSP,
+    ENTITY_GROUP_USERS_SELECT,
     ENTITY_LICENSES,
     ENTITY_OAUTHUSER,
     ENTITY_OU,
@@ -301,6 +303,7 @@ class GamCLArgs():
     ENTITY_GROUP_USERS,
     ENTITY_GROUP_USERS_NS,
     ENTITY_GROUP_USERS_SUSP,
+    ENTITY_GROUP_USERS_SELECT,
     ENTITY_OUS,
     ENTITY_OUS_NS,
     ENTITY_OUS_SUSP,
@@ -907,7 +910,7 @@ class GamCLArgs():
         return True
     return False
 
-# Look ahead to see if argumwnt is present
+# Look ahead to see if argument is present
   def ArgumentIsAhead(self, argument):
     self.SaveLocation()
     while self.ArgumentsRemaining():

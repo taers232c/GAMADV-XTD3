@@ -190,8 +190,12 @@ class GamEntity():
   LICENSE = 'lice'
   MD5HASH = 'md5h'
   MEMBER = 'memb'
-  MEMBER_NOT_SUSPENDED = 'mns'
-  MEMBER_SUSPENDED = 'msup'
+  MEMBER_NOT_ARCHIVED = 'mena'
+  MEMBER_ARCHIVED = 'mear'
+  MEMBER_NOT_SUSPENDED = 'mens'
+  MEMBER_SUSPENDED = 'mesu'
+  MEMBER_NOT_SUSPENDED_NOT_ARCHIVED = 'nsna'
+  MEMBER_SUSPENDED_ARCHIVED = 'suar'
   MEMBERSHIP_TREE = 'metr'
   MESSAGE = 'mesg'
   MIMETYPE = 'mime'
@@ -447,8 +451,12 @@ class GamEntity():
     LICENSE: ['Licenses', 'License'],
     MD5HASH: ['MD5 hash', 'MD5 Hash'],
     MEMBER: ['Members', 'Member'],
-    MEMBER_NOT_SUSPENDED: ['Members (Not suspended)', 'Member (Not suspended)'],
+    MEMBER_NOT_ARCHIVED: ['Members (Not Archived)', 'Member (Not Archived)'],
+    MEMBER_ARCHIVED: ['Members (Archived)', 'Member (Archived)'],
+    MEMBER_NOT_SUSPENDED: ['Members (Not Suspended)', 'Member (Not Suspended)'],
     MEMBER_SUSPENDED: ['Members (Suspended)', 'Member (Suspended)'],
+    MEMBER_NOT_SUSPENDED_NOT_ARCHIVED: ['Members (Not Suspended & Not Archived)', 'Member (Not Suspended & Not Archived)'],
+    MEMBER_SUSPENDED_ARCHIVED: ['Members (Suspended & Archived)', 'Member (Suspended & Archived)'],
     MEMBERSHIP_TREE: ['Membership Trees', 'Membership Tree'],
     MESSAGE: ['Messages', 'Message'],
     MIMETYPE: ['MIME Types', 'MIME Type'],

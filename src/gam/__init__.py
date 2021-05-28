@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.25'
+__version__ = '6.03.26'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -760,6 +760,35 @@ def getChoiceAndValue(item, choices, delimiter):
       return (choice, value)
     missingArgumentExit(item)
   invalidChoiceExit(choice, choices, False)
+
+SUSPENDED_ARGUMENTS = {'notsuspended', 'suspended', 'issuspended'}
+SUSPENDED_CHOICE_MAP = {'notsuspended': False, 'suspended': True}
+def _getIsSuspended(myarg):
+  if myarg in SUSPENDED_CHOICE_MAP:
+    return SUSPENDED_CHOICE_MAP[myarg]
+  return getBoolean()
+
+ARCHIVED_ARGUMENTS = {'notarchived', 'archived', 'isarchived'}
+ARCHIVED_CHOICE_MAP = {'notarchived': False, 'archived': True}
+def _getIsArchived(myarg):
+  if myarg in ARCHIVED_CHOICE_MAP:
+    return ARCHIVED_CHOICE_MAP[myarg]
+  return getBoolean()
+
+def _getOptionalIsSuspendedIsArchived():
+  isSuspended = isArchived = None
+  while True:
+    if Cmd.PeekArgumentPresent(SUSPENDED_ARGUMENTS):
+      isSuspended = getChoice(SUSPENDED_CHOICE_MAP, defaultChoice=None, mapChoice=True)
+      if isSuspended is None:
+        isSuspended = getBoolean()
+    elif Cmd.PeekArgumentPresent(ARCHIVED_ARGUMENTS):
+      isArchived = getChoice(ARCHIVED_CHOICE_MAP, defaultChoice=None, mapChoice=True)
+      if isArchived is None:
+        isArchived = getBoolean()
+    else:
+      break
+  return isSuspended, isArchived
 
 CALENDAR_COLOR_MAP = {
   'amethyst': 24, 'avocado': 10, 'banana': 12, 'basil': 8, 'birch': 20, 'blueberry': 16,
@@ -3937,7 +3966,10 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
   _getSvcAcctData()
   if isinstance(scopesOrAPI, str):
     GM.Globals[GM.CURRENT_SVCACCT_API] = scopesOrAPI
-    GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES].get(scopesOrAPI, [])
+    if scopesOrAPI not in API.JWT_APIS:
+      GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES].get(scopesOrAPI, [])
+    else:
+      GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = API.JWT_APIS[scopesOrAPI]
     if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:
       systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
     if scopesOrAPI in {API.PEOPLE, API.PEOPLE_DIRECTORY, API.PEOPLE_OTHERCONTACTS}:
@@ -3945,11 +3977,18 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
   else:
     GM.Globals[GM.CURRENT_SVCACCT_API] = ''
     GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = scopesOrAPI
-  try:
-    credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
-  except (ValueError, IndexError, KeyError):
-    invalidOauth2serviceJsonExit()
-  credentials = credentials.with_scopes(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES])
+  if not GM.Globals[GM.CURRENT_SVCACCT_API] or scopesOrAPI not in API.JWT_APIS:
+    try:
+      credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+    except (ValueError, IndexError, KeyError):
+      invalidOauth2serviceJsonExit()
+    credentials = credentials.with_scopes(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES])
+  else:
+    try:
+      credentials = JWTCredentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
+                                                             audience=f'https://{scopesOrAPI}.googleapis.com/')
+    except (ValueError, IndexError, KeyError):
+      invalidOauth2serviceJsonExit()
   GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
   if userEmail:
     credentials = credentials.with_subject(userEmail)
@@ -4427,6 +4466,9 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, pageMessage,
           lastItem = str(lastItem)
         showMessage = showMessage.replace(FIRST_ITEM_MARKER, firstItem)
         showMessage = showMessage.replace(LAST_ITEM_MARKER, lastItem)
+    else:
+      showMessage = showMessage.replace(FIRST_ITEM_MARKER, '')
+      showMessage = showMessage.replace(LAST_ITEM_MARKER, '')
     writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(entityType, totalItems))))
   return (pageToken, totalItems)
 
@@ -4794,15 +4836,33 @@ def _getCIRoleVerification(memberRoles):
     return set(memberRoles.split(','))
   return set()
 
-def _checkMemberIsSuspended(member, isSuspended):
-  memberStatus = member.get('status', 'UNKNOWN')
-  return isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED')
+def _checkMemberStatusIsSuspendedIsArchived(memberStatus, isSuspended, isArchived):
+  if isSuspended is None and isArchived is None:
+    return True
+  if isSuspended is not None and isArchived is not None:
+    if isSuspended == isArchived:
+      if not isSuspended:
+        return memberStatus not in {'SUSPENDED', 'ARCHIVED'}
+      return memberStatus in {'SUSPENDED', 'ARCHIVED'}
+    if isSuspended:
+      return memberStatus == 'SUSPENDED'
+    return memberStatus == 'ARCHIVED'
+  if isSuspended is not None:
+    if (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
+      return True
+  if isArchived is not None:
+    if (not isArchived and memberStatus != 'ARCHIVED') or (isArchived and memberStatus == 'ARCHIVED'):
+      return True
+  return False
+
+def _checkMemberIsSuspendedIsArchived(member, isSuspended, isArchived):
+  return _checkMemberStatusIsSuspendedIsArchived(member.get('status', 'UNKNOWN'), isSuspended, isArchived)
 
 def _checkMemberRole(member, validRoles):
   return not validRoles or member.get('role', Ent.ROLE_MEMBER) in validRoles
 
-def _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
-  return _checkMemberRole(member, validRoles) and _checkMemberIsSuspended(member, isSuspended)
+def _checkMemberRoleIsSuspendedIsArchived(member, validRoles, isSuspended, isArchived):
+  return _checkMemberRole(member, validRoles) and _checkMemberIsSuspendedIsArchived(member, isSuspended, isArchived)
 
 def getCIGroupMemberRole(member):
   ''' returns the highest role of member '''
@@ -4913,7 +4973,8 @@ def checkGroupExists(cd, ci, ciGroupsAPI, group, i=0, count=0):
       return convertGroupEmailToCloudID(ci, group, i, count)
 
 # Turn the entity into a list of Users/CrOS devices
-def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, groupMemberType=Ent.TYPE_USER, noListConversion=False):
+def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isArchived=None,
+                     groupMemberType=Ent.TYPE_USER, noListConversion=False):
   def _incrEntityDoesNotExist(entityType):
     entityError['entityType'] = entityType
     entityError[ENTITY_ERROR_DNE] += 1
@@ -4941,7 +5002,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
         email = member['email'].lower()
         if email in entitySet:
           continue
-        if _checkMemberRoleIsSuspended(member, validRoles, isSuspended):
+        if _checkMemberRoleIsSuspendedIsArchived(member, validRoles, isSuspended, isArchived):
           if domains:
             _, domain = splitEmailAddress(email)
             if domain not in domains:
@@ -5066,12 +5127,13 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
           email = member['email'].lower() if member['type'] != Ent.TYPE_CUSTOMER else member['id']
           if ((groupMemberType in ('ALL', member['type'])) and
               (not includeDerivedMembership or (member['type'] == Ent.TYPE_USER)) and
-              _checkMemberRoleIsSuspended(member, validRoles, isSuspended) and email not in entitySet):
+              _checkMemberRoleIsSuspendedIsArchived(member, validRoles, isSuspended, isArchived) and
+              email not in entitySet):
             entitySet.add(email)
             entityList.append(email)
       else:
         _showInvalidEntity(Ent.GROUP, group)
-  elif entityType in {Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP}:
+  elif entityType in {Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP, Cmd.ENTITY_GROUP_USERS_SELECT}:
     if entityType == Cmd.ENTITY_GROUP_USERS_NS:
       isSuspended = False
     elif entityType == Cmd.ENTITY_GROUP_USERS_SUSP:
@@ -5095,6 +5157,10 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, gro
       elif myarg == 'includederivedmembership':
         includeDerivedMembership = True
         recursive = False
+      elif entityType == Cmd.ENTITY_GROUP_USERS_SELECT and myarg in SUSPENDED_ARGUMENTS:
+        isSuspended = _getIsSuspended(myarg)
+      elif entityType == Cmd.ENTITY_GROUP_USERS_SELECT and myarg in ARCHIVED_ARGUMENTS:
+        isArchived = _getIsArchived(myarg)
       elif myarg == 'end':
         break
       else:
@@ -5705,7 +5771,7 @@ def getEntityArgument(entityList):
   return (0, len(entityList), entityList)
 
 def getEntityToModify(defaultEntityType=None, browserAllowed=False, crosAllowed=False, userAllowed=True,
-                      typeMap=None, isSuspended=None, groupMemberType=Ent.TYPE_USER, delayGet=False):
+                      typeMap=None, isSuspended=None, isArchived=None, groupMemberType=Ent.TYPE_USER, delayGet=False):
   if GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
     crosAllowed = False
     selectorChoices = Cmd.SERVICE_ACCOUNT_ONLY_ENTITY_SELECTORS[:]
@@ -5809,25 +5875,37 @@ def getEntityToModify(defaultEntityType=None, browserAllowed=False, crosAllowed=
     entityItem = getString(Cmd.OB_BROWSER_ENTITY, minLen=0)
   if not delayGet:
     if entityClass == Cmd.ENTITY_USERS:
-      return (entityClass, getItemsToModify(entityType, entityItem, isSuspended=isSuspended, groupMemberType=groupMemberType))
+      return (entityClass, getItemsToModify(entityType, entityItem,
+                                            isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType))
     return (entityClass, getItemsToModify(entityType, entityItem))
   GM.Globals[GM.ENTITY_CL_DELAY_START] = Cmd.Location()
   if not GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY]:
     buildGAPIObject(API.DIRECTORY)
   if entityClass == Cmd.ENTITY_USERS:
-    if entityType in [Cmd.ENTITY_GROUP_USERS, Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP, Cmd.ENTITY_CIGROUP_USERS]:
+    if entityType in [Cmd.ENTITY_GROUP_USERS,
+                      Cmd.ENTITY_GROUP_USERS_NS, Cmd.ENTITY_GROUP_USERS_SUSP,
+                      Cmd.ENTITY_GROUP_USERS_SELECT,
+                      Cmd.ENTITY_CIGROUP_USERS]:
       # Skip over sub-arguments
       while Cmd.ArgumentsRemaining():
         myarg = getArgument()
-        if myarg in GROUP_ROLES_MAP or myarg in {'primarydomain', 'domains', 'recursive', 'includederivedmembership'}:
+        if myarg in GROUP_ROLES_MAP or myarg in {'primarydomain', 'recursive', 'includederivedmembership'}:
           pass
+        elif myarg == 'domains':
+          Cmd.Advance()
+        elif ((entityType == Cmd.ENTITY_GROUP_USERS_SELECT) and
+              (myarg in SUSPENDED_ARGUMENTS) or (myarg in ARCHIVED_ARGUMENTS)):
+          if myarg in {'issuspended', 'isarchived'}:
+            if Cmd.PeekArgumentPresent(TRUE_VALUES) or Cmd.PeekArgumentPresent(FALSE_VALUES):
+              Cmd.Advance()
         elif myarg == 'end':
           break
         else:
           Cmd.Backup()
           missingArgumentExit('end')
     return (entityClass,
-            {'entityType': entityType, 'entity': entityItem, 'isSuspended': isSuspended, 'groupMemberType': groupMemberType})
+            {'entityType': entityType, 'entity': entityItem, 'isSuspended': isSuspended, 'isArchived': isArchived,
+             'groupMemberType': groupMemberType})
   return (entityClass,
           {'entityType': entityType, 'entity': entityItem})
 
@@ -8711,12 +8789,13 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
     Ind.Decrement()
   return status
 
-def _grantSARotateRights(iam, projectId, sa_email):
-  printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, sa_email], Msg.HAS_RIGHTS_TO_ROTATE_OWN_PRIVATE_KEY)
+def _grantRotateRights(iam, projectId, service_account, email, account_type='serviceAccount'):
+  printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, email],
+                     Msg.HAS_RIGHTS_TO_ROTATE_OWN_PRIVATE_KEY.format(email, service_account))
   body = {'policy': {'bindings': [{'role': 'roles/iam.serviceAccountKeyAdmin',
-                                   'members': [f'serviceAccount:{sa_email}']}]}}
+                                   'members': [f'{account_type}:{email}']}]}}
   callGAPI(iam.projects().serviceAccounts(), 'setIamPolicy',
-           resource=f'projects/{projectId}/serviceAccounts/{sa_email}', body=body)
+           resource=f'projects/{projectId}/serviceAccounts/{service_account}', body=body)
 
 def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
   iam = getAPIService(API.IAM, httpObj)
@@ -8738,7 +8817,8 @@ def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
   if not doProcessSvcAcctKeys(mode='retainexisting', iam=iam, projectId=service_account['projectId'],
                               clientEmail=service_account['email'], clientId=service_account['uniqueId']):
     return False
-  _grantSARotateRights(iam, projectInfo['projectId'], service_account['name'].rsplit('/', 1)[-1])
+  sa_email = service_account['name'].rsplit('/', 1)[-1]
+  _grantRotateRights(iam, projectInfo['projectId'], sa_email, sa_email)
   return True
 
 def setGAMProjectConsentScreen(httpObj, projectId, appInfo):
@@ -9138,7 +9218,9 @@ def doUpdateProject():
       continue
     iam = getAPIService(API.IAM, httpObj)
     _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
-    _grantSARotateRights(iam, projectId, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'])
+    _grantRotateRights(iam, projectId,
+                       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'],
+                       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'])
   Ind.Decrement()
 
 # gam delete project [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
@@ -9738,7 +9820,7 @@ def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, priv
   quotedEmail = quote(clientEmail)
   GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = {
     'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
-    'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+    'auth_uri': 'https://accounts.google.com/o/oauth2/v2/auth',
     'client_email': clientEmail,
     'client_id': clientId,
     'client_x509_cert_url': f'https://www.googleapis.com/robot/v1/metadata/x509/{quotedEmail}',
@@ -13209,21 +13291,6 @@ def doDeleteOrgs():
 # gam delete org|ou <OrgUnitItem>
 def doDeleteOrg():
   _doDeleteOrgs([getOrgUnitItem()])
-
-SUSPENDED_ARGUMENTS = {'notsuspended', 'suspended', 'issuspended'}
-SUSPENDED_CHOICE_MAP = {'notsuspended': False, 'suspended': True}
-def _getIsSuspended(myarg):
-  if myarg in SUSPENDED_CHOICE_MAP:
-    return SUSPENDED_CHOICE_MAP[myarg]
-  return getBoolean()
-
-def _getOptionalIsSuspended():
-  isSuspended = getChoice(SUSPENDED_CHOICE_MAP, defaultChoice=None, mapChoice=True)
-  if isSuspended is not None:
-    return isSuspended
-  if checkArgumentPresent('issuspended'):
-    return getBoolean()
-  return None
 
 ORG_FIELD_INFO_ORDER = ['orgUnitId', 'name', 'description', 'parentOrgUnitPath', 'parentOrgUnitId', 'blockInheritance']
 ORG_FIELDS_WITH_CRS_NLS = {'description'}
@@ -21519,25 +21586,34 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 #	[admincreated <Boolean>]
 #	[verifynotinvitable]
 # gam update groups <GroupEntity> create|add [<GroupRole>]
-#	[usersonly|groupsonly] [notsuspended|suspended]
-#	[delivery <DeliverySetting>] [preview] [actioncsv]
+#	[usersonly|groupsonly]
+#	[notsuspended|suspended] [notarchived|archived]
+#	[delivery <DeliverySetting>]
+#	[preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> delete|remove [<GroupRole>]
-#	[usersonly|groupsonly] [notsuspended|suspended] [preview] [actioncsv]
+#	[usersonly|groupsonly]
+#	[notsuspended|suspended] [notarchived|archived]
+#	[preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> sync [<GroupRole>]
-#	[usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+#	[usersonly|groupsonly] [addonly|removeonly]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[removedomainnostatusmembers]
 #	[delivery <DeliverySetting>] [preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> update [<GroupRole>]
-#	[usersonly|groupsonly] [notsuspended|suspended]
-#	[delivery <DeliverySetting>] [preview] [actioncsv] [createifnotfound]
+#	[usersonly|groupsonly]
+#	[notsuspended|suspended] [notarchived|archived]
+#	[delivery <DeliverySetting>] [preview] [actioncsv]
+#	[createifnotfound]
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> clear [member] [manager] [owner]
-#	[usersonly|groupsonly] [notsuspended|suspended]
+#	[usersonly|groupsonly]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[emailclearpattern|emailretainpattern <RegularExpression>]
-#	[removedomainnostatusmembers] [preview] [actioncsv]
+#	[removedomainnostatusmembers]
+#	[preview] [actioncsv]
 def doUpdateGroups():
 
   def _getPreviewActionCSV():
@@ -21606,7 +21682,7 @@ def doUpdateGroups():
       kvList.append(f'{Ent.Singular(Ent.DELIVERY)}: {delivery_settings}')
     if optMsg:
       kvList.append(optMsg)
-    entityActionPerformedMessage([entityType, group, Ent.MEMBER, member, Ent.ROLE, role], ', '.join(kvList), j, jcount)
+    entityActionPerformedMessage([entityType, group, Ent.MEMBER, member], ', '.join(kvList), j, jcount)
     if csvPF:
       csvPF.WriteRow({'group': group, 'email': member, 'role': role, 'action': Act.Performed(), 'message': Act.SUCCESS})
 
@@ -21775,10 +21851,13 @@ def doUpdateGroups():
         time.sleep(0.1)
         _removeMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
-  def _batchRemoveGroupMembers(group, i, count, removeMembers, role):
+  def _batchRemoveGroupMembers(group, i, count, removeMembers, role, qualifier=''):
     Act.Set([Act.REMOVE, Act.REMOVE_PREVIEW][preview])
     jcount = len(removeMembers)
-    entityPerformActionNumItems([entityType, group], jcount, role, i, count)
+    if not qualifier:
+      entityPerformActionNumItems([entityType, group], jcount, role, i, count)
+    else:
+      entityPerformActionNumItemsModifier([entityType, group], jcount, role, qualifier, i, count)
     if jcount == 0:
       return
     if preview:
@@ -22026,10 +22105,11 @@ def doUpdateGroups():
       entityActionPerformed([entityType, group], i, count)
   elif CL_subCommand in {'create', 'add'}:
     baseRole, groupMemberType = _getRoleGroupMemberType()
-    isSuspended = _getOptionalIsSuspended()
+    isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     delivery_settings = getDeliverySettings()
     preview, csvPF = _getPreviewActionCSV()
-    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                      isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = addMembers if isinstance(addMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
@@ -22058,9 +22138,10 @@ def doUpdateGroups():
                               role, delivery_settings)
   elif CL_subCommand in {'delete', 'remove'}:
     baseRole, groupMemberType = _getRoleGroupMemberType()
-    isSuspended = _getOptionalIsSuspended()
+    isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     preview, csvPF = _getPreviewActionCSV()
-    _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                         isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = removeMembers if isinstance(removeMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
@@ -22090,11 +22171,12 @@ def doUpdateGroups():
   elif CL_subCommand == 'sync':
     baseRole, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getSyncOperation()
-    isSuspended = _getOptionalIsSuspended()
+    isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     removeDomainNoStatusMembers = checkArgumentPresent('removedomainnostatusmembers')
     delivery_settings = getDeliverySettings()
     preview, csvPF = _getPreviewActionCSV()
-    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                       isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     syncMembersSets = {}
@@ -22169,7 +22251,7 @@ def doUpdateGroups():
         email, memberStatus = _getMemberEmailStatus(member)
         if groupMemberType in ('ALL', member['type']) and role in rolesSet:
           if not removeDomainNoStatusMembers or memberStatus != 'NONE':
-            if isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
+            if _checkMemberStatusIsSuspendedIsArchived(memberStatus, isSuspended, isArchived):
               currentMembersSets[role].add(_cleanConsumerAddress(email, currentMembersMaps[role]))
           else:
             domainNoStatusMembersSets[role].add(member['id'])
@@ -22191,11 +22273,12 @@ def doUpdateGroups():
                                   role, delivery_settings)
   elif CL_subCommand == 'update':
     baseRole, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
-    isSuspended = _getOptionalIsSuspended()
+    isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     delivery_settings = getDeliverySettings()
     preview, csvPF = _getPreviewActionCSV()
     createIfNotFound = checkArgumentPresent('createifnotfound')
-    _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                         isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = updateMembers if isinstance(updateMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
@@ -22224,11 +22307,10 @@ def doUpdateGroups():
   else: #clear
     rolesSet = set()
     groupMemberType = 'ALL'
-    isSuspended = None
+    isSuspended = isArchived = None
     removeDomainNoStatusMembers = False
     emailMatchPattern = None
     clearMatch = True
-    qualifier = ''
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg in GROUP_ROLES_MAP:
@@ -22239,6 +22321,8 @@ def doUpdateGroups():
         groupMemberType = Ent.TYPE_GROUP
       elif myarg in SUSPENDED_ARGUMENTS:
         isSuspended = _getIsSuspended(myarg)
+      elif myarg in ARCHIVED_ARGUMENTS:
+        isArchived = _getIsArchived(myarg)
       elif myarg == 'removedomainnostatusmembers':
         removeDomainNoStatusMembers = True
       elif myarg in {'emailclearpattern', 'emailretainpattern'}:
@@ -22250,10 +22334,17 @@ def doUpdateGroups():
         csvPF = CSVPrintFile(GROUP_PREVIEW_TITLES)
       else:
         unknownArgumentExit()
-    if isSuspended is not None:
-      qualifier += ' (Suspended)' if isSuspended else ' (Non-suspended)'
-    if removeDomainNoStatusMembers:
-      qualifier += ' (Domain members with no status)'
+    if isSuspended is not None and isArchived is not None:
+      if isSuspended == isArchived:
+        qualifier = '(Suspended) (Archived)' if isSuspended else '(Non-Suspended) (Non-Archived)'
+      else:
+        qualifier = '(Suspended)' if isSuspended else '(Archived)'
+    elif isSuspended is not None:
+      qualifier = '(Suspended)' if isSuspended else '(Non-Suspended)'
+    elif isArchived is not None:
+      qualifier = '(Archived)' if isArchived else '(Non-Archived)'
+    else:
+      qualifier = ''
     Act.Set(Act.REMOVE)
     if not rolesSet:
       rolesSet.add(Ent.ROLE_MEMBER)
@@ -22265,7 +22356,7 @@ def doUpdateGroups():
       ci, _, group = checkGroupExists(cd, ci, False, group, i, count)
       if not group:
         continue
-      printGettingAllEntityItemsForWhom(memberRoles, group, qualifier=qualifier, entityType=entityType)
+      printGettingAllEntityItemsForWhom(memberRoles, group, entityType=entityType)
       try:
         result = callGAPIpages(cd.members(), 'list', 'members',
                                pageMessage=getPageMessageForWhom(),
@@ -22284,7 +22375,7 @@ def doUpdateGroups():
         email, memberStatus = _getMemberEmailStatus(member)
         if groupMemberType in ('ALL', member['type']) and role in rolesSet:
           if not removeDomainNoStatusMembers:
-            if isSuspended is None or (not isSuspended and memberStatus != 'SUSPENDED') or (isSuspended and memberStatus == 'SUSPENDED'):
+            if _checkMemberStatusIsSuspendedIsArchived(memberStatus, isSuspended, isArchived):
               if emailMatchPattern is None:
                 removeMembers[role].add(email if memberStatus != 'UNKNOWN' else member['id'])
               elif member['type'] == Ent.TYPE_CUSTOMER:
@@ -22299,7 +22390,7 @@ def doUpdateGroups():
             removeMembers[role].add(member['id'])
       del result
       for role in rolesSet:
-        _batchRemoveGroupMembers(group, i, count, removeMembers[role], role)
+        _batchRemoveGroupMembers(group, i, count, removeMembers[role], role, qualifier)
   if csvPF:
     csvPF.writeCSVfile('Group Updates')
 
@@ -22369,13 +22460,14 @@ MEMBEROPTION_MEMBERNAMES = 0
 MEMBEROPTION_NODUPLICATES = 1
 MEMBEROPTION_RECURSIVE = 2
 MEMBEROPTION_GETDELIVERYSETTINGS = 3
-MEMBEROPTION_ISSUSPENDED = 4
-MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP = 5
-MEMBEROPTION_MATCHPATTERN = 6
-MEMBEROPTION_DISPLAYMATCH = 7
+MEMBEROPTION_ISARCHIVED = 4
+MEMBEROPTION_ISSUSPENDED = 5
+MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP = 6
+MEMBEROPTION_MATCHPATTERN = 7
+MEMBEROPTION_DISPLAYMATCH = 8
 
 def initMemberOptions():
-  return [False, False, False, False, None, False, None, True]
+  return [False, False, False, False, None, None, False, None, True]
 
 def getMemberMatchOptions(myarg, memberOptions):
   if myarg in {'memberemaildisplaypattern', 'memberemailskippattern'}:
@@ -22482,8 +22574,7 @@ def infoGroups(entityList):
   groups = []
   members = []
   groupFieldsLists = {'cd': None, 'ci': None, 'gs': None}
-  isSuspended = None
-  entityType = Ent.MEMBER
+  isSuspended = isArchived = None
   rolesSet = set()
   typesSet = set()
   memberOptions = initMemberOptions()
@@ -22497,7 +22588,8 @@ def infoGroups(entityList):
       showDeprecatedAttributes = not getBoolean()
     elif myarg in SUSPENDED_ARGUMENTS:
       isSuspended = _getIsSuspended(myarg)
-      entityType = Ent.MEMBER_SUSPENDED if isSuspended else Ent.MEMBER_NOT_SUSPENDED
+    elif myarg in ARCHIVED_ARGUMENTS:
+      isArchived = _getIsArchived(myarg)
     elif myarg == 'noaliases':
       getAliases = False
     elif myarg == 'groups':
@@ -22547,6 +22639,17 @@ def infoGroups(entityList):
         getString(Cmd.OB_SCHEMA_NAME_LIST)
     else:
       FJQC.GetFormatJSON(myarg)
+  if isSuspended is not None and isArchived is not None:
+    if isSuspended == isArchived:
+      entityType = Ent.MEMBER_SUSPENDED_ARCHIVED if isSuspended else Ent.MEMBER_NOT_SUSPENDED_NOT_ARCHIVED
+    else:
+      entityType = Ent.MEMBER_SUSPENDED if isSuspended else Ent.MEMBER_ARCHIVED
+  elif isSuspended is not None:
+    entityType = Ent.MEMBER_SUSPENDED if isSuspended else Ent.MEMBER_NOT_SUSPENDED
+  elif isArchived is not None:
+    entityType = Ent.MEMBER_ARCHIVED if isArchived else Ent.MEMBER_NOT_ARCHIVED
+  else:
+    entityType = Ent.MEMBER
   if not typesSet:
     typesSet = ALL_GROUP_TYPES
   cdfields = getFieldsFromFieldsList(groupFieldsLists['cd'])
@@ -22601,7 +22704,9 @@ def infoGroups(entityList):
                                groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
         members = []
         for member in result:
-          if member['type'] in typesSet and _checkMemberRoleIsSuspended(member, validRoles, isSuspended) and checkMemberMatch(member, memberOptions):
+          if ((member['type'] in typesSet) and
+              _checkMemberRoleIsSuspendedIsArchived(member, validRoles, isSuspended, isArchived) and
+              checkMemberMatch(member, memberOptions)):
             members.append(member)
       if FJQC.formatJSON:
         basic_info.update(settings)
@@ -22709,7 +22814,7 @@ def infoGroups(entityList):
 #	[basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated]
 #	[ciallfields|(cifields <CIGroupFieldNameList>)]
 #	[roles <GroupRoleList>] [members] [managers] [owners]
-#	[notsuspended|suspended]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[formatjson]
@@ -22878,7 +22983,8 @@ def setMemberDisplaySortTitles(memberDisplayOptions, sortTitles):
     if not memberDisplayOptions['ownersCountOnly']:
       sortTitles.append('Owners')
 
-def addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter, isSuspended, ciGroupsAPI):
+def addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter,
+                       isSuspended, isArchived, ciGroupsAPI):
   membersCount = managersCount = ownersCount = 0
   if memberDisplayOptions['members']:
     membersList = []
@@ -22895,7 +23001,9 @@ def addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplay
     if not member_email:
       writeStderr(f' Not sure what to do with: {member}\n')
       continue
-    if member['type'] in typesSet and (not ciGroupsAPI or _checkMemberIsSuspended(member, isSuspended)) and checkMatch(member, memberOptions):
+    if ((member['type'] in typesSet) and
+        (ciGroupsAPI or _checkMemberIsSuspendedIsArchived(member, isSuspended, isArchived)) and
+        checkMatch(member, memberOptions)):
       role = member.get('role', Ent.ROLE_MEMBER)
       if role == Ent.ROLE_MEMBER:
         if memberDisplayOptions['members']:
@@ -22947,7 +23055,7 @@ PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 #	[roles <GroupRoleList>]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]
 #	[includederivedmembership]
-#	[notsuspended|suspended]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[convertcrnl] [delimiter <Character>] [sortheaders]
@@ -22994,7 +23102,8 @@ def doPrintGroups():
         else:
           row[field] = groupEntity[field]
     if rolesSet and groupMembers is not None:
-      addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter, isSuspended, False)
+      addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter,
+                         isSuspended, isArchived, False)
     if isinstance(groupSettings, dict):
       for key, value in iter(groupSettings.items()):
         if key not in {'kind', 'etag', 'email', 'name', 'description'}:
@@ -23125,7 +23234,7 @@ def doPrintGroups():
   rolesSet = set()
   typesSet = set()
   memberOptions = initMemberOptions()
-  entitySelection = isSuspended = showOwnedBy = None
+  entitySelection = isSuspended = isArchived = showOwnedBy = None
   matchPatterns = {}
   matchSettings = {}
   deprecatedAttributesSet = set()
@@ -23143,6 +23252,8 @@ def doPrintGroups():
       entitySelection = getEntityList(Cmd.OB_GROUP_ENTITY)
     elif myarg in SUSPENDED_ARGUMENTS:
       isSuspended = _getIsSuspended(myarg)
+    elif myarg in ARCHIVED_ARGUMENTS:
+      isArchived = _getIsArchived(myarg)
     elif myarg == 'maxresults':
       maxResults = getInteger(minVal=1, maxVal=200)
     elif myarg == 'nodeprecated':
@@ -23531,7 +23642,8 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
   if not memberOptions[MEMBEROPTION_RECURSIVE]:
     if memberOptions[MEMBEROPTION_NODUPLICATES]:
       for member in groupMembers:
-        if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]) and member['id'] not in membersSet:
+        if (_checkMemberRoleIsSuspendedIsArchived(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED], memberOptions[MEMBEROPTION_ISARCHIVED]) and
+            member['id'] not in membersSet):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getMemberDeliverySettings(member)
           membersSet.add(member['id'])
@@ -23539,7 +23651,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
             membersList.append(member)
     else:
       for member in groupMembers:
-        if _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]):
+        if _checkMemberRoleIsSuspendedIsArchived(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED], memberOptions[MEMBEROPTION_ISARCHIVED]):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getMemberDeliverySettings(member)
           if member['type'] in typesSet and checkMemberMatch(member, memberOptions):
@@ -23548,9 +23660,10 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
     groupMemberList = []
     for member in groupMembers:
       if member['type'] == Ent.TYPE_USER:
-        if (member['type'] in typesSet and checkMemberMatch(member, memberOptions) and
-            _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED]) and
-            member['id'] not in membersSet):
+        if ((member['type'] in typesSet and
+             checkMemberMatch(member, memberOptions) and
+             _checkMemberRoleIsSuspendedIsArchived(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED], memberOptions[MEMBEROPTION_ISARCHIVED]) and
+             member['id'] not in membersSet)):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getMemberDeliverySettings(member)
           membersSet.add(member['id'])
@@ -23572,8 +23685,9 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
   else:
     for member in groupMembers:
       if member['type'] == Ent.TYPE_USER:
-        if (member['type'] in typesSet and checkMemberMatch(member, memberOptions) and
-            _checkMemberRoleIsSuspended(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED])):
+        if ((member['type'] in typesSet) and
+            checkMemberMatch(member, memberOptions) and
+            _checkMemberRoleIsSuspendedIsArchived(member, validRoles, memberOptions[MEMBEROPTION_ISSUSPENDED], memberOptions[MEMBEROPTION_ISARCHIVED])):
           if memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS]:
             _getMemberDeliverySettings(member)
           member['level'] = level
@@ -23605,7 +23719,8 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 # gam print group-members [todrive <ToDriveAttribute>*]
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
-#	 (select <GroupEntity>)] [notsuspended|suspended]
+#	 (select <GroupEntity>)]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
 #	[showownedby <UserItem>]
@@ -23668,6 +23783,8 @@ def doPrintGroupMembers():
       subTitle = f'{Msg.SELECTED} {Ent.Plural(Ent.GROUP)}'
     elif myarg in SUSPENDED_ARGUMENTS:
       memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
+    elif myarg in ARCHIVED_ARGUMENTS:
+      memberOptions[MEMBEROPTION_ISARCHIVED] = _getIsArchived(myarg)
     elif getGroupRoles(myarg, rolesSet):
       pass
     elif getGroupTypes(myarg, typesSet):
@@ -23812,7 +23929,8 @@ def doPrintGroupMembers():
 # gam show group-members
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
-#	 (select <GroupEntity>)] [notsuspended|suspended]
+#	 (select <GroupEntity>)]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
@@ -23847,7 +23965,7 @@ def doShowGroupMembers():
     if depth == 0 or Ent.TYPE_GROUP in typesSet:
       Ind.Increment()
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get('role', Ent.ROLE_MEMBER)), _typeOrder(k['type']), _statusOrder(k.get('status', '')))):
-      if _checkMemberIsSuspended(member, memberOptions[MEMBEROPTION_ISSUSPENDED]):
+      if _checkMemberIsSuspendedIsArchived(member, memberOptions[MEMBEROPTION_ISSUSPENDED], memberOptions[MEMBEROPTION_ISARCHIVED]):
         if member.get('role', Ent.ROLE_MEMBER) in rolesSet and member['type'] in typesSet and checkMemberMatch(member, memberOptions):
           printKeyValueList([f'{member.get("role", Ent.ROLE_MEMBER)}, {member["type"]}, {member.get("email", member["id"])}, {member.get("status", "")}'])
         if not includeDerivedMembership and (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
@@ -23884,6 +24002,8 @@ def doShowGroupMembers():
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
     elif myarg in SUSPENDED_ARGUMENTS:
       memberOptions[MEMBEROPTION_ISSUSPENDED] = _getIsSuspended(myarg)
+    elif myarg in ARCHIVED_ARGUMENTS:
+      memberOptions[MEMBEROPTION_ISARCHIVED] = _getIsArchived(myarg)
     elif getGroupRoles(myarg, rolesSet):
       pass
     elif getGroupTypes(myarg, typesSet):
@@ -23986,18 +24106,23 @@ def doCreateCIGroup():
 #	[copyfrom <GroupItem>] <GroupAttribute>*
 #	[security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
 # gam update cigroups <GroupEntity> create|add [<GroupRole>]
-#	[usersonly|groupsonly] [notsuspended|suspended]
+#	[usersonly|groupsonly]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[expire|expires <Time>] [preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update cigroups <GroupEntity> delete|remove [<GroupRole>]
-#	[usersonly|groupsonly] [notsuspended|suspended] [preview] [actioncsv]
+#	[usersonly|groupsonly]
+#	[notsuspended|suspended] [notarchived|archived]
+#	[preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update cigroups <GroupEntity> sync [<GroupRole>]
-#	[usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+#	[usersonly|groupsonly] [addonly|removeonly]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[expire|expires <Time>] [preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update cigroups <GroupEntity> update [<GroupRole>]
-#	[usersonly|groupsonly] [notsuspended|suspended]
+#	[usersonly|groupsonly]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[expire|expires <Time>] [preview] [actioncsv]
 #	<UserTypeEntity>
 # gam update cigroups <GroupEntity> clear [member] [manager] [owner]
@@ -24248,10 +24373,11 @@ def doUpdateCIGroups():
       entityActionPerformed([entityType, group], i, count)
   elif CL_subCommand in {'create', 'add'}:
     baseRole, groupMemberType = _getRoleGroupMemberType()
-    isSuspended = _getOptionalIsSuspended()
+    isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     expireTime = _getExpireTime(baseRole)
     preview, csvPF = _getPreviewActionCSV()
-    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    _, addMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                      isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = addMembers if isinstance(addMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
@@ -24280,9 +24406,10 @@ def doUpdateCIGroups():
                               role, expireTime)
   elif CL_subCommand in {'delete', 'remove'}:
     baseRole, groupMemberType = _getRoleGroupMemberType()
-    isSuspended = _getOptionalIsSuspended()
+    isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     preview, csvPF = _getPreviewActionCSV()
-    _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    _, removeMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                         isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = removeMembers if isinstance(removeMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
@@ -24333,10 +24460,11 @@ def doUpdateCIGroups():
   elif CL_subCommand == 'sync':
     baseRole, groupMemberType = _getRoleGroupMemberType()
     syncOperation = getSyncOperation()
-    isSuspended = _getOptionalIsSuspended()
+    isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     expireTime = _getExpireTime(baseRole)
     preview, csvPF = _getPreviewActionCSV()
-    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                       isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     syncMembersSets = {}
@@ -24428,10 +24556,11 @@ def doUpdateCIGroups():
                                    role)
   elif CL_subCommand == 'update':
     baseRole, groupMemberType = _getRoleGroupMemberType()
-    isSuspended = _getOptionalIsSuspended()
+    isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     expireTime = _getExpireTime(baseRole)
     preview, csvPF = _getPreviewActionCSV()
-    _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, isSuspended=isSuspended, groupMemberType=groupMemberType)
+    _, updateMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
+                                         isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = updateMembers if isinstance(updateMembers, dict) else None
     subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
     checkForExtraneousArguments()
@@ -24832,7 +24961,8 @@ def doPrintCIGroups():
       csvPF.AddTitles(key)
       row[key] = value
     if rolesSet and groupMembers is not None:
-      addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter, False, True)
+      addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplayOptions, delimiter,
+                         False, False, True)
     csvPF.WriteRow(row)
 
   ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
@@ -35920,7 +36050,7 @@ def doCourseAddItems(courseIdList, getEntityListArg):
     if role in {Ent.STUDENT, Ent.TEACHER}:
       _, addItems = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                       typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]},
-                                      isSuspended=False)
+                                      isSuspended=False, isArchived=False)
     elif role == Ent.COURSE_ALIAS:
       addItems = getEntityList(Cmd.OB_COURSE_ALIAS_ENTITY, shlexSplit=True)
     else: # role == Ent.COURSE_TOPIC:
@@ -36016,7 +36146,8 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
     makeFirstTeacherOwner = False
   syncOperation = getSyncOperation()
   _, syncParticipants = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
-                                          typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]}, isSuspended=False)
+                                          typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]},
+                                          isSuspended=False, isArchived=False)
   checkForExtraneousArguments()
   courseParticipantLists = syncParticipants if isinstance(syncParticipants, dict) else None
   if courseParticipantLists is None:

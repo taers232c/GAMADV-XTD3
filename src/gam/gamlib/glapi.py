@@ -66,6 +66,10 @@ SITEVERIFICATION = 'siteVerification'
 STORAGE = 'storage'
 VAULT = 'vault'
 #
+JWT_APIS = {
+  CHAT: ['https://www.googleapis.com/auth/chat.bot'],
+  }
+#
 GAM_SCOPES = 'gam'
 FAM1_SCOPES = 'fam1'
 FAM2_SCOPES = 'fam2'
@@ -192,19 +196,19 @@ _CLIENT_SCOPES = [
   {'name': 'Chrome Browser Cloud Management API',
    'api': CBCM,
    'subscopes': READONLY,
-   'scope': 'https://www.googleapis.com/auth/admin.directory.device.chromebrowsers',},
+   'scope': 'https://www.googleapis.com/auth/admin.directory.device.chromebrowsers'},
   {'name': 'Chrome Management API - read only',
    'api': CHROMEMANAGEMENT,
    'subscopes': [],
-   'scope': 'https://www.googleapis.com/auth/chrome.management.reports.readonly',},
+   'scope': 'https://www.googleapis.com/auth/chrome.management.reports.readonly'},
   {'name': 'Chrome Policy API',
    'api': CHROMEPOLICY,
    'subscopes': READONLY,
-   'scope': 'https://www.googleapis.com/auth/chrome.management.policy',},
+   'scope': 'https://www.googleapis.com/auth/chrome.management.policy'},
   {'name': 'Chrome Version History API',
    'api': CHROMEVERSIONHISTORY,
    'subscopes': [],
-   'scope': '',},
+   'scope': ''},
   {'name': 'Classroom API - Courses',
    'api': CLASSROOM,
    'subscopes': READONLY,

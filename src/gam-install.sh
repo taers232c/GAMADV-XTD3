@@ -31,7 +31,6 @@ adminuser=""
 regularuser=""
 gam_x86_64_glibc_vers="2.31 2.27 2.23 2.19 2.15"
 gam_arm64_glibc_vers="2.31 2.27 2.23"
-gam_macos_vers="11.1 11.0 10.15 10.14 10.13 10.12 10.11 10.10"
 
 while getopts "hd:a:o:b:lp:u:r:v:" OPTION
 do
@@ -337,7 +336,7 @@ while $project_created; do
 done
 
 service_account_authorized=false
-while $project_created; do
+while $admin_authorized; do
   read -p "Are you ready to authorize GAM to manage Google Workspace user data and settings? (yes or no) " yn
   case $yn in
     [Yy]*)
@@ -356,7 +355,7 @@ while $project_created; do
       fi
       ;;
      [Nn]*)
-       echo -e "\nYou can authorize a service account later by running:\n\ngam check serviceaccount\n"
+       echo -e "\nYou can authorize a service account later by running:\n\ngam user $adminuser check serviceaccount\n"
        break
        ;;
      *)

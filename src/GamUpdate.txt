@@ -1,3 +1,36 @@
+6.03.26
+
+Updated the following commands to allow selection of archived users from a source group.
+```
+gam update group add|delete|update|sync
+gam update cigroups add|delete|update|sync
+```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Groups-Membership
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Groups-Membership
+
+Updated the following command to allow selection of archived users to be cleared.
+```
+gam update group clear
+```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Groups-Membership
+
+Updated the following commands to allow selection of archived users for display.
+```
+gam info group
+gam print groups
+gam print group-members
+```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Groups
+
+Added new option to `<UserTypeEntity>` that allows selection of group members based on their archived status.
+```
+group_users_select <GroupList>
+       [members] [managers] [owners]
+       [notsuspended|suspended] [notarchived|archived]
+       [primarydomain] [domains <DomainNameList>] [recursive|includederivedmembership] end
+```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Collections-of-Users#selected-users-from-groups
+
 6.03.25
 
 Updated `gam create project` to handle Google change that causes the following error:

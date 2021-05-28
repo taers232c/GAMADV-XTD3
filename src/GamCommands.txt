@@ -650,6 +650,10 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (group_users|group_users_ns|group_users_susp <GroupList>
                 [members] [managers] [owners]
                 [primarydomain] [domains <DomainNameList>] [recursive|includederivedmembership] end)|
+        (group_users_select <GroupList>
+                [members] [managers] [owners]
+                [notsuspended|suspended] [notarchived|archived]
+                [primarydomain] [domains <DomainNameList>] [recursive|includederivedmembership] end)|
         (ou|ou_ns|ou_susp <OrgUnitItem>)|
         (ou_and_children|ou_and_children_ns|ou_and_children_susp <OrgUnitItem>)|
         (ous|ous_ns|ous_susp <OrgUnitList>)|
@@ -2538,28 +2542,33 @@ gam update group|groups <GroupEntity> [email <EmailAddress>]
         [admincreated <Boolean>]
         [verifynotinvitable]
 gam update group|groups <GroupEntity> create|add [<GroupRole>]
-        [usersonly|groupsonly] [notsuspended|suspended]
+        [usersonly|groupsonly]
+        [notsuspended|suspended] [notarchived|archived]
         [[delivery] <DeliverySetting>]
         [preview] [actioncsv]
         <UserTypeEntity>
 gam update group|groups <GroupEntity> delete|remove [<GroupRole>]
-        [usersonly|groupsonly] [notsuspended|suspended]
+        [usersonly|groupsonly]
+        [notsuspended|suspended] [notarchived|archived]
         [preview] [actioncsv]
         <UserTypeEntity>
 gam update group|groups <GroupEntity> sync [<GroupRole>]
-        [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+        [usersonly|groupsonly] [addonly|removeonly]
+        [notsuspended|suspended] [notarchived|archived]
         [removedomainnostatusmembers]
         [[delivery] <DeliverySetting>]
         [preview] [actioncsv]
         <UserTypeEntity>
 gam update group|groups <GroupEntity> update [<GroupRole>]
-        [usersonly|groupsonly] [notsuspended|suspended]
+        [usersonly|groupsonly]
+        [notsuspended|suspended] [notarchived|archived]
         [[delivery] <DeliverySetting>]
         [createifnotfound]
         [preview] [actioncsv]
         <UserTypeEntity>
 gam update group|groups <GroupEntity> clear [member] [manager] [owner]
-        [usersonly|groupsonly] [notsuspended|suspended]
+        [usersonly|groupsonly]
+        [notsuspended|suspended] [notarchived|archived]
         [emailclearpattern|emailretainpattern <RegularExpression>]
         [removedomainnostatusmembers]
         [preview] [actioncsv]
@@ -2646,7 +2655,7 @@ gam info group|groups <GroupEntity>
         [basic] <GroupFieldName>* [fields <GroupFieldNameList>] [nodeprecated]
         [ciallfields|(cifields <CIGroupFieldNameList>)]
         [members] [managers] [owners]
-        [notsuspended|suspended]
+        [notsuspended|suspended] [notarchived|archived]
         [types <GroupTypeList>]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [formatjson]
@@ -2664,7 +2673,7 @@ gam print groups [todrive <ToDriveAttribute>*]
         [roles <GroupRoleList>]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]
         [includederivedmembership]
-        [notsuspended|suspended]
+        [notsuspended|suspended] [notarchived|archived]
         [types <GroupTypeList>]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [convertcrnl] [delimiter <Character>] [sortheaders]
@@ -2689,7 +2698,8 @@ gam info member|group-members <UserTypeEntity> <GroupEntity>
 gam print group-members [todrive <ToDriveAttribute>*]
         [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
          (group|group_ns|group_susp <GroupItem>)|
-         (select <GroupEntity>)] [notsuspended|suspended]
+         (select <GroupEntity>)]
+        [notsuspended|suspended] [notarchived|archived]
         [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]
@@ -2704,7 +2714,8 @@ gam print group-members [todrive <ToDriveAttribute>*]
 gam show group-members
         [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
          (group|group_ns|group_susp <GroupItem>)|
-         (select <GroupEntity>)] [notsuspended|suspended]
+         (select <GroupEntity>)]
+        [notsuspended|suspended] [notarchived|archived]
         [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]
@@ -2734,18 +2745,23 @@ gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
 gam update cigroup <GroupEntity> [copyfrom <GroupItem>] <GroupAttribute>
         [security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
 gam update cigroups <GroupEntity> create|add [<GroupRole>]
-        [usersonly|groupsonly] [notsuspended|suspended]
+        [usersonly|groupsonly]
+        [notsuspended|suspended] [notarchived|archived]
         [expire|expires <Time>] [preview] [actioncsv]
         <UserTypeEntity>
 gam update cigroups <GroupEntity> delete|remove [<GroupRole>]
-        [usersonly|groupsonly] [notsuspended|suspended] [preview] [actioncsv]
+        [usersonly|groupsonly]
+        [notsuspended|suspended] [notarchived|archived]
+        [preview] [actioncsv]
         <UserTypeEntity>
 gam update cigroups <GroupEntity> sync [<GroupRole>]
-        [usersonly|groupsonly] [addonly|removeonly] [notsuspended|suspended]
+        [usersonly|groupsonly] [addonly|removeonly]
+        [notsuspended|suspended] [notarchived|archived]
         [expire|expires <Time>] [preview] [actioncsv]
         <UserTypeEntity>
 gam update cigroups <GroupEntity> update [<GroupRole>]
-        [usersonly|groupsonly] [notsuspended|suspended]
+        [usersonly|groupsonly]
+        [notsuspended|suspended] [notarchived|archived]
         [expire|expires <Time>] [preview] [actioncsv]
         <UserTypeEntity>
 gam update cigroups <GroupEntity> clear [member] [manager] [owner]
