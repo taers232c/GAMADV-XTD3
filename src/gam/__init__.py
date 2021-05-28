@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.26'
+__version__ = '6.03.27'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27788,7 +27788,12 @@ def _moveCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEnt
       except GAPI.notACalendarUser as e:
         entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
         break
-      except (GAPI.forbidden, GAPI.requiredAccessLevel, GAPI.invalid, GAPI.cannotChangeOrganizer, GAPI.cannotChangeOrganizerOfInstance) as e:
+      except GAPI.requiredAccessLevel as e:
+# Correct "You need to have reader access to this calendar." to "You need to have writer access to both calendars."
+        entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId],
+                                  str(e).replace('reader', 'writer').replace('this calendar', 'both calendars'),
+                                  j, jcount)
+      except (GAPI.forbidden, GAPI.invalid, GAPI.cannotChangeOrganizer, GAPI.cannotChangeOrganizerOfInstance) as e:
         entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
@@ -34721,9 +34726,10 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
     try:
       aliases = callGAPIpages(croom.courses().aliases(), 'list', 'aliases',
                               pageMessage=pageMessage,
-                              throwReasons=[GAPI.NOT_FOUND, GAPI.NOT_IMPLEMENTED, GAPI.FORBIDDEN],
+                              throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE, GAPI.NOT_IMPLEMENTED],
+                              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                               courseId=courseId, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-    except (GAPI.notFound, GAPI.notImplemented):
+    except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.notImplemented):
       pass
     except GAPI.forbidden:
       ClientAPIAccessDeniedExit()
@@ -34734,9 +34740,10 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
       try:
         teachers = callGAPIpages(croom.courses().teachers(), 'list', 'teachers',
                                  pageMessage=pageMessage,
-                                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE],
+                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                  courseId=courseId, fields=teachersFields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-      except GAPI.notFound:
+      except (GAPI.notFound, GAPI.serviceNotAvailable):
         pass
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
@@ -34746,9 +34753,10 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
       try:
         students = callGAPIpages(croom.courses().students(), 'list', 'students',
                                  pageMessage=pageMessage,
-                                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                                 throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE],
+                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                  courseId=courseId, fields=studentsFields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
-      except GAPI.notFound:
+      except (GAPI.notFound, GAPI.serviceNotAvailable):
         pass
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
@@ -46440,7 +46448,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
       useDomainAdminAccess = True
     else:
       unknownArgumentExit()
-  if (removeExpiration or 'expirationTime' in body) and 'role' not in body:
+  if 'role' not in body:
     missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)

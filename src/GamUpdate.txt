@@ -1,3 +1,15 @@
+6.03.27
+
+Updated `gam print courses` to handle the following error.
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
+Updated `gam <UserTypeEntity> move events <UserCalendarEntity> <EventEntity> to|destination <CalendarItem>`
+to correct an incorrect error message from Google.
+* Incorrect message: Move Failed: You need to have reader access to this calendar.
+* Correct message: Move Failed: You need to have writer access to both calendars.
+
 6.03.26
 
 Updated the following commands to allow selection of archived users from a source group.
