@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.27'
+__version__ = '6.03.28'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -42089,7 +42089,7 @@ def printFileList(users):
           _printFileInfo(drive, user, fileEntryInfo.copy())
       if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and not noRecursion:
         _printChildDriveFolderContents(drive, fileEntryInfo, user, i, count, 0)
-        if GC.Values[GC.SHOW_GETTINGS]:
+        if GC.Values[GC.SHOW_GETTINGS] and not GC.Values[GC.SHOW_GETTINGS_GOT_NL]:
           writeStderr('\r\n')
           flushStderr()
       if countsOnly:

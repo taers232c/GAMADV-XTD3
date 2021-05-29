@@ -1,3 +1,8 @@
+6.03.28
+
+Fixed bug in `gam <UserTypeEntity> print filelist` where blank lines were being displayed after
+the `Got n Drive File/Folder ...` messages.
+
 6.03.27
 
 Updated `gam print courses` to handle the following error.
