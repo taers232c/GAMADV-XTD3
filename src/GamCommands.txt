@@ -4764,11 +4764,13 @@ gam <UserTypeEntity> show filerevisions <DriveFileEntity>
         [previewdelete] [showtitles]
         [<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [stripcrsfromname]
 gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttribute>*]
         [select <DriveFileRevisionIDEntity>]
         [previewdelete] [showtitles] [oneitemperrow]
         [<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [stripcrsfromname]
 
 gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -5010,6 +5012,7 @@ gam <UserTypeEntity> show fileinfo <DriveFileEntity>
         [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         [formatjson]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
+        [stripcrsfromname]
 gam <UserTypeEntity> show filepath <DriveFileEntity>
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*]
@@ -5056,9 +5059,10 @@ gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
         [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
-        [excludetrashed] [noindent]
+        [excludetrashed]
         [fields <FileTreeFieldNameList>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+        [noindent] [stripcrsfromname]
 gam <UserTypeEntity> show filetree
         [select <DriveFileEntity> [selectsubquery <QueryDriveFile>]
             [depth <Number>]]
@@ -5069,6 +5073,7 @@ gam <UserTypeEntity> show filetree
         [excludetrashed]
         [fields <FileTreeFieldNameList>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+        [stripcrsfromname]
 
 gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>)
@@ -5088,6 +5093,7 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         [showdrivename] [showparentsidsaslist] [showpermissionslast]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+        [stripcrsfromname]
         [formatjson [quotechar <Character>]]
 
 <DriveActivityAction> ::=

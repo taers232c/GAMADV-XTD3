@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.28'
+__version__ = '6.03.29'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18195,7 +18195,6 @@ def doPrintShowBrowsers():
     sortHeaders = False
   substituteQueryTimes(queries, queryTimes)
   if entityList is None:
-    startTime = time.time()
     for query in queries:
       printGettingAllAccountEntities(Ent.CHROME_BROWSER, query)
       pageMessage = getPageMessage()
@@ -18239,10 +18238,6 @@ def doPrintShowBrowsers():
         if not pageToken:
           _finalizeGAPIpagesResult(pageMessage)
           break
-        currentTime = time.time()
-        if int(currentTime-startTime) > 3000:
-          cbcm = buildGAPIObject(API.CBCM)
-          startTime = currentTime
   else:
     sortRows = True
     jcount = len(entityList)
@@ -32840,7 +32835,6 @@ def doPrintUsers(entityList=None):
     if printOptions['getLicenseFeed']:
       licenses = doPrintLicenses(returnFields=['userId', 'skuId'])
   if entityList is None:
-    startTime = time.time()
     sortRows = False
     if orgUnitPath is not None and fieldsList:
       fieldsList.append('orgUnitPath')
@@ -32912,10 +32906,6 @@ def doPrintUsers(entityList=None):
         if not pageToken:
           _finalizeGAPIpagesResult(pageMessage)
           break
-        currentTime = time.time()
-        if int(currentTime-startTime) > 3000:
-          cd = buildGAPIObject(API.DIRECTORY)
-          startTime = currentTime
   else:
     sortRows = True
 # If no individual fields were specified (allfields, basic, full) or individual fields other than primaryEmail were specified, look up each user
@@ -40422,9 +40412,11 @@ def _setGetPermissionsForTeamDrives(fieldsList):
 # gam <UserTypeEntity> info drivefile <DriveFileEntity>
 #	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
+#	[stripcrsfromname]
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity>
 #	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
+#	[stripcrsfromname]
 def showFileInfo(users):
   def _setSelectionFields():
     _setSkipObjects(skipObjects, FILEINFO_FIELDS_TITLES, DFF.fieldsList)
@@ -40439,7 +40431,7 @@ def showFileInfo(users):
         skipObjects.add('driveId')
         DFF.fieldsList.append('driveId')
 
-  filepath = showParentsIdsAsList = showNoParents = False
+  filepath = showParentsIdsAsList = showNoParents = stripCRsFromName = False
   simpleLists = []
   skipObjects = set()
   fileIdEntity = getDriveFileEntity()
@@ -40452,6 +40444,8 @@ def showFileInfo(users):
     elif myarg == 'showparentsidsaslist':
       showParentsIdsAsList = True
       simpleLists.append('parentsIds')
+    elif myarg == 'stripcrsfromname':
+      stripCRsFromName = True
     elif DFF.ProcessArgument(myarg):
       pass
     else:
@@ -40494,6 +40488,8 @@ def showFileInfo(users):
         result = callGAPI(drive.files(), 'get',
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields=fields, supportsAllDrives=True)
+        if stripCRsFromName:
+          result['name'] = result['name'].replace('\r', '')
         driveId = result.get('driveId')
         if driveId:
           if result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == TEAM_DRIVE:
@@ -40944,17 +40940,19 @@ DRIVE_REVISIONS_INDEXED_TITLES = ['revisions']
 #	[previewdelete] [showtitles]
 #	[<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+#	[stripcrsfromname]
 # gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	[select <DriveFileRevisionIDEntity>]
 #	[previewdelete] [showtitles] [oneitemperrow]
 #	[<RevisionsFieldName>*|(fields <RevisionsFieldNameList>)]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+#	[stripcrsfromname]
 def printShowFileRevisions(users):
   csvPF = CSVPrintFile(['Owner', 'id']) if Act.csvFormat() else None
   fieldsList = []
   fileIdEntity = getDriveFileEntity()
   revisionsEntity = None
-  oneItemPerRow = previewDelete = showTitles = False
+  oneItemPerRow = previewDelete = showTitles = stripCRsFromName = False
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   while Cmd.ArgumentsRemaining():
@@ -40975,6 +40973,8 @@ def printShowFileRevisions(users):
       showTitles = True
       if csvPF:
         csvPF.AddTitles(fileNameTitle)
+    elif myarg == 'stripcrsfromname':
+      stripCRsFromName = True
     elif getFieldsList(myarg, FILEREVISIONS_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
       pass
     else:
@@ -41001,6 +41001,8 @@ def printShowFileRevisions(users):
       entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
       if showTitles:
         fileName, entityType = _getDriveFileNameFromId(drive, fileId, not csvPF)
+        if stripCRsFromName:
+          fileName = fileName.replace('\r', '')
       try:
         results = callGAPIpages(drive.revisions(), 'list', 'revisions',
                                 throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.REVISIONS_NOT_SUPPORTED],
@@ -41113,10 +41115,12 @@ def initFileTree(drive, teamdrive, DLP, teamdriveFields, showParent):
     return (None, False)
   return (fileTree, True)
 
-def extendFileTree(fileTree, feed, DLP):
+def extendFileTree(fileTree, feed, DLP, stripCRsFromName):
   for f_file in feed:
     if not DLP.CheckOnlyTeamDrives(f_file) or not DLP.CheckExcludeTrashed(f_file):
       continue
+    if stripCRsFromName:
+      f_file['name'] = f_file['name'].replace('\r', '')
     if not f_file.get('parents', []):
       f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) else [SHARED_WITHME]
     fileId = f_file['id']
@@ -41665,6 +41669,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
 #	[showdrivename] [showparentsidsaslist] [showpermissionslast]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+#	[stripcrsfromname]
 #	[formatjson [quotechar <Character>]]
 def printFileList(users):
   def _setSelectionFields():
@@ -41828,7 +41833,7 @@ def printFileList(users):
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
   addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = noRecursion = \
-    showParentsIdsAsList = showDepth = showParent = showSource = False
+    showParentsIdsAsList = showDepth = showParent = showSource = stripCRsFromName = False
   maxdepth = -1
   nodataFields = []
   simpleLists = ['permissionIds', 'spaces']
@@ -41895,6 +41900,8 @@ def printFileList(users):
       simpleLists.append('parentsIds')
     elif myarg == 'showpermissionslast':
       csvPF.SetShowPermissionsLast(True)
+    elif myarg == 'stripcrsfromname':
+      stripCRsFromName = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
   if not filepath and not fullpath:
@@ -41949,6 +41956,9 @@ def printFileList(users):
     fields = pagesFields = '*'
     DFF.SetAllParentsSubFields()
     skipObjects = skipObjects.union(DEFAULT_SKIP_OBJECTS)
+  if stripCRsFromName:
+    if countsOnly or (fields != '*' and 'name' not in DFF.fieldsList):
+      stripCRsFromName = False
   teamdriveFields = []
   for field in ['capabilities', 'createdTime']:
     if fields == '*' or field in DFF.fieldsList:
@@ -42029,9 +42039,11 @@ def printFileList(users):
         pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, pageMessage, None, Ent.DRIVE_FILE_OR_FOLDER)
         if feed:
           if not incrementalPrint:
-            extendFileTree(fileTree, feed.get('files', []), DLP)
+            extendFileTree(fileTree, feed.get('files', []), DLP, stripCRsFromName)
           else:
             for f_file in feed.get('files', []):
+              if stripCRsFromName:
+                f_file['name'] = f_file['name'].replace('\r', '')
               _printFileInfo(drive, user, f_file)
           del feed
         if not pageToken or (DLP.maxItems and totalItems >= DLP.maxItems):
@@ -42070,6 +42082,8 @@ def printFileList(users):
           fileEntryInfo = callGAPI(drive.files(), 'get',
                                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                                    fileId=fileId, fields=fields, supportsAllDrives=True)
+          if stripCRsFromName:
+            fileEntryInfo['name'] = fileEntryInfo['name'].replace('\r', '')
           if filepath:
             fileTree[fileId] = {'info': fileEntryInfo}
         except GAPI.fileNotFound:
@@ -42446,7 +42460,7 @@ FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size', 'e
 #	[excludetrashed]
 #	[fields <FileTreeFieldNameList>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
-#	[noindent]
+#	[noindent] [stripcrsfromname]
 # gam <UserTypeEntity> show filetree
 #	[select <DriveFileEntity>> [selectsubquery <QueryDriveFile>] [depth <Number>]]
 #	[anyowner|(showownedby any|me|others)]
@@ -42456,6 +42470,7 @@ FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size', 'e
 #	[excludetrashed]
 #	[fields <FileTreeFieldNameList>]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
+#	[stripcrsfromname]
 def printShowFileTree(users):
   def _showFileInfo(fileEntry, depth, j=0, jcount=0):
     if not DLP.CheckExcludeTrashed(fileEntry):
@@ -42554,7 +42569,7 @@ def printShowFileTree(users):
   showFields = {}
   for field in FILETREE_FIELDS_CHOICE_MAP:
     showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
-  buildTree = noindent = False
+  buildTree = noindent = stripCRsFromName = False
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   DLP = DriveListParameters({'allowChoose': False, 'allowCorpora': False, 'allowQuery': False, 'mimeTypeInQuery': False})
@@ -42586,6 +42601,8 @@ def printShowFileTree(users):
       delimiter = getCharacter()
     elif csvPF and myarg == 'noindent':
       noindent = True
+    elif myarg == 'stripcrsfromname':
+      stripCRsFromName = True
     else:
       unknownArgumentExit()
   if csvPF:
@@ -42654,7 +42671,7 @@ def printShowFileTree(users):
           break
         pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, pageMessage, None, Ent.DRIVE_FILE_OR_FOLDER)
         if feed:
-          extendFileTree(fileTree, feed.get('files', []), DLP)
+          extendFileTree(fileTree, feed.get('files', []), DLP, stripCRsFromName)
           del feed
         if not pageToken:
           _finalizeGAPIpagesResult(pageMessage)
@@ -42682,6 +42699,8 @@ def printShowFileTree(users):
           fileEntryInfo = callGAPI(drive.files(), 'get',
                                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                                    fileId=fileId, fields=fields, supportsAllDrives=True)
+          if stripCRsFromName:
+            fileEntryInfo['name'] = fileEntryInfo['name'].replace('\r', '')
           if buildTree:
             fileTree[fileId] = {'info': fileEntryInfo}
         except GAPI.fileNotFound:

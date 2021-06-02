@@ -1,3 +1,15 @@
+6.03.29
+
+Added option `stripcrsfromname` to the following commands that causes carriage returns `\r`
+to be stripped from drive file names. This option is special purpose and will not generally be used.
+```
+gam <UserTypeEntity> show fileinfo
+gam <UserTypeEntity> print filelist
+gam <UserTypeEntity> print|show filetree
+gam <UserTypeEntity> print|Show filerevisions
+```
+How did a carriage return get added to a drive file name? Good question; the files seen so far are named `Icon\r`.
+
 6.03.28
 
 Fixed bug in `gam <UserTypeEntity> print filelist` where blank lines were being displayed after
