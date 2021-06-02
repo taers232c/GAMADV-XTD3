@@ -1,3 +1,15 @@
+6.03.30
+
+Added option `addtitle <String>` to `gam print|show drivefileacls` to provide more useful output
+when reading file IDs from a CSV file. By default, just the file ID is displayed with the permissions;
+the `showtitles` option adds the file name to the output at the expense of an additional API call.
+If you have the file name in the CSV file, you can use the `addtitle` option to supply the file name.
+For example, to get the ACLs for your Team Drives with the Team Drive name included in the output:
+```
+gam redirect csv ./TeamDrives.csv print teamdrives
+gam redirect csv ./TeamDriveACLs.csv multiprocess csv ./TeamDrives.csv gam print drivefileacls teamdriveid "~id" addtitle "~name" fields id,domain,emailaddress,role,type,deleted
+```
+
 6.03.29
 
 Added option `stripcrsfromname` to the following commands that causes carriage returns `\r`

@@ -3606,13 +3606,15 @@ gam info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
 gam show drivefileacls <SharedDriveEntityAdmin>
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
-        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [showtitles|(addtitle <String>)]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
 gam print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
-        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [showtitles|(addtitle <String>)]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]]
 gam create|add permissions <SharedDriveEntityAdmin> <DriveFilePermissionEntity>
@@ -3637,13 +3639,15 @@ gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermis
 gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
-        [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [showtitles|(addtitle <String>)]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] adminaccess
 gam <UserTypeEntity> print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
-        [oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [showtitles|(addtitle <String>)]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson [quotechar <Character>]] adminaccess
 gam <UserTypeEntity> create|add permissions <SharedDriveEntityAdmin> <DriveFilePermissionEntity>

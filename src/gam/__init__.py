@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.29'
+__version__ = '6.03.30'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -47000,19 +47000,22 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
 # gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[includepermissionsforview published]
-#	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	[showtitles|(addtitle <String>)]]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
 # gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[includepermissionsforview published]
-#	[oneitemperrow] [showtitles] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	[showtitles|(addtitle <String>)]]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson] [adminaccess|asadmin]
 def printShowDriveFileACLs(users, useDomainAdminAccess=False):
   csvPF = CSVPrintFile(['Owner', 'id'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fileIdEntity = getDriveFileEntity()
+  addTitle = None
   oneItemPerRow = pmselect = showTitles = False
   includePermissionsForView = None
   fieldsList = []
@@ -47027,8 +47030,13 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       oneItemPerRow = True
     elif myarg == 'orderby':
       OBY.GetChoice()
-    elif myarg == 'showtitles':
-      showTitles = True
+    elif myarg in {'showtitles', 'addtitle'}:
+      if myarg == 'showtitles':
+        showTitles = True
+        addTitle = None
+      else:
+        addTitle = getString(Cmd.OB_STRING)
+        showTitles = False
       if csvPF:
         csvPF.AddTitles(fileNameTitle)
         csvPF.SetSortAllTitles()
@@ -47062,6 +47070,9 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
       if showTitles:
         fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvPF or FJQC.formatJSON), useDomainAdminAccess)
+      elif addTitle:
+        fileName = f'{addTitle} ({fileId})'
+        entityType = Ent.DRIVE_FILE_OR_FOLDER
       try:
         permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
@@ -47094,7 +47105,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
             _showDriveFilePermissionsJSON(user, fileId, fileName, permissions, timeObjects)
       else:
         baserow = {'Owner': user, 'id': fileId}
-        if showTitles:
+        if showTitles or addTitle:
           baserow[fileNameTitle] = fileName
         if oneItemPerRow:
           for permission in permissions:
