@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.31'
+__version__ = '6.03.32'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -41266,9 +41266,10 @@ class PermissionMatch():
       elif myarg == 'emailaddress':
         body['emailAddress'] = getREPattern(re.IGNORECASE)
         self.permissionFields.add('emailAddress')
-      elif myarg == 'domain':
-        body['domain'] = getREPattern(re.IGNORECASE)
+      elif myarg in {'domain', 'notdomain'}:
+        body[myarg] = getREPattern(re.IGNORECASE)
         self.permissionFields.add('domain')
+        self.permissionFields.add('emailAddress')
       elif myarg == 'withlink':
         withLinkLocation = Cmd.Location()
         body['allowFileDiscovery'] = not getBoolean()
@@ -41346,16 +41347,18 @@ class PermissionMatch():
               break
         else:
           break
-      elif field != 'domain':
+      elif field not in {'domain', 'notdomain'}:
         if not value.match(permission.get(field, '')):
           break
       else:
         if field in permission:
-          if not value.match(permission[field]):
+          if ((field == 'domain' and not value.match(permission[field])) or
+              (field == 'notdomain' and value.match(permission['domain']))):
             break
         elif 'emailAddress' in permission and permission['emailAddress']:
           _, domain = splitEmailAddress(permission['emailAddress'])
-          if not value.match(domain):
+          if ((field == 'domain' and not value.match(domain)) or
+              (field == 'notdomain' and value.match(domain))):
             break
         else:
           break

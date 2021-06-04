@@ -1,3 +1,11 @@
+6.03.32
+
+Added option `notdomain <RegularExpression>` to `<PermissionMatch>` to make it easier to
+select files owned by someone outside of your domain.
+```
+gam user user@domain.com print filelist showownedby others fields id,name,owners.emailaddress pm type user role owner notdomain domain.com em
+```
+
 6.03.31
 
 Fixed a bug in `gam create|update user` where the required `area` field in `location`
