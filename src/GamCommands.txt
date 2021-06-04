@@ -3980,7 +3980,7 @@ gam show vaultholds|holds [matters <MatterItemList>]
                 skype|yahoo|(custom_protocol <String>) <String>
                 notprimary|primary)|
         (keyword mission|occupation|outlook|(custom <string>) <String>)|
-        (location type default|desk|<String> area <String>
+        (location [type default|desk|<String>] area <String>
                 [building|buildingid <String>] [floor|floorname <String>]
                 [section|floorsection <String>] [desk|deskcode <String>] endlocation)|
         (organization [type domain_only|school|unknown|work] [customtype <String>]

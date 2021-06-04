@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.30'
+__version__ = '6.03.31'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31357,7 +31357,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       elif up == 'locations':
         if checkClearBodyList(body, up):
           continue
-        entry = {'type': 'desk', 'area': ''}
+        entry = {'type': 'desk'}
         while Cmd.ArgumentsRemaining():
           argument = getArgument()
           if argument == clTypeKeyword:

@@ -1,3 +1,8 @@
+6.03.31
+
+Fixed a bug in `gam create|update user` where the required `area` field in `location`
+could be omitted and no error message was given.
+
 6.03.30
 
 Added option `addtitle <String>` to `gam print|show drivefileacls` to provide more useful output
