@@ -4594,7 +4594,8 @@ gam <UserTypeEntity> show datastudiopermissions
         usecontentasindexabletext
 
 gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
-        <DriveFileCreateAttribute>* [enforcesingleparent <Boolean>]
+        <DriveFileCreateAttribute>* [stripnameprefix <String>]
+        [enforcesingleparent <Boolean>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
 
 <DriveFileUpdateAttribute> ::=
@@ -4610,7 +4611,7 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
          (removeanyownerparentname <DriveFolderName>))
 
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
-        [retainname | (newfilename <DriveFileName>)]
+        [retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
         <DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
         [gsheet|csvsheet <SheetEntity>] [charset <CharSet>] [columndelimiter <Character>]
 
@@ -4620,7 +4621,8 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|ret
         (modifieddate|modifiedtime <Time>)|
         (mimetype <MimeType>)
 
-gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
+gam <UserTypeEntity> copy drivefile <DriveFileEntity>
+        [newfilename <DriveFileName>] [stripnameprefix <String>]
         [summary [<Boolean>]] [excludetrashed] [returnidonly|returnlinkonly]
         <DriveFileCopyAttribute>* [enforcesingleparent <Boolean>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]

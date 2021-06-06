@@ -1,3 +1,20 @@
+6.03.33
+
+Added option `stripnameprefix <String>` to `gam create|copy|update drivefile` to aid in the following situation.
+You have a CSV file listing some files owned by an external user; your ultimate goal is to move them to a Shared Drive.
+This is not possible so you decide to make locally owned copies, backup the externally owned originals and then rename
+the copies to have the original name and then move those copies to thw Shared Drive.
+```
+# Make copies of the externally owned files
+gam csv ./ExtFiles.csv gam user user@domain.com copy drivefile "~id"
+# You now have `FileName` and 'Copy of Filename`; move the originals to a backup folder
+gam csv ./ExtFiles.csv gam user user@domain.com update drivefile "~id" parentid <BackupParentFolderID>
+# Generate a list of the "Copy of " copied files
+gam redirect csv ./CopyOfFiles.csv user user@domain.com print filelist fields id,name query "name contains 'Copy of '"
+# Rename the files stripping off the "Copy of " prefix
+gam csv ./CopyOfFiles.csv gam user user@domain.com update drivefile "~id" newfilename "~name" stripnameprefix "Copy of "
+```
+
 6.03.32
 
 Added option `notdomain <RegularExpression>` to `<PermissionMatch>` to make it easier to

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.32'
+__version__ = '6.03.33'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34212,8 +34212,9 @@ class CourseAttributes():
                                                      [Ent.COURSE, self.courseId, Ent.COURSE_MATERIAL_DRIVEFILE, fileId])
           if self.csvPF:
             self.csvPF.WriteRow({'courseId': self.courseId, 'ownerId': self.ownerId, 'fileId': result['id']})
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-                GAPI.unknownError, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.fileNeverWritable) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
+                GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
           _copyMaterialsError(fileId, str(e))
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           _copyMaterialsError(fileId, str(e))
@@ -39015,6 +39016,7 @@ DFA_KEEP_REVISION_FOREVER = 'keepRevisionForever'
 DFA_LOCALFILEPATH = 'localFilepath'
 DFA_LOCALFILENAME = 'localFilename'
 DFA_LOCALMIMETYPE = 'localMimeType'
+DFA_STRIPNAMEPREFIX = 'stripNamePrefix'
 DFA_OCRLANGUAGE = 'ocrLanguage'
 DFA_ENFORCE_SINGLE_PARENT = 'enforceSingleParent'
 DFA_PARENTID = 'parentId'
@@ -39267,6 +39269,7 @@ def initDriveFileAttributes():
           DFA_LOCALFILEPATH: None,
           DFA_LOCALFILENAME: None,
           DFA_LOCALMIMETYPE: None,
+          DFA_STRIPNAMEPREFIX: None,
           DFA_OCRLANGUAGE: None,
           DFA_ENFORCE_SINGLE_PARENT: False,
           DFA_PARENTID: None,
@@ -39378,6 +39381,8 @@ def getDriveFileAttribute(myarg, body, parameters, updateCmd):
       if body.get('mimeType') is None:
         body['mimeType'] = 'application/octet-stream'
     parameters[DFA_LOCALMIMETYPE] = body['mimeType']
+  elif myarg =='stripnameprefix':
+    parameters[DFA_STRIPNAMEPREFIX] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg in {'convert', 'ocr'}:
     deprecatedArgument(myarg)
   elif myarg == 'ocrlanguage':
@@ -42772,7 +42777,8 @@ returnItemMap = {
   }
 
 # gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
-#	<DriveFileCreateAttribute>* [enforcesingleparent <Boolean>]
+#	<DriveFileCreateAttribute>* [stripnameprefix <String>]
+#	[enforcesingleparent <Boolean>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
 def createDriveFile(users):
   csvPF = media_body = None
@@ -42796,6 +42802,8 @@ def createDriveFile(users):
       csvPF.GetTodriveParameters()
     else:
       getDriveFileAttribute(myarg, body, parameters, False)
+  if 'name' in body and parameters[DFA_STRIPNAMEPREFIX] and body['name'].startswith(parameters[DFA_STRIPNAMEPREFIX]):
+    body['name'] = body['name'][len(parameters[DFA_STRIPNAMEPREFIX]):]
   if parameters[DFA_LOCALFILEPATH]:
     if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, False)
@@ -43108,7 +43116,7 @@ def checkDriveFileShortcut(users):
     csvPF.writeCSVfile('Check Shortcuts')
 
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
-#	[retainname | (newfilename <DriveFileName>)]
+#	[retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
 #	<DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
 #	[gsheet|csvsheet <SheetEntity>] [charset <String>] [columndelimiter <Character>]
 def updateDriveFile(users):
@@ -43148,6 +43156,8 @@ def updateDriveFile(users):
       getDriveFileAttribute(myarg, body, parameters, True)
   if assignLocalName and parameters[DFA_LOCALFILENAME] and parameters[DFA_LOCALFILENAME] != '-':
     body['name'] = parameters[DFA_LOCALFILENAME]
+  if 'name' in body and parameters[DFA_STRIPNAMEPREFIX] and body['name'].startswith(parameters[DFA_STRIPNAMEPREFIX]):
+    body['name'] = body['name'][len(parameters[DFA_STRIPNAMEPREFIX]):]
   if operation == 'update' and parameters[DFA_LOCALFILEPATH]:
     if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, True)
@@ -43308,8 +43318,10 @@ def updateDriveFile(users):
           else:
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId],
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-                GAPI.unknownError, GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.cannotModifyViewersCanCopyContent) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+                GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
+                GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded,
+                GAPI.cannotModifyViewersCanCopyContent) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -43407,6 +43419,7 @@ def initCopyMoveOptions(move):
     'sourceDriveId': None,
     'destDriveId': None,
     'newFilename': None,
+    'stripNamePrefix': None,
     'summary': False,
     'mergeWithParent': False,
     'mergeWithParentRetain': False,
@@ -43425,6 +43438,8 @@ def initCopyMoveOptions(move):
 def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
   if myarg == 'newfilename':
     copyMoveOptions['newFilename'] = getString(Cmd.OB_DRIVE_FILE_NAME)
+  elif myarg =='stripnameprefix':
+    copyMoveOptions['stripNamePrefix'] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg == 'summary':
     copyMoveOptions['summary'] = getBoolean()
   elif myarg == 'mergewithparent':
@@ -43650,7 +43665,8 @@ DUPLICATE_FOLDER_CHOICES = {
 COPY_TOP_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS}
 COPY_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'nonpath': COPY_NONPATH_PARENTS}
 
-# gam <UserTypeEntity> copy drivefile <DriveFileEntity> [newfilename <DriveFileName>]
+# gam <UserTypeEntity> copy drivefile <DriveFileEntity>
+#	[newfilename <DriveFileName>] [stripnameprefix <String>]
 #	[summary [<Boolean>]] [excludetrashed] [returnidonly|returnlinkonly]
 #	<DriveFileCopyAttribute>*
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
@@ -43822,7 +43838,8 @@ def copyDriveFile(users):
               _copyPermissions(drive, user, i, count, k, kcount, Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                  GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
+                  GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
+                  GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
       Ind.Decrement()
@@ -43926,6 +43943,8 @@ def copyDriveFile(users):
           destFilename = sourceFilename
         else:
           destFilename = f'Copy of {sourceFilename}'
+        if copyMoveOptions['stripNamePrefix'] and destFilename.startswith(copyMoveOptions['stripNamePrefix']):
+          destFilename = destFilename[len(copyMoveOptions['stripNamePrefix']):]
         targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
@@ -43991,8 +44010,9 @@ def copyDriveFile(users):
           if copyMoveOptions['copyFilePermissions']:
             _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
                              statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-              GAPI.unknownError, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.fileNeverWritable) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
+              GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         _incrStatistic(statistics, STAT_FILE_FAILED)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
