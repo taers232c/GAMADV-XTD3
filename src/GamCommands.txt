@@ -1517,6 +1517,8 @@ gam create chatmessage space <ChatSpace> [thread <ChatThread>]
 gam update chatmessage name <ChatMessage>
 	(text <String>)|(textfile <FileName> [charset <CharSet>])
 gam delete chatmessage name <ChatMessage>
+gam info chatmessage name <ChatMessage>
+        [formatjson]
 
 # Chrome Installed Apps Counts
 

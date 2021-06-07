@@ -18711,6 +18711,43 @@ def doDeleteChatMessage():
   except GAPI.permissionDenied as e:
     entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
 
+CHAT_MESSAGE_TIME_OBJECTS = ['createTime']
+
+def _showChatMessage(message, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(message, timeObjects=CHAT_MESSAGE_TIME_OBJECTS),
+                         ensure_ascii=False, sort_keys=True))
+  else:
+    printEntity([Ent.CHAT_MESSAGE, message['name']], i, count)
+    Ind.Increment()
+    showJSON(None, message, timeObjects=CHAT_MESSAGE_TIME_OBJECTS)
+    Ind.Decrement()
+
+# gam info chatmessage name <ChatMessage>
+#	[formatjson]
+def doInfoChatMessage():
+  chat = buildChatServiceObject()
+  FJQC = FormatJSONQuoteChar()
+  name = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'name':
+      name = getString(Cmd.OB_CHAT_MESSAGE)
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if not name:
+    missingArgumentExit('name')
+  try:
+    message = callGAPI(chat.spaces().messages(), 'get',
+                       throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                       name=name)
+    _showChatMessage(message, FJQC)
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
+
 def _getOrgunitsOrgUnitIdPath(orgUnit):
   if orgUnit.startswith('orgunits/'):
     orgUnit = f'id:{orgUnit[9:]}'
@@ -53975,6 +54012,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BUILDING:		doInfoBuilding,
       Cmd.ARG_BROWSER:		doInfoBrowsers,
       Cmd.ARG_CHATMEMBER:	doInfoChatMembers,
+      Cmd.ARG_CHATMESSAGE:	doInfoChatMessage,
       Cmd.ARG_CHATSPACE:	doInfoChatSpaces,
       Cmd.ARG_CHROMESCHEMA:	doInfoChromePolicySchemas,
       Cmd.ARG_CIGROUP:		doInfoCIGroups,
