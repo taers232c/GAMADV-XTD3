@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.33'
+__version__ = '6.03.34'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3987,6 +3987,7 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
     try:
       credentials = JWTCredentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
                                                              audience=f'https://{scopesOrAPI}.googleapis.com/')
+      credentials.project_id = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
     except (ValueError, IndexError, KeyError):
       invalidOauth2serviceJsonExit()
   GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
@@ -43828,7 +43829,8 @@ def copyDriveFile(users):
             child.pop('writersCanShare', None)
           try:
             result = callGAPI(drive.files(), 'copy',
-                              throwReasons=GAPI.DRIVE_COPY_THROW_REASONS,
+                              bailOnInternalError=True,
+                              throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR],
                               fileId=childId, body=child, fields='id,name', supportsAllDrives=True)
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, childTitle],
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], k, kcount)
@@ -43839,7 +43841,7 @@ def copyDriveFile(users):
                                statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                   GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
-                  GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
+                  GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
       Ind.Decrement()
@@ -43996,7 +43998,8 @@ def copyDriveFile(users):
             source.pop('writersCanShare', None)
           source.update(copyBody)
           result = callGAPI(drive.files(), 'copy',
-                            throwReasons=GAPI.DRIVE_COPY_THROW_REASONS,
+                            bailOnInternalError=True,
+                            throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR],
                             fileId=fileId,
                             ignoreDefaultVisibility=copyParameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=copyParameters[DFA_KEEP_REVISION_FOREVER],
@@ -44012,7 +44015,7 @@ def copyDriveFile(users):
                              statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
-              GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
+              GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         _incrStatistic(statistics, STAT_FILE_FAILED)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:

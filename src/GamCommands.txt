@@ -289,7 +289,7 @@ If an item contains spaces, it should be surrounded by ".
 <CalendarItem> ::= <EmailAddress>|<String>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
 <CIGroupType> ::= customer|group|serviceaccount|user
-<ChatRoom> ::= <String>
+<ChatSpace> ::= <String>
 <ClassroomInvitationID> ::= <String>
 <ClientID> ::= <String>
 <CommandID> ::= <String>
@@ -500,7 +500,7 @@ If an item contains spaces, it should be surrounded by ".
 <AssetTagList> ::= "<AssetTag>(,<AssetTag>)*"
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
-<ChatRoomList> ::= "<ChatRoom>(,<ChatRoom>)*"
+<ChatSpaceList> ::= "<ChatSpace>(,<ChatSpace>)*"
 <CIGroupTypeList> ::= "<CIGroupType>(,<CIGroupType>)*"
 <ClassroomInvitationIDList> ::= "<ClassroomInvitationID>(,<ClassroomInvitationID>)*"
 <ContactGroupList> ::= "<ContactGroupItem>(,<ContactGroupItem>)*"
@@ -4593,8 +4593,9 @@ gam <UserTypeEntity> show datastudiopermissions
         ignoredefaultvisibility|
         usecontentasindexabletext
 
-gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
-        <DriveFileCreateAttribute>* [stripnameprefix <String>]
+gam <UserTypeEntity> create|add drivefile
+        [localfile <FileName>|-] [drivefilename <DriveFileName>] [stripnameprefix <String>]
+        <DriveFileCreateAttribute>*
         [enforcesingleparent <Boolean>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
 
@@ -4611,7 +4612,7 @@ gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
          (removeanyownerparentname <DriveFolderName>))
 
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
-        [retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
+        [localfile <FileName>|-] [retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
         <DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
         [gsheet|csvsheet <SheetEntity>] [charset <CharSet>] [columndelimiter <Character>]
 

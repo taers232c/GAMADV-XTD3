@@ -1,3 +1,10 @@
+6.03.34
+
+Updated `gam copy drivefile` to handle the following error:
+```
+ERROR: internalError - Internal Error
+```
+
 6.03.33
 
 Added option `stripnameprefix <String>` to `gam create|copy|update drivefile` to aid in the following situation.
