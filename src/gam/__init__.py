@@ -1560,8 +1560,7 @@ def getStringOrFile(myarg, minLen=0, unescapeCRLF=False):
     return (data, UTF8, html)
   if not unescapeCRLF:
     return (getString(Cmd.OB_STRING, minLen=minLen), UTF8, html)
-  else:
-    return (unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=minLen)), UTF8, html)
+  return (unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=minLen)), UTF8, html)
 
 def getStringWithCRsNLsOrFile():
   if checkArgumentPresent(SORF_FILE_ARGUMENTS):
