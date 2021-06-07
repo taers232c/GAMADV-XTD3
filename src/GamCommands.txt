@@ -289,7 +289,10 @@ If an item contains spaces, it should be surrounded by ".
 <CalendarItem> ::= <EmailAddress>|<String>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
 <CIGroupType> ::= customer|group|serviceaccount|user
-<ChatSpace> ::= <String>
+<ChatMember> ::= spaces/<String>/members/<String>
+<ChatMessage> ::= spaces/<String>/messages/<String>
+<ChatSpace> ::= <String>|spaces/<String>
+<ChatThread> ::= spaces/<String>/threads/<String>
 <ClassroomInvitationID> ::= <String>
 <ClientID> ::= <String>
 <CommandID> ::= <String>
@@ -1490,6 +1493,30 @@ gam print browsertokens [todrive <ToDriveAttribute>*]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
         [sortheaders]
         [formatjson [quotechar <Character>]]
+
+# Chat
+
+gam setup chat
+
+gam info chatspace space <ChatSpace>
+        [formatjson]
+gam show chatspaces
+        [formatjson]
+gam print chatspaces [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
+
+gam info chatmember member <ChatMember>
+        [formatjson]
+gam show chatmembers space <ChatSpace>
+        [formatjson]
+gam print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+        [formatjson [quotechar <Character>]]
+
+gam create chatmessage space <ChatSpace> [thread <ChatThread>]
+	(text <String>)|(textfile <FileName> [charset <CharSet>])
+gam update chatmessage name <ChatMessage>
+	(text <String>)|(textfile <FileName> [charset <CharSet>])
+gam delete chatmessage name <ChatMessage>
 
 # Chrome Installed Apps Counts
 

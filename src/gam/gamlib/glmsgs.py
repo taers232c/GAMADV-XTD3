@@ -372,7 +372,15 @@ SUBSCRIPTION_NOT_FOUND = 'Could not find subscription'
 THREAD = 'thread'
 THREADS = 'threads'
 TO = 'To'
+TO_SET_UP_GOOGLE_CHAT = """
+To set up Google Chat for your API project, please go to:
+
+    {0}
+
+and complete all fields.
+"""
 TOTAL_ITEMS_IN_ENTITY = 'Total {0} in {1}'
+TRIMMED_MESSAGE_FROM_LENGTH_TO_MAXIMUM = 'Trimmed message of length {0} to maximum length {1}'
 UNABLE_TO_GET_PERMISSION_ID = 'Unable to get Permission ID for <{0}>'
 UNABLE_TO_CREATE_NOT_FOUND_USER = 'Unable to create not found user, some required field (givenName, familyName, password/notfoundpassword) not present'
 UNAVAILABLE = 'Unavailable'

@@ -85,6 +85,7 @@ class GamAction():
   REOPEN = 'reop'
   REPLACE = 'repl'
   REPORT = 'repo'
+  RESPOND = 'resp'
   RESTORE = 'rest'
   RESUBMIT = 'res'
   RETAIN = 'reta'
@@ -94,6 +95,7 @@ class GamAction():
   SEND = 'send'
   SENDEMAIL = 'snem'
   SET = 'set '
+  SETUP = 'setu'
   SHOW = 'show'
   SIGNOUT = 'siou'
   SKIP = 'skip'
@@ -186,6 +188,7 @@ class GamAction():
     REOPEN: ['Reopened', 'Reopen'],
     REPLACE: ['Replaced', 'Replace'],
     REPORT: ['Reported', 'Report'],
+    RESPOND: ['Responded', 'Respond'],
     RESTORE: ['Restored', 'Restore'],
     RESUBMIT: ['Resubmitted', 'Resubmit'],
     RETAIN: ['Retained', 'Retain'],
@@ -195,6 +198,7 @@ class GamAction():
     SEND: ['Sent', 'Send'],
     SENDEMAIL: ['Email Sent', 'Send Email'],
     SET: ['Set', 'Set'],
+    SETUP: ['Set Up', 'Set Up'],
     SHOW: ['Shown', 'Show'],
     SIGNOUT: ['Signed Out', 'Signout'],
     SKIP: ['Skipped', 'Skip'],

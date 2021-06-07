@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.03.34'
+__version__ = '6.04.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1540,10 +1540,11 @@ SORF_SIG_ARGUMENTS = {'signature', 'sig', 'textsig', 'htmlsig'}
 SORF_MSG_ARGUMENTS = {'message', 'textmessage', 'htmlmessage'}
 SORF_FILE_ARGUMENTS = {'file', 'textfile', 'htmlfile', 'gdoc', 'ghtml'}
 SORF_HTML_ARGUMENTS = {'htmlsig', 'htmlmessage', 'htmlfile', 'ghtml'}
+SORF_TEXT_ARGUMENTS = {'text', 'textfile', 'gdoc'}
 SORF_SIG_FILE_ARGUMENTS = SORF_SIG_ARGUMENTS.union(SORF_FILE_ARGUMENTS)
 SORF_MSG_FILE_ARGUMENTS = SORF_MSG_ARGUMENTS.union(SORF_FILE_ARGUMENTS)
 
-def getStringOrFile(myarg, minLen=0):
+def getStringOrFile(myarg, minLen=0, unescapeCRLF=False):
   if myarg in SORF_SIG_ARGUMENTS:
     if checkArgumentPresent(SORF_FILE_ARGUMENTS):
       myarg = Cmd.Previous().strip().lower().replace('_', '')
@@ -1557,7 +1558,10 @@ def getStringOrFile(myarg, minLen=0):
     data = f.read()
     f.close()
     return (data, UTF8, html)
-  return (getString(Cmd.OB_STRING, minLen=minLen), UTF8, html)
+  if not unescapeCRLF:
+    return (getString(Cmd.OB_STRING, minLen=minLen), UTF8, html)
+  else:
+    return (unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=minLen)), UTF8, html)
 
 def getStringWithCRsNLsOrFile():
   if checkArgumentPresent(SORF_FILE_ARGUMENTS):
@@ -18426,6 +18430,286 @@ def doPrintShowBrowserTokens():
     if sortHeaders:
       csvPF.SetSortTitles(['token'])
     csvPF.writeCSVfile('Chrome Browser Enrollment Tokens')
+
+def buildChatServiceObject():
+  _, chat = buildGAPIServiceObject(API.CHAT, None)
+  return chat
+
+def setupChatURL(chat):
+  return f'https://console.cloud.google.com/apis/api/chat.googleapis.com/hangouts-chat?project={chat._http.credentials.project_id}'
+
+def exitIfChatNotConfigured(chat, errMsg):
+  if errMsg in {'No bot associated with this project.', 'Invalid project number.'}:
+    systemErrorExit(API_ACCESS_DENIED_RC, Msg.TO_SET_UP_GOOGLE_CHAT.format(setupChatURL(chat)))
+
+# gam setup chat
+def doSetupChat():
+  checkForExtraneousArguments()
+  chat = buildChatServiceObject()
+  writeStdout(Msg.TO_SET_UP_GOOGLE_CHAT.format(setupChatURL(chat)))
+
+def getChatSpace():
+  chatSpace = getString(Cmd.OB_CHAT_SPACE)
+  if chatSpace.startswith('spaces/'):
+    return chatSpace
+  return 'spaces/'+chatSpace
+
+def _showChatSpace(space, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(space), ensure_ascii=False, sort_keys=True))
+  else:
+    printEntity([Ent.CHAT_SPACE, space['name']], i, count)
+    Ind.Increment()
+    showJSON(None, space)
+    Ind.Decrement()
+
+# gam info chatspace space <ChatSpace>
+#	[formatjson]
+def doInfoChatSpaces():
+  chat = buildChatServiceObject()
+  FJQC = FormatJSONQuoteChar()
+  name = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'space':
+      name = getChatSpace()
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if not name:
+    missingArgumentExit('space')
+  try:
+    space = callGAPI(chat.spaces(), 'get',
+                     throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                     name=name)
+    _showChatSpace(space, FJQC)
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
+
+# gam show chatspaces
+#	[formatjson]
+# gam print chatspaces [todrive <ToDriveAttribute>*]
+#	[formatjson [quotechar <Character>]]
+def doPrintShowChatSpaces():
+  def _printChatSpace(space):
+    row = flattenJSON(space)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'name': space['name'],
+                              'JSON': json.dumps(cleanJSON(space), ensure_ascii=False, sort_keys=True)})
+
+  chat = buildChatServiceObject()
+  csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  try:
+    spaces = callGAPIpages(chat.spaces(), 'list', 'spaces',
+                           throwReasons=[GAPI.NOT_FOUND])
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+    return
+  if not csvPF:
+    count = len(spaces)
+    performActionNumItems(count, Ent.CHAT_SPACE)
+    Ind.Increment()
+    i = 0
+    for space in spaces:
+      i += 1
+      _showChatSpace(space, FJQC, i, count)
+    Ind.Decrement()
+  else:
+    for space in spaces:
+      _printChatSpace(space)
+  if csvPF:
+    csvPF.writeCSVfile('Chat Spaces')
+
+CHAT_MEMBER_TIME_OBJECTS = ['createTime']
+
+def _showChatMember(member, FJQC, i=0, count=0):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS),
+                         ensure_ascii=False, sort_keys=True))
+  else:
+    printEntity([Ent.CHAT_MEMBER, member['name']], i, count)
+    Ind.Increment()
+    showJSON(None, member, timeObjects=CHAT_MEMBER_TIME_OBJECTS)
+    Ind.Decrement()
+
+# gam info chatmember member <ChatMember>
+#	[formatjson]
+def doInfoChatMembers():
+  chat = buildChatServiceObject()
+  FJQC = FormatJSONQuoteChar()
+  name = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'member':
+      name = getString(Cmd.OB_CHAT_MEMBER)
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if not name:
+    missingArgumentExit('member')
+  try:
+    member = callGAPI(chat.spaces().members(), 'get',
+                      bailOnInternalError=True,
+                      throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                      name=name)
+    _showChatMember(member, FJQC)
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+  except (GAPI.permissionDenied, GAPI.internalError) as e:
+    entityActionFailedWarning([Ent.CHAT_MEMBER, name], str(e))
+
+# gam show chatmembers space <ChatSpace>
+#	[formatjson]
+# gam print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+#	[formatjson [quotechar <Character>]]
+def doPrintShowChatMembers():
+  def _printChatMember(member):
+    row = flattenJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'name': member['name'],
+                              'JSON': json.dumps(cleanJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS),
+                                                 ensure_ascii=False, sort_keys=True)})
+
+  chat = buildChatServiceObject()
+  csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  name = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'space':
+      name = getChatSpace()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if not name:
+    missingArgumentExit('space')
+  try:
+    members = callGAPIpages(chat.spaces().members(), 'list', 'memberships',
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                            parent=name)
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+    return
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
+    return
+  if not csvPF:
+    count = len(members)
+    performActionNumItems(count, Ent.CHAT_MEMBER)
+    i = 0
+    for member in members:
+      i += 1
+      _showChatMember(member, FJQC, i, count)
+  else:
+    for member in members:
+      _printChatMember(member)
+  if csvPF:
+    csvPF.writeCSVfile('Chat Members')
+
+def trimChatMessageIfRequired(body):
+  msgLen = len(body['text'])
+  if msgLen > 4096:
+    stderrWarningMsg(Msg.TRIMMED_MESSAGE_FROM_LENGTH_TO_MAXIMUM.format(msgLen, 4096))
+    body['text'] = body['text'][:4095]
+
+# gam create chatmessage space <ChatSpace> [thread <ChatThread>]
+#	(text <String>)|(textfile <FileName> [charset <CharSet>])
+def doCreateChatMessage():
+  chat = buildChatServiceObject()
+  name = None
+  body = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'space':
+      name = getChatSpace()
+    elif myarg == 'thread':
+      body['thread'] = {'name': getString(Cmd.OB_CHAT_THREAD)}
+      Act.Set(Act.RESPOND)
+    elif myarg in SORF_TEXT_ARGUMENTS:
+      body['text'] = getStringOrFile(myarg, minLen=0, unescapeCRLF=True)[0]
+    else:
+      unknownArgumentExit()
+  if not name:
+    missingArgumentExit('space')
+  if 'text' not in body:
+    missingArgumentExit('text or textfile')
+  trimChatMessageIfRequired(body)
+  try:
+    resp = callGAPI(chat.spaces().messages(), 'create',
+                    throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                    parent=name, body=body)
+    entityActionPerformed([Ent.CHAT_SPACE, name, Ent.CHAT_THREAD, resp['thread']['name'], Ent.CHAT_MESSAGE, resp['name']])
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+    entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
+
+# gam update chatmessage name <ChatMessage>
+#	(text <String>)|(textfile <FileName> [charset <CharSet>])
+def doUpdateChatMessage():
+  chat = buildChatServiceObject()
+  name = None
+  body = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'name':
+      name = getString(Cmd.OB_CHAT_MESSAGE)
+    elif myarg in SORF_TEXT_ARGUMENTS:
+      body['text'] = getStringOrFile(myarg, minLen=0, unescapeCRLF=True)[0]
+    else:
+      unknownArgumentExit()
+  if not name:
+    missingArgumentExit('name')
+  if 'text' not in body:
+    missingArgumentExit('text or textfile')
+  trimChatMessageIfRequired(body)
+  try:
+    resp = callGAPI(chat.spaces().messages(), 'update',
+                    throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                    name=name, updateMask='text', body=body)
+    entityActionPerformed([Ent.CHAT_SPACE, resp['space']['name'], Ent.CHAT_THREAD, resp['thread']['name'],
+                           Ent.CHAT_MESSAGE, resp['name']])
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
+
+# gam delete chatmessage name <ChatMessage>
+def doDeleteChatMessage():
+  chat = buildChatServiceObject()
+  name = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'name':
+      name = getString(Cmd.OB_CHAT_MESSAGE)
+    else:
+      unknownArgumentExit()
+  if not name:
+    missingArgumentExit('name')
+  try:
+    callGAPI(chat.spaces().messages(), 'delete',
+             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+             name=name)
+    entityActionPerformed([Ent.CHAT_MESSAGE, name])
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
 
 def _getOrgunitsOrgUnitIdPath(orgUnit):
   if orgUnit.startswith('orgunits/'):
@@ -53531,6 +53815,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_ALIAS:		doCreateUpdateAliases,
   Cmd.ARG_BROWSERTOKEN:		doCreateBrowserToken,
   Cmd.ARG_BUILDING:		doCreateBuilding,
+  Cmd.ARG_CHATMESSAGE:		doCreateChatMessage,
   Cmd.ARG_CIGROUP:		doCreateCIGroup,
   Cmd.ARG_CONTACT:		doCreateDomainContact,
   Cmd.ARG_COURSE:		doCreateCourse,
@@ -53624,6 +53909,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALERT:		doDeleteOrUndeleteAlert,
       Cmd.ARG_BROWSER:		doDeleteBrowsers,
       Cmd.ARG_BUILDING:		doDeleteBuilding,
+      Cmd.ARG_CHATMESSAGE:	doDeleteChatMessage,
       Cmd.ARG_CHROMEPOLICY:	doDeleteChromePolicy,
       Cmd.ARG_CIGROUP:		doDeleteCIGroups,
       Cmd.ARG_CONTACT:		doDeleteDomainContacts,
@@ -53688,6 +53974,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALIAS:		doInfoAliases,
       Cmd.ARG_BUILDING:		doInfoBuilding,
       Cmd.ARG_BROWSER:		doInfoBrowsers,
+      Cmd.ARG_CHATMEMBER:	doInfoChatMembers,
+      Cmd.ARG_CHATSPACE:	doInfoChatSpaces,
       Cmd.ARG_CHROMESCHEMA:	doInfoChromePolicySchemas,
       Cmd.ARG_CIGROUP:		doInfoCIGroups,
       Cmd.ARG_CIGROUPMEMBERS:	doInfoCIGroupMembers,
@@ -53751,6 +54039,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
+      Cmd.ARG_CHATMEMBER:	doPrintShowChatMembers,
+      Cmd.ARG_CHATSPACE:	doPrintShowChatSpaces,
       Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
       Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
       Cmd.ARG_CHROMEHISTORY:	doPrintShowChromeHistory,
@@ -53841,6 +54131,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_USERINVITATION:	doCIUserInvitationsAction,
      }
     ),
+  'setup':
+    (Act.SETUP,
+     {Cmd.ARG_CHAT:		doSetupChat,
+     }
+    ),
   'show':
     (Act.SHOW,
      {Cmd.ARG_ADMINROLE:	doPrintShowAdminRoles,
@@ -53850,6 +54145,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
+      Cmd.ARG_CHATMEMBER:	doPrintShowChatMembers,
+      Cmd.ARG_CHATSPACE:	doPrintShowChatSpaces,
       Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
       Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
       Cmd.ARG_CHROMEHISTORY:	doPrintShowChromeHistory,
@@ -53919,6 +54216,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALIAS:		doCreateUpdateAliases,
       Cmd.ARG_BROWSER:		doUpdateBrowsers,
       Cmd.ARG_BUILDING:		doUpdateBuilding,
+      Cmd.ARG_CHATMESSAGE:	doUpdateChatMessage,
       Cmd.ARG_CHROMEPOLICY:	doUpdateChromePolicy,
       Cmd.ARG_CIGROUP:		doUpdateCIGroups,
       Cmd.ARG_CONTACT:		doUpdateDomainContacts,
@@ -53996,6 +54294,8 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_BROWSERS:		Cmd.ARG_BROWSER,
   Cmd.ARG_BROWSERTOKENS:	Cmd.ARG_BROWSERTOKEN,
   Cmd.ARG_BUILDINGS:		Cmd.ARG_BUILDING,
+  Cmd.ARG_CHATMEMBERS:		Cmd.ARG_CHATMEMBER,
+  Cmd.ARG_CHATSPACES:		Cmd.ARG_CHATSPACE,
   Cmd.ARG_CHROMEPOLICIES:	Cmd.ARG_CHROMEPOLICY,
   Cmd.ARG_CHROMESCHEMAS:	Cmd.ARG_CHROMESCHEMA,
   Cmd.ARG_CIGROUPS:		Cmd.ARG_CIGROUP,

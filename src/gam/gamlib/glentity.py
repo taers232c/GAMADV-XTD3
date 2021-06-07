@@ -69,6 +69,10 @@ class GamEntity():
   CALENDAR = 'cale'
   CALENDAR_ACL = 'cacl'
   CALENDAR_SETTINGS = 'cset'
+  CHAT_MEMBER = 'chme'
+  CHAT_MESSAGE = 'chms'
+  CHAT_SPACE = 'chsp'
+  CHAT_THREAD = 'chth'
   CHROME_APP = 'capp'
   CHROME_APP_DEVICE = 'capd'
   CHROME_BROWSER = 'chbr'
@@ -330,6 +334,10 @@ class GamEntity():
     CALENDAR: ['Calendars', 'Calendar'],
     CALENDAR_ACL: ['Calendar ACLs', 'Calendar ACL'],
     CALENDAR_SETTINGS: ['Calendar Settings', 'Calendar Settings'],
+    CHAT_MESSAGE: ['Chat Messages', 'Chat Message'],
+    CHAT_MEMBER: ['Chat Members', 'Chat Member'],
+    CHAT_SPACE: ['Chat Spaces', 'Chat Space'],
+    CHAT_THREAD: ['Chat Threads', 'Chat Thread'],
     CHROME_APP: ['Chrome Applications', 'Chrome Application'],
     CHROME_APP_DEVICE: ['Chrome Application Devices', 'Chrome Application Device'],
     CHROME_BROWSER: ['Chrome Browsers', 'Chrome Browser'],
