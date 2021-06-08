@@ -3243,6 +3243,7 @@ gam report usage customer [todrive <ToDriveAttribute>*]
         google+|gplus|
         group|groups|
         hangoutsmeet|meet|
+        keep|
         jamboard|
         login|logins|
         mobile|

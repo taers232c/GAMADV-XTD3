@@ -1,5 +1,7 @@
 6.04.01
 
+Added `keep` to `<ActivityApplicationName>` so you can do `gam report keep`.
+
 Handle the following error when trying to share a folder on a Team Drive to a domain.
 ```
 ERROR: 400: invalidLinkVisibility - Bad Request. User message: ""

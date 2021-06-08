@@ -10445,6 +10445,7 @@ REPORT_CHOICE_MAP = {
   'groupsenterprise': 'groups_enterprise',
   'hangoutsmeet': 'meet',
   'jamboard': 'jamboard',
+  'keep': 'keep',
   'login': 'login',
   'logins': 'login',
   'meet': 'meet',
