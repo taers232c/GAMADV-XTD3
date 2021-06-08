@@ -3237,19 +3237,22 @@ gam report usage customer [todrive <ToDriveAttribute>*]
         admin|
         calendar|calendars|
         chat|
+        chrome|
+        contextawareaccess|
+        currents|gplus|google+|
+        datastudio|
         drive|doc|docs|
-        enterprisegroups|groupsenterprise|
         gcp|
-        google+|gplus|
-        group|groups|
-        hangoutsmeet|meet|
-        keep|
+        groups|group|
+        groupsenterprise|enterprisegroups|
         jamboard|
+        keep|
         login|logins|
+        meet|hangoutsmeet|
         mobile|
-        oauthtoken|token|tokens|
         rules|
         saml|
+        token|tokens|oauthtoken|
         useraccounts
 
 gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]

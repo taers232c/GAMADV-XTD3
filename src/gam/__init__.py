@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.01'
+__version__ = '6.04.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10430,8 +10430,11 @@ REPORT_CHOICE_MAP = {
   'calendar': 'calendar',
   'calendars': 'calendar',
   'chat': 'chat',
+  'chrome': 'chrome',
+  'contextawareaccess': 'context_aware_access',
   'customer': 'customer',
   'customers': 'customer',
+  'datastudio': 'data_studio',
   'doc': 'drive',
   'docs': 'drive',
   'domain': 'customer',
