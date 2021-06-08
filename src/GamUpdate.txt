@@ -1,3 +1,10 @@
+6.04.01
+
+Handle the following error when trying to share a folder on a Team Drive to a domain.
+```
+ERROR: 400: invalidLinkVisibility - Bad Request. User message: ""
+```
+
 6.04.00
 
 Following Jay's lead, added chat bot commands.

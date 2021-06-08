@@ -86,6 +86,7 @@ INVALID_ARGUMENT = 'invalidArgument'
 INVALID_ATTRIBUTE_VALUE = 'invalidAttributeValue'
 INVALID_CUSTOMER_ID = 'invalidCustomerId'
 INVALID_INPUT = 'invalidInput'
+INVALID_LINK_VISIBILITY = 'invalidLinkVisibility'
 INVALID_MEMBER = 'invalidMember'
 INVALID_MESSAGE_ID = 'invalidMessageId'
 INVALID_ORGUNIT = 'invalidOrgunit'
@@ -177,7 +178,7 @@ DRIVE3_CREATE_ACL_THROW_REASONS = [INVALID, INVALID_SHARING_REQUEST, OWNERSHIP_C
                                    ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
-                                   TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED]
+                                   TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED, INVALID_LINK_VISIBILITY]
 DRIVE3_GET_ACL_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND, FORBIDDEN, INTERNAL_ERROR, INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, INSUFFICIENT_FILE_PERMISSIONS, UNKNOWN_ERROR, INVALID]
 DRIVE3_UPDATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID_OWNERSHIP_TRANSFER, CANNOT_REMOVE_OWNER,
                                    OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
@@ -409,6 +410,8 @@ class invalidCustomerId(Exception):
   pass
 class invalidInput(Exception):
   pass
+class invalidLinkVisibility(Exception):
+  pass
 class invalidMember(Exception):
   pass
 class invalidMessageId(Exception):
@@ -596,6 +599,7 @@ REASON_EXCEPTION_MAP = {
   INVALID_ATTRIBUTE_VALUE: invalidAttributeValue,
   INVALID_CUSTOMER_ID: invalidCustomerId,
   INVALID_INPUT: invalidInput,
+  INVALID_LINK_VISIBILITY: invalidLinkVisibility,
   INVALID_MEMBER: invalidMember,
   INVALID_MESSAGE_ID: invalidMessageId,
   INVALID_ORGUNIT: invalidOrgunit,

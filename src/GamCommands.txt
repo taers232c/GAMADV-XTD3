@@ -291,7 +291,7 @@ If an item contains spaces, it should be surrounded by ".
 <CIGroupType> ::= customer|group|serviceaccount|user
 <ChatMember> ::= spaces/<String>/members/<String>
 <ChatMessage> ::= spaces/<String>/messages/<String>
-<ChatSpace> ::= <String>|spaces/<String>
+<ChatSpace> ::= <spaces/<String> | <String>
 <ChatThread> ::= spaces/<String>/threads/<String>
 <ClassroomInvitationID> ::= <String>
 <ClientID> ::= <String>
