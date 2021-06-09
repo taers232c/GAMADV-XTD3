@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.02'
+__version__ = '6.04.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10490,6 +10490,17 @@ USER_REPORT_SERVICES = [
   'gplus',
   ]
 
+REPORT_ACTIVITIES_UPPERCASE_EVENTS = {
+  'access_transparency',
+  'admin',
+  'chrome',
+  'context_aware_access',
+  'data_studio',
+  'gcp',
+  'jamboard',
+  'mobile'
+  }
+
 REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 
 # gam report <ActivityApplictionName> [todrive <ToDriveAttribute>*]
@@ -10786,7 +10797,7 @@ def doReport():
       startEndTime.Get(myarg)
     elif activityReports and myarg in {'event', 'events'}:
       for event in getString(Cmd.OB_EVENT_NAME_LIST).replace(',', ' ').split():
-        event = event.lower() if report not in {'access_transparency', 'admin', 'gcp', 'mobile'} else event.upper()
+        event = event.lower() if report not in REPORT_ACTIVITIES_UPPERCASE_EVENTS else event.upper()
         if event not in eventNames:
           eventNames.append(event)
     elif activityReports and myarg == 'ip':

@@ -1,6 +1,11 @@
+6.04.03
+
+Fixed bug in `gam report` where event names were not put in upper case for:
+`chrome`, `contextawareaccess`, `datastudio` and `jamboard`.
+
 6.04.02
 
-Added `chrome`, 'contextawareaccess` and `datastudio` to `<ActivityApplicationName>` so you can do `gam report xxx`.
+Added `chrome`, `contextawareaccess` and `datastudio` to `<ActivityApplicationName>` so you can do `gam report xxx`.
 
 6.04.01
 
