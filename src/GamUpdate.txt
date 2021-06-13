@@ -1,3 +1,13 @@
+6.04.04
+
+Fixed bug in `gam <UserTypeEntity> move drivefile ... duplicatefiles uniquename` that caused
+a trap when the source file name contained a '(' with no following ')' or contained a '['.
+
+Updated `gam <UserTypeEntity> move drivefile ... duplicatefiles uniquename` to not treat the
+rightmost '.' followed by more than five characters as an extension.
+* `foo.abcde` will be renamed to `foo(1).abcde` when moved into a folder containing `foo.abcde`
+* `foo.abcdef` will be renamed to `foo.abcdef(1)` when moved into a folder containing `foo.abcdef`
+
 6.04.03
 
 Fixed bug in `gam report` where event names were not put in upper case for:

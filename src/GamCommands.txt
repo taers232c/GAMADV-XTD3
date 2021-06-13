@@ -1953,7 +1953,7 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
         (subject <String>)|
         (suffix <String>)|
         (userdefinedfield clear|(<String> <String>))|
-        (website clear|(home_page|blog|profile|work|home|other|ftp|reservations|app_install_page|<String> <URL> notprimary|primary))
+        (website clear|(app_install_page|blog|ftp|home|home_page|other|profile|reservations|work|<String> <URL> notprimary|primary))
 
 <ContactGroupAttribute> ::=
         (name <String>)

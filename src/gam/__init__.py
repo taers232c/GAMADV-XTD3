@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.03'
+__version__ = '6.04.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1564,8 +1564,8 @@ def getStringOrFile(myarg, minLen=0, unescapeCRLF=False):
 
 def getStringWithCRsNLsOrFile():
   if checkArgumentPresent(SORF_FILE_ARGUMENTS):
-    return getStringOrFile(Cmd.Previous().strip().lower().replace('_', ''), minLen=0)[0]
-  return unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=0))
+    return getStringOrFile(Cmd.Previous().strip().lower().replace('_', ''), minLen=0)
+  return (unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=0)), UTF8, False)
 
 def todaysDate():
   return datetime.datetime(GM.Globals[GM.DATETIME_NOW].year, GM.Globals[GM.DATETIME_NOW].month, GM.Globals[GM.DATETIME_NOW].day,
@@ -7370,7 +7370,8 @@ def flattenJSON(topStructure, flattened=None,
   return flattened
 
 # Show a json object
-def showJSON(showName, showValue, skipObjects=None, timeObjects=None, simpleLists=None, dictObjectsKey=None, sortDictKeys=True):
+def showJSON(showName, showValue, skipObjects=None, timeObjects=None,
+             simpleLists=None, dictObjectsKey=None, sortDictKeys=True):
   def _show(objectName, objectValue, subObjectKey, level):
     if objectName in allSkipObjects:
       return
@@ -14605,7 +14606,7 @@ class ContactsManager():
       elif fieldName == CONTACT_LANGUAGE:
         fields[fieldName] = getLanguageCode()
       elif fieldName == CONTACT_NOTES:
-        fields[fieldName] = getStringWithCRsNLsOrFile()
+        fields[fieldName] = getStringWithCRsNLsOrFile()[0]
       elif fieldName == CONTACT_ADDRESSES:
         if CheckClearFieldsList(fieldName):
           continue
@@ -31720,7 +31721,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           continue
         entry = {}
         getKeywordAttribute(typeKeywords, entry, defaultChoice='text_plain')
-        entry['value'] = getStringWithCRsNLsOrFile()
+        entry['value'] = getStringWithCRsNLsOrFile()[0]
         body[up] = entry
       elif up == 'organizations':
         if checkClearBodyList(body, up):
@@ -43833,43 +43834,38 @@ def _targetFilenameExists(destFilename, mimeType, targetChildren):
       return True
   return False
 
-UNIQUE_PREFIX_PATTERN = re.compile(r'^(.+)\(\d+\)$')
+UNIQUE_PREFIX_PATTERN = re.compile(r'^(.+)\((\d+)\)$')
 
-def _getFilenamePrefix(destFilename):
-  if destFilename.find('.') != -1:
-    (base, _) = destFilename.rsplit('.', 1)
-  else:
+def _getFilenameParts(destFilename):
+  base, ext = os.path.splitext(destFilename)
+  if ext and base.endswith('.tar'):
+    ext = '.tar'+ext
+    base = base[:-4]
+  elif len(ext) > 5:
     base = destFilename
+    ext = ''
   mg = UNIQUE_PREFIX_PATTERN.match(base)
   if mg:
-    return mg.group(1)
+    return (mg.group(1), int(mg.group(2)), ext)
+  return (base, 0, ext)
+
+def _getFilenamePrefix(destFilename):
+  base, _, _ = _getFilenameParts(destFilename)
   return base
 
 def _getUniqueFilename(destFilename, mimeType, targetChildren):
   if not _targetFilenameExists(destFilename, mimeType, targetChildren):
     return destFilename
-  if destFilename.find('.') != -1:
-    (base, ext) = destFilename.rsplit('.', 1)
-    mg = UNIQUE_PREFIX_PATTERN.match(base)
-    if mg:
-      base = mg.group(1)
-    pattern = re.compile(fr'^{base}\((\d+)\)\.{ext}$', flags=re.IGNORECASE)
-  else:
-    base = destFilename
-    ext = None
-    mg = UNIQUE_PREFIX_PATTERN.match(base)
-    if mg:
-      base = mg.group(1)
-    pattern = re.compile(fr'^{base}\((\d+)\)$', flags=re.IGNORECASE)
+  base, _, ext = _getFilenameParts(destFilename)
   n = 0
   for target in targetChildren:
-    mg = pattern.match(target['name'])
-    if mg:
-      v = int(mg.group(1))
-      if v > n:
-        n = v
-  if ext is not None:
-    return f'{base}({n+1}).{ext}'
+    tbase, tcnt, text = _getFilenameParts(target['name'])
+    if base != tbase or ext != text:
+      continue
+    if tcnt > n:
+      n = tcnt
+  if ext:
+    return f'{base}({n+1}){ext}'
   return f'{base}({n+1})'
 
 def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileTitle, newFileId, newFileTitle,
