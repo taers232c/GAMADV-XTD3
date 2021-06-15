@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.04'
+__version__ = '6.04.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -44904,12 +44904,12 @@ def getDriveFile(users):
       try:
         result = callGAPI(drive.files(), 'get',
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
-                          fileId=fileId, fields='name,fileExtension,mimeType,size', supportsAllDrives=True)
+                          fileId=fileId, fields='name,fullFileExtension,mimeType,size', supportsAllDrives=True)
         if revisionId:
           callGAPI(drive.revisions(), 'get',
                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS+[GAPI.REVISION_NOT_FOUND],
                    fileId=fileId, revisionId=revisionId, fields='id')
-        fileExtension = result.get('fileExtension')
+        fileExtension = result.get('fullFileExtension')
         mimeType = result['mimeType']
         if mimeType == MIMETYPE_GA_FOLDER:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, result['name']], Msg.CAN_NOT_BE_DOWNLOADED, j, jcount)
@@ -44930,7 +44930,10 @@ def getDriveFile(users):
           googleDoc = False
         csvSheetNotFound = fileDownloaded = fileDownloadFailed = False
         for exportFormat in exportFormats:
-          extension = fileExtension or exportFormat['ext']
+          if fileExtension:
+            extension = '.'+fileExtension
+          else:
+            extension = exportFormat['ext']
           if googleDoc and (extension not in validExtensions):
             continue
           if targetStdout:

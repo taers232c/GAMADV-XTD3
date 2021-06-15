@@ -1,3 +1,8 @@
+6.04.05
+
+Fixed bug in `gam <UserTypeEntity> get drivefile` where an extension was added
+to a filename without the separating `.`.
+
 6.04.04
 
 Fixed bug in `gam <UserTypeEntity> move drivefile ... duplicatefiles uniquename` that caused
