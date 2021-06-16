@@ -19457,11 +19457,11 @@ def doCreateCIDevice():
     missingArgumentExit('devicetype')
   try:
     result = callGAPI(ci.devices(), 'create',
-                      throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
+                      throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
                       customer=customer, body=body)
     deviceId = _makeDeviceId(f'{result["response"]["name"]}', body)
     entityActionPerformed([Ent.COMPANY_DEVICE, deviceId])
-  except (GAPI.invalid, GAPI.permissionDenied, GAPI.alreadyExists) as e:
+  except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.alreadyExists) as e:
     deviceId = _makeDeviceId('/devices/???', body)
     entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e))
 
@@ -19597,11 +19597,11 @@ def doSyncCIDevices():
     pageMessage = getPageMessage()
     try:
       remoteDevices += callGAPIpages(ci.devices(), 'list', 'devices',
-                                     throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                     throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                                      pageMessage=pageMessage,
                                      customer=customer, filter=query, view='COMPANY_INVENTORY',
                                      fields=fields, pageSize=100)
-    except (GAPI.invalid, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.COMPANY_DEVICE, None], str(e))
       return
   remoteDeviceMap = {}
@@ -44765,23 +44765,32 @@ NON_DOWNLOADABLE_MIMETYPES = [MIMETYPE_GA_FORM, MIMETYPE_GA_FUSIONTABLE, MIMETYP
 
 GOOGLEDOC_VALID_EXTENSIONS_MAP = {
   MIMETYPE_GA_DRAWING: ['.jpeg', '.jpg', '.pdf', '.png', '.svg'],
-  MIMETYPE_GA_DOCUMENT: ['.docx', '.html', '.odt', '.pdf', '.rtf', '.txt', '.zip'],
+  MIMETYPE_GA_DOCUMENT: ['.docx', '.epub', '.html', '.odt', '.pdf', '.rtf', '.txt', '.zip'],
   MIMETYPE_GA_PRESENTATION: ['.pdf', '.pptx', '.odp', '.txt'],
-  MIMETYPE_GA_SPREADSHEET: ['.csv', '.ods', '.pdf', '.xlsx', '.zip'],
+  MIMETYPE_GA_SPREADSHEET: ['.csv', '.ods', '.pdf', '.tsv', '.xlsx', '.zip'],
   }
 
-MICROSOFT_FORMATS_LIST = [{'mime': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'ext': '.docx'},
-                          {'mime': 'application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'ext': '.dotx'},
-                          {'mime': 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'ext': '.pptx'},
-                          {'mime': 'application/vnd.openxmlformats-officedocument.presentationml.template', 'ext': '.potx'},
-                          {'mime': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ext': '.xlsx'},
-                          {'mime': 'application/vnd.openxmlformats-officedocument.spreadsheetml.template', 'ext': '.xltx'},
-                          {'mime': 'application/msword', 'ext': '.doc'},
-                          {'mime': 'application/msword', 'ext': '.dot'},
-                          {'mime': 'application/vnd.ms-powerpoint', 'ext': '.ppt'},
-                          {'mime': 'application/vnd.ms-powerpoint', 'ext': '.pot'},
-                          {'mime': 'application/vnd.ms-excel', 'ext': '.xls'},
-                          {'mime': 'application/vnd.ms-excel', 'ext': '.xlt'}]
+MICROSOFT_FORMATS_LIST = [
+  {'mime': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'ext': '.docx'},
+  {'mime': 'application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'ext': '.dotx'},
+  {'mime': 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'ext': '.pptx'},
+  {'mime': 'application/vnd.openxmlformats-officedocument.presentationml.template', 'ext': '.potx'},
+  {'mime': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ext': '.xlsx'},
+  {'mime': 'application/vnd.openxmlformats-officedocument.spreadsheetml.template', 'ext': '.xltx'},
+  {'mime': 'application/msword', 'ext': '.doc'},
+  {'mime': 'application/msword', 'ext': '.dot'},
+  {'mime': 'application/vnd.ms-powerpoint', 'ext': '.ppt'},
+  {'mime': 'application/vnd.ms-powerpoint', 'ext': '.pot'},
+  {'mime': 'application/vnd.ms-excel', 'ext': '.xls'},
+  {'mime': 'application/vnd.ms-excel', 'ext': '.xlt'},
+  ]
+
+OPENOFFICE_FORMATS_LIST = [
+  {'mime': 'application/vnd.oasis.opendocument.presentation', 'ext': '.odp'},
+  {'mime': 'application/x-vnd.oasis.opendocument.spreadsheet', 'ext': '.ods'},
+  {'mime': 'application/vnd.oasis.opendocument.spreadsheet', 'ext': '.ods'},
+  {'mime': 'application/vnd.oasis.opendocument.text', 'ext': '.odt'},
+  ]
 
 DOCUMENT_FORMATS_MAP = {
   'csv': [{'mime': 'text/csv', 'ext': '.csv'}],
@@ -44814,13 +44823,37 @@ DOCUMENT_FORMATS_MAP = {
   'xlsx': [{'mime': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'ext': '.xlsx'}],
   'xltx': [{'mime': 'application/vnd.openxmlformats-officedocument.spreadsheetml.template', 'ext': '.xltx'}],
   'zip': [{'mime': 'application/zip', 'ext': '.zip'}],
-  'ms': MICROSOFT_FORMATS_LIST,
-  'microsoft': MICROSOFT_FORMATS_LIST,
-  'micro$oft': MICROSOFT_FORMATS_LIST,
-  'openoffice': [{'mime': 'application/vnd.oasis.opendocument.presentation', 'ext': '.odp'},
-                 {'mime': 'application/x-vnd.oasis.opendocument.spreadsheet', 'ext': '.ods'},
-                 {'mime': 'application/vnd.oasis.opendocument.spreadsheet', 'ext': '.ods'},
-                 {'mime': 'application/vnd.oasis.opendocument.text', 'ext': '.odt'}],
+  }
+
+MIMETYPE_EXTENSION_MAP = {
+  'application/epub+zip': '.epub',
+  'application/msword': '.doc',
+  'application/octet-stream': '',
+  'application/pdf': '.pdf',
+  'application/rtf': '.rtf',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.ms-powerpoint': '.ppt',
+  'application/vnd.oasis.opendocument.presentation': '.odp',
+  'application/vnd.oasis.opendocument.spreadsheet': '.ods',
+  'application/vnd.oasis.opendocument.text': '.odt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  'application/vnd.openxmlformats-officedocument.presentationml.template': '.potx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.template': '.xltx',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.template': '.dotx',
+  'application/x-vnd.oasis.opendocument.spreadsheet': '.ods',
+  'application/zip': '.zip',
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/svg+xml': '.svg',
+  'message/rfc822': 'mht',
+  'text/csv': '.csv',
+  'text/html': '.html',
+  'text/plain': '.txt',
+  'text/rtf': '.rtf',
+  'text/tab-separated-values': '.tsv',
+  'text/tsv': '.tsv',
   }
 
 HTTP_ERROR_PATTERN = re.compile(r'^.*returned "(.*)">$')
@@ -44839,7 +44872,7 @@ def getDriveFile(users):
   exportSheetAsPDF = revisionId = ''
   exportFormatName = 'openoffice'
   exportFormatChoices = [exportFormatName]
-  exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
+  exportFormats = OPENOFFICE_FORMATS_LIST
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   targetNamePattern = None
   overwrite = showProgress = suppressStdoutMsgs = targetStdout = False
@@ -44849,7 +44882,11 @@ def getDriveFile(users):
       exportFormatChoices = getString(Cmd.OB_FORMAT_LIST).replace(',', ' ').lower().split()
       exportFormats = []
       for exportFormat in exportFormatChoices:
-        if exportFormat in DOCUMENT_FORMATS_MAP:
+        if exportFormat in {'ms', 'microsoft', 'micro$oft'}:
+          exportFormats.extend(MICROSOFT_FORMATS_LIST)
+        elif exportFormat == 'openoffice':
+          exportFormats.extend(OPENOFFICE_FORMATS_LIST)
+        elif exportFormat in DOCUMENT_FORMATS_MAP:
           exportFormats.extend(DOCUMENT_FORMATS_MAP[exportFormat])
         else:
           invalidChoiceExit(exportFormat, DOCUMENT_FORMATS_MAP, True)
@@ -44918,24 +44955,32 @@ def getDriveFile(users):
         if mimeType in NON_DOWNLOADABLE_MIMETYPES:
           entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_DOWNLOADABLE, j, jcount)
           continue
-        validExtensions = GOOGLEDOC_VALID_EXTENSIONS_MAP.get(mimeType)
-        if validExtensions:
+        googleDocExtensions = GOOGLEDOC_VALID_EXTENSIONS_MAP.get(mimeType)
+        if googleDocExtensions:
           my_line = ['Type', 'Google Doc']
           googleDoc = True
+          for exportFormat in exportFormats:
+            if exportFormat['ext'] in googleDocExtensions:
+              exportMimeType = exportFormat['mime']
+              if fileExtension:
+                extension = '.'+fileExtension
+              else:
+                extension = exportFormat['ext']
+              break
+          else:
+            entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_AVAILABLE.format(','.join(exportFormatChoices)), j, jcount)
+            continue
         else:
           if 'size' in result:
             my_line = ['Size', formatFileSize(int(result['size']))]
           else:
             my_line = ['Size', 'Unknown']
           googleDoc = False
-        csvSheetNotFound = fileDownloaded = fileDownloadFailed = False
-        for exportFormat in exportFormats:
           if fileExtension:
             extension = '.'+fileExtension
           else:
-            extension = exportFormat['ext']
-          if googleDoc and (extension not in validExtensions):
-            continue
+            extension = MIMETYPE_EXTENSION_MAP.get(mimeType, '')
+        while True:
           if targetStdout:
             filename = 'stdout'
           else:
@@ -44953,7 +44998,7 @@ def getDriveFile(users):
           try:
             if googleDoc:
               if (not exportSheetAsPDF and not sheetEntity) or mimeType != MIMETYPE_GA_SPREADSHEET:
-                request = drive.files().export_media(fileId=fileId, mimeType=exportFormat['mime'])
+                request = drive.files().export_media(fileId=fileId, mimeType=exportMimeType)
                 if revisionId:
                   request.uri = f'{request.uri}&revision={revisionId}'
               else:
@@ -44966,8 +45011,7 @@ def getDriveFile(users):
                   sheetId = getSheetIdFromSheetEntity(spreadsheet, sheetEntity)
                   if sheetId is None:
                     entityActionNotPerformedWarning(entityValueList, Msg.NOT_FOUND, j, jcount)
-                    csvSheetNotFound = True
-                    continue
+                    break
                   spreadsheetUrl += f'&gid={sheetId}'
                 spreadsheetUrl += exportSheetAsPDF
             else:
@@ -44976,12 +45020,11 @@ def getDriveFile(users):
                 request = drive.revisions().get_media(fileId=fileId, revisionId=revisionId)
               else:
                 request = drive.files().get_media(fileId=fileId)
-            fh = None
+            if not targetStdout:
+              fh = open(filename, 'wb')
+            else:
+              fh = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
             if not spreadsheetUrl:
-              if not targetStdout:
-                fh = open(filename, 'wb')
-              else:
-                fh = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
               downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
               done = False
               while not done:
@@ -44989,41 +45032,32 @@ def getDriveFile(users):
                 if showProgress and not suppressStdoutMsgs:
                   entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}', j, jcount)
             else:
-              fh = open(filename, 'w', encoding=UTF8, newline='') if not targetStdout else sys.stdout
               if GC.Values[GC.DEBUG_LEVEL] > 0:
                 sys.stderr.write(f'Debug: spreadsheetUrl: {spreadsheetUrl}\n')
               status, content = drive._http.request(uri=spreadsheetUrl, method='GET')
               if status['status'] == '200':
-                fh.write(content.decode(UTF8_SIG))
+                fh.write(content)
                 if targetStdout and content[-1] != '\n':
-                  fh.write('\n')
+                  fh.write(bytes('\n', UTF8))
               else:
                 entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, f'HTTP Error: {status["status"]}', j, jcount)
-                fileDownloadFailed = True
+                closeRemoveTargetFile()
                 break
             if not targetStdout:
               closeFile(fh)
             if not suppressStdoutMsgs:
               entityModifierNewValueKeyValueActionPerformed(entityValueList, Act.MODIFIER_TO, filename, my_line[0], my_line[1], j, jcount)
-            fileDownloaded = True
             break
           except (IOError, httplib2.HttpLib2Error) as e:
             entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), j, jcount)
-            fileDownloadFailed = True
-            closeRemoveTargetFile()
-            break
           except googleapiclient.http.HttpError as e:
             mg = HTTP_ERROR_PATTERN.match(str(e))
             if mg:
               entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, mg.group(1), j, jcount)
             else:
               entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), j, jcount)
-            fileDownloadFailed = True
-            closeRemoveTargetFile()
-            break
           closeRemoveTargetFile()
-        if not fileDownloaded and not fileDownloadFailed and not csvSheetNotFound:
-          entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_AVAILABLE.format(','.join(exportFormatChoices)), j, jcount)
+          break
       except GAPI.fileNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], Msg.DOES_NOT_EXIST, j, jcount)
       except GAPI.revisionNotFound:

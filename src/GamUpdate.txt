@@ -1,7 +1,7 @@
 6.04.05
 
-Fixed bug in `gam <UserTypeEntity> get drivefile` where an extension was added
-to a filename without the separating `.`.
+Fixed bug in `gam <UserTypeEntity> get drivefile` where extensions were inappropriately applied
+to files that Google reported as having no extension.
 
 6.04.04
 
