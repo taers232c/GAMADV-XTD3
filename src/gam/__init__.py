@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.05'
+__version__ = '6.04.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19428,7 +19428,6 @@ DEVICE_TYPE_MAP = {
   'android': 'ANDROID',
   'chromeos': 'CHROME_OS',
   'googlesync': 'GOOGLE_SYNC',
-  'ios': 'IOS',
   'linux': 'LINUX',
   'macos': 'MAC_OS',
   'windows': 'WINDOWS'

@@ -1,3 +1,8 @@
+6.04.06
+
+Eliminated `ios` from `<DeviceType> ::= android|chrome_os|google_sync|linux|mac_os|windows`
+as company owned IOS devices can not be created with `gam create device`.
+
 6.04.05
 
 Fixed bug in `gam <UserTypeEntity> get drivefile` where extensions were inappropriately applied
