@@ -63,13 +63,17 @@ cd $mypath
 $pip install --upgrade pip
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirements.txt
+#$pip install --upgrade pyinstaller
 $pip install wheel
-export url="https://codeload.github.com/pyinstaller/pyinstaller/tar.gz/${PYINSTALLER_VERSION}"
-echo "Downloading ${url}"
-curl -o pyinstaller.tar.gz --compressed "${url}"
-tar xf pyinstaller.tar.gz
-cd "pyinstaller-${PYINSTALLER_VERSION}/"
-# remove pre-compiled bootloaders so we fail if bootloader compile fails
+# Install PyInstaller from source and build bootloader
+# to try and avoid getting flagged as malware since
+# lots of malware uses PyInstaller default bootloader
+# https://stackoverflow.com/questions/53584395/how-to-recompile-the-bootloader-of-pyinstaller
+echo "Downloading PyInstaller..."
+wget --quiet https://github.com/pyinstaller/pyinstaller/archive/$PYINSTALLER_VERSIOB.tar.gz
+tar xf $PYINSTALLER_VERSION.tar.gz
+mv pyinstaller-$PYINSTALLER_VERSION pyinstaller
+cd pyinstaller
 rm -rf PyInstaller/bootloader/*bit
 cd bootloader
 if [ "${PLATFORM}" == "x86" ]; then
