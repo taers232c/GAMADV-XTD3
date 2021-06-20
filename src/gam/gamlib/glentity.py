@@ -216,7 +216,7 @@ class GamEntity():
   PARENT_ORGANIZATIONAL_UNIT = 'porg'
   PARTICIPANT = 'part'
   PEOPLE_CONTACT = 'peco'
-  PEOPLE_CONTACTGROUP = 'pecg'
+  PEOPLE_CONTACT_GROUP = 'pecg'
   PEOPLE_PHOTO = 'peph'
   PEOPLE_PROFILE = 'pepr'
   PERMISSION = 'perm'
@@ -481,7 +481,7 @@ class GamEntity():
     PARENT_ORGANIZATIONAL_UNIT: ['Parent Organizational Units', 'Parent Organizational Unit'],
     PARTICIPANT: ['Participants', 'Participant'],
     PEOPLE_CONTACT: ['People Contacts', 'Person Contact'],
-    PEOPLE_CONTACTGROUP: ['People Contact Groups', 'People Contact Group'],
+    PEOPLE_CONTACT_GROUP: ['People Contact Groups', 'People Contact Group'],
     PEOPLE_PHOTO: ['People Photos', 'Person Photo'],
     PEOPLE_PROFILE: ['People Profiles', 'People Profile'],
     PERMISSION: ['Permissions', 'Permission'],

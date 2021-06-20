@@ -1,3 +1,43 @@
+6.04.07
+
+Changed `config csv_input_row_filter|csv_output_row_filter` processing of blank fields
+for `count<Operator><Number>` and `boolean:<Boolean>`. Previously, a blank field was
+always treated a mismatch; now a blank field will be interpreted as `False` for `<Boolean>`
+and `0` for `<Number>` and the match test will be performed.
+
+Added options `primary` and `default`` to the following commands
+so that only the primary and/or default signature/sendas is displayed
+rather than all signatures/sendas.
+
+Added option `verifyonly` to the following commands; it causes a Boolean
+to be displayed in the `signature` field rather that the signature text;
+this simplifies checking for users with undefined signatures.
+```
+gam <UserTypeEntity> show sendas [compact|format|html]
+        [primary] [default] [verifyonly]
+gam <UserTypeEntity> print sendas [compact]
+        [primary] [default] [verifyonly] [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> show signature|sig [compact|format|html]
+        [primary] [default] [verifyonly]
+gam <UserTypeEntity> print signature [compact]
+        [primary] [default] [verifyonly] [todrive <ToDriveAttribute>*]
+```
+
+For example, this command will display a list of users without a primary email address signature (wrapped for readability):
+```
+gam config csv_output_row_filter "signature:boolean:false" csv_output_header_filter "User,displayName,signature"
+    auto_batch_min 1 num_threads 10 redirect csv ./NoPrimarySignature.txt multiprocess
+    all users print signature primary verifyonly
+
+Explanation:
+config csv_output_row_filter "signature:boolean:false" - Output rows that indicate no signature
+csv_output_header_filter "User,displayName,signature" - Output basic headers
+auto_batch_min 1 num_threads 10 - Turn on parallel processing
+redirect csv ./NoPrimarySignature.txt multiprocess - Intelligently combine output from all processes
+all users - Process all non-suspended users
+print signature primary verifyonly - Display state of primary email address signature
+```
+
 6.04.06
 
 Eliminated `ios` from `<DeviceType> ::= android|chrome_os|google_sync|linux|mac_os|windows`

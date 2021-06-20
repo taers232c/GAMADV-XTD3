@@ -2860,7 +2860,7 @@ gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|all
 
 <DeviceID> ::= devices/<String>
 <DeviceUserID> ::= devices/<String>/deviceUsers/<String>
-<DeviceType> ::= android|chrome_os|google_sync|linux|mac_os|windows
+<DeviceType> ::= android|chrome_os|google_sync|ios|linux|mac_os|windows
 
 <DeviceFieldName> ::=
         androidspecificattributes|
@@ -3119,26 +3119,26 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 
 gam delete domaincontacts <PeopleResourceNameEntity>
 gam info domaincontacts <PeopleResourceNameEntity>
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 gam print domaincontacts [todrive <ToDriveAttribute>*]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
 gam show domaincontacts
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 
 gam info domainprofiles <PeopleResourceNameEntity>
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 gam print domainprofiles [todrive <ToDriveAttribute>*]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
 gam show domainprofiles
         [query <String>]
@@ -3150,13 +3150,13 @@ gam print people [todrive <ToDriveAttribute>*]
         [sources <PeopleSourceName>]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
 gam show people
         [sources <PeopleSourceName>]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 
 # Printers
@@ -5440,7 +5440,9 @@ gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
 gam <UserTypeEntity> delete sendas <EmailAddressEntity>
 gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
 gam <UserTypeEntity> show sendas [compact|format|html]
-gam <UserTypeEntity> print sendas [compact] [todrive <ToDriveAttribute>*]
+        [primary] [default] [verifyonly]
+gam <UserTypeEntity> print sendas [compact]
+        [primary] [default] [verifyonly] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> create|add smime file <FileName> [password <Password>]
         [sendas|sendasemail <EmailAddress>] [default]
@@ -5458,8 +5460,10 @@ gam <UserTypeEntity> signature|sig
         (replace <Tag> <UserReplacement>)*
         [html [<Boolean>]] [name <String>] [replyto <EmailAddress>]
         [default] [primary] [treatasalias <Boolean>]
-gam <UserTypeEntity> show signature|sig [compact|format|html] [primary]
-gam <UserTypeEntity> print signature [compact] [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> show signature|sig [compact|format|html]
+        [primary] [default] [verifyonly]
+gam <UserTypeEntity> print signature [compact]
+        [primary] [default] [verifyonly] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> vacation <Boolean> subject <String>
         [message|htmlmessage <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)]
@@ -5564,47 +5568,47 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
 <PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
 
 gam <UserTypeEntity> show peopleprofiles
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 gam <UserTypeEntity> print peopleprofiles [todrive <ToDriveAttribute>*]
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
 
 gam <UserTypeEntity> show othercontacts
         [query <String>]
-        [allfields|(fields <OtherContactFieldNameList>)]
+        [allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
         [formatjson]
 gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
         [query <String>]
-        [allfields|(fields <OtherContactFieldNameList>)]
+        [allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
 
 gam <UserTypeEntity> delete peoplecontacts <PeopleResourceNameEntity>
 gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 gam <UserTypeEntity> show peoplecontacts
         [query <String>]
         [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
-        [allfields|(allfields|(fields <PeopleFieldNameList>))]
+        [allfields|(allfields|(fields <PeopleFieldNameList>))] [showmetadata]
         [formatjson]
 gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
         [query <String>]
         [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
-        [allfields|(allfields|(fields <PeopleFieldNameList>))]
+        [allfields|(allfields|(fields <PeopleFieldNameList>))] [showmetadata]
         [formatjson [quotechar <Character>]]
 
 gam <UserTypeEntity> print people [todrive <ToDriveAttribute>*]
         [sources <PeopleSourceName>]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show people
         [sources <PeopleSourceName>]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 
 <PeopleContactGroupFieldName> ::=

@@ -268,6 +268,7 @@ MISMATCH_SEARCH_REPLACE_SUBFIELDS = 'The number of subfields ({0}) in search "{1
 MISSING_FIELDS = 'Missing fields: {0}\n'
 MULTIPLE_BUILDINGS_SAME_NAME = '{0} {1} with the same (case-insensitive) name exist'
 MULTIPLE_ENTITIES_FOUND = 'Multiple {0} ({1}) found, {2}'
+MULTIPLE_ITEMS_SPECIFIED = 'Multiple {0} are specfied, only one is allowed'
 MULTIPLE_ITEMS_MARKED_PRIMARY = 'Multiple {0} are marked primary, only one can be primary'
 MULTIPLE_PARENTS_SPECIFIED = 'Multiple parents ({0}) specified, only one is allowed'
 MULTIPLE_SEARCH_METHODS_SPECIFIED = 'Multiple search methods ({0}) specified, only one is allowed'

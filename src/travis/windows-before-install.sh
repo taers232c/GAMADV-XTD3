@@ -63,26 +63,22 @@ cd $mypath
 $pip install --upgrade pip
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirements.txt
-$pip install --upgrade pyinstaller
 $pip install wheel
-# Install PyInstaller from source and build bootloader
-# to try and avoid getting flagged as malware since
-# lots of malware uses PyInstaller default bootloader
-# https://stackoverflow.com/questions/53584395/how-to-recompile-the-bootloader-of-pyinstaller
-#echo "Downloading PyInstaller..."
-#wget --quiet https://github.com/pyinstaller/pyinstaller/archive/$PYINSTALLER_COMMIT.tar.gz
-#tar xf $PYINSTALLER_COMMIT.tar.gz
-#mv pyinstaller-$PYINSTALLER_COMMIT pyinstaller
-#cd pyinstaller/bootloader
-#echo "bootloader before:"
-#md5sum ../PyInstaller/bootloader/Windows-${BITS}bit/*
-#
-#$python ./waf all --target-arch=${BITS}bit --msvc_version "msvc 14.0"
-#
-#echo "bootloader after:"
-#md5sum ../PyInstaller/bootloader/Windows-${BITS}bit/*
-#echo "PATH: $PATH"
-#cd ..
-#$python setup.py install
+export url="https://codeload.github.com/pyinstaller/pyinstaller/tar.gz/${PYINSTALLER_VERSION}"
+echo "Downloading ${url}"
+curl -o pyinstaller.tar.gz --compressed "${url}"
+tar xf pyinstaller.tar.gz
+cd "pyinstaller-${PYINSTALLER_VERSION}/"
+# remove pre-compiled bootloaders so we fail if bootloader compile fails
+rm -rf PyInstaller/bootloader/*bit
+cd bootloader
+if [ "${PLATFORM}" == "x86" ]; then
+    TARGETARCH="--target-arch=32bit"
+else
+    TARGETARCH=""
+fi
+$python ./waf all $TARGETARCH
+cd ..
+$python setup.py install
 echo "cd to $mypath"
 cd $mypath

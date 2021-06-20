@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.06'
+__version__ = '6.04.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6235,7 +6235,10 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
   def rowCountFilterMatch(op, filterCount):
     def checkMatch(rowCount):
       if isinstance(rowCount, str):
-        if not rowCount.isdigit():
+##### Blank = 0
+        if not rowCount:
+          rowCount = '0'
+        elif not rowCount.isdigit():
           return False
         rowCount = int(rowCount)
       elif not isinstance(rowCount, int):
@@ -6288,8 +6291,12 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
     def checkMatch(rowBoolean):
       if isinstance(rowBoolean, bool):
         return rowBoolean == filterBoolean
-      if isinstance(rowBoolean, str) and rowBoolean.lower() in TRUE_FALSE:
-        return rowBoolean.capitalize() == str(filterBoolean)
+      if isinstance(rowBoolean, str):
+        if rowBoolean.lower() in TRUE_FALSE:
+          return rowBoolean.capitalize() == str(filterBoolean)
+##### Blank = False
+        if not rowBoolean:
+          return not filterBoolean
       return False
 
     if anyMatch:
@@ -7371,7 +7378,8 @@ def flattenJSON(topStructure, flattened=None,
 
 # Show a json object
 def showJSON(showName, showValue, skipObjects=None, timeObjects=None,
-             simpleLists=None, dictObjectsKey=None, sortDictKeys=True):
+             simpleLists=None, dictObjectsKey=None, sortDictKeys=True,
+             noIndents=False):
   def _show(objectName, objectValue, subObjectKey, level):
     if objectName in allSkipObjects:
       return
@@ -7403,7 +7411,7 @@ def showJSON(showName, showValue, skipObjects=None, timeObjects=None,
       if objectName is not None:
         printBlankLine()
         Ind.Increment()
-      elif level > 0:
+      elif (level > 0) and not noIndents:
         indentAfterFirst = unindentAfterLast = True
       subObjects = sorted(objectValue) if sortDictKeys else objectValue.keys()
       if subObjectKey and (subObjectKey in subObjects):
@@ -33586,16 +33594,31 @@ def doDeletePeopleDomainContacts():
 def deletePeopleContacts(users):
   _deletePeople(users, Ent.USER)
 
-def _showPerson(userEntityType, user, entityType, person, i, count, FJQC):
+def _stripPersonMetadata(person):
+  metadata = person.pop('metadata', None)
+  if metadata is not None and 'primary' in metadata:
+    person['primary'] = metadata['primary']
+  for _, v in iter(person.items()):
+    if isinstance(v, list):
+      for entry in v:
+        metadata = entry.pop('metadata', None)
+        if metadata is not None and 'primary' in metadata:
+          entry['primary'] = metadata['primary']
+
+def _showPerson(userEntityType, user, entityType, person, i, count, FJQC, stripMetadata):
+  if stripMetadata:
+    _stripPersonMetadata(person)
   if not FJQC.formatJSON:
     printEntity([userEntityType, user, entityType, person['resourceName']], i, count)
     Ind.Increment()
-    showJSON(None, person)
+    showJSON(None, person, noIndents=True)
     Ind.Decrement()
   else:
     printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
 
-def _printPerson(entityTypeName, user, person, csvPF, FJQC):
+def _printPerson(entityTypeName, user, person, csvPF, FJQC, stripMetadata):
+  if stripMetadata:
+    _stripPersonMetadata(person)
   row = flattenJSON(person, flattened={entityTypeName: user})
   if not FJQC.formatJSON:
     csvPF.WriteRowTitles(row)
@@ -33604,7 +33627,7 @@ def _printPerson(entityTypeName, user, person, csvPF, FJQC):
                             'JSON': json.dumps(cleanJSON(person),
                                                ensure_ascii=False, sort_keys=True)})
 
-def _printPersonEntityList(entityType, entityList, userEntityType, user, i, count, csvPF, FJQC):
+def _printPersonEntityList(entityType, entityList, userEntityType, user, i, count, csvPF, FJQC, stripMetadata):
   if not csvPF:
     jcount = len(entityList)
     if not FJQC.formatJSON:
@@ -33613,17 +33636,19 @@ def _printPersonEntityList(entityType, entityList, userEntityType, user, i, coun
     j = 0
     for person in entityList:
       j += 1
-      _showPerson(userEntityType, user, entityType, person, j, jcount, FJQC)
+      _showPerson(userEntityType, user, entityType, person, j, jcount, FJQC, stripMetadata)
     Ind.Decrement()
   else:
     entityTypeName = Ent.Singular(userEntityType)
     for person in entityList:
-      _printPerson(entityTypeName, user, person, csvPF, FJQC)
+      _printPerson(entityTypeName, user, person, csvPF, FJQC, stripMetadata)
 
 PEOPLE_FIELDS_CHOICE_MAP = {
   'addresses': 'addresses',
   'ageranges': 'ageRanges',
+  'biography': 'biographies',
   'biographies': 'biographies',
+  'birthday': 'birthdays',
   'birthdays': 'birthdays',
   'calendarurls': 'calendarUrls',
   'clientdata': 'clientData',
@@ -33631,6 +33656,7 @@ PEOPLE_FIELDS_CHOICE_MAP = {
   'emailaddresses': 'emailAddresses',
   'events': 'events',
   'externalids': 'externalIds',
+  'gender': 'genders',
   'genders': 'genders',
   'imclients': 'imClients',
   'interests': 'interests',
@@ -33639,6 +33665,7 @@ PEOPLE_FIELDS_CHOICE_MAP = {
   'memberships': 'memberships',
   'metadata': 'metadata',
   'misckeywords': 'miscKeywords',
+  'name': 'names',
   'names': 'names',
   'nicknames': 'nicknames',
   'occupations': 'occupations',
@@ -33653,16 +33680,17 @@ PEOPLE_FIELDS_CHOICE_MAP = {
   }
 
 # gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
-#	[allfields|(fields <PeopleFieldNameList>)]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show peopleprofile
-#	[allfields|(fields <PeopleFieldNameList>)]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
 #	[formatjson]
 def printShowPeopleProfile(users):
   entityType = Ent.USER
   entityTypeName = Ent.Singular(entityType)
   csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  stripMetadata = True
   fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -33673,6 +33701,8 @@ def printShowPeopleProfile(users):
         addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
     elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
+    elif myarg == 'showmetadata':
+      stripMetadata = False
     elif myarg == 'peoplelookupuser':
       deprecatedArgument(myarg)
     else:
@@ -33696,9 +33726,9 @@ def printShowPeopleProfile(users):
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
     if not csvPF:
-      _showPerson(entityType, user, Ent.PEOPLE_PROFILE, result, i, count, FJQC)
+      _showPerson(entityType, user, Ent.PEOPLE_PROFILE, result, i, count, FJQC, stripMetadata)
     else:
-      _printPerson(entityTypeName, user, result, csvPF, FJQC)
+      _printPerson(entityTypeName, user, result, csvPF, FJQC, stripMetadata)
   if csvPF:
     csvPF.writeCSVfile('People Profiles')
 
@@ -33733,6 +33763,7 @@ def _infoPeople(users, entityType, source):
   entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
   resourceNameLists = entityList if isinstance(entityList, dict) else None
   FJQC = FormatJSONQuoteChar()
+  stripMetadata = True
   fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -33741,6 +33772,8 @@ def _infoPeople(users, entityType, source):
         addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
     elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
+    elif myarg == 'showmetadata':
+      stripMetadata = False
     else:
       FJQC.GetFormatJSON(myarg)
   personFields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
@@ -33773,50 +33806,59 @@ def _infoPeople(users, entityType, source):
         continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
-      _showPerson(entityType, user, peopleEntityType, result, j, jcount, FJQC)
+      _showPerson(entityType, user, peopleEntityType, result, j, jcount, FJQC, stripMetadata)
     Ind.Decrement()
 
 # gam info domaincontacts <PeopleResourceNameEntity>
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
 def doInfoPeopleDomainContacts():
   _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'domaincontact')
 
 # gam info domainprofiles <PeopleResourceNameEntity>
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
 def doInfoPeopleDomainProfiles():
   _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'profile')
 
 # gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
 def infoPeopleContacts(users):
   _infoPeople(users, Ent.USER, 'contact')
 
 # gam print domaincontacts [todrive <ToDriveAttribute>*]
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson [quotechar <Character>]]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson [quotechar <Character>]]
 # gam show domaincontacts
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
 # gam print domainprofiles [todrive <ToDriveAttribute>*]
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson [quotechar <Character>]]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson [quotechar <Character>]]
 # gam show domainprofiles
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
 # gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
 #	[sources <PeopleSourceName>]
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson [quotechar <Character>]]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	formatjson [quotechar <Character>]]
 # gam [<UserTypeEntity>] show people
 #	[sources <PeopleSourceName>]
 #	[query <String>]
 #	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
 def _printShowPeople(users, entityType, source):
   if entityType == Ent.DOMAIN:
     people = buildGAPIObject(API.PEOPLE_DIRECTORY)
@@ -33824,6 +33866,7 @@ def _printShowPeople(users, entityType, source):
   function = 'listDirectoryPeople'
   csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  stripMetadata = True
   sources = [] if source is None else [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP[source]]
   mergeSources = []
   fieldsList = []
@@ -33836,11 +33879,15 @@ def _printShowPeople(users, entityType, source):
       sources = [getChoice(PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, mapChoice=True)]
     elif myarg in {'mergesource', 'mergesources'}:
       mergeSources = [getChoice(PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP, mapChoice=True)]
+    elif myarg == 'showmetadata':
+      stripMetadata = False
     elif myarg == 'allfields':
       for field in PEOPLE_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
     elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
+    elif myarg == 'showmetadata':
+      stripMetadata = False
     elif myarg == 'query':
       kwargs['query'] = getString(Cmd.OB_QUERY)
       function = 'searchDirectoryPeople'
@@ -33871,7 +33918,7 @@ def _printShowPeople(users, entityType, source):
                                  readMask=fields, fields='nextPageToken,people', **kwargs)
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    _printPersonEntityList(peopleEntityType, entityList, entityType, user, i, count, csvPF, FJQC)
+    _printPersonEntityList(peopleEntityType, entityList, entityType, user, i, count, csvPF, FJQC, stripMetadata)
   if csvPF:
     csvPF.writeCSVfile(CSVTitle)
 
@@ -33896,16 +33943,19 @@ PEOPLE_CONTACT_ORDERBY_CHOICE_MAP = {
 # gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
 #	[query <String>]
 #	[orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson [quotechar <Character>]]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show peoplecontacts
 #	[query <String>]
 #	[orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
-#	[allfields|(fields <PeopleFieldNameList>)] [formatjson]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
 def printShowUserPeopleContacts(users):
   entityType = Ent.USER
   entityTypeName = Ent.Singular(entityType)
   csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  stripMetadata = True
   sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
   fieldsList = []
   query = None
@@ -33919,6 +33969,8 @@ def printShowUserPeopleContacts(users):
         addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
     elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
+    elif myarg == 'showmetadata':
+      stripMetadata = False
     elif myarg == 'query':
       query = getString(Cmd.OB_QUERY)
     elif myarg == 'orderby':
@@ -33949,7 +34001,7 @@ def printShowUserPeopleContacts(users):
         entityList = results.get('results', [])
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    _printPersonEntityList(Ent.PEOPLE_CONTACT, entityList, entityType, user, i, count, csvPF, FJQC)
+    _printPersonEntityList(Ent.PEOPLE_CONTACT, entityList, entityType, user, i, count, csvPF, FJQC, stripMetadata)
   if csvPF:
     csvPF.writeCSVfile('People Contacts')
 
@@ -33961,15 +34013,18 @@ PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP = {
 
 # gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
 #	[query <String>]
-#	[fields <OtherContactFieldNameList>] [formatjson [quotechar <Character>]]
+#	[fields <OtherContactFieldNameList>] [showmetadata]
+#	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show othercontacts
 #	[query <String>]
-#	[fields <OtherContactFieldNameList>] [formatjson]
+#	[fields <OtherContactFieldNameList>] [showmetadata]
+#	[formatjson]
 def printShowUserOtherContacts(users):
   entityType = Ent.USER
   entityTypeName = Ent.Singular(entityType)
   csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  stripMetadata = True
   fieldsList = []
   query = None
   while Cmd.ArgumentsRemaining():
@@ -33981,6 +34036,8 @@ def printShowUserOtherContacts(users):
         addFieldToFieldsList(field, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList)
     elif getFieldsList(myarg, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList):
       pass
+    elif myarg == 'showmetadata':
+      stripMetadata = False
     elif myarg == 'query':
       query = getString(Cmd.OB_QUERY)
     else:
@@ -34006,7 +34063,7 @@ def printShowUserOtherContacts(users):
         entityList = results.get('results', [])
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    _printPersonEntityList(Ent.OTHER_CONTACT, entityList, entityType, user, i, count, csvPF, FJQC)
+    _printPersonEntityList(Ent.OTHER_CONTACT, entityList, entityType, user, i, count, csvPF, FJQC, stripMetadata)
   if csvPF:
     csvPF.writeCSVfile('Other Contacts')
 
@@ -34019,14 +34076,17 @@ PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP = {
   }
 
 # gam <UserTypeEntity> print peoplecontactgroups [todrive <ToDriveAttribute>*]
-#	[fields <PeoplaContactGroupFieldNameList>] [formatjson [quotechar <Character>]]
+#	[fields <PeoplaContactGroupFieldNameList>] [showmetadata]
+#	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show peoplacontactgroups
-#	[fields <PeoplaContactGroupFieldNameList>] [formatjson]
+#	[fields <PeoplaContactGroupFieldNameList>] [showmetadata]
+#	[formatjson]
 def printShowUserPeopleContactGroups(users):
   entityType = Ent.USER
   entityTypeName = Ent.Singular(entityType)
   csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  stripMetadata = True
   fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -34037,6 +34097,8 @@ def printShowUserPeopleContactGroups(users):
         addFieldToFieldsList(field, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList)
     elif getFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
       pass
+    elif myarg == 'showmetadata':
+      stripMetadata = False
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   fields = ','.join(set(fieldsList)) if fieldsList else None
@@ -34054,7 +34116,7 @@ def printShowUserPeopleContactGroups(users):
                                  groupFields=fields, fields='nextPageToken,contactGroups')
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
-    _printPersonEntityList(Ent.PEOPLE_CONTACTGROUP, entityList, entityType, user, i, count, csvPF, FJQC)
+    _printPersonEntityList(Ent.PEOPLE_CONTACTGROUP, entityList, entityType, user, i, count, csvPF, FJQC, stripMetadata)
   if csvPF:
     csvPF.writeCSVfile('People Contact Groupss')
 
@@ -53130,7 +53192,7 @@ SIG_REPLY_FORMAT = 2
 SIG_REPLY_OPTIONS_MAP = {'html': SIG_REPLY_HTML, 'compact': SIG_REPLY_COMPACT, 'format': SIG_REPLY_FORMAT}
 SMTPMSA_DISPLAY_FIELDS = ['host', 'port', 'securityMode']
 
-def _showSendAs(result, j, jcount, sigReplyFormat):
+def _showSendAs(result, j, jcount, sigReplyFormat, verifyOnly=False):
   if result['displayName']:
     printEntity([Ent.SENDAS_ADDRESS, f'{result["displayName"]} <{result["sendAsEmail"]}>'], j, jcount)
   else:
@@ -53149,9 +53211,9 @@ def _showSendAs(result, j, jcount, sigReplyFormat):
   if 'verificationStatus' in result:
     printKeyValueList(['Verification Status', result['verificationStatus']])
   signature = result.get('signature')
-  if not signature:
-    signature = 'None'
-  if sigReplyFormat == SIG_REPLY_HTML:
+  if verifyOnly:
+    printKeyValueList(['Signature', bool(signature)])
+  elif sigReplyFormat == SIG_REPLY_HTML:
     printKeyValueList(['Signature', None])
     Ind.Increment()
     printKeyValueList([Ind.MultiLineText(signature)])
@@ -53175,7 +53237,8 @@ def _processSignature(tagReplacements, signature, html):
   return signature
 
 # Process SendAs functions
-def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, function, sigReplyFormat, **kwargs):
+def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, function,
+                   sigReplyFormat, verifyOnly=False, **kwargs):
   userDefined = True
   try:
     result = callGAPI(gmail.users().settings().sendAs(), function,
@@ -53184,7 +53247,7 @@ def _processSendAs(user, i, count, entityType, emailAddress, j, jcount, gmail, f
                                                              GAPI.FAILED_PRECONDITION],
                       userId='me', **kwargs)
     if function == 'get':
-      _showSendAs(result, j, jcount, sigReplyFormat)
+      _showSendAs(result, j, jcount, sigReplyFormat, verifyOnly)
     else:
       entityActionPerformed([Ent.USER, user, entityType, emailAddress], j, jcount)
   except (GAPI.notFound, GAPI.alreadyExists, GAPI.duplicate,
@@ -53307,17 +53370,26 @@ def deleteInfoSendAs(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> print sendas [compact] [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print sendas [compact]
+#	[default] [primary] [verifyonly] [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show sendas [compact|format|html]
+#	[default] [primary] [verifyonly]
 def printShowSendAs(users):
   csvPF = CSVPrintFile(['User', 'displayName', 'sendAsEmail', 'replyToAddress',
                         'isPrimary', 'isDefault', 'treatAsAlias', 'verificationStatus'],
                        'sortall') if Act.csvFormat() else None
   sigReplyFormat = SIG_REPLY_HTML
+  default = primary = verifyOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif myarg == 'primary':
+      primary = True
+    elif myarg == 'default':
+      default = True
+    elif myarg == 'verifyonly':
+      verifyOnly = True
     elif (not csvPF and myarg in SIG_REPLY_OPTIONS_MAP) or (csvPF and myarg == 'compact'):
       sigReplyFormat = SIG_REPLY_OPTIONS_MAP[myarg]
     else:
@@ -53339,24 +53411,35 @@ def printShowSendAs(users):
         j = 0
         for sendas in results:
           j += 1
-          _showSendAs(sendas, j, jcount, sigReplyFormat)
+          if ((not primary and not default) or
+              (primary and sendas.get('isPrimary', False)) or
+              (default and sendas.get('isDefault', False))):
+            _showSendAs(sendas, j, jcount, sigReplyFormat, verifyOnly)
         Ind.Decrement()
       else:
         printGettingEntityItemForWhom(Ent.SENDAS_ADDRESS, user, i, count)
         if results:
           for sendas in results:
-            row = {'User': user, 'isPrimary': False}
-            for item in sendas:
-              if item != 'smtpMsa':
-                if item != 'signature' or sigReplyFormat != SIG_REPLY_COMPACT:
-                  row[item] = sendas[item]
+            if ((not primary and not default) or
+                (primary and sendas.get('isPrimary', False)) or
+                (default and sendas.get('isDefault', False))):
+              row = {'User': user, 'isPrimary': False}
+              for item in sendas:
+                if item != 'smtpMsa':
+                  if item == 'signature':
+                    if verifyOnly:
+                      row[item] = bool(sendas[item])
+                    elif sigReplyFormat != SIG_REPLY_COMPACT:
+                      row[item] = sendas[item]
+                    else:
+                      row[item] = sendas[item].replace('\r', '').replace('\n', '')
+                  else:
+                    row[item] = sendas[item]
                 else:
-                  row[item] = sendas[item].replace('\r', '').replace('\n', '')
-              else:
-                for field in SMTPMSA_DISPLAY_FIELDS:
-                  if field in sendas[item]:
-                    row[f'smtpMsa.{field}'] = sendas[item][field]
-            csvPF.WriteRowTitles(row)
+                  for field in SMTPMSA_DISPLAY_FIELDS:
+                    if field in sendas[item]:
+                      row[f'smtpMsa.{field}'] = sendas[item][field]
+              csvPF.WriteRowTitles(row)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
@@ -53648,14 +53731,18 @@ def setSignature(users):
     else:
       _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, 'patch', False, body=body, sendAsEmail=user, fields='')
 
-# gam <UserTypeEntity> show signature|sig [compact|format|html] [primary]
+# gam <UserTypeEntity> show signature|sig [compact|format|html] [primary] [default] [verifyonly]
 def showSignature(users):
   sigReplyFormat = SIG_REPLY_HTML
-  primary = False
+  default = primary = verifyOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'primary':
       primary = True
+    elif myarg == 'default':
+      default = True
+    elif myarg == 'verifyonly':
+      verifyOnly = True
     elif myarg in SIG_REPLY_OPTIONS_MAP:
       sigReplyFormat = SIG_REPLY_OPTIONS_MAP[myarg]
     else:
@@ -53666,7 +53753,7 @@ def showSignature(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    if primary:
+    if primary or default:
       try:
         result = callGAPI(gmail.users().settings().sendAs(), 'list',
                           throwReasons=GAPI.GMAIL_THROW_REASONS,
@@ -53674,14 +53761,17 @@ def showSignature(users):
         printEntity([Ent.USER, user, Ent.SIGNATURE, ''], i, count)
         Ind.Increment()
         for sendas in result['sendAs']:
-          if sendas.get('isPrimary', False):
-            _showSendAs(sendas, 0, 0, sigReplyFormat)
+          if ((not primary and not default) or
+              (primary and sendas.get('isPrimary', False)) or
+              (default and sendas.get('isDefault', False))):
+            _showSendAs(sendas, 0, 0, sigReplyFormat, verifyOnly)
             break
         Ind.Decrement()
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     else:
-      _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, 'get', sigReplyFormat, sendAsEmail=user)
+      _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, 'get',
+                     sigReplyFormat, verifyOnly=verifyOnly, sendAsEmail=user)
 
 VACATION_START_STARTED = 'Started'
 VACATION_END_NOT_SPECIFIED = 'NotSpecified'
