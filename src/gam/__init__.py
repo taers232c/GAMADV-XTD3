@@ -38179,6 +38179,8 @@ def printShowCalendars(users):
     user, cal = validateCalendar(user, i, count)
     if not cal:
       continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.CALENDAR, user, i, count)
     try:
       calendars = callGAPIpages(cal.calendarList(), 'list', 'items',
                                 throwReasons=GAPI.CALENDAR_THROW_REASONS,
@@ -38221,7 +38223,6 @@ def printShowCalendars(users):
         _showCalendar(calendar, j, jcount, FJQC, acls)
       Ind.Decrement()
     else:
-      printGettingEntityItemForWhom(Ent.CALENDAR, user, i, count)
       if calendars:
         for calendar in calendars:
           row = {'primaryEmail': user, 'calendarId': calendar['id']}
@@ -52730,6 +52731,8 @@ def printShowFilters(users):
         continue
     else:
       labels = {'labels': []}
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.FILTER, user, i, count)
     try:
       results = callGAPIitems(gmail.users().settings().filters(), 'list', 'filter',
                               throwReasons=GAPI.GMAIL_THROW_REASONS,
@@ -52744,7 +52747,6 @@ def printShowFilters(users):
           _showFilter(userFilter, j, jcount, labels)
         Ind.Decrement()
       else:
-        printGettingEntityItemForWhom(Ent.FILTER, user, i, count)
         if results:
           for userFilter in results:
             row = _printFilter(user, userFilter, labels)
@@ -52880,6 +52882,8 @@ def printShowForward(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.FORWARD_ENABLED, user, i, count)
     try:
       result = callGAPI(gmail.users().settings(), 'getAutoForwarding',
                         throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
@@ -52887,7 +52891,6 @@ def printShowForward(users):
       if not csvPF:
         _showForward(user, i, count, result)
       else:
-        printGettingEntityItemForWhom(Ent.FORWARD_ENABLED, user, i, count)
         _printForward(user, result, showDisabled)
     except GAPI.failedPrecondition as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
@@ -52974,6 +52977,8 @@ def printShowForwardingAddresses(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.FORWARDING_ADDRESS, user, i, count)
     try:
       results = callGAPIitems(gmail.users().settings().forwardingAddresses(), 'list', 'forwardingAddresses',
                               throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
@@ -52988,7 +52993,6 @@ def printShowForwardingAddresses(users):
           _showForwardingAddress(j, jcount, forward)
         Ind.Decrement()
       else:
-        printGettingEntityItemForWhom(Ent.FORWARDING_ADDRESS, user, i, count)
         if results:
           for forward in results:
             csvPF.WriteRow({'User': user, 'forwardingEmail': forward['forwardingEmail'], 'verificationStatus': forward['verificationStatus']})
@@ -53213,18 +53217,21 @@ def _showSendAs(result, j, jcount, sigReplyFormat, verifyOnly=False):
   signature = result.get('signature')
   if verifyOnly:
     printKeyValueList(['Signature', bool(signature)])
-  elif sigReplyFormat == SIG_REPLY_HTML:
-    printKeyValueList(['Signature', None])
-    Ind.Increment()
-    printKeyValueList([Ind.MultiLineText(signature)])
-    Ind.Decrement()
-  elif sigReplyFormat == SIG_REPLY_FORMAT:
-    printKeyValueList(['Signature', None])
-    Ind.Increment()
-    printKeyValueList([Ind.MultiLineText(dehtml(signature))])
-    Ind.Decrement()
-  else: # SIG_REPLY_COMPACT
-    printKeyValueList(['Signature', escapeCRsNLs(signature)])
+  else:
+    if not signature:
+      signature = 'None'
+    if sigReplyFormat == SIG_REPLY_HTML:
+      printKeyValueList(['Signature', None])
+      Ind.Increment()
+      printKeyValueList([Ind.MultiLineText(signature)])
+      Ind.Decrement()
+    elif sigReplyFormat == SIG_REPLY_FORMAT:
+      printKeyValueList(['Signature', None])
+      Ind.Increment()
+      printKeyValueList([Ind.MultiLineText(dehtml(signature))])
+      Ind.Decrement()
+    else: # SIG_REPLY_COMPACT
+      printKeyValueList(['Signature', escapeCRsNLs(signature)])
   Ind.Decrement()
 
 def _processSignature(tagReplacements, signature, html):
@@ -53371,23 +53378,24 @@ def deleteInfoSendAs(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> print sendas [compact]
-#	[default] [primary] [verifyonly] [todrive <ToDriveAttribute>*]
+#	[primary|default] [verifyonly] [todrive <ToDriveAttribute>*]
 # gam <UserTypeEntity> show sendas [compact|format|html]
-#	[default] [primary] [verifyonly]
+#	[primary|default] [verifyonly]
 def printShowSendAs(users):
   csvPF = CSVPrintFile(['User', 'displayName', 'sendAsEmail', 'replyToAddress',
                         'isPrimary', 'isDefault', 'treatAsAlias', 'verificationStatus'],
                        'sortall') if Act.csvFormat() else None
   sigReplyFormat = SIG_REPLY_HTML
-  default = primary = verifyOnly = False
+  selection=None
+  verifyOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'primary':
-      primary = True
+      selection = 'isPrimary'
     elif myarg == 'default':
-      default = True
+      selection = 'isDefault'
     elif myarg == 'verifyonly':
       verifyOnly = True
     elif (not csvPF and myarg in SIG_REPLY_OPTIONS_MAP) or (csvPF and myarg == 'compact'):
@@ -53400,29 +53408,26 @@ def printShowSendAs(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.SENDAS_ADDRESS, user, i, count)
     try:
       results = callGAPIitems(gmail.users().settings().sendAs(), 'list', 'sendAs',
                               throwReasons=GAPI.GMAIL_THROW_REASONS,
                               userId='me')
       jcount = len(results)
       if not csvPF:
-        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.SENDAS_ADDRESS, i, count)
+        entityPerformActionNumItems([Ent.USER, user], jcount if selection is None else 1, Ent.SENDAS_ADDRESS, i, count)
         Ind.Increment()
         j = 0
         for sendas in results:
           j += 1
-          if ((not primary and not default) or
-              (primary and sendas.get('isPrimary', False)) or
-              (default and sendas.get('isDefault', False))):
+          if (selection is None) or (sendas.get(selection, False)):
             _showSendAs(sendas, j, jcount, sigReplyFormat, verifyOnly)
         Ind.Decrement()
       else:
-        printGettingEntityItemForWhom(Ent.SENDAS_ADDRESS, user, i, count)
         if results:
           for sendas in results:
-            if ((not primary and not default) or
-                (primary and sendas.get('isPrimary', False)) or
-                (default and sendas.get('isDefault', False))):
+            if (selection is None) or (sendas.get(selection, False)):
               row = {'User': user, 'isPrimary': False}
               for item in sendas:
                 if item != 'smtpMsa':
@@ -53446,6 +53451,76 @@ def printShowSendAs(users):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
     csvPF.writeCSVfile('SendAs')
+
+# gam <UserTypeEntity> print signature [compact]
+#	[primary] [verifyonly] [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> show signature|sig [compact|format|html]
+#	[primary] [verifyonly]
+def printShowSignature(users):
+  csvPF = CSVPrintFile(['User', 'displayName', 'sendAsEmail', 'replyToAddress',
+                        'isPrimary', 'isDefault', 'treatAsAlias', 'verificationStatus'],
+                       'sortall') if Act.csvFormat() else None
+  sigReplyFormat = SIG_REPLY_HTML
+  selection = None
+  verifyOnly = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'primary':
+      selection = 'isPrimary'
+    elif myarg == 'default':
+      selection = 'isDefault'
+    elif myarg == 'verifyonly':
+      verifyOnly = True
+    elif (not csvPF and myarg in SIG_REPLY_OPTIONS_MAP) or (csvPF and myarg == 'compact'):
+      sigReplyFormat = SIG_REPLY_OPTIONS_MAP[myarg]
+    else:
+      unknownArgumentExit()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
+    if not gmail:
+      continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.SIGNATURE, user, i, count)
+    try:
+      if selection is None:
+        sendas = callGAPI(gmail.users().settings().sendAs(), 'get',
+                          throwReasons=GAPI.GMAIL_THROW_REASONS,
+                          userId='me', sendAsEmail=user)
+      else:
+        results = callGAPIitems(gmail.users().settings().sendAs(), 'list', 'sendAs',
+                                throwReasons=GAPI.GMAIL_THROW_REASONS,
+                                userId='me')
+        for sendas in results:
+          if sendas.get(selection, False):
+            break
+      if not csvPF:
+        _showSendAs(sendas, 0, 0, sigReplyFormat, verifyOnly)
+      else:
+        row = {'User': user, 'isPrimary': False}
+        for item in sendas:
+          if item != 'smtpMsa':
+            if item == 'signature':
+              if verifyOnly:
+                row[item] = bool(sendas[item])
+              elif sigReplyFormat != SIG_REPLY_COMPACT:
+                row[item] = sendas[item]
+              else:
+                row[item] = sendas[item].replace('\r', '').replace('\n', '')
+            else:
+              row[item] = sendas[item]
+          else:
+            for field in SMTPMSA_DISPLAY_FIELDS:
+              if field in sendas[item]:
+                row[f'smtpMsa.{field}'] = sendas[item][field]
+        csvPF.WriteRowTitles(row)
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Signature')
 
 # gam <UserTypeEntity> create|add smime file <FileName> [password <Password>]
 #	[sendas|sendasemail <EmailAddress>] [default]
@@ -53691,7 +53766,7 @@ def printShowSmimes(users):
 #	<String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)*
 #	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>]
-#	[default] [primary] [treatasalias <Boolean>]
+#	[default] [treatasalias <Boolean>]
 def setSignature(users):
   tagReplacements = _initTagReplacements()
   signature, _, html = getStringOrFile('sig')
@@ -53730,48 +53805,6 @@ def setSignature(users):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     else:
       _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, 'patch', False, body=body, sendAsEmail=user, fields='')
-
-# gam <UserTypeEntity> show signature|sig [compact|format|html] [primary] [default] [verifyonly]
-def showSignature(users):
-  sigReplyFormat = SIG_REPLY_HTML
-  default = primary = verifyOnly = False
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'primary':
-      primary = True
-    elif myarg == 'default':
-      default = True
-    elif myarg == 'verifyonly':
-      verifyOnly = True
-    elif myarg in SIG_REPLY_OPTIONS_MAP:
-      sigReplyFormat = SIG_REPLY_OPTIONS_MAP[myarg]
-    else:
-      unknownArgumentExit()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
-    if not gmail:
-      continue
-    if primary or default:
-      try:
-        result = callGAPI(gmail.users().settings().sendAs(), 'list',
-                          throwReasons=GAPI.GMAIL_THROW_REASONS,
-                          userId='me')
-        printEntity([Ent.USER, user, Ent.SIGNATURE, ''], i, count)
-        Ind.Increment()
-        for sendas in result['sendAs']:
-          if ((not primary and not default) or
-              (primary and sendas.get('isPrimary', False)) or
-              (default and sendas.get('isDefault', False))):
-            _showSendAs(sendas, 0, 0, sigReplyFormat, verifyOnly)
-            break
-        Ind.Decrement()
-      except (GAPI.serviceNotAvailable, GAPI.badRequest):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-    else:
-      _processSendAs(user, i, count, Ent.SIGNATURE, user, i, count, gmail, 'get',
-                     sigReplyFormat, verifyOnly=verifyOnly, sendAsEmail=user)
 
 VACATION_START_STARTED = 'Started'
 VACATION_END_NOT_SPECIFIED = 'NotSpecified'
@@ -53944,6 +53977,8 @@ def printShowVacation(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.VACATION, user, i, count)
     try:
       result = callGAPI(gmail.users().settings(), 'getVacation',
                         throwReasons=GAPI.GMAIL_THROW_REASONS,
@@ -53951,7 +53986,6 @@ def printShowVacation(users):
       if not csvPF:
         _showVacation(user, i, count, result, showDisabled, sigReplyFormat)
       else:
-        printGettingEntityItemForWhom(Ent.VACATION, user, i, count)
         _printVacation(user, result, showDisabled)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -55102,7 +55136,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SHEETRANGE:	printShowSheetRanges,
-      Cmd.ARG_SIGNATURE:	printShowSendAs,
+      Cmd.ARG_SIGNATURE:	printShowSignature,
       Cmd.ARG_SMIME:		printShowSmimes,
       Cmd.ARG_SITE:		printShowUserSites,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
@@ -55165,7 +55199,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SHEETRANGE:	printShowSheetRanges,
-      Cmd.ARG_SIGNATURE:	showSignature,
+      Cmd.ARG_SIGNATURE:	printShowSignature,
       Cmd.ARG_SITE:		printShowUserSites,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
       Cmd.ARG_SMIME:		printShowSmimes,

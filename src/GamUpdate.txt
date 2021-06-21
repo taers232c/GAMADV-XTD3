@@ -6,22 +6,28 @@ always treated a mismatch; now a blank field will be interpreted as `False` for 
 and `0` for `<Number>` and the match test will be performed.
 
 Added options `primary` and `default`` to the following commands
-so that only the primary and/or default signature/sendas is displayed
-rather than all signatures/sendas.
-
-Added option `verifyonly` to the following commands; it causes a Boolean
-to be displayed in the `signature` field rather that the signature text;
-this simplifies checking for users with undefined signatures.
+so that only the primary or default sendas is displayed
+for each user in `<UserTypeEntity>` rather than all sendas.
 ```
 gam <UserTypeEntity> show sendas [compact|format|html]
         [primary] [default] [verifyonly]
 gam <UserTypeEntity> print sendas [compact]
         [primary] [default] [verifyonly] [todrive <ToDriveAttribute>*]
-gam <UserTypeEntity> show signature|sig [compact|format|html]
+```
+
+Added options `primary` and `default`` to the following commands
+so that the primary or default signature is displayed
+for each user in `<UserTypeEntity>` rather than the current signature.
+```
+gam <UserTypeEntity> show signature [compact|format|html]
         [primary] [default] [verifyonly]
 gam <UserTypeEntity> print signature [compact]
         [primary] [default] [verifyonly] [todrive <ToDriveAttribute>*]
 ```
+
+Added option `verifyonly` to the commands show above; it causes a Boolean
+to be displayed in the `signature` field rather that the signature text;
+this simplifies checking for users with undefined signatures.
 
 For example, this command will display a list of users without a primary email address signature (wrapped for readability):
 ```

@@ -5440,9 +5440,19 @@ gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
 gam <UserTypeEntity> delete sendas <EmailAddressEntity>
 gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
 gam <UserTypeEntity> show sendas [compact|format|html]
-        [primary] [default] [verifyonly]
+        [primary|default] [verifyonly]
 gam <UserTypeEntity> print sendas [compact]
-        [primary] [default] [verifyonly] [todrive <ToDriveAttribute>*]
+        [primary|default] [verifyonly] [todrive <ToDriveAttribute>*]
+
+gam <UserTypeEntity> signature|sig
+        <String>|(htmlsig <String>)|(file|htmlfile <FileName> [charset <Charset>])|(gdoc|ghtml <UserGoogleDoc>)
+        (replace <Tag> <UserReplacement>)*
+        [html [<Boolean>]] [name <String>] [replyto <EmailAddress>]
+        [default] [primary] [treatasalias <Boolean>]
+gam <UserTypeEntity> show signature|sig [compact|format|html]
+        [primary|default] [verifyonly]
+gam <UserTypeEntity> print signature [compact]
+        [primary|default] [verifyonly] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> create|add smime file <FileName> [password <Password>]
         [sendas|sendasemail <EmailAddress>] [default]
@@ -5454,16 +5464,6 @@ gam <UserTypeEntity> show smimes
         [primary|default|(sendas|sendasemail <EmailAddress>)]
 gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*]
         [primary|default|(sendas|sendasemail <EmailAddress>)]
-
-gam <UserTypeEntity> signature|sig
-        <String>|(htmlsig <String>)|(file|htmlfile <FileName> [charset <Charset>])|(gdoc|ghtml <UserGoogleDoc>)
-        (replace <Tag> <UserReplacement>)*
-        [html [<Boolean>]] [name <String>] [replyto <EmailAddress>]
-        [default] [primary] [treatasalias <Boolean>]
-gam <UserTypeEntity> show signature|sig [compact|format|html]
-        [primary] [default] [verifyonly]
-gam <UserTypeEntity> print signature [compact]
-        [primary] [default] [verifyonly] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> vacation <Boolean> subject <String>
         [message|htmlmessage <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)]
