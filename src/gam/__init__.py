@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.08'
+__version__ = '6.04.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10886,7 +10886,7 @@ def doReport():
         try:
           if not userCustomerRange:
             result = callGAPI(rep.userUsageReport(), 'get',
-                              throwReasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                              throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                               userKey=user, date=tryDate, customerId=customerId,
                               orgUnitID=orgUnitId, fields='warnings,usageReports', maxResults=1)
             warnings = result.get('warnings', [])
@@ -10906,7 +10906,7 @@ def doReport():
             pageMessage = getPageMessageForWhom(user, showDate=tryDate)
           usage = callGAPIpages(rep.userUsageReport(), 'get', 'usageReports',
                                 pageMessage=pageMessage,
-                                throwReasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                                throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                                 userKey=user, date=tryDate, customerId=customerId,
                                 orgUnitID=orgUnitId, filters=filters, parameters=parameters,
                                 maxResults=maxResults)
@@ -10922,6 +10922,8 @@ def doReport():
             break
           startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
           continue
+        except GAPI.invalidInput as e:
+          systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
         except GAPI.badRequest:
           if user != 'all':
             entityUnknownWarning(Ent.USER, user, i, count)
@@ -10960,7 +10962,7 @@ def doReport():
       try:
         if not userCustomerRange:
           result = callGAPI(rep.customerUsageReports(), 'get',
-                            throwReasons=[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                            throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                             date=tryDate, customerId=customerId, fields='warnings,usageReports')
           warnings = result.get('warnings', [])
           hasReports = bool(result.get('usageReports', []))
@@ -10974,7 +10976,7 @@ def doReport():
             startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
             continue
         usage = callGAPIpages(rep.customerUsageReports(), 'get', 'usageReports',
-                              throwReasons=[GAPI.INVALID, GAPI.FORBIDDEN],
+                              throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN],
                               date=tryDate, customerId=customerId, parameters=parameters)
         if userCustomerRange:
           status, lastDate = processCustomerUsageOneRow(usage, lastDate)
@@ -10988,6 +10990,8 @@ def doReport():
           break
         startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
         continue
+      except GAPI.invalidInput as e:
+        systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
       except GAPI.forbidden:
         accessErrorExit(None)
       startDateTime += oneDay
@@ -11024,7 +11028,7 @@ def doReport():
         try:
           feed = callGAPIpages(rep.activities(), 'list', 'items',
                                pageMessage=pageMessage, maxItems=maxActivities,
-                               throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.AUTH_ERROR],
+                               throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.AUTH_ERROR],
                                applicationName=report, userKey=user, customerId=customerId,
                                actorIpAddress=actorIpAddress, orgUnitID=orgUnitId,
                                startTime=startEndTime.startTime, endTime=startEndTime.endTime,
@@ -11035,7 +11039,7 @@ def doReport():
             continue
           printErrorMessage(BAD_REQUEST_RC, Msg.BAD_REQUEST)
           break
-        except GAPI.invalid as e:
+        except (GAPI.invalid, GAPI.invalidInput) as e:
           systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
         except GAPI.authError:
           accessErrorExit(None)
