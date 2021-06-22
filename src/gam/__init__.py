@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.07'
+__version__ = '6.04.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -39020,11 +39020,17 @@ def cleanFileIDsList(fileIdEntity, fileIds):
     if loc > 0:
       fileId = fileId[loc+7:]
       loc = fileId.find('&')
+      if loc > 0:
+        return fileId[:loc]
+      loc = fileId.find('?')
       return fileId[:loc] if loc != -1 else fileId
     loc = fileId.find('/folders/')
     if loc > 0:
       fileId = fileId[loc+9:]
       loc = fileId.find('&')
+      if loc > 0:
+        return fileId[:loc]
+      loc = fileId.find('?')
       return fileId[:loc] if loc != -1 else fileId
     return None
 
@@ -53765,8 +53771,9 @@ def printShowSmimes(users):
 # gam <UserTypeEntity> signature|sig
 #	<String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)*
-#	[html [<Boolean>]] [name <String>] [replyto <EmailAddress>]
-#	[default] [treatasalias <Boolean>]
+#	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+#	[name <String>]
+#	[primary]
 def setSignature(users):
   tagReplacements = _initTagReplacements()
   signature, _, html = getStringOrFile('sig')

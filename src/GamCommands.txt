@@ -343,10 +343,16 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFileACLType> ::= anyone|domain|group|user
 <DriveFileID> ::= <String>
 <DriveFileURL> ::=
-        https://docs.google.com/a/<DomainName>/document/d/<DriveFileID>/<String>
         https://drive.google.com/open?id=<DriveFileID>
-        https://www.googleapis.com/drive/v2/files/<DriveFileID>
-        https://www.googleapis.com/drive/v2/folders/<DriveFileID>
+        https://drive.google.com/drive/files/<DriveFileID>
+        https://drive.google.com/drive/folders/<DriveFileID>
+        https://drive.google.com/drive/folders/<DriveFileID>?resourcekey=<String>
+        https://drive.google.com/file/d/<DriveFileID>/<String>
+        https://docs.google.com>/document/d/<DriveFileID>/<String>
+        https://docs.google.com>/drawings/d/<DriveFileID>/<String>
+        https://docs.google.com>/forms/d/<DriveFileID>/<String>
+        https://docs.google.com>/presentation/d/<DriveFileID>/<String>
+        https://docs.google.com>/spreadsheets/d/<DriveFileID>/<String>
 <DriveFileItem> ::= <DriveFileID>|<DriveFileURL>
 <DriveFileName> ::= <String>
 <DriveFolderID> ::= <String>
@@ -1513,9 +1519,9 @@ gam print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
         [formatjson [quotechar <Character>]]
 
 gam create chatmessage space <ChatSpace> [thread <ChatThread>]
-	(text <String>)|(textfile <FileName> [charset <CharSet>])
+        (text <String>)|(textfile <FileName> [charset <CharSet>])
 gam update chatmessage name <ChatMessage>
-	(text <String>)|(textfile <FileName> [charset <CharSet>])
+        (text <String>)|(textfile <FileName> [charset <CharSet>])
 gam delete chatmessage name <ChatMessage>
 gam info chatmessage name <ChatMessage>
         [formatjson]
@@ -5447,8 +5453,9 @@ gam <UserTypeEntity> print sendas [compact]
 gam <UserTypeEntity> signature|sig
         <String>|(htmlsig <String>)|(file|htmlfile <FileName> [charset <Charset>])|(gdoc|ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)*
-        [html [<Boolean>]] [name <String>] [replyto <EmailAddress>]
-        [default] [primary] [treatasalias <Boolean>]
+        [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
+        [name <String>]
+        [primary]
 gam <UserTypeEntity> show signature|sig [compact|format|html]
         [primary|default] [verifyonly]
 gam <UserTypeEntity> print signature [compact]
