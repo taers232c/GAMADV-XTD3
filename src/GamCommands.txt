@@ -3411,9 +3411,13 @@ gam create|add building <Name> <BuildingAttribute>*
 gam update building <BuildIngID> <BuildingAttribute>*
 gam delete building <BuildingID>
 gam info building <BuildingID>
-gam show buildings [allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
-gam print buildings [todrive <ToDriveAttribute>*] [allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
-        [delimiter <Character>]
+        [formatjson]
+gam show buildings
+        [allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
+        [formatjson]
+gam print buildings [todrive <ToDriveAttribute>*]
+        [allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
+        [delimiter <Character>] [formatjson [quotechar <Character>]]
 
 gam create|add feature name <Name>
 gam update feature <Name> name <Name>
@@ -5189,6 +5193,9 @@ gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> print drivesettings [todrive <ToDriveAttribute>*] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 
+gam <UserTypeEntity> print emptydrivefolders [todrive <ToDriveAttribute>*]
+        [select <SharedDriveEntity>]
+gam <UserTypeEntity> print emptydrivefolders [<SharedDriveEntity>]
 gam <UserTypeEntity> delete emptydrivefolders [<SharedDriveEntity>]
 gam <UserTypeEntity> empty drivetrash [<SharedDriveEntity>]
 

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.09'
+__version__ = '6.04.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26412,7 +26412,10 @@ def doDeleteBuilding():
 
 BUILDING_ADDRESS_PRINT_ORDER = ['addressLines', 'sublocality', 'locality', 'administrativeArea', 'postalCode', 'regionCode', 'languageCode']
 
-def _showBuilding(building, delimiter=',', i=0, count=0):
+def _showBuilding(building, delimiter=',', i=0, count=0, FJQC=None):
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(building), ensure_ascii=False, sort_keys=True))
+    return
   if 'buildingName' in building:
     printEntity([Ent.BUILDING, building['buildingName']], i, count)
     Ind.Increment()
@@ -26447,15 +26450,19 @@ def _showBuilding(building, delimiter=',', i=0, count=0):
   Ind.Decrement()
 
 # gam info building <BuildingID>
+#	[formatjson]
 def doInfoBuilding():
   cd = buildGAPIObject(API.DIRECTORY)
   buildingId = _getBuildingByNameOrId(cd)
-  checkForExtraneousArguments()
+  FJQC = FormatJSONQuoteChar()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    FJQC.GetFormatJSON(myarg)
   try:
     building = callGAPI(cd.resources().buildings(), 'get',
                         throwReasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                         customer=GC.Values[GC.CUSTOMER_ID], buildingId=buildingId)
-    _showBuilding(building)
+    _showBuilding(building, FJQC=FJQC)
   except GAPI.resourceNotFound:
     entityUnknownWarning(Ent.BUILDING_ID, buildingId)
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
@@ -26474,12 +26481,16 @@ BUILDINGS_FIELDS_CHOICE_MAP = {
   }
 BUILDINGS_SORT_TITLES = ['buildingId', 'buildingName', 'description', 'floorNames']
 
-# gam print buildings [todrive <ToDriveAttribute>*] [allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
-#	[delimiter <Character>]
-# gam show buildings [allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
+# gam print buildings [todrive <ToDriveAttribute>*]
+#	[allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
+#	[delimiter <Character>] [formatjson [quotechar <Character>]]
+# gam show buildings
+#	[allfields|<BuildingFildName>*|(fields <BuildingFieldNameList>)]
+#	[formatjson]
 def doPrintShowBuildings():
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(['buildingId'], BUILDINGS_SORT_TITLES) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER] if csvPF else ','
   fieldsList = []
   while Cmd.ArgumentsRemaining():
@@ -26493,7 +26504,7 @@ def doPrintShowBuildings():
     elif getFieldsList(myarg, BUILDINGS_FIELDS_CHOICE_MAP, fieldsList, initialField='buildingId'):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
   fields = getItemFieldsFromFieldsList('buildings', fieldsList)
   try:
     buildings = callGAPIpages(cd.resources().buildings(), 'list', 'buildings',
@@ -26508,7 +26519,7 @@ def doPrintShowBuildings():
     j = 0
     for building in buildings:
       j += 1
-      _showBuilding(building, delimiter, j, jcount)
+      _showBuilding(building, delimiter, j, jcount, FJQC)
     Ind.Decrement()
   else:
     for building in buildings:
@@ -26521,7 +26532,14 @@ def doPrintShowBuildings():
       if 'coordinates' in building:
         building['coordinates']['latitude'] = f'{building["coordinates"].get("latitude", 0):4.7f}'
         building['coordinates']['longitude'] = f'{building["coordinates"].get("longitude", 0):4.7f}'
-      csvPF.WriteRowTitles(flattenJSON(building))
+      row = flattenJSON(building)
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(row)
+      else:
+        if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(row):
+          csvPF.WriteRowNoFilter({'buildingId': building['buildingId'],
+                                  'JSON': json.dumps(cleanJSON(building),
+                                                     ensure_ascii=False, sort_keys=True)})
   if csvPF:
     csvPF.writeCSVfile('Buildings')
 
@@ -26881,10 +26899,12 @@ RESOURCE_FIELDS_CHOICE_MAP = {
   'uservisibledescription': 'userVisibleDescription',
   }
 
-# gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
+# gam show resources
+#	[allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
 #	[query <String>]
 #	[acls] [calendar] [convertcrnl] [formatjson]
-
+# gam print resources [todrive <ToDriveAttribute>*]
+#	[allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
 #	[query <String>]
 #	[acls] [calendar] [convertcrnl] [formatjson [quotechar <Character>]]
 def doPrintShowResourceCalendars():
@@ -26945,7 +26965,7 @@ def doPrintShowResourceCalendars():
         sortTitles = ['resourceId', 'resourceName', 'JSON']
       else:
         sortTitles = ['resourceId', 'JSON']
-      csvPF.AddTitles(sortTitles)
+      csvPF.AddJSONTitles(sortTitles)
   printGettingAllAccountEntities(Ent.RESOURCE_CALENDAR)
   try:
     resources = callGAPIpages(cd.resources().calendars(), 'list', 'items',
@@ -46590,6 +46610,67 @@ def claimOwnership(users):
   if csvPF:
     csvPF.writeCSVfile('Files to Claim Ownership')
 
+# gam <UserTypeEntity> print emptydrivefolders [todrive <ToDriveAttribute>*]
+#	[select <TeamDriveEntity>]
+def printEmptyDriveFolders(users):
+  csvPF = CSVPrintFile(['User', 'id', 'name'], 'sortall') if Act.csvFormat() else None
+  fileIdEntity = {}
+  query = MY_FOLDERS
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'select':
+      fileIdEntity = getTeamDriveEntity()
+      query = ANY_FOLDERS
+      csvPF.AddTitles(['driveId'])
+    else:
+      unknownArgumentExit()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity)
+    if not drive:
+      continue
+    try:
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_FOLDER, user, i, count)
+      if not fileIdEntity.get('teamdrive'):
+        feed = callGAPIpages(drive.files(), 'list', 'files',
+                             pageMessage=getPageMessageForWhom(),
+                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
+                             retryReasons=[GAPI.UNKNOWN_ERROR],
+                             q=query, fields='nextPageToken,files(id,name)',
+                             pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+        for folder in feed:
+          children = callGAPIitems(drive.files(), 'list', 'files',
+                                   throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
+                                   retryReasons=[GAPI.UNKNOWN_ERROR],
+                                   q=WITH_PARENTS.format(folder['id']), fields='files(id)',
+                                   pageSize=1)
+          if not children:
+            csvPF.WriteRow({'User': user, 'id': folder['id'], 'name': folder['name']})
+      else:
+        feed = callGAPIpages(drive.files(), 'list', 'files',
+                             pageMessage=getPageMessageForWhom(),
+                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                             retryReasons=[GAPI.UNKNOWN_ERROR],
+                             q=query, fields='nextPageToken,files(id,name,driveId)',
+                             pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **fileIdEntity['teamdrive'])
+        for folder in feed:
+          children = callGAPIitems(drive.files(), 'list', 'files',
+                                   throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                                   retryReasons=[GAPI.UNKNOWN_ERROR],
+                                   q=WITH_PARENTS.format(folder['id']), fields='files(id)',
+                                   pageSize=1, **fileIdEntity['teamdrive'])
+          if not children:
+            csvPF.WriteRow({'User': user, 'id': folder['id'], 'name': folder['name'], 'driveId': folder['driveId']})
+    except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity['teamdrive']['driveId']], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Empty Folders')
+
 # gam <UserTypeEntity> delete emptydrivefolders [<TeamDriveEntity>]
 def deleteEmptyDriveFolders(users):
   Act.Set(Act.DELETE_EMPTY)
@@ -55120,6 +55201,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
       Cmd.ARG_DRIVEFILEACL:	printShowDriveFileACLs,
       Cmd.ARG_DRIVESETTINGS:	printShowDriveSettings,
+      Cmd.ARG_EMPTYDRIVEFOLDERS:	printEmptyDriveFolders,
       Cmd.ARG_EVENT:		printShowCalendarEvents,
       Cmd.ARG_FILECOUNT:	printShowFileCounts,
       Cmd.ARG_FILEINFO:		showFileInfo,
