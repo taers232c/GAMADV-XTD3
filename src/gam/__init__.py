@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.10'
+__version__ = '6.04.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4033,11 +4033,15 @@ def checkGDataError(e, service):
     service.domain = keep_domain
     return (GDATA.TOKEN_EXPIRED, reason)
   error_code = getattr(e, 'error_code', 600)
+  if GC.Values[GC.DEBUG_LEVEL] > 0:
+    writeStdout(f'{ERROR_PREFIX} {error_code}: {reason}, {body}\n')
   if error_code == 600:
     if (body.startswith('Quota exceeded for the current request') or
         body.startswith('Quota exceeded for quota metric') or
         body.startswith('Request rate higher than configured')):
       return (GDATA.QUOTA_EXCEEDED, body)
+    if body.startswith(GDATA.API_DEPRECATED_MSG):
+      return (GDATA.API_DEPRECATED, body)
     if reason == 'Too Many Requests':
       return (GDATA.QUOTA_EXCEEDED, reason)
     if reason == 'Bad Gateway':
@@ -4075,6 +4079,8 @@ def checkGDataError(e, service):
     if reason == 'Precondition Failed':
       return (GDATA.PRECONDITION_FAILED, reason)
   elif error_code == 602:
+    if body.startswith(GDATA,API_DEPRECATED_MSG):
+      return (GDATA.API_DEPRECATED, body)
     if reason == 'Bad Request':
       return (GDATA.BAD_REQUEST, body)
   elif error_code == 610:
@@ -4233,12 +4239,12 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
   try:
     error = json.loads(e.content.decode(UTF8))
     if GC.Values[GC.DEBUG_LEVEL] > 0:
-      writeStdout(f'{ERROR_PREFIX} JSON: {str(error)}+\n')
+      writeStdout(f'{ERROR_PREFIX} JSON: {str(error)}\n')
   except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
     eContent = e.content.decode(UTF8) if isinstance(e.content, bytes) else e.content
     lContent = eContent.lower()
     if GC.Values[GC.DEBUG_LEVEL] > 0:
-      writeStdout(f'{ERROR_PREFIX} HTTP: {str(eContent)}+\n')
+      writeStdout(f'{ERROR_PREFIX} HTTP: {str(eContent)}\n')
     if eContent[0:15] != b'<!DOCTYPE html>':
       if (e.resp['status'] == '403') and (lContent.startswith('request rate higher than configured')):
         return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
