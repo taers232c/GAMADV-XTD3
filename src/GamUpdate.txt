@@ -1,3 +1,8 @@
+6.04.13
+
+Added option `clearfilter` to `gam <UserTypeEntity> update drivefile <DriveFileEntity> csvsheet <SheetEntity>`
+that causes GAM to clear the spreadsheet basic filter when uploading data to the existing sheet so hidden data will be overwritten.
+
 6.04.12
 
 Added option `addsheet <String>` to `gam <UserTypeEntity> update drivefile <DriveFileEntity>`

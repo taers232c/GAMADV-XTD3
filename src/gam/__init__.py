@@ -43555,7 +43555,8 @@ def checkDriveFileShortcut(users):
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
 #	[retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
 #	<DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
-#	[gsheet|csvsheet <SheetEntity>] [charset <String>] [columndelimiter <Character>]
+#	[(gsheet|csvsheet <SheetEntity> [clearfilter])|(addsheet <String>)]
+#	[charset <String>] [columndelimiter <Character>]
 def updateDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   body = {}
@@ -43563,6 +43564,7 @@ def updateDriveFile(users):
   media_body = None
   addSheetEntity = None
   updateSheetEntity = None
+  clearFilter = False
   encoding = GC.Values[GC.CHARSET]
   columnDelimiter = GC.Values[GC.CSV_INPUT_COLUMN_DELIMITER]
   assignLocalName = True
@@ -43585,11 +43587,17 @@ def updateDriveFile(users):
     elif getDriveFileAddRemoveParentAttribute(myarg, parameters):
       pass
     elif myarg == 'addsheet':
+      if updateSheetEntity:
+        usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format(myarg, 'csvsheet'))
       sheetTitle = getString(Cmd.OB_STRING)
       addSheetEntity = {'sheetType': Ent.SHEET, 'sheetValue': sheetTitle, 'sheetId': None, 'sheetTitle': sheetTitle}
       addSheetBody = {'requests': [{'addSheet': {'properties': {'title': sheetTitle, 'sheetType': 'GRID'}}}]}
     elif myarg in {'gsheet', 'csvsheet'}:
+      if addSheetEntity:
+        usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format(myarg, 'addsheet'))
       updateSheetEntity = getSheetEntity(False)
+    elif myarg == 'clearfilter':
+      clearFilter = getBoolean()
     elif myarg == 'charset':
       encoding = getString(Cmd.OB_CHAR_SET)
     elif myarg == 'columndelimiter':
@@ -43683,13 +43691,13 @@ def updateDriveFile(users):
                                 addParents=','.join(addParents), removeParents=','.join(removeParents),
                                 body=body, fields='id,name,mimeType,webViewLink', supportsAllDrives=True)
 ### File size check??
-              sbody = {
-                'requests': [
-                  {'updateCells': {'range': {'sheetId': sheetId}, 'fields': '*'}},
-                  {'pasteData': {'coordinate': {'sheetId': sheetId, 'rowIndex': '0', 'columnIndex': '0'},
-                                 'data': readFile(parameters[DFA_LOCALFILEPATH], encoding=encoding), 'type': 'PASTE_NORMAL', 'delimiter': columnDelimiter}}
-                  ]
-                }
+              sbody = {'requests': []}
+              if clearFilter and updateSheetEntity:
+                sbody['requests'].append({'clearBasicFilter': {'sheetId': sheetId}})
+              sbody['requests'].append({'updateCells': {'range': {'sheetId': sheetId}, 'fields': '*'}})
+              sbody['requests'].append({'pasteData': {'coordinate': {'sheetId': sheetId, 'rowIndex': '0', 'columnIndex': '0'},
+                                                      'data': readFile(parameters[DFA_LOCALFILEPATH], encoding=encoding),
+                                                      'type': 'PASTE_NORMAL', 'delimiter': columnDelimiter}})
               callGAPI(sheet.spreadsheets(), 'batchUpdate',
                        throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                        spreadsheetId=fileId, body=sbody)

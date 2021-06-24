@@ -4657,7 +4657,8 @@ gam <UserTypeEntity> create|add drivefile
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
         [localfile <FileName>|-] [retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
         <DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
-        [(gsheet|csvsheet <SheetEntity>)|(addsheet <String>)] [charset <CharSet>] [columndelimiter <Character>]
+        [(gsheet|csvsheet <SheetEntity> [clearfilter])|(addsheet <String>)]
+        [charset <CharSet>] [columndelimiter <Character>]
 
 <DriveFileCopyAttribute> ::=
         <DriveFileParentAttribute>|
@@ -4959,6 +4960,7 @@ gam <UserTypeEntity> collect orphans
 <DriveShortcutDetailsSubfieldName> ::=
         shortcutdetails.targetid|
         shortcutdetails.targetmimetype
+        shortcutdetails.resourcekey
 
 <DriveFieldName> ::=
         alternatelink|
@@ -5015,6 +5017,7 @@ gam <UserTypeEntity> collect orphans
         permissionids|
         properties|
         quotabytesused|quotaused|
+        resourcekey|
         restricted|
         shareable|
         shared|
