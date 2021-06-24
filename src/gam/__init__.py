@@ -4079,7 +4079,7 @@ def checkGDataError(e, service):
     if reason == 'Precondition Failed':
       return (GDATA.PRECONDITION_FAILED, reason)
   elif error_code == 602:
-    if body.startswith(GDATA,API_DEPRECATED_MSG):
+    if body.startswith(GDATA.API_DEPRECATED_MSG):
       return (GDATA.API_DEPRECATED, body)
     if reason == 'Bad Request':
       return (GDATA.BAD_REQUEST, body)
@@ -40587,6 +40587,7 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'properties': 'properties',
   'quotabytesused': 'quotaBytesUsed',
   'quotaused': 'quotaBytesUsed',
+  'resourcekey': 'resourceKey',
   'shareable': 'capabilities.canShare',
   'shared': 'shared',
   'shareddriveid': 'driveId',
@@ -40706,6 +40707,7 @@ DRIVE_SHARINGUSER_SUBFIELDS_CHOICE_MAP = {
 DRIVE_SHORTCUTDETAILS_SUBFIELDS_CHOICE_MAP = {
   'targetid': 'targetId',
   'targetmimetype': 'targetMimeType',
+  'targetresourcekey': 'targetResourceKey',
   }
 
 DRIVE_SUBFIELDS_CHOICE_MAP = {
@@ -43559,7 +43561,8 @@ def updateDriveFile(users):
   body = {}
   parameters = initDriveFileAttributes()
   media_body = None
-  sheetEntity = None
+  addSheetEntity = None
+  updateSheetEntity = None
   encoding = GC.Values[GC.CHARSET]
   columnDelimiter = GC.Values[GC.CSV_INPUT_COLUMN_DELIMITER]
   assignLocalName = True
@@ -43581,8 +43584,12 @@ def updateDriveFile(users):
       assignLocalName = False
     elif getDriveFileAddRemoveParentAttribute(myarg, parameters):
       pass
+    elif myarg == 'addsheet':
+      sheetTitle = getString(Cmd.OB_STRING)
+      addSheetEntity = {'sheetType': Ent.SHEET, 'sheetValue': sheetTitle, 'sheetId': None, 'sheetTitle': sheetTitle}
+      addSheetBody = {'requests': [{'addSheet': {'properties': {'title': sheetTitle, 'sheetType': 'GRID'}}}]}
     elif myarg in {'gsheet', 'csvsheet'}:
-      sheetEntity = getSheetEntity(False)
+      updateSheetEntity = getSheetEntity(False)
     elif myarg == 'charset':
       encoding = getString(Cmd.OB_CHAR_SET)
     elif myarg == 'columndelimiter':
@@ -43596,7 +43603,7 @@ def updateDriveFile(users):
   if operation == 'update' and parameters[DFA_LOCALFILEPATH]:
     if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, True)
-    if not sheetEntity:
+    if not addSheetEntity and not updateSheetEntity:
       media_body = getMediaBody(parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -43625,7 +43632,7 @@ def updateDriveFile(users):
                               fileId=fileId, fields='parents', supportsAllDrives=True)
             addParents.extend(newParents)
             removeParents.extend(result.get('parents', []))
-          if sheetEntity:
+          if addSheetEntity or updateSheetEntity:
             entityValueList = [Ent.USER, user, Ent.DRIVE_FILE_ID, fileId]
             try:
               result = callGAPI(drive.files(), 'get',
@@ -43640,7 +43647,17 @@ def updateDriveFile(users):
               _, sheet = buildGAPIServiceObject(API.SHEETS, user)
               if sheet is None:
                 continue
-              entityValueList.extend([sheetEntity['sheetType'], sheetEntity['sheetValue']])
+              if addSheetEntity:
+                addresult = callGAPI(sheet.spreadsheets(), 'batchUpdate',
+                                     throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                                     spreadsheetId=fileId, body=addSheetBody)
+                sheetEntity = addSheetEntity.copy()
+                sheetEntity['sheetId'] = addresult['replies'][0]['addSheet']['properties']['sheetId']
+                entityValueList.extend([sheetEntity['sheetType'], sheetEntity['sheetTitle']])
+                sheetEntity['sheetType'] = Ent.SHEET_ID # Temporarily set addsheet type to ID
+              else:
+                sheetEntity = updateSheetEntity.copy()
+                entityValueList.extend([sheetEntity['sheetType'], sheetEntity['sheetValue']])
               spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
                                      throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                      spreadsheetId=fileId,
@@ -43652,6 +43669,8 @@ def updateDriveFile(users):
               if protectedSheetId(spreadsheet, sheetId):
                 entityActionNotPerformedWarning(entityValueList, Msg.NOT_WRITABLE, j, jcount)
                 continue
+              if addSheetEntity: # Restore addsheet type
+                sheetEntity['sheetType'] = Ent.SHEET
               result = callGAPI(drive.files(), 'update',
                                 throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
                                                                               GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,

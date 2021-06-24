@@ -4657,7 +4657,7 @@ gam <UserTypeEntity> create|add drivefile
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
         [localfile <FileName>|-] [retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
         <DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
-        [gsheet|csvsheet <SheetEntity>] [charset <CharSet>] [columndelimiter <Character>]
+        [(gsheet|csvsheet <SheetEntity>)|(addsheet <String>)] [charset <CharSet>] [columndelimiter <Character>]
 
 <DriveFileCopyAttribute> ::=
         <DriveFileParentAttribute>|
