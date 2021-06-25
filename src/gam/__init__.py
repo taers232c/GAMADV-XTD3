@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.14'
+__version__ = '6.04.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -11578,7 +11578,7 @@ def doSendEmail(users=None):
     checkArgumentPresent({'recipient', 'recipients', 'to'})
     recipients = getRecipients()
   else:
-    msgFroms = users
+    i, count, msgFroms = getEntityArgument(users)
     recipients = []
   msgHeaders = {}
   ccRecipients = []
@@ -11650,9 +11650,7 @@ def doSendEmail(users=None):
     return
   if ccRecipients or bccRecipients:
     singleMessage = True
-  if users is not None:
-    i, count, msgFroms = getEntityArgument(users)
-  else:
+  if users is None:
     i = 0
     count = len(msgFroms)
   for msgFrom in msgFroms:

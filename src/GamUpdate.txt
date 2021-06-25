@@ -1,3 +1,7 @@
+6.04.15
+
+Fixed bug in `gam <UserTypeEntity> sendemail newuser <EmailAddress> ...` that caused a trap.
+
 6.04.14
 
 Fixed bug in `gam <UserTypeEntity> print filelist filetree|filepath ..." where all
