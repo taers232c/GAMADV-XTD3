@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.13'
+__version__ = '6.04.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -39142,8 +39142,8 @@ LOCATION_CHOICE_MAP = {
   'onlyteamdrives': {'fileids': [SHARED_DRIVES], 'owner': False, 'location': LOCATION_ONLY_SHARED_DRIVES, 'setShowOwnedBy': True},
   'orphans': {'fileids': [ORPHANS], 'owner': True, 'location': LOCATION_ORPHANS, 'setShowOwnedBy': True},
   'ownedbyany': {'fileids': [ROOT, ORPHANS, SHARED_WITHME], 'owner': None, 'location': LOCATION_OWNEDBY_ANY, 'setShowOwnedBy': True},
-  'ownedbyme': {'fileids': [ROOT, ORPHANS], 'owner': True, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': True},
-  'ownedbyothers': {'fileids': [ROOT, SHARED_WITHME], 'owner': False, 'location': LOCATION_OWNEDBY_OTHERS, 'setShowOwnedBy': True},
+  'ownedbyme': {'fileids': [ROOT, ORPHANS, SHARED_WITHME], 'owner': True, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': True},
+  'ownedbyothers': {'fileids': [ROOT, ORPHANS, SHARED_WITHME], 'owner': False, 'location': LOCATION_OWNEDBY_OTHERS, 'setShowOwnedBy': True},
   'sharedwithme': {'fileids': [ROOT, SHARED_WITHME], 'owner': False, 'location': LOCATION_OWNEDBY_OTHERS, 'setShowOwnedBy': True},
   'sharedwithmemydrive': {'fileids': [ROOT], 'owner': False, 'location': LOCATION_MYDRIVE, 'setShowOwnedBy': True},
   'sharedwithmenotmydrive': {'fileids': [SHARED_WITHME], 'owner': False, 'location': LOCATION_SHARED_WITHME, 'setShowOwnedBy': True},

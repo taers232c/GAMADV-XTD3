@@ -1,3 +1,11 @@
+6.04.14
+
+Fixed bug in `gam <UserTypeEntity> print filelist filetree|filepath ..." where all
+files were not displayed.
+* `showownedby` not specified - Files owned by the user in `Shared with me` were not displayed
+* `showownedby me` - Files owned by the user in `Shared with me` were not displayed
+* `showownedby others` - Files not owned by the user that are orphans were not displayed
+
 6.04.13
 
 Added option `clearfilter` to `gam <UserTypeEntity> update drivefile <DriveFileEntity> csvsheet <SheetEntity>`
