@@ -4609,6 +4609,7 @@ gam <UserTypeEntity> show datastudiopermissions
         (publicproperty <PropertyKey> <PropertyValue>)|
         (property <PropertyKey> <PropertyValue> [private|public])|
         (restricted|restrict [<Boolean>])|
+        (securityupdate [<Boolean>])|
         (shortcut <DriveFileID>)|
         (starred|star [<Boolean>])|
         (trashed|trash [<Boolean>])|
@@ -5000,6 +5001,7 @@ gam <UserTypeEntity> collect orphans
         <DriveLastModifyingUserSubfieldName>|
         lastmodifyingusername|
         lastviewedbyme|lastviewedbymedate|lastviewedbymetime|lastviewedbyuser|
+        linkShareMetadata|
         md5|md5checksum|md5sum|
         mime|mimetype|
         modifiedbyme|modifiedbymedate|modifiedbymetime|modifiedbyuser|

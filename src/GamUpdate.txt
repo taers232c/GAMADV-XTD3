@@ -1,3 +1,10 @@
+6.04.16
+
+Added fields `resourcekey  and `linksharemetadata` to `<DriveFieldName>`.
+
+Added option `securityupdate <Boolean>` to `<DriveFileAttribute>` that
+sets `linkShareMetadata.securityUpdateEnabled` to `<Boolean>`.
+
 6.04.15
 
 Fixed bug in `gam <UserTypeEntity> sendemail newuser <EmailAddress> ...` that caused a trap.

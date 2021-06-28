@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.15'
+__version__ = '6.04.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -39882,6 +39882,8 @@ def getDriveFileAttribute(myarg, body, parameters, updateCmd):
     driveprop = getDriveFileProperty('properties')
     body.setdefault(driveprop['visibility'], [])
     body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
+  elif myarg == 'securityupdate':
+    body['linkShareMetadata'] = {'securityUpdateEnabled': getBoolean(), 'securityUpdateEligible': True}
   else:
     unknownArgumentExit()
 
@@ -40564,6 +40566,7 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'lastviewedbymedate': 'viewedByMeTime',
   'lastviewedbymetime': 'viewedByMeTime',
   'lastviewedbyuser': 'viewedByMeTime',
+  'linksharemetadata': 'linkShareMetadata',
   'md5': 'md5Checksum',
   'md5checksum': 'md5Checksum',
   'md5sum': 'md5Checksum',
