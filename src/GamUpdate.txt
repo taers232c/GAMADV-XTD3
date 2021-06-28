@@ -1,3 +1,20 @@
+6.04.17
+
+Upgraded to Python 3.9.6
+
+Upgraded to Google API Python Client 2.10.0
+
+Added option `groupidfilter <String>` to `gam report <ActivityApplictionName>`.
+
+From the API documentation: https://developers.google.com/admin-sdk/reports/reference/rest/v1/activities/list
+```
+Comma separated group ids (obfuscated) on which user activities are filtered,
+i.e, the response will contain activities for only those users that are a
+part of at least one of the group ids mentioned here. Format: "id:abc123,id:xyz456"
+```
+Is `obfuscated` explained? No. Does the option work in my testing? No.
+Updates when I figure out what's going on.
+
 6.04.16
 
 Added fields `resourcekey  and `linksharemetadata` to `<DriveFieldName>`.

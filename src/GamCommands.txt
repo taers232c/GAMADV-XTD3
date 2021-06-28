@@ -3267,6 +3267,7 @@ gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]
          yesterday|thismonth|(previousmonths <Integer>)]
         [filtertime.* <Time>] [filter|filters <String>]
         [event|events <EventNameList>] [ip <String>]
+        [groupidfilter <String>]
         [maxactivities <Number>] [maxresults <Number>]
         [countsonly [summary] [eventrowfilter]]
 

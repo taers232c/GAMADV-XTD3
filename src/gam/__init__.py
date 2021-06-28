@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.16'
+__version__ = '6.04.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -10524,6 +10524,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	 yesterday|thismonth|(previousmonths <Integer>)]
 #	[filtertime.* <Time>] [filter|filters <String>]
 #	[event|events <EventNameList>] [ip <String>]
+#	[groupidfilter <String>]
 #	[maxactivities <Number>] [maxresults <Number>]
 #	[countsonly [summary] [eventrowfilter]]
 # gam report users|user [todrive <ToDriveAttribute>*]
@@ -10743,7 +10744,7 @@ def doReport():
   if customerId == GC.MY_CUSTOMER:
     customerId = None
   csvPF = CSVPrintFile()
-  filters = actorIpAddress = orgUnit = orgUnitId = None
+  filters = actorIpAddress = groupIdFilter = orgUnit = orgUnitId = None
   showOrgUnit = False
   parameters = set()
   eventCounts = {}
@@ -10823,6 +10824,8 @@ def doReport():
       summary = True
     elif activityReports and myarg == 'eventrowfilter':
       eventRowFilter = True
+    elif activityReports and myarg == 'groupidfilter':
+      groupIdFilter = getString(Cmd.OB_STRING)
     elif not customerReports and myarg.startswith('filtertime'):
       filterTimes[myarg] = getTimeOrDeltaFromNow()
     elif not customerReports and myarg in {'filter', 'filters'}:
@@ -11038,7 +11041,8 @@ def doReport():
                                applicationName=report, userKey=user, customerId=customerId,
                                actorIpAddress=actorIpAddress, orgUnitID=orgUnitId,
                                startTime=startEndTime.startTime, endTime=startEndTime.endTime,
-                               eventName=eventName, filters=filters, maxResults=maxResults)
+                               eventName=eventName, filters=filters, groupIdFilter=groupIdFilter,
+                               maxResults=maxResults)
         except GAPI.badRequest:
           if user != 'all':
             entityUnknownWarning(Ent.USER, user, i, count)
