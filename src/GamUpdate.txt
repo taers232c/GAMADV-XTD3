@@ -1,8 +1,8 @@
 6.04.17
 
-Upgraded to Python 3.9.6
-
-Upgraded to Google API Python Client 2.10.0
+* Upgraded to Python 3.9.6
+* Upgraded to Google API Python Client 2.10.0
+* Upgraded to Google Auth 1.32.0
 
 Added option `groupidfilter <String>` to `gam report <ActivityApplictionName>`.
 
