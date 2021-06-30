@@ -1,3 +1,11 @@
+6.04.18
+
+Handle the following error in `gam <UserTypeEntity> print filelist select teamdriveid <SharedDriveID>`
+when `<SharedDriveID>` is not valid.
+```
+ERROR: 404: fileNotFound - Does not exist
+```
+
 6.04.17
 
 * Upgraded to Python 3.9.6

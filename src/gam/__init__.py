@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.17'
+__version__ = '6.04.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -41518,7 +41518,7 @@ def _updateAnyOwnerQuery(query):
 
 OWNED_BY_ME_FIELDS_TITLES = ['ownedByMe']
 
-def initFileTree(drive, teamdrive, DLP, teamdriveFields, showParent):
+def initFileTree(drive, teamdrive, DLP, teamdriveFields, showParent, user, i, count):
   fileTree = {
     ORPHANS: {'info': {'id': ORPHANS, 'name': ORPHANS, 'mimeType': MIMETYPE_GA_FOLDER, 'ownedByMe': True},
               'noParents': True, 'children': []},
@@ -41529,19 +41529,23 @@ def initFileTree(drive, teamdrive, DLP, teamdriveFields, showParent):
     }
   try:
     if not teamdrive:
+      fileId = ROOT
       f_file = callGAPI(drive.files(), 'get',
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
-                        fileId=ROOT, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
+                        fileId=fileId, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
       fileTree[f_file['id']] = {'info': f_file, 'noParents': True, 'children': []}
     elif 'driveId' in teamdrive:
+      fileId = teamdrive['driveId']
       f_file = callGAPI(drive.files(), 'get',
-                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
-                        fileId=teamdrive['driveId'], supportsAllDrives=True, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FILE_NOT_FOUND],
+                        fileId=fileId, supportsAllDrives=True, fields=','.join(FILEPATH_FIELDS_TITLES+OWNED_BY_ME_FIELDS_TITLES))
       fileTree[f_file['id']] = {'info': f_file, 'noParents': True, 'children': []}
       name = callGAPI(drive.drives(), 'get',
                       throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
-                      driveId=teamdrive['driveId'], fields='name')['name']
+                      driveId=fileId, fields='name')['name']
       fileTree[f_file['id']]['info']['name'] = f'SharedDrive({name})'
+    else:
+      fileId = None
     if DLP.getTeamDriveNames or DLP.checkLocation in {LOCATION_ALL_DRIVES, LOCATION_ONLY_SHARED_DRIVES}:
       tdrives = callGAPIpages(drive.drives(), 'list', 'drives',
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID, GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
@@ -41557,8 +41561,10 @@ def initFileTree(drive, teamdrive, DLP, teamdriveFields, showParent):
         if showParent:
           fileTree[fileId]['info']['driveId'] = fileId
         fileTree[SHARED_DRIVES]['children'].append(fileId)
-  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
-          GAPI.notFound, GAPI.invalid, GAPI.noListTeamDrivesAdministratorPrivilege):
+  except (GAPI.notFound, GAPI.fileNotFound, GAPI.invalid, GAPI.noListTeamDrivesAdministratorPrivilege) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileId], str(e), i, count)
+    return (None, False)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     return (None, False)
   return (fileTree, True)
 
@@ -42456,7 +42462,7 @@ def printFileList(users):
       maxResults = GC.Values[GC.DRIVE_MAX_RESULTS]
       tweakMaxResults = DLP.maxItems and maxResults
       if not incrementalPrint:
-        fileTree, status = initFileTree(drive, fileIdEntity.get('teamdrive'), DLP, teamdriveFields, showParent)
+        fileTree, status = initFileTree(drive, fileIdEntity.get('teamdrive'), DLP, teamdriveFields, showParent, user, i, count)
         if not status:
           continue
       queryError = False
@@ -43095,7 +43101,7 @@ def printShowFileTree(users):
     if not drive:
       continue
     if buildTree:
-      fileTree, status = initFileTree(drive, fileIdEntity.get('teamdrive'), DLP, teamdriveFields, True)
+      fileTree, status = initFileTree(drive, fileIdEntity.get('teamdrive'), DLP, teamdriveFields, True, user, i, count)
       if not status:
         continue
       printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
