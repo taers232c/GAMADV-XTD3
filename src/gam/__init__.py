@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.18'
+__version__ = '6.04.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -51247,10 +51247,28 @@ def _getMessageSelectParameters(myarg, parameters):
     return False
   return True
 
+MESSAGE_TIME_QUERY_PATTERN = re.compile(r'(after:|before:|older:|newer:)(\d{4})/(\d{2})/(\d{2})')
+
+def _mapMessageQueryDates(parameters):
+  query = parameters['query']
+  pos = 0
+  while True:
+    mg = MESSAGE_TIME_QUERY_PATTERN.search(query, pos)
+    if not mg:
+      break
+    try:
+      dt = datetime.datetime(int(mg.groups()[1]), int(mg.groups()[2]), int(mg.groups()[3]), tzinfo=GC.Values[GC.TIMEZONE])
+      query = query[:mg.start(2)]+str(int(datetime.datetime.timestamp(dt)))+query[mg.end(4):]
+    except ValueError:
+      pass
+    pos = mg.end()
+  parameters['query'] = query
+
 def _finalizeMessageSelectParameters(parameters, queryOrIdsRequired):
   if parameters['query']:
     if parameters['labelGroupOpen']:
       parameters['query'] += ')'
+    _mapMessageQueryDates(parameters)
   elif queryOrIdsRequired and parameters['messageEntity'] is None:
     missingArgumentExit('query|matchlabel|ids')
   else:

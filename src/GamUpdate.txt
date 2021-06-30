@@ -1,3 +1,9 @@
+6.04.19
+
+Updated processing of `query <QueryGmail>` that contains `(after|before|newer|older):YYYY/MM/DD`
+so that GAM results match Gmail results. `YYYY/MM/DD` is interpreted as midnight on the given
+date but GAM has to adjust the time to be consistent with `gam.cfg timezone`.
+
 6.04.18
 
 Handle the following error in `gam <UserTypeEntity> print filelist select teamdriveid <SharedDriveID>`
