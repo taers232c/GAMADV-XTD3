@@ -1,3 +1,12 @@
+6.04.20
+
+Added option `sendermatchpattern <RegularExpression>` to `gam <UserTypeEntity> print|show messages|threads`
+that causes GAM to display messages and threads only if the sender matches the `<RegularExpression>`.
+This is used to display messages sent by a paticular delegate for a delegator; the message is
+from the delegator but sent by the delegate.
+
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#display-messages-sent-by-delegates-for-delegator
+
 6.04.19
 
 Updated processing of `query <QueryGmail>` that contains `(after|before|newer|older):YYYY/MM/DD`
@@ -331,7 +340,7 @@ ous|ous_ns|ous_susp <OrgUnitList>
 Updated `gam [<UserTypeEntity>] create|update teamdrive <Name> ... customtheme <DriveFileID> <Float> <Float> <Float>`
 to better handle errors.
 
-Updated `gam [<UserTypeEntity>] create teamdrive <Name>` to output the name of the newly created 
+Updated `gam [<UserTypeEntity>] create teamdrive <Name>` to output the name of the newly created
 Team Drive in addition to its ID.
 ```
 $ gam user user@domain.com create teamdrive Test
@@ -617,7 +626,7 @@ Following Jay's lead, added new license SKU `Google Workspace Frontline`.
 
 Following Jay's lead, added additional columns to `gam print chromehistory`.
 
-6.01.06 
+6.01.06
 
 Updated `gam whatis <EmailItem>` to check if `<EmailItem>` is an unmanaged account
 if it is not a group/user email address or alias.
@@ -682,7 +691,7 @@ Improved error reporting when trying to add/remove licenses with an administrato
 
 Fixed bug in `gam print course-materials fields <CourseAnnouncementFieldNameList>` that caused the following error:
 ```
-Course: <CourseID>, Print Failed: Request contains an invalid argument. 
+Course: <CourseID>, Print Failed: Request contains an invalid argument.
 ```
 
 Code cleanup for `gam print course-work` and `gam print course-materials`.

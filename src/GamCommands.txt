@@ -399,6 +399,7 @@ If an item contains spaces, it should be surrounded by ".
 <MaximumNumberOfSeats> ::= <Number>
 <MessageID> ::= <String>
 <MobileID> ::= <String>
+<Namespace> ::= <String>
 <NumberOfSeats> ::= <Number>
 <OrgUnitID> ::= id:<String>
 <OrgUnitPath> ::= /|(/<String>)+
@@ -559,6 +560,7 @@ If an item contains spaces, it should be surrounded by ".
 <MessageIDList> ::= "<MessageID>(,<MessageID>)*"
 <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
 <MobileIDList> ::= "<MobileID>(,<MobileID>)*"
+<NamespaceList> ::= "<Namespace>(,<Namespace>)*"
 <OrgUnitList> ::= "<OrgUnitItem>(,<OrgUnitItem>)*"
 <PeopleResourceNameList> ::= "<PeopleResourceName>(,<PeopleResourceName>)*"
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
@@ -1854,13 +1856,13 @@ gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
 gam delete chromepolicy <SchemaName>+
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 gam show chromepolicies
-        [filter <String>]
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+        [filter <String>] [namespace <NamespaceList>]
         [show all|direct|inherited]
         [formatjson]
 gam print chromepolicies [todrive <ToDriveAttribute>*]
-        [filter <String>]
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+        [filter <String>] [namespace <NamespaceList>]
         [show all|direct|inherited]
         [[formatjson [quotechar <Character>]]
 
@@ -5421,7 +5423,7 @@ gam <UserTypeEntity> untrash messages|threads
 gam <UserTypeEntity> show messages|threads
         (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])*
          [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-        [labelmatchpattern <RegularExpression>]
+        [labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
         [countsonly|positivecountsonly] [useronly]
         [headers all|<SMTPHeaderList>]
         [showlabels] [showbody] [showsize] [showsnippet]
@@ -5431,7 +5433,7 @@ gam <UserTypeEntity> show messages|threads
 gam <UserTypeEntity> print messages|threads [todrive <ToDriveAttribute>*]
         (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])*
          [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
-        [labelmatchpattern <RegularExpression>]
+        [labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
         [countsonly|positivecountsonly] [useronly]
         [headers all|<SMTPHeaderList>]
         [showlabels] [showbody] [showsize] [showsnippet]
