@@ -1,3 +1,7 @@
+6.04.21
+
+Fixed bugs in `gam <UserTypeEntity> print|show messages|threads sendermatchpattern <RegularExpression> countsonly`.
+
 6.04.20
 
 Added option `sendermatchpattern <RegularExpression>` to `gam <UserTypeEntity> print|show messages|threads`

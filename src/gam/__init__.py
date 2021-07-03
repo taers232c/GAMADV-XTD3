@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.20'
+__version__ = '6.04.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4490,6 +4490,7 @@ def _finalizeGAPIpagesResult(pageMessage):
 def callGAPIpages(service, function, items,
                   pageMessage=None, messageAttribute=None, maxItems=0, noFinalize=False,
                   throwReasons=None, retryReasons=None,
+                  pageArgsInBody=False,
                   **kwargs):
   if throwReasons is None:
     throwReasons = []
@@ -4498,6 +4499,8 @@ def callGAPIpages(service, function, items,
   allResults = []
   totalItems = 0
   maxResults = kwargs.get('maxResults', 0)
+  if pageArgsInBody:
+    kwargs.setdefault('body', {})
   tweakMaxResults = maxItems and maxResults
   entityType = Ent.Getting() if pageMessage else None
   while True:
@@ -4511,7 +4514,10 @@ def callGAPIpages(service, function, items,
       if not noFinalize:
         _finalizeGAPIpagesResult(pageMessage)
       return allResults
-    kwargs['pageToken'] = pageToken
+    if pageArgsInBody:
+      kwargs['body']['pageToken'] = pageToken
+    else:
+      kwargs['pageToken'] = pageToken
 
 def callGAPIitems(service, function, items,
                   throwReasons=None, retryReasons=None,
@@ -19166,7 +19172,7 @@ def doPrintShowChromePolicies():
       policies.extend(callGAPIpages(cp.customers().policies(), 'resolve','resolvedPolicies',
                                     pageMessage=pageMessage,
                                     throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
-                                    customer=customer, body=body))
+                                    customer=customer, body=body, pageArgsInBody=True))
     except GAPI.notFound as e:
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
       continue
@@ -51962,7 +51968,16 @@ def printShowMessagesThreads(users, entityType):
       else:
         _showSaveAttachments(messageId, part, attachmentNamePattern)
 
-  def _getMatchMessageLabels(result):
+  def _initSenderLabelsMap(sender):
+    if sender not in senderLabelsMaps:
+      senderLabelsMaps[sender] = {'*None*': {'name': '*None*', 'count': 0, 'type': LABEL_TYPE_USER, 'match': labelMatchPattern is None}}
+      for label in labels['labels']:
+        senderLabelsMaps[sender][label['id']] = {'name': label['name'], 'count': 0, 'type': label['type'],
+                                                'match': True if not labelMatchPattern else labelMatchPattern.match(label['name']) is not None}
+    return senderLabelsMaps[sender]
+
+  def _getMatchMessageLabels(result, sender):
+    labelsMap = _initSenderLabelsMap(sender)
     messageLabels = []
     match = False
     for labelId in result.get('labelIds', []):
@@ -51978,19 +51993,40 @@ def printShowMessagesThreads(users, entityType):
 
   def _checkSenderMatch(result):
     for header in result['payload'].get('headers', []):
-      if header['name'] == 'Sender' and senderMatchPattern.match(_decodeHeader(header['value'])):
-        return True
-    return False
+      sender = _decodeHeader(header['value'])
+      if header['name'] == 'Sender' and senderMatchPattern.match(sender):
+        return sender
+    return None
 
-  def _showMessage(result, j, jcount):
+  def _checkSenderMatchCount(result):
+    for header in result['payload'].get('headers', []):
+      sender = _decodeHeader(header['value'])
+      if header['name'] == 'Sender' and senderMatchPattern.match(sender):
+        senderCounts.setdefault(sender, 0)
+        senderCounts[sender] += 1
+        return sender
+    return None
+
+  def _qualifyMessage(user, result):
     if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
-      return
-    if senderMatchPattern and not _checkSenderMatch(result):
-      return
+      return (False, None)
+    if senderMatchPattern:
+      sender = _checkSenderMatchCount(result)
+      if not sender:
+        return (False, None)
+    else:
+      sender = user
     if show_labels or labelMatchPattern:
-      messageLabels = _getMatchMessageLabels(result)
+      messageLabels = _getMatchMessageLabels(result, sender)
       if messageLabels is None:
-        return
+        return (False, None)
+      return (True, messageLabels)
+    return (True, None)
+
+  def _showMessage(user, result, j, jcount):
+    status, messageLabels = _qualifyMessage(user, result)
+    if not status:
+      return
     printEntity([Ent.MESSAGE, result['id']], j, jcount)
     Ind.Increment()
     if show_snippet:
@@ -52033,14 +52069,9 @@ def printShowMessagesThreads(users, entityType):
         _getAttachments(messageId, part, attachmentNamePattern, attachments)
 
   def _printMessage(user, result):
-    if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
+    status, messageLabels = _qualifyMessage(user, result)
+    if not status:
       return
-    if senderMatchPattern and not _checkSenderMatch(result):
-      return
-    if show_labels or labelMatchPattern:
-      messageLabels = _getMatchMessageLabels(result)
-      if messageLabels is None:
-        return
     row = {'User': user, 'threadId': result['threadId'], 'id': result['id']}
     if show_snippet:
       row['Snippet'] = dehtml(result['snippet']).replace('\n', ' ')
@@ -52082,9 +52113,14 @@ def printShowMessagesThreads(users, entityType):
     csvPF.WriteRowTitles(row)
     parameters['messagesProcessed'] += 1
 
-  def _countMessageLabels(result):
-    if senderMatchPattern and not _checkSenderMatch(result):
-      return
+  def _countMessageLabels(user, result):
+    if senderMatchPattern:
+      sender = _checkSenderMatch(result)
+      if not sender:
+        return False
+    else:
+      sender = user
+    labelsMap = _initSenderLabelsMap(sender)
     labelIds = result.get('labelIds', [])
     if labelIds:
       for labelId in labelIds:
@@ -52096,12 +52132,12 @@ def printShowMessagesThreads(users, entityType):
     elif not labelMatchPattern:
       labelsMap['*None*']['count'] += 1
 
-  def _countMessages(result):
-    if senderMatchPattern and not _checkSenderMatch(result):
+  def _countMessages(user, result):
+    if senderMatchPattern and not _checkSenderMatchCount(result):
       return
     messageThreadCounts['messages'] += 1
 
-  def _showThread(result, j, jcount):
+  def _showThread(user, result, j, jcount):
     if senderMatchPattern:
       for message in result['messages']:
         if _checkSenderMatch(message):
@@ -52116,7 +52152,7 @@ def printShowMessagesThreads(users, entityType):
     k = 0
     for message in result['messages']:
       k += 1
-      _showMessage(message, k, kcount)
+      _showMessage(user, message, k, kcount)
     Ind.Decrement()
 
   def _printThread(user, result):
@@ -52129,14 +52165,14 @@ def printShowMessagesThreads(users, entityType):
     for message in result['messages']:
       _printMessage(user, message)
 
-  def _countThreadLabels(result):
+  def _countThreadLabels(user, result):
     for message in result['messages']:
-      _countMessageLabels(message)
+      _countMessageLabels(user, message)
 
-  def _countThreads(result):
+  def _countThreads(_, result):
     if senderMatchPattern:
       for message in result['messages']:
-        if _checkSenderMatch(message):
+        if _checkSenderMatchCount(message):
           break
       else:
         return
@@ -52159,10 +52195,10 @@ def printShowMessagesThreads(users, entityType):
                           throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_MESSAGE_ID],
                           userId='me', id=ri[RI_ITEM], format=['metadata', 'full'][show_body or show_attachments or save_attachments])
       if countsOnly:
-        _callbacks['process'](response)
+        _callbacks['process'](ri[RI_ENTITY], response)
       else:
         if not csvPF:
-          _callbacks['process'](response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+          _callbacks['process'](ri[RI_ENTITY], response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
         else:
           _callbacks['process'](ri[RI_ENTITY], response)
     except GAPI.notFound:
@@ -52175,7 +52211,7 @@ def printShowMessagesThreads(users, entityType):
   def _callbackShow(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      _callbacks['process'](response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      _callbacks['process'](ri[RI_ENTITY], response, int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       _handleGmailError(exception, ri)
 
@@ -52189,7 +52225,7 @@ def printShowMessagesThreads(users, entityType):
   def _callbackCountLabels(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      _callbacks['process'](response)
+      _callbacks['process'](ri[RI_ENTITY], response)
     else:
       _handleGmailError(exception, ri)
 
@@ -52285,11 +52321,17 @@ def printShowMessagesThreads(users, entityType):
   if csvPF:
     if countsOnly:
       if show_labels:
-        sortTitles = ['User']
+        if not senderMatchPattern:
+          sortTitles = ['User']
+        else:
+          sortTitles = ['User', 'Sender']
         csvPF.SetIndexedTitles(['Labels'])
         _callbacks = {'batch': _callbackCountLabels, 'process': _countMessageLabels if entityType == Ent.MESSAGE else _countThreadLabels}
       else:
-        sortTitles = ['User', parameters['listType']]
+        if not senderMatchPattern:
+          sortTitles = ['User', parameters['listType']]
+        else:
+          sortTitles = ['User', 'Sender', parameters['listType']]
         _callbacks = {'batch': _callbackCountLabels, 'process': _countMessages if entityType == Ent.MESSAGE else _countThreads}
       csvPF.SetTitles(sortTitles)
     else:
@@ -52317,11 +52359,11 @@ def printShowMessagesThreads(users, entityType):
       labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
       if not labels:
         continue
-      labelsMap = {'*None*': {'name': '*None*', 'count': 0, 'type': LABEL_TYPE_USER, 'match': labelMatchPattern is None}}
-      for label in labels['labels']:
-        labelsMap[label['id']] = {'name': label['name'], 'count': 0, 'type': label['type'],
-                                  'match': True if not labelMatchPattern else labelMatchPattern.match(label['name']) is not None}
+      senderLabelsMaps = {}
+      if not senderMatchPattern:
+        _initSenderLabelsMap(user)
     messageThreadCounts = {'User': user, parameters['listType']: 0}
+    senderCounts = {}
     if save_attachments:
       _, userName, _ = splitEmailAddressOrUID(user)
       targetFolder = _substituteForUser(targetFolderPattern, user, userName)
@@ -52382,29 +52424,45 @@ def printShowMessagesThreads(users, entityType):
     if countsOnly:
       if show_labels:
         if onlyUser or positiveCountsOnly or labelMatchPattern:
-          userLabelsMap = {}
-          for labelId, label in iter(labelsMap.items()):
-            if (label['match'] and
-                (not onlyUser or label['type'] != LABEL_TYPE_SYSTEM) and
-                (not positiveCountsOnly or label['count'] > 0)):
-              userLabelsMap[labelId] = label
-          labelsMap = userLabelsMap
+          for sender in senderLabelsMaps:
+            userLabelsMap = {}
+            for labelId, label in iter(senderLabelsMaps[sender].items()):
+              if (label['match'] and
+                  (not onlyUser or label['type'] != LABEL_TYPE_SYSTEM) and
+                  (not positiveCountsOnly or label['count'] > 0)):
+                userLabelsMap[labelId] = label
+            senderLabelsMaps[sender] = userLabelsMap
         if not csvPF:
-          jcount = len(labelsMap)
-          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
-          Ind.Increment()
-          j = 0
-          for label in sorted(iter(labelsMap.values()), key=lambda k: k['name']):
-            j += 1
-            printEntityKVList([Ent.LABEL, label['name']], ['Count', label['count'], 'Type', label['type']], j, jcount)
-          Ind.Decrement()
+          for sender, labelsMap in sorted(iter(senderLabelsMaps.items())):
+            jcount = len(labelsMap)
+            kvlist = [Ent.USER, user]
+            if senderMatchPattern:
+              kvlist.extend([Ent.SENDER, sender])
+            entityPerformActionNumItems(kvlist, jcount, Ent.LABEL, i, count)
+            Ind.Increment()
+            j = 0
+            for label in sorted(iter(labelsMap.values()), key=lambda k: k['name']):
+              j += 1
+              printEntityKVList([Ent.LABEL, label['name']], ['Count', label['count'], 'Type', label['type']], j, jcount)
+            Ind.Decrement()
         else:
-          csvPF.WriteRowTitles(flattenJSON({'Labels': sorted(iter(labelsMap.values()), key=lambda k: k['name'])}, flattened={'User': user}))
-      else:
+          for sender, labelsMap in sorted(iter(senderLabelsMaps.items())):
+            row = {'User': user}
+            if senderMatchPattern:
+              row['Sender'] = sender
+            csvPF.WriteRowTitles(flattenJSON({'Labels': sorted(iter(labelsMap.values()), key=lambda k: k['name'])}, flattened=row))
+      elif not senderMatchPattern:
         if not csvPF:
           printEntityKVList([Ent.USER, user], [parameters['listType'], messageThreadCounts[parameters['listType']]], i, count)
         else:
           csvPF.WriteRow(messageThreadCounts)
+      else:
+        if not csvPF:
+          for k, v in sorted(iter(senderCounts.items())):
+            printEntityKVList([Ent.USER, user, Ent.SENDER, k], [parameters['listType'], v], i, count)
+        else:
+          for k, v in sorted(iter(senderCounts.items())):
+            csvPF.WriteRow({'User': user, 'Sender': k, parameters['listType']: v})
   if csvPF:
     if not countsOnly:
       csvPF.RemoveTitles(['Snippet', 'SizeEstimate', 'Labels', 'Body'])

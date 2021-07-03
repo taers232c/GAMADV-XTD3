@@ -248,6 +248,7 @@ class GamEntity():
   SCOPE = 'scop'
   SECTION = 'sect'
   SENDAS_ADDRESS = 'sasa'
+  SENDER = 'send'
   SERVICE = 'serv'
   SHEET = 'shet'
   SHEET_ID = 'shti'
@@ -513,6 +514,7 @@ class GamEntity():
     SCOPE: ['Scopes', 'Scope'],
     SECTION: ['Sections', 'Section'],
     SENDAS_ADDRESS: ['SendAs Addresses', 'SendAs Address'],
+    SENDER: ['Senders', 'Sender'],
     SERVICE: ['Services', 'Service'],
     SHEET: ['Sheets', 'Sheet'],
     SHEET_ID: ['Sheet IDs', 'Sheet ID'],
