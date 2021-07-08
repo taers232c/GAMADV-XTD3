@@ -1,3 +1,10 @@
+6.04.22
+
+Added additional code to handle the following error in `gam print group-members`.
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
 6.04.21
 
 Fixed bugs in `gam <UserTypeEntity> print|show messages|threads sendermatchpattern <RegularExpression> countsonly`.

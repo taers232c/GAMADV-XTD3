@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.21'
+__version__ = '6.04.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -23986,7 +23986,8 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
     if 'delivery_settings' not in member:
       try:
         member['delivery_settings'] = callGAPI(cd.members(), 'get',
-                                               throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND], retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                                               throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND],
+                                               retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                                groupKey=groupEmail, memberKey=member['id'], fields='delivery_settings')['delivery_settings']
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         pass
@@ -24252,7 +24253,8 @@ def doPrintGroupMembers():
         if memberType == Ent.TYPE_USER:
           try:
             mbinfo = callGAPI(cd.users(), 'get',
-                              throwReasons=GAPI.USER_GET_THROW_REASONS,
+                              throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                               userKey=memberId, fields=userFields)
             if memberOptions[MEMBEROPTION_MEMBERNAMES]:
               row['name'] = mbinfo['name'].pop('fullName')
@@ -24266,15 +24268,18 @@ def doPrintGroupMembers():
                 peopleNames[memberId] = getNameFromPeople(memberId)
               if peopleNames[memberId]:
                 row['name'] = peopleNames[memberId]
-          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
+                  GAPI.backendError, GAPI.systemError, GAPI.serviceNotAvailable):
             pass
         elif memberType == Ent.TYPE_GROUP:
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
             try:
               row['name'] = callGAPI(cd.groups(), 'get',
-                                     throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                                     throwReasons=GAPI.GROUP_GET_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                     retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
                                      groupKey=memberId, fields='name')['name']
-            except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.systemError):
+            except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
+                    GAPI.invalid, GAPI.systemError, GAPI.serviceNotAvailable):
               pass
         elif memberType == Ent.TYPE_CUSTOMER:
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
