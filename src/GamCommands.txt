@@ -4080,6 +4080,9 @@ gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
         (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
         [verifynotinvitable]
+
+gam <UserTypeEntity> waitformailbox [retries <Number>]
+
 gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]

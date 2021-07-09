@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.22'
+__version__ = '6.04.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -32327,6 +32327,19 @@ def signoutTurnoff2SVUsers(entityList):
 
 # gam <UserTypeEntity> waitformailbox [retries <Number>]
 def waitForMailbox(entityList):
+  def showRetryStatus(user, exists, i, count):
+    kvList = ['Exists', exists, 'mailboxIsSetup', False]
+    if maxRetries:
+      kvList.extend(['Retry', f'{retries}/{maxRetries}'])
+    else:
+      kvList.extend(['Retry', f'{retries}'])
+    printEntityKVList([Ent.USER, user], kvList, i, count)
+    if maxRetries and retries >= maxRetries:
+      entityActionFailedWarning([Ent.USER, user], Msg.RETRIES_EXHAUSTED.format(maxRetries), i, count)
+      return False
+    time.sleep(3)
+    return True
+
   cd = buildGAPIObject(API.DIRECTORY)
   maxRetries = 0
   while Cmd.ArgumentsRemaining():
@@ -32348,23 +32361,14 @@ def waitForMailbox(entityList):
         result = callGAPI(cd.users(), 'get',
                           throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND],
                           userKey=user, fields='isMailboxSetup')
-        isMailboxSetup = result.get('isMailboxSetup', False)
-        if isMailboxSetup:
+        if result.get('isMailboxSetup', False):
           entityActionPerformed([Ent.USER, user], i, count)
           break
-        kvList = ['mailboxIsSetop', isMailboxSetup]
-        if maxRetries:
-          kvList.extend(['Retry', f'{retries}/{maxRetries}'])
-        else:
-          kvList.extend(['Retry', f'{retries}'])
-        printEntityKVList([Ent.USER, user], kvList, i, count)
-        if maxRetries and retries >= maxRetries:
-          entityActionFailedWarning([Ent.USER, user], Msg.RETRIES_EXHAUSTED.format(maxRetries), i, count)
+        if not showRetryStatus(user, True, i, count):
           break
-        time.sleep(3)
       except GAPI.userNotFound:
-        entityUnknownWarning(Ent.USER, user, i, count)
-        break
+        if not showRetryStatus(user, False, i, count):
+          break
       except (GAPI.invalid, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.authError) as e:
         entityActionFailedWarning([Ent.USER, user], str(e), i, count)
         break

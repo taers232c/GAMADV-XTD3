@@ -1,3 +1,7 @@
+6.04.23
+
+Following Jay's lead, improved `gam <UserTypeEntity> waitformailbox [retries <Number>]`.
+
 6.04.22
 
 Added additional code to handle the following error in `gam print group-members`.
