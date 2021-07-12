@@ -1,3 +1,10 @@
+6.04.24
+
+Handle the following error in `gam <UserTypeEntity> copy drivefile <DriveFileEntity>`:
+```
+ERROR: 400: invalidLinkVisibility - Bad Request. User message: ""
+```
+
 6.04.23
 
 Following Jay's lead, improved `gam <UserTypeEntity> waitformailbox [retries <Number>]`.

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.23'
+__version__ = '6.04.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4365,8 +4365,12 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
         break
     if reason == GAPI.INVALID_SHARING_REQUEST:
       loc = message.find('User message: ')
-      if loc != 1:
+      if loc != -1:
         message = message[loc+15:]
+    else:
+      loc = message.find('User message: ""')
+      if loc != -1:
+        message = message[:loc+14]+f'"{reason}"'
   except KeyError:
     reason = f'{http_status}'
   return (http_status, reason, message)
@@ -35256,7 +35260,8 @@ def _doInfoCourses(entityList):
               course.update({'students': list(students)})
             else:
               course.update({'students': len(students)})
-        printLine(json.dumps(cleanJSON(course, skipObjects=courseShowProperties['skips'], timeObjects=COURSE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+        printLine(json.dumps(cleanJSON(course, skipObjects=courseShowProperties['skips'],
+                                       timeObjects=COURSE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
         continue
       printEntity([Ent.COURSE, course['id']], i, count)
       Ind.Increment()
@@ -44054,13 +44059,15 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
                                                                  GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                  GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                                                  GAPI.FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                                                 GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
+                                                                 GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                 GAPI.INVALID_LINK_VISIBILITY],
                    retryReasons=[GAPI.INVALID_SHARING_REQUEST],
                    fileId=newFileId, sendNotificationEmail=False, emailMessage=None,
                    body=permission, fields='', supportsAllDrives=True)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                 GAPI.ownerOnTeamDriveItemNotSupported,
-                GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+                GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported,
+                GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.invalidLinkVisibility) as e:
           entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], str(e), j, jcount)
         except GAPI.invalidSharingRequest as e:
           entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
