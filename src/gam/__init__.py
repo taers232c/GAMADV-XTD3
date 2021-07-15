@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.24'
+__version__ = '6.04.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -201,7 +201,7 @@ SHARED_DRIVES = 'SharedDrives'
 LOWERNUMERIC_CHARS = string.ascii_lowercase+string.digits
 ALPHANUMERIC_CHARS = LOWERNUMERIC_CHARS+string.ascii_uppercase
 URL_SAFE_CHARS = ALPHANUMERIC_CHARS+'-._~'
-PASSWORD_SAFE_CHARS = ALPHANUMERIC_CHARS+'!#$%&()* -./:;<=>?@[\\]^_{|}~'
+PASSWORD_SAFE_CHARS = ALPHANUMERIC_CHARS+'!#$%&()*-./:;<=>?@[\\]^_{|}~'
 FILENAME_SAFE_CHARS = ALPHANUMERIC_CHARS+'-_.() '
 ADMIN_ACCESS_OPTIONS = {'adminaccess', 'asadmin'}
 
@@ -1255,7 +1255,7 @@ def integerLimits(minVal, maxVal, item='integer'):
     return f'{item} x<={maxVal}'
   return f'{item} x'
 
-def getInteger(minVal=None, maxVal=None):
+def getInteger(minVal=None, maxVal=None, default=None):
   if Cmd.ArgumentsRemaining():
     try:
       number = int(Cmd.Current().strip())
@@ -1263,8 +1263,11 @@ def getInteger(minVal=None, maxVal=None):
         Cmd.Advance()
         return number
     except ValueError:
-      pass
+      if default is not None:
+        return default
     invalidArgumentExit(integerLimits(minVal, maxVal))
+  elif default is not None:
+    return default
   missingArgumentExit(integerLimits(minVal, maxVal))
 
 def getIntegerEmptyAllowed(minVal=None, maxVal=None, default=0):
@@ -31316,12 +31319,30 @@ class PasswordOptions():
     self.ignoreNullPassword = False
     self.makeRandomPassword = not updateCmd
     self.makeUniqueRandomPassword = False
+    self.makeCleanPassword = True
+    self.cleanPasswordLen = 25
+    self.randomPasswordChars = None
     self.notifyPasswordSet = False
     self.updateCmd = updateCmd
     self.filename = ''
 
   def GetPassword(self):
     return getString(Cmd.OB_PASSWORD, minLen=1 if not self.ignoreNullPassword else 0, maxLen=100)
+
+  def SetCleanPasswordLen(self):
+    self.cleanPasswordLen = getInteger(minVal=8, maxVal=100, default=25)
+
+  def CreateRandomPassword(self):
+    rnd = SystemRandom()
+    if not self.makeCleanPassword:
+    # Generate a password with unicode chars that are not allowed in passwords.
+    # We expect "password random nohash" to fail but no one should be using that.
+    # Our goal here is to purposefully block logins with this password.
+      if not self.randomPasswordChars:
+        self.randomPasswordChars = [chr(i) for i in range(1, 55296)]
+      return ''.join(rnd.choice(self.randomPasswordChars) for _ in range(4096))
+    # Generate a clean password that can be used for logins
+    return''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(self.cleanPasswordLen))
 
   def ProcessArgument(self, myarg, notify, notFoundBody):
     if myarg == 'ignorenullpassword':
@@ -31338,9 +31359,14 @@ class PasswordOptions():
       password = self.GetPassword()
       if password:
         notFoundBody[up] = password
-        if notFoundBody[up].lower() in {'random', 'uniquerandom'}:
-          rnd = SystemRandom()
-          notFoundBody[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+        if notFoundBody[up].lower() in {'blocklogin'}:
+          self.makeCleanPassword = False
+          notFoundBody[up] = self.CreateRandomPassword()
+          self.notFoundPassword = notFoundBody[up]
+        elif notFoundBody[up].lower() in {'random', 'uniquerandom'}:
+          self.SetCleanPasswordLen()
+          self.makeCleanPassword = True
+          notFoundBody[up] = self.CreateRandomPassword()
           self.notFoundPassword = notFoundBody[up]
     elif myarg == 'lograndompassword':
       self.filename = getString(Cmd.OB_FILE_NAME)
@@ -31364,13 +31390,18 @@ class PasswordOptions():
       if password:
         body[up] = password
         self.makeRandomPassword = self.makeUniqueRandomPassword = False
-        if password.lower() == 'random':
+        if password.lower() == 'blocklogin':
           self.makeRandomPassword = True
+          self.makeCleanPassword = False
+        elif password.lower() == 'random':
+          self.SetCleanPasswordLen()
+          self.makeRandomPassword = self.makeCleanPassword = True
         elif password.lower() == 'uniquerandom':
+          self.SetCleanPasswordLen()
           if self.updateCmd:
-            self.makeUniqueRandomPassword = True
+            self.makeUniqueRandomPassword = self.makeCleanPassword = True
           else:
-            self.makeRandomPassword = True
+            self.makeRandomPassword = self.makeCleanPassword = True
     elif up == 'hashFunction':
       body[up] = self.HASH_FUNCTION_MAP[myarg]
       self.clearPassword = self.hashPassword = False
@@ -31383,7 +31414,7 @@ class PasswordOptions():
     if not self.notifyPasswordSet:
       notify[up] = body[up] if self.clearPassword else Msg.CONTACT_ADMINISTRATOR_FOR_PASSWORD
     if self.hashPassword:
-      body[up] = sha512_crypt.hash(body[up], rounds=5000)
+      body[up] = sha512_crypt.hash(body[up], rounds=10000)
       body['hashFunction'] = 'crypt'
     elif self.b64DecryptPassword:
       if body[up].lower()[:5] in ['{md5}', '{sha}']:
@@ -31393,8 +31424,7 @@ class PasswordOptions():
   def AssignPassword(self, body, notify, notFoundBody, createIfNotFound):
     up = 'password'
     if self.makeRandomPassword or self.makeUniqueRandomPassword:
-      rnd = SystemRandom()
-      body[up] = ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(25))
+      body[up] = self.CreateRandomPassword()
       self.password = body[up]
     if up in body:
       self.FinalizePassword(body, notify, up)
@@ -32031,7 +32061,7 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 #	[updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 #	    [keyfield <FieldName>] [datafield <FieldName>]]
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-#	[createifnotfound] [notfoundpassword random|<Password>]
+#	[createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 #	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|

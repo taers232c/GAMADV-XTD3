@@ -4004,7 +4004,7 @@ gam show vaultholds|holds [matters <MatterItemList>]
                                             (file|htmlfile <FileName> [charset <Charset>])|
                                             (gdoc|ghtml <UserGoogleDoc>)))|
         (org|ou|orgunitpath <OrgUnitPath>)
-        (password random|uniquerandom|<Password>)|
+        (password (random [<Integer>])|(uniquerandom [<Integer>])|blocklogin|<Password>)|
         (recoveryemail <EmailAddress>)|
         (recoveryphone <string>)|
         (suspended <Boolean>)|
@@ -4089,7 +4089,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
             [columndelimiter <Character>] [quotechar <Character>]
             [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notfoundpassword random|<Password>]
+        [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
@@ -4118,7 +4118,8 @@ gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactio
             [columndelimiter <Character>] [quotechar <Character>]
             [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+        [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
+        (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*
@@ -4144,7 +4145,8 @@ gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactio
             [columndelimiter <Character>] [quotechar <Character>]
             [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
-        [createifnotfound] [notfoundpassword random|<Password>] (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+        [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
+        (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [message <String>|(file <FileName> [charset <CharSet>])]|(gdoc <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*

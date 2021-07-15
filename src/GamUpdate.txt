@@ -1,3 +1,17 @@
+6.04.25
+
+Updated random password processing in `gam create|update user`.
+
+As in prior versions of Advanced GAM, if you create a user and don't specify a password
+or specify `password random`, a password of length 25 comprised of letters, numbers and special characters is created.
+This does not match Standard GAM; it generates an unusable login password.
+You can specify the length of the random password with `password random <Integer>`,
+`<Integer>` must be between 8 and 100; this is not available in Standard GAM.
+
+If you specify `password blocklogin`, a password of length 4096 comprised of random Unicode
+characters is created; it's purpose is to create a password that blocks logins. This
+matches the `password random` option of Standard GAM.
+
 6.04.24
 
 Handle the following error in `gam <UserTypeEntity> copy drivefile <DriveFileEntity>`:
