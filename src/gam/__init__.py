@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.00'
+__version__ = '6.06.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5970,7 +5970,7 @@ def getUserObjectEntity(clObject, itemType):
     entity['dict'] = entity['list']
   return entity
 
-def _validateUserGetObjectList(user, i, count, entity, api=API.GMAIL):
+def _validateUserGetObjectList(user, i, count, entity, api=API.GMAIL, showAction=True):
   if entity['dict']:
     entityList = entity['dict'][user]
   else:
@@ -5979,7 +5979,8 @@ def _validateUserGetObjectList(user, i, count, entity, api=API.GMAIL):
   if not svc:
     return (user, None, [], 0)
   jcount = len(entityList)
-  entityPerformActionNumItems([Ent.USER, user], jcount, entity['item'], i, count)
+  if showAction:
+    entityPerformActionNumItems([Ent.USER, user], jcount, entity['item'], i, count)
   if jcount == 0:
     setSysExitRC(NO_ENTITIES_FOUND_RC)
   return (user, svc, entityList, jcount)
@@ -54536,11 +54537,13 @@ def deleteInfoNotes(users):
         FJQC.GetFormatJSON(myarg)
     fields = getFieldsFromFieldsList(fieldsList)
   else:
+    FJQC = None
     checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, keep, noteNames, jcount = _validateUserGetObjectList(user, i, count, noteNameEntity, api=API.KEEP)
+    user, keep, noteNames, jcount = _validateUserGetObjectList(user, i, count, noteNameEntity,
+                                                               api=API.KEEP, showAction=FJQC is None or not FJQC.formatJSON)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -54627,9 +54630,11 @@ def printShowNotes(users):
 # gam <UserTypeEntity> create noteacl <NotesNameEntity>
 #	(user|group <EmailAddress>)+
 #	(json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
+#	[nodetails]
 def createNotesACLs(users):
   noteNameEntity = getUserObjectEntity(Cmd.OB_NAME, Ent.NOTES_ACLS)
   body = {'requests': []}
+  showDetails = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'user', 'group'}:
@@ -54645,6 +54650,8 @@ def createNotesACLs(users):
           elif 'group' in permission:
             body['requests'].append({'parent': None,
                                      'permission': {'role': 'WRITER', 'group': {'email': permission['group']['email']}}})
+    elif myarg == 'nodetails':
+      showDetails = False
     else:
       unknownArgumentExit()
   kcount = len(body['requests'])
@@ -54664,10 +54671,14 @@ def createNotesACLs(users):
       for request in rbody['requests']:
         request['parent'] = name
       try:
-        callGAPI(keep.notes().permissions(), 'batchCreate',
-                 throwReasons=GAPI.KEEP_THROW_REASONS,
-                 parent=name, body=rbody)
+        permissions = callGAPI(keep.notes().permissions(), 'batchCreate',
+                               throwReasons=GAPI.KEEP_THROW_REASONS,
+                               parent=name, body=rbody)
         entityNumItemsActionPerformed(entityKVList, kcount, Ent.NOTE_ACL, j, jcount)
+        if showDetails:
+          Ind.Increment()
+          _showNotePermissions(permissions['permissions'])
+          Ind.DEcrement()
       except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning(entityKVList, str(e), i, count)
         break
@@ -54706,7 +54717,7 @@ def deleteNotesACLs(users):
       j += 1
       name = normalizeNoteName(name)
       rbody = body.copy()
-      if emails['user'] or emails['groups']:
+      if emails['user'] or emails['group']:
         try:
           note = callGAPI(keep.notes(), 'get',
                           throwReasons=GAPI.KEEP_THROW_REASONS,

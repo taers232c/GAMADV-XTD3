@@ -5588,6 +5588,7 @@ gam <UserTypeEntity> print notes [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> create noteacl <NotesNameEntity>
         (user|group <EmailAddress>)+
         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
+        [nodetails]
 gam <UserTypeEntity> delete noteacl <NotesNameEntity>
         (user|group <EmailAddress>)+
         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
