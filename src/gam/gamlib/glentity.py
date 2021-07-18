@@ -205,6 +205,9 @@ class GamEntity():
   MIMETYPE = 'mime'
   MOBILE_DEVICE = 'mobi'
   NAME = 'name'
+  NOTE = 'note'
+  NOTE_ACL = 'nota'
+  NOTES_ACLS = 'naac'
   NONEDITABLE_ALIAS = 'neal'
   OAUTH2_TXT_FILE = 'oaut'
   OAUTH2SERVICE_JSON_FILE = 'oau2'
@@ -471,6 +474,9 @@ class GamEntity():
     MIMETYPE: ['MIME Types', 'MIME Type'],
     MOBILE_DEVICE: ['Mobile Devices', 'Mobile Device'],
     NAME: ['Names', 'Name'],
+    NOTE: ['Notes', 'Note'],
+    NOTE_ACL: ['Note ACLs', 'Note ACL'],
+    NOTES_ACLS: ["'Note's ACLs", "Note's ACLs"],
     NONEDITABLE_ALIAS: ['Non-Editable Aliases', 'Non-Editable Alias'],
     OAUTH2_TXT_FILE: ['Client OAuth2 File', 'Client OAuth2 File'],
     OAUTH2SERVICE_JSON_FILE: ['Service Account OAuth2 File', 'Service Account OAuth2 File'],

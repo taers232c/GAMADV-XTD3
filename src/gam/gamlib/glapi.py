@@ -48,6 +48,7 @@ GROUPSMIGRATION = 'groupsmigration'
 GROUPSSETTINGS = 'groupssettings'
 IAM = 'iam'
 IAP = 'iap'
+KEEP = 'keep'
 LICENSING = 'licensing'
 OAUTH2 = 'oauth2'
 PEOPLE = 'people'
@@ -127,6 +128,7 @@ PROJECT_APIS = [
   'gmail.googleapis.com',
   'groupsmigration.googleapis.com',
   'groupssettings.googleapis.com',
+  'keep.googleapis.com',
   'iam.googleapis.com',
   'iap.googleapis.com',
   'licensing.googleapis.com',
@@ -168,6 +170,7 @@ _INFO = {
   GROUPSSETTINGS: {'name': 'Groups Settings API', 'version': 'v1', 'v2discovery': True},
   IAM: {'name': 'Identity and Access Management API', 'version': 'v1', 'v2discovery': True},
   IAP: {'name': 'Cloud Identity-Aware Proxy API', 'version': 'v1', 'v2discovery': True},
+  KEEP: {'name': 'Keep API', 'version': 'v1', 'v2discovery': True},
   LICENSING: {'name': 'License Manager API', 'version': 'v1', 'v2discovery': True},
   OAUTH2: {'name': 'OAuth2 API', 'version': 'v2', 'v2discovery': False},
   PEOPLE: {'name': 'People API', 'version': 'v1', 'v2discovery': True},
@@ -469,6 +472,10 @@ _SVCACCT_SCOPES = [
    'api': IAM,
    'subscopes': [],
    'scope': IAM_SCOPE},
+  {'name': 'Keep API',
+   'api': KEEP,
+   'subscopes': READONLY,
+   'scope': 'https://www.googleapis.com/auth/keep'},
   {'name': 'OAuth2 API',
    'api': OAUTH2,
    'subscopes': [],

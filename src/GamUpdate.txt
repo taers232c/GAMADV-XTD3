@@ -1,3 +1,8 @@
+6.06.00
+
+Added commands to manage and display Google Keep notes.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Keep
+
 6.04.25
 
 Updated random password processing in `gam create|update user`.

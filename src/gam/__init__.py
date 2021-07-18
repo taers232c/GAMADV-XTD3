@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.04.25'
+__version__ = '6.06.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2459,6 +2459,11 @@ def entityPerformActionInfo(entityValueList, infoValue, i=0, count=0):
 def entityActionPerformed(entityValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[Act.Performed()],
+                                 currentCountNL(i, count)))
+
+def entityNumItemsActionPerformed(entityValueList, itemCount, itemType, i=0, count=0):
+  writeStdout(formatKeyValueList(Ind.Spaces(),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{itemCount} {Ent.Choose(itemType, itemCount)} {Act.Performed()}'],
                                  currentCountNL(i, count)))
 
 def entityActionPerformedMessage(entityValueList, message, i=0, count=0):
@@ -5965,19 +5970,19 @@ def getUserObjectEntity(clObject, itemType):
     entity['dict'] = entity['list']
   return entity
 
-def _validateUserGetObjectList(user, i, count, entity):
+def _validateUserGetObjectList(user, i, count, entity, api=API.GMAIL):
   if entity['dict']:
     entityList = entity['dict'][user]
   else:
     entityList = entity['list']
-  user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
-  if not gmail:
+  user, svc = buildGAPIServiceObject(api, user, i, count)
+  if not svc:
     return (user, None, [], 0)
   jcount = len(entityList)
   entityPerformActionNumItems([Ent.USER, user], jcount, entity['item'], i, count)
   if jcount == 0:
     setSysExitRC(NO_ENTITIES_FOUND_RC)
-  return (user, gmail, entityList, jcount)
+  return (user, svc, entityList, jcount)
 
 def _validateUserGetMessageIds(user, i, count, entity):
   if entity:
@@ -31342,7 +31347,7 @@ class PasswordOptions():
         self.randomPasswordChars = [chr(i) for i in range(1, 55296)]
       return ''.join(rnd.choice(self.randomPasswordChars) for _ in range(4096))
     # Generate a clean password that can be used for logins
-    return''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(self.cleanPasswordLen))
+    return ''.join(rnd.choice(PASSWORD_SAFE_CHARS) for _ in range(self.cleanPasswordLen))
 
   def ProcessArgument(self, myarg, notify, notFoundBody):
     if myarg == 'ignorenullpassword':
@@ -54323,6 +54328,421 @@ def printShowVacation(users):
   if csvPF:
     csvPF.writeCSVfile('Vacation')
 
+def normalizeNoteName(noteName):
+  if noteName.startswith('notes/'):
+    return noteName
+  return f'notes/{noteName}'
+
+def _showNoteListItems(listItems):
+  printKeyValueList(['list', ''])
+  Ind.Increment()
+  kcount = len(listItems)
+  k = 0
+  for listItem in listItems:
+    k += 1
+    printKeyValueListWithCount(['item', ''], k, kcount)
+    Ind.Increment()
+    printKeyValueList(['text', listItem['text']['text']])
+    if 'checked' in listItem:
+      printKeyValueList(['checked', listItem['checked']])
+    if 'childListItems' in listItem:
+      _showNoteListItems(listItem['childListItems'])
+    Ind.Decrement()
+  Ind.Decrement()
+
+def _showNotePermissions(permissions):
+  printKeyValueList(['permissions', ''])
+  Ind.Increment()
+  kcount = len(permissions)
+  k = 0
+  for permission in permissions:
+    k += 1
+    printKeyValueListWithCount(['name', permission['name']], k, kcount)
+    Ind.Increment()
+    for field in ['role', 'deleted']:
+      if field in permission:
+        printKeyValueList([field, permission[field]])
+    for field in ['user', 'group']:
+      if field in permission:
+        printKeyValueList([field, permission[field]['email']])
+        break
+    else:
+      if 'email' in permission:
+        printKeyValueList(['email', permission['email']])
+    if 'family' in permission:
+      family = permission['family']
+      if 'text' in family:
+        printKeyValueList(['family', family['text']['text']])
+      elif 'list' in family:
+        _showNoteListItems(family['list']['listItems'])
+    Ind.Decrement()
+  Ind.Decrement()
+
+def _showNoteAttachments(attachments):
+  printKeyValueList(['attachments', ''])
+  Ind.Increment()
+  kcount = len(attachments)
+  k = 0
+  for attachment in attachments:
+    k += 1
+    printKeyValueListWithCount(['name', attachment['name']], k, kcount)
+    Ind.Increment()
+    printKeyValueList(['mimeType', ','.join(attachment['mimeType'])])
+    Ind.Decrement()
+  Ind.Decrement()
+
+NOTES_TIME_OBJECTS = ['createTime', 'updateTime', 'trashTime']
+
+def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(note, timeObjects=NOTES_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
+  printEntity([Ent.NOTE, note['name']], j, jcount)
+  Ind.Increment()
+  printKeyValueList(['title', note.get('title', None)])
+  for field in NOTES_TIME_OBJECTS:
+    if field in note:
+      printKeyValueList([field, formatLocalTime(note[field])])
+  if 'trashed' in note:
+    printKeyValueList(['trashed', note['trashed']])
+  if 'permissions' in note:
+    _showNotePermissions(note['permissions'])
+  if 'attachments' in note:
+    _showNoteAttachments(note['attachments'])
+  body = note.get('body', {})
+  if 'text' in body:
+    if not compact:
+      printKeyValueList(['text', None])
+      Ind.Increment()
+      printKeyValueList([Ind.MultiLineText(body['text']['text'])])
+      Ind.Decrement()
+    else:
+      printKeyValueList(['text', escapeCRsNLs(body['text']['text'])])
+  elif 'list' in body:
+    _showNoteListItems(body['list']['listItems'])
+  Ind.Decrement()
+
+# gam <UserTypeEntity> create note [title <String>]
+#	((text <String>)|
+#        (textfile <FileName> [charset <CharSet>])|
+#	 (gdoc <UserGoogleDoc>)|
+#        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))
+#	[compact|formatjson|nodetails]
+def createNote(users):
+  FJQC = FormatJSONQuoteChar()
+  compact = False
+  showDetails = True
+  copyACLs = False
+  body = {'title': '', 'body': {}}
+  rbody = {'requests': []}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'title':
+      body['title'] = getString(Cmd.OB_STRING, minLen=1, maxLen=1000)
+    elif myarg in SORF_TEXT_ARGUMENTS:
+      msgText, _, _ = getStringOrFile(myarg, unescapeCRLF=True)
+      body['body']['text'] = {'text': msgText}
+    elif myarg == 'json':
+      jsonData = getJSON([])
+      if not body['title']:
+        body['title'] = jsonData.get('title', '')
+      body['body'] = jsonData.get('body', {})
+      for permission in jsonData.get('permissions', []):
+        if permission['role'] == 'WRITER':
+          if 'user' in permission:
+            rbody['requests'].append({'parent': None,
+                                      'permission': {'role': 'WRITER', 'user': {'email': permission['user']['email']}}})
+          elif 'group' in permission:
+            rbody['requests'].append({'parent': None,
+                                      'permission': {'role': 'WRITER', 'group': {'email': permission['group']['email']}}})
+    elif myarg == 'copyacls':
+      copyACLs = True
+    elif myarg == 'compact':
+      compact = True
+    elif myarg == 'nodetails':
+      showDetails = False
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if not body['body']:
+    choices = list(SORF_TEXT_ARGUMENTS)
+    choices.append('json')
+    missingArgumentExit('|'.join(choices))
+  kcount = len(rbody['requests'])
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, keep = buildGAPIServiceObject(API.KEEP, user, i, count)
+    if not keep:
+      continue
+    try:
+      note = callGAPI(keep.notes(), 'create',
+                      throwReasons=GAPI.KEEP_THROW_REASONS,
+                      body=body)
+      name = note['name']
+      entityKVList = [Ent.USER, user, Ent.NOTE, name]
+      if copyACLs and kcount > 0:
+        for request in rbody['requests']:
+          request['parent'] = name
+        try:
+          callGAPI(keep.notes().permissions(), 'batchCreate',
+                   throwReasons=GAPI.KEEP_THROW_REASONS,
+                   parent=name, body=rbody)
+          note = callGAPI(keep.notes(), 'get',
+                          throwReasons=GAPI.KEEP_THROW_REASONS,
+                          name=name)
+        except (GAPI.permissionDenied, GAPI.invalidArgument):
+          pass
+        except (GAPI.serviceNotAvailable, GAPI.badRequest):
+          pass
+      if showDetails:
+        _showNote(note, FJQC=FJQC, compact=compact)
+      else:
+        entityActionPerformed(entityKVList, i, count)
+    except (GAPI.permissionDenied, GAPI.invalidArgument) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.NOTE, body['title']], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+
+NOTES_FIELDS_CHOICE_MAP = {
+  'attachments': 'attachments',
+  'body': 'body',
+  'createtime': 'createTime',
+  'name': 'name',
+  'permissions': 'permissions',
+  'title': 'title',
+  'trashed': 'trashed',
+  'trashtime': 'trashTime',
+  'updatetime': 'updateTime',
+  }
+
+# gam <UserTypeEntity> info note <NotesNameEntity>
+#	[fields <NotesFieldList>]
+#	[compact|formatjson]
+# gam <UserTypeEntity> delete note <NotesNameEntity>
+def deleteInfoNotes(users):
+  function = 'delete' if Act.Get() == Act.DELETE else 'get'
+  fieldsList = []
+  noteNameEntity = getUserObjectEntity(Cmd.OB_NAME, Ent.NOTE)
+  if function == 'get':
+    FJQC = FormatJSONQuoteChar()
+    compact = False
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if getFieldsList(myarg, NOTES_FIELDS_CHOICE_MAP, fieldsList, initialField='name'):
+        pass
+      elif myarg == 'compact':
+        compact = True
+      else:
+        FJQC.GetFormatJSON(myarg)
+    fields = getFieldsFromFieldsList(fieldsList)
+  else:
+    checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, keep, noteNames, jcount = _validateUserGetObjectList(user, i, count, noteNameEntity, api=API.KEEP)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for name in noteNames:
+      j += 1
+      name = normalizeNoteName(name)
+      try:
+        if function == 'get':
+          note = callGAPI(keep.notes(), function,
+                          throwReasons=GAPI.KEEP_THROW_REASONS,
+                          name=name, fields=fields)
+          _showNote(note, j, jcount, FJQC, compact)
+        else:
+          callGAPI(keep.notes(), function,
+                   throwReasons=GAPI.KEEP_THROW_REASONS,
+                   name=name)
+          entityActionPerformed([Ent.USER, user, Ent.NOTE, name], j, jcount)
+      except (GAPI.badRequest, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.NOTE, name], str(e), i, count)
+      except GAPI.serviceNotAvailable:
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+
+# gam <UserTypeEntity> show notes
+#	[fields <NotesFieldList>] [filter <String>]
+#	[compact] [formatjson]
+# gam <UserTypeEntity> print notes [todrive <ToDriveAttribute>*]
+#	[fields <NotesFieldList>] [filter <String>]
+#	[formatjson [quotechar <Character>]]
+def printShowNotes(users):
+  csvPF = CSVPrintFile(['User', 'name', 'title']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  compact = False
+  fieldsList = []
+  noteFilter = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif getFieldsList(myarg, NOTES_FIELDS_CHOICE_MAP, fieldsList, initialField=['name', 'title']):
+      pass
+    elif myarg == 'filter':
+      noteFilter = getString(Cmd.OB_STRING)
+    elif not csvPF and myarg == 'compact':
+      compact = True
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = getItemFieldsFromFieldsList('notes', fieldsList, returnItemIfNoneList=False)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, keep = buildGAPIServiceObject(API.KEEP, user, i, count)
+    if not keep:
+      continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.NOTE, user, i, count)
+    try:
+      notes = callGAPIpages(keep.notes(), 'list', 'notes',
+                            throwReasons=GAPI.KEEP_THROW_REASONS,
+                            filter=noteFilter, fields=fields)
+      if not csvPF:
+        jcount = len(notes)
+        j = 0
+        for note in notes:
+          j += 1
+          _showNote(note, j, jcount, FJQC, compact)
+      else:
+        for note in notes:
+          row = flattenJSON(note, flattened={'User': user}, timeObjects=NOTES_TIME_OBJECTS)
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(row)
+          elif csvPF.CheckRowTitles(row):
+            csvPF.WriteRowNoFilter({'User': user, 'name': note['name'], 'title': note.get('title', ''),
+                                    'JSON': json.dumps(cleanJSON(note, timeObjects=NOTES_TIME_OBJECTS),
+                                                       ensure_ascii=False, sort_keys=True)})
+    except (GAPI.permissionDenied, GAPI.invalidArgument) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.NOTE, None], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Notes')
+
+# gam <UserTypeEntity> create noteacl <NotesNameEntity>
+#	(user|group <EmailAddress>)+
+#	(json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
+def createNotesACLs(users):
+  noteNameEntity = getUserObjectEntity(Cmd.OB_NAME, Ent.NOTES_ACLS)
+  body = {'requests': []}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in {'user', 'group'}:
+      body['requests'].append({'parent': None,
+                               'permission': {'role': 'WRITER', myarg: {'email': getEmailAddress(noUid=True)}}})
+    elif myarg == 'json':
+      jsonData = getJSON([])
+      for permission in jsonData.get('permissions', []):
+        if permission['role'] == 'WRITER':
+          if 'user' in permission:
+            body['requests'].append({'parent': None,
+                                     'permission': {'role': 'WRITER', 'user': {'email': permission['user']['email']}}})
+          elif 'group' in permission:
+            body['requests'].append({'parent': None,
+                                     'permission': {'role': 'WRITER', 'group': {'email': permission['group']['email']}}})
+    else:
+      unknownArgumentExit()
+  kcount = len(body['requests'])
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, keep, noteNames, jcount = _validateUserGetObjectList(user, i, count, noteNameEntity, api=API.KEEP)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for name in noteNames:
+      j += 1
+      name = normalizeNoteName(name)
+      entityKVList = [Ent.USER, user, Ent.NOTE, name]
+      rbody = body.copy()
+      for request in rbody['requests']:
+        request['parent'] = name
+      try:
+        callGAPI(keep.notes().permissions(), 'batchCreate',
+                 throwReasons=GAPI.KEEP_THROW_REASONS,
+                 parent=name, body=rbody)
+        entityNumItemsActionPerformed(entityKVList, kcount, Ent.NOTE_ACL, j, jcount)
+      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+        entityActionFailedWarning(entityKVList, str(e), i, count)
+        break
+      except GAPI.serviceNotAvailable:
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+
+# gam <UserTypeEntity> delete noteacl <NotesNameEntity>
+#	(user|group <EmailAddress>)+
+#	(json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
+def deleteNotesACLs(users):
+  noteNameEntity = getUserObjectEntity(Cmd.OB_NAME, Ent.NOTES_ACLS)
+  emails = {'user': set(), 'group': set()}
+  body = {'names': []}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in {'user', 'group'}:
+      emails[myarg].add(getEmailAddress(noUid=True).lower())
+    elif myarg == 'json':
+      jsonData = getJSON([])
+      for permission in jsonData.get('permissions', []):
+        if permission['role'] == 'WRITER':
+          loc = permission['name'].find('/permissions')
+          body['names'].append(permission['name'][loc+1:])
+    else:
+      unknownArgumentExit()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, keep, noteNames, jcount = _validateUserGetObjectList(user, i, count, noteNameEntity, api=API.KEEP)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for name in noteNames:
+      j += 1
+      name = normalizeNoteName(name)
+      rbody = body.copy()
+      if emails['user'] or emails['groups']:
+        try:
+          note = callGAPI(keep.notes(), 'get',
+                          throwReasons=GAPI.KEEP_THROW_REASONS,
+                          name=name, fields='permissions')
+          for permission in note['permissions']:
+            if permission['role'] == 'WRITER':
+              if (('user' in permission and permission['user']['email'].lower() in emails['user']) or
+                  ('group' in permission and permission['group']['email'].lower() in emails['group'])):
+                rbody['names'].append(permission['name'])
+        except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.NOTE, name], str(e), i, count)
+          break
+        except GAPI.serviceNotAvailable:
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+          break
+      for k, perm in enumerate(rbody['names']):
+        if perm.startswith('notes/'):
+          pass
+        elif perm.startswith('permissions'):
+          rbody['names'][k] = f'{name}/{perm}'
+        else:
+          rbody['names'][k] = f'{name}/permissions/{perm}'
+      kcount = len(rbody['names'])
+      entityKVList = [Ent.USER, user, Ent.NOTE, name]
+      try:
+        callGAPI(keep.notes().permissions(), 'batchDelete',
+                 throwReasons=GAPI.KEEP_THROW_REASONS,
+                 parent=name, body=rbody)
+        entityNumItemsActionPerformed(entityKVList, kcount, Ent.NOTE_ACL, j, jcount)
+      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+        entityActionFailedWarning(entityKVList, str(e), i, count)
+        break
+      except GAPI.serviceNotAvailable:
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+
 # Command line processing
 
 CMD_ACTION = 0
@@ -54374,8 +54794,8 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_RESOLDCUSTOMER:	doCreateResoldCustomer,
   Cmd.ARG_RESOLDSUBSCRIPTION:	doCreateResoldSubscription,
   Cmd.ARG_RESOURCE:		doCreateResourceCalendar,
-  Cmd.ARG_SCHEMA:		doCreateUpdateUserSchemas,
   Cmd.ARG_SAKEY:		doCreateSvcAcctKeys,
+  Cmd.ARG_SCHEMA:		doCreateUpdateUserSchemas,
   Cmd.ARG_SITE:			doCreateDomainSite,
   Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
   Cmd.ARG_SVCACCT:		doCreateSvcAcct,
@@ -54418,7 +54838,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.CHECK,
      {Cmd.ARG_SVCACCT:		doCheckUpdateSvcAcct,
       Cmd.ARG_USERINVITATION:	doCheckCIUserInvitations,
-      Cmd.ARG_ISINVITABLE:	doCheckCIUserInvitations
+      Cmd.ARG_ISINVITABLE:	doCheckCIUserInvitations,
      }
     ),
   'clear':
@@ -54494,7 +54914,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'get':
     (Act.DOWNLOAD,
      {Cmd.ARG_CONTACTPHOTO:	doGetDomainContactPhoto,
-      Cmd.ARG_DEVICEFILE:	doGetCrOSDeviceFiles
+      Cmd.ARG_DEVICEFILE:	doGetCrOSDeviceFiles,
      }
     ),
   'getcommand':
@@ -54781,8 +55201,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_RESOLDSUBSCRIPTION:	doUpdateResoldSubscription,
       Cmd.ARG_RESOURCE:		doUpdateResourceCalendar,
       Cmd.ARG_RESOURCES:	doUpdateResourceCalendars,
-      Cmd.ARG_SCHEMA:		doCreateUpdateUserSchemas,
       Cmd.ARG_SAKEY:		doUpdateSvcAcctKeys,
+      Cmd.ARG_SCHEMA:		doCreateUpdateUserSchemas,
       Cmd.ARG_SITE:		doUpdateDomainSites,
       Cmd.ARG_SITEACL:		doProcessDomainSiteACLs,
       Cmd.ARG_SVCACCT:		doCheckUpdateSvcAcct,
@@ -55235,6 +55655,8 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_GUARDIANINVITATION:	inviteGuardians,
   Cmd.ARG_LABEL:		createLabel,
   Cmd.ARG_LICENSE:		createLicense,
+  Cmd.ARG_NOTE:			createNote,
+  Cmd.ARG_NOTEACL:		createNotesACLs,
   Cmd.ARG_PERMISSION:		createDriveFilePermissions,
   Cmd.ARG_SENDAS:		createUpdateSendAs,
   Cmd.ARG_SHEET:		createSheet,
@@ -55333,6 +55755,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		deleteLabel,
       Cmd.ARG_LICENSE:		deleteLicense,
       Cmd.ARG_MESSAGE:		processMessages,
+      Cmd.ARG_NOTE:		deleteInfoNotes,
+      Cmd.ARG_NOTEACL:		deleteNotesACLs,
       Cmd.ARG_PEOPLECONTACT:	deletePeopleContacts,
       Cmd.ARG_PERMISSION:	deletePermissions,
       Cmd.ARG_PHOTO:		deletePhoto,
@@ -55362,7 +55786,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DOCUMENT:		getGoogleDocument,
       Cmd.ARG_DRIVEFILE:	getDriveFile,
       Cmd.ARG_PHOTO:		getUserPhoto,
-      Cmd.ARG_PROFILE_PHOTO:	getProfilePhoto
+      Cmd.ARG_PROFILE_PHOTO:	getProfilePhoto,
      }
     ),
   'hide':
@@ -55390,6 +55814,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FILTER:		infoFilters,
       Cmd.ARG_FORWARDINGADDRESS:	infoForwardingAddresses,
       Cmd.ARG_GROUPMEMBERS:	infoGroupMembers,
+      Cmd.ARG_NOTE:		deleteInfoNotes,
       Cmd.ARG_SENDAS:		deleteInfoSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SITE:		infoUserSites,
@@ -55459,6 +55884,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_LANGUAGE:		printShowLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
+      Cmd.ARG_NOTE:		printShowNotes,
       Cmd.ARG_OTHERCONTACT:	printShowUserOtherContacts,
       Cmd.ARG_PEOPLE:		printShowPeople,
       Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
@@ -55521,6 +55947,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		printShowLabels,
       Cmd.ARG_LANGUAGE:		printShowLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
+      Cmd.ARG_NOTE:		printShowNotes,
       Cmd.ARG_OTHERCONTACT:	printShowUserOtherContacts,
       Cmd.ARG_PEOPLE:		printShowPeople,
       Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
@@ -55697,6 +56124,10 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_MEMBER:		Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_MEMBERS:		Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_MESSAGES:		Cmd.ARG_MESSAGE,
+  Cmd.ARG_NOTES:		Cmd.ARG_NOTE,
+  Cmd.ARG_NOTEACLS:		Cmd.ARG_NOTEACL,
+  Cmd.ARG_NOTESACL:		Cmd.ARG_NOTEACL,
+  Cmd.ARG_NOTESACLS:		Cmd.ARG_NOTEACL,
   Cmd.ARG_OAUTH:		Cmd.ARG_TOKEN,
   Cmd.ARG_OTHERCONTACTS:	Cmd.ARG_OTHERCONTACT,
   Cmd.ARG_PEOPLECONTACTS:	Cmd.ARG_PEOPLECONTACT,

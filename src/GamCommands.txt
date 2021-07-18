@@ -291,7 +291,7 @@ If an item contains spaces, it should be surrounded by ".
 <CIGroupType> ::= customer|group|serviceaccount|user
 <ChatMember> ::= spaces/<String>/members/<String>
 <ChatMessage> ::= spaces/<String>/messages/<String>
-<ChatSpace> ::= <spaces/<String> | <String>
+<ChatSpace> ::= spaces/<String> | <String>
 <ChatThread> ::= spaces/<String>/threads/<String>
 <ClassroomInvitationID> ::= <String>
 <ClientID> ::= <String>
@@ -400,6 +400,7 @@ If an item contains spaces, it should be surrounded by ".
 <MessageID> ::= <String>
 <MobileID> ::= <String>
 <Namespace> ::= <String>
+<NotesName> ::= notes/<String>
 <NumberOfSeats> ::= <Number>
 <OrgUnitID> ::= id:<String>
 <OrgUnitPath> ::= /|(/<String>)+
@@ -561,6 +562,7 @@ If an item contains spaces, it should be surrounded by ".
 <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
 <MobileIDList> ::= "<MobileID>(,<MobileID>)*"
 <NamespaceList> ::= "<Namespace>(,<Namespace>)*"
+<NotesNameList> ::= "<NotesName>(,<NotesName)*"
 <OrgUnitList> ::= "<OrgUnitItem>(,<OrgUnitItem>)*"
 <PeopleResourceNameList> ::= "<PeopleResourceName>(,<PeopleResourceName>)*"
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
@@ -872,10 +874,12 @@ Specify a collection of items by directly specifying them; the item type is dete
 <MobileEntity> ::=
         <MobileIDList> |
         (query:<QueryMobile>) | (query <QueryMobile>)
+<NotesNameEntity> ::=
+        <NotesNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <OrgUnitEntity> ::=
         <OrgUnitList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <PeopleResourceNameEntity> ::=
-        <PeopleResourceNameNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
+        <PeopleResourceNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
 <PrinterIDEntity> ::=
         <PrinterIDList> | <FileSelector> | <CSVFileSelector>
 <RecipientEntity> ::=
@@ -5546,6 +5550,47 @@ gam print userinvitations [todrive <ToDriveAttribute>*]
         [[formatjson [quotechar <Character>]]
 gam check isinvitable|userinvitation <EmailAddress>
 gam <UserTypeEntity> check isinvitable [todrive <ToDriveAttribute>*]
+
+# Users - Keep Notes
+
+gam <UserTypeEntity> create note [title <String>]
+        ((text <String>)|
+         (textfile <FileName> [charset <CharSet>])|
+         (gdoc <UserGoogleDoc>)|
+         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))
+        [copyacls]
+        [compact|formatjson|nodetails]
+gam <UserTypeEntity> delete note <NoteNameEntity>
+
+<NotesField> ::=
+        attachments|
+        body|
+        createtime|
+        name|
+        permissions|
+        title|
+        trashed|
+        trashtime|
+        updatetime
+<NotesFieldList> ::= "<NotesField>(,<NotesField>)*"
+
+gam <UserTypeEntity> info note <NotesNameEntity>
+        [fields <NotesFieldList>]
+        [compact|formatjson]
+
+gam <UserTypeEntity> show notes
+        [fields <NotesFieldList>] [filter <String>]
+        [compact|formatjson]
+gam <UserTypeEntity> print notes [todrive <ToDriveAttribute>*]
+        [fields <NotesFieldList>] [filter <String>]
+        [formatjson [quotechar <Character>]]
+
+gam <UserTypeEntity> create noteacl <NotesNameEntity>
+        (user|group <EmailAddress>)+
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
+gam <UserTypeEntity> delete noteacl <NotesNameEntity>
+        (user|group <EmailAddress>)+
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
 
 # Users - Licenses
 
