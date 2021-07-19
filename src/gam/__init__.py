@@ -8775,7 +8775,7 @@ def getCRMService(login_hint):
   client_secret = 'qM3dP8f_4qedwzWQE1VR4zzU'
   credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'online')
   httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
-  return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER_V1, httpObj))
+  return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER, httpObj))
 
 def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
   apis = API.PROJECT_APIS[:]
@@ -8945,18 +8945,15 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
 
 def _getProjects(crm, pfilter):
   try:
-    return callGAPIpages(crm.projects(), 'list', 'projects',
+    return callGAPIpages(crm.projects(), 'search', 'projects',
                          throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
-                         filter=pfilter)
+                         query=pfilter)
   except (GAPI.badRequest, GAPI.invalidArgument) as e:
     entityActionFailedExit([Ent.PROJECT, pfilter], str(e))
 
-def convertGCPFolderNameToID(parent, crm2):
-  # crm2.folders() is broken requiring pageToken, etc in body, not URL.
-  # for now just use callGAPI and if user has that many folders they'll
-  # just need to be specific.
-  folders = callGAPIitems(crm2.folders(), 'search', items='folders',
-                          body={'pageSize': 1000, 'query': f'displayName="{parent}"'})
+def convertGCPFolderNameToID(parent, crm):
+  folders = callGAPIpages(crm.folders(), 'search', 'folders',
+                          query=f'displayName="{parent}"')
   if not folders:
     entityActionFailedExit([Ent.PROJECT_FOLDER, parent], Msg.NOT_FOUND)
   jcount = len(folders)
@@ -9063,8 +9060,7 @@ def _getLoginHintProjectInfo(createCmd):
     appInfo['supportEmail'] = login_hint
   httpObj, crm = getCRMService(login_hint)
   if projectInfo['parent'] and not projectInfo['parent'].startswith('organizations/') and not projectInfo['parent'].startswith('folders/'):
-    crm2 = getAPIService(API.CLOUDRESOURCEMANAGER_V2, httpObj)
-    projectInfo['parent'] = convertGCPFolderNameToID(projectInfo['parent'], crm2)
+    projectInfo['parent'] = convertGCPFolderNameToID(projectInfo['parent'], crm)
   if projectInfo['parent']:
     parent_type, parent_id = projectInfo['parent'].split('/')
     if parent_type[-1] == 's':
@@ -9139,8 +9135,10 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
   crm = None
   if readOnly:
     _getSvcAcctData()
-    if GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and API.CLOUDRESOURCEMANAGER_V1 in GM.Globals[GM.SVCACCT_SCOPES]:
-      _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER_V1, login_hint)
+    if (GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and
+        (API.CLOUDRESOURCEMANAGER in GM.Globals[GM.SVCACCT_SCOPES] or
+         API.CLOUDRESOURCEMANAGER_V1 in GM.Globals[GM.SVCACCT_SCOPES])): #Backwards compatibility hack
+      _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER, login_hint)
       if crm:
         httpObj = crm._http
   if not crm:
@@ -9168,12 +9166,12 @@ def doCreateProject():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]])
   crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(True)
   login_domain = getEmailAddressDomain(login_hint)
-  body = {'projectId': projectInfo['projectId'], 'name': projectInfo['name']}
+  body = {'projectId': projectInfo['projectId'], 'displayName': projectInfo['name']}
   if projectInfo['parent']:
     body['parent'] = projectInfo['parent']
   while True:
     create_again = False
-    sys.stdout.write(Msg.CREATING_PROJECT.format(body['name']))
+    sys.stdout.write(Msg.CREATING_PROJECT.format(body['displayName']))
     try:
       create_operation = callGAPI(crm.projects(), 'create',
                                   throwReasons=[GAPI.BAD_REQUEST, GAPI.ALREADY_EXISTS],
@@ -9190,7 +9188,7 @@ def doCreateProject():
         if status['error'].get('message', '') == 'No permission to create project in organization':
           sys.stdout.write(Msg.NO_RIGHTS_GOOGLE_CLOUD_ORGANIZATION)
           getorg = callGAPI(crm.organizations(), 'search',
-                            body={'filter': f'domain:{login_domain}'})
+                            query=f'domain:{login_domain}')
           try:
             organization = getorg['organizations'][0]['name']
             sys.stdout.write(Msg.YOUR_ORGANIZATION_NAME_IS.format(organization))

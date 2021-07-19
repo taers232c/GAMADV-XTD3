@@ -2,7 +2,9 @@
 
 Fixed `gam print|show chromepolicies` to display `targetKey.additionalTargetKey` fields.
 
-Uodated `gam info|show|print note` to display `owner` and `ownedByMe` fields.
+Updated `gam info|show|print note` to display `owner` and `ownedByMe` fields.
+
+Following Jay's lead, updated to Cloud Resource Manager API v3.
 
 6.06.02
 

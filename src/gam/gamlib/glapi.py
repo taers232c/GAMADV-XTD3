@@ -31,8 +31,8 @@ CLASSROOM = 'classroom'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
 CLOUDIDENTITY_GROUPS = 'cloudidentitygroups'
 CLOUDIDENTITY_USERINVITATIONS = 'cloudidentityuserinvitations'
+CLOUDRESOURCEMANAGER = 'cloudresourcemanager'
 CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
-CLOUDRESOURCEMANAGER_V2 = 'cloudresourcemanager2'
 CONTACTS = 'contacts'
 CONTACTDELEGATION = 'contactdelegation'
 DATASTUDIO = 'datastudio'
@@ -153,8 +153,7 @@ _INFO = {
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_USERINVITATIONS: {'name': 'Cloud Identity User Invitations API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
-  CLOUDRESOURCEMANAGER_V1: {'name': 'Cloud Resource Manager API v1', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
-  CLOUDRESOURCEMANAGER_V2: {'name': 'Cloud Resource Manager API v2', 'version': 'v2', 'v2discovery': True, 'mappedAPI': 'cloudresourcemanager'},
+  CLOUDRESOURCEMANAGER: {'name': 'Cloud Resource Manager API v3', 'version': 'v3', 'v2discovery': True},
   CONTACTS: {'name': 'Contacts API', 'version': 'v3', 'v2discovery': False},
   CONTACTDELEGATION: {'name': 'Contact Delegation API', 'version': 'v1', 'v2discovery': True, 'localjson': True},
   DATASTUDIO: {'name': 'Data Studio API', 'version': 'v1', 'v2discovery': True, 'localjson': True},
@@ -503,8 +502,8 @@ _SVCACCT_SCOPES = [
   ]
 
 _SVCACCT_SPECIAL_SCOPES = [
-  {'name': 'Cloud Resource Manager API v1',
-   'api': CLOUDRESOURCEMANAGER_V1,
+  {'name': 'Cloud Resource Manager API v3',
+   'api': CLOUDRESOURCEMANAGER,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/cloud-platform'},
   {'name': 'Drive API - todrive',
