@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.02'
+__version__ = '6.06.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6513,6 +6513,12 @@ class CSVPrintFile():
     for title in titles if isinstance(titles, list) else [titles]:
       if title not in self.JSONtitlesSet:
         self.AddJSONTitle(title)
+
+  def RemoveJSONTitles(self, titles):
+    for title in titles if isinstance(titles, list) else [titles]:
+      if title in self.JSONtitlesSet:
+        self.JSONtitlesSet.remove(title)
+        self.JSONtitlesList.remove(title)
 
   def MoveJSONTitlesToEnd(self, titles):
     for title in titles if isinstance(titles, list) else [titles]:
@@ -19097,6 +19103,8 @@ def doPrintShowChromePolicies():
       elif isinstance(value, list):
         value = ','.join(value)
       norm['fields'].append({'name': setting, 'value': value})
+    for setting, value in sorted(policy.get('targetKey', {}).get('additionalTargetKeys', {})):
+      norm['fields'].append({'name': setting, 'value': value})
     return norm
 
   def _showPolicy(policy, j, jcount):
@@ -19182,7 +19190,7 @@ def doPrintShowChromePolicies():
     printGettingAllEntityItemsForWhom(Ent.CHROME_POLICY, orgUnitPath, query=body['policySchemaFilter'])
     pageMessage = getPageMessage()
     try:
-      policies.extend(callGAPIpages(cp.customers().policies(), 'resolve','resolvedPolicies',
+      policies.extend(callGAPIpages(cp.customers().policies(), 'resolve', 'resolvedPolicies',
                                     pageMessage=pageMessage,
                                     throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
                                     customer=customer, body=body, pageArgsInBody=True))
@@ -54334,6 +54342,14 @@ def normalizeNoteName(noteName):
     return noteName
   return f'notes/{noteName}'
 
+def _assignNoteOwner(note, user):
+  for permission in note.get('permissions', []):
+    if permission['role'] == 'OWNER':
+      noteOwner = permission.get('user', {}).get('email', '').lower()
+      note['owner'] = noteOwner
+      note['ownedByMe'] = noteOwner == user
+      break
+
 def _checkNoteUserkRole(note, user, role):
   for permission in note['permissions']:
     if permission['role'] == role and permission.get('user', {}).get('email', '').lower() == user:
@@ -54412,6 +54428,9 @@ def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
       printKeyValueList([field, formatLocalTime(note[field])])
   if 'trashed' in note:
     printKeyValueList(['trashed', note['trashed']])
+  for field in ['owner', 'ownedByMe']:
+    if field in note:
+      printKeyValueList([field, note[field]])
   if 'permissions' in note:
     _showNotePermissions(note['permissions'])
   if 'attachments' in note:
@@ -54505,6 +54524,7 @@ def createNote(users):
                       body=body)
       name = note['name']
       entityKVList = [Ent.USER, user, Ent.NOTE, name]
+      _assignNoteOwner(note, user)
       if copyACLs and kcount > 0:
         for request in rbody['requests']:
           request['parent'] = name
@@ -54548,6 +54568,7 @@ def deleteInfoNotes(users):
   function = 'delete' if Act.Get() == Act.DELETE else 'get'
   fieldsList = []
   noteNameEntity = getUserObjectEntity(Cmd.OB_NAME, Ent.NOTE)
+  showPermissions = True
   if function == 'get':
     FJQC = FormatJSONQuoteChar()
     compact = False
@@ -54563,6 +54584,8 @@ def deleteInfoNotes(users):
   else:
     FJQC = None
     checkForExtraneousArguments()
+  if fieldsList and 'permissions' not in fieldsList:
+    showPermissions = False
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -54580,6 +54603,8 @@ def deleteInfoNotes(users):
           note = callGAPI(keep.notes(), function,
                           throwReasons=GAPI.KEEP_THROW_REASONS,
                           name=name, fields=fields)
+          if showPermissions:
+            _assignNoteOwner(note, user)
           _showNote(note, j, jcount, FJQC, compact)
         else:
           callGAPI(keep.notes(), function,
@@ -54606,12 +54631,13 @@ NOTES_ROLE_CHOICE_MAP = {
 #	[role owner|writer]
 #	[formatjson [quotechar <Character>]]
 def printShowNotes(users):
-  csvPF = CSVPrintFile(['User', 'name', 'title']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'name', 'title', 'owner', 'ownedByMe']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   compact = False
   fieldsList = []
   noteFilter = None
   role = None
+  showPermissions = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -54626,8 +54652,14 @@ def printShowNotes(users):
       compact = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if role is not None and fieldsList:
+  if fieldsList and 'permissions' not in fieldsList:
+    showPermissions = False
     fieldsList.append('permissions')
+    if csvPF:
+      if not FJQC.formatJSON:
+        csvPF.RemoveTitles(['owner', 'ownedByMe'])
+      else:
+        csvPF.RemoveJSONTitles(['owner', 'ownedByMe'])
   fields = getItemFieldsFromFieldsList('notes', fieldsList, returnItemIfNoneList=False)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -54646,18 +54678,29 @@ def printShowNotes(users):
         j = 0
         for note in notes:
           j += 1
+          if showPermissions:
+            _assignNoteOwner(note, user)
           if role is None or _checkNoteUserkRole(note, user, role):
+            if not showPermissions:
+              note.pop('permissions', None)
             _showNote(note, j, jcount, FJQC, compact)
       else:
         for note in notes:
+          if showPermissions:
+            _assignNoteOwner(note, user)
           if role is None or _checkNoteUserkRole(note, user, role):
+            if not showPermissions:
+              note.pop('permissions', None)
             row = flattenJSON(note, flattened={'User': user}, timeObjects=NOTES_TIME_OBJECTS)
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)
             elif csvPF.CheckRowTitles(row):
-              csvPF.WriteRowNoFilter({'User': user, 'name': note['name'], 'title': note.get('title', ''),
-                                      'JSON': json.dumps(cleanJSON(note, timeObjects=NOTES_TIME_OBJECTS),
-                                                         ensure_ascii=False, sort_keys=True)})
+              row = {'User': user, 'name': note['name'], 'title': note.get('title', '')}
+              if showPermissions:
+                row.update({'owner': note['owner'], 'ownedByMe': note['ownedByMe']})
+              row['JSON'] = json.dumps(cleanJSON(note, timeObjects=NOTES_TIME_OBJECTS),
+                                       ensure_ascii=False, sort_keys=True)
+              csvPF.WriteRowNoFilter(row)
     except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.NOTE, None], str(e), i, count)
     except GAPI.serviceNotAvailable:
@@ -54716,7 +54759,7 @@ def createNotesACLs(users):
         if showDetails:
           Ind.Increment()
           _showNotePermissions(permissions['permissions'])
-          Ind.DEcrement()
+          Ind.Decrement()
       except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning(entityKVList, str(e), i, count)
       except GAPI.serviceNotAvailable:

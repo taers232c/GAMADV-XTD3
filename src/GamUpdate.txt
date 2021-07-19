@@ -1,3 +1,9 @@
+6.06.03
+
+Fixed `gam print|show chromepolicies` to display `targetKey.additionalTargetKey` fields.
+
+Uodated `gam info|show|print note` to display `owner` and `ownedByMe` fields.
+
 6.06.02
 
 Improved Google Keep notes commands.
