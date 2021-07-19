@@ -1,3 +1,7 @@
+6.06.02
+
+Improved Google Keep notes commands.
+
 6.06.01
 
 Code cleanup for Google Keep notes commands.

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.01'
+__version__ = '6.06.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -54334,6 +54334,12 @@ def normalizeNoteName(noteName):
     return noteName
   return f'notes/{noteName}'
 
+def _checkNoteUserkRole(note, user, role):
+  for permission in note['permissions']:
+    if permission['role'] == role and permission.get('user', {}).get('email', '').lower() == user:
+      return True
+  return False
+
 def _showNoteListItems(listItems):
   printKeyValueList(['list', ''])
   Ind.Increment()
@@ -54428,14 +54434,17 @@ def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
 #        (textfile <FileName> [charset <CharSet>])|
 #	 (gdoc <UserGoogleDoc>)|
 #        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))
+#	[copyacls [copyowneraswriter]
 #	[compact|formatjson|nodetails]
 def createNote(users):
   FJQC = FormatJSONQuoteChar()
   compact = False
   showDetails = True
-  copyACLs = False
+  copyACLs = copyOwnerAsWriter = False
   body = {'title': '', 'body': {}}
-  rbody = {'requests': []}
+  copyUsers = []
+  copyGroups = []
+  noteOwner = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'title':
@@ -54451,13 +54460,16 @@ def createNote(users):
       for permission in jsonData.get('permissions', []):
         if permission['role'] == 'WRITER':
           if 'user' in permission:
-            rbody['requests'].append({'parent': None,
-                                      'permission': {'role': 'WRITER', 'user': {'email': permission['user']['email']}}})
+            copyUsers.append(permission['user']['email'].lower())
           elif 'group' in permission:
-            rbody['requests'].append({'parent': None,
-                                      'permission': {'role': 'WRITER', 'group': {'email': permission['group']['email']}}})
+            copyGroups.append(permission['group']['email'].lower())
+        elif permission['role'] == 'OWNER':
+          if 'user' in permission:
+            noteOwner = permission['user']['email'].lower()
     elif myarg == 'copyacls':
       copyACLs = True
+    elif myarg == 'copyowneraswriter':
+      copyOwnerAsWriter = True
     elif myarg == 'compact':
       compact = True
     elif myarg == 'nodetails':
@@ -54468,13 +54480,25 @@ def createNote(users):
     choices = list(SORF_TEXT_ARGUMENTS)
     choices.append('json')
     missingArgumentExit('|'.join(choices))
-  kcount = len(rbody['requests'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, keep = buildGAPIServiceObject(API.KEEP, user, i, count)
     if not keep:
       continue
+    if copyACLs:
+      rbody = {'requests': []}
+      for addr in copyUsers:
+        if addr != user:
+          rbody['requests'].append({'parent': None,
+                                    'permission': {'role': 'WRITER', 'user': {'email': addr}}})
+      for addr in copyGroups:
+        rbody['requests'].append({'parent': None,
+                                  'permission': {'role': 'WRITER', 'group': {'email': addr}}})
+      if copyOwnerAsWriter and noteOwner and noteOwner != user:
+        rbody['requests'].append({'parent': None,
+                                  'permission': {'role': 'WRITER', 'user': {'email': noteOwner}}})
+      kcount = len(rbody['requests'])
     try:
       note = callGAPI(keep.notes(), 'create',
                       throwReasons=GAPI.KEEP_THROW_REASONS,
@@ -54491,17 +54515,17 @@ def createNote(users):
           note = callGAPI(keep.notes(), 'get',
                           throwReasons=GAPI.KEEP_THROW_REASONS,
                           name=name)
-        except (GAPI.permissionDenied, GAPI.invalidArgument):
+        except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound):
           pass
-        except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        except GAPI.serviceNotAvailable:
           pass
       if showDetails:
         _showNote(note, FJQC=FJQC, compact=compact)
       else:
         entityActionPerformed(entityKVList, i, count)
-    except (GAPI.permissionDenied, GAPI.invalidArgument) as e:
+    except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.NOTE, body['title']], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+    except GAPI.serviceNotAvailable:
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
 NOTES_FIELDS_CHOICE_MAP = {
@@ -54562,17 +54586,24 @@ def deleteInfoNotes(users):
                    throwReasons=GAPI.KEEP_THROW_REASONS,
                    name=name)
           entityActionPerformed([Ent.USER, user, Ent.NOTE, name], j, jcount)
-      except (GAPI.badRequest, GAPI.permissionDenied) as e:
+      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.NOTE, name], str(e), i, count)
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
 
+NOTES_ROLE_CHOICE_MAP = {
+  'owner': 'OWNER',
+  'writer': 'WRITER',
+  }
+
 # gam <UserTypeEntity> show notes
 #	[fields <NotesFieldList>] [filter <String>]
+#	[role owner|writer]
 #	[compact] [formatjson]
 # gam <UserTypeEntity> print notes [todrive <ToDriveAttribute>*]
 #	[fields <NotesFieldList>] [filter <String>]
+#	[role owner|writer]
 #	[formatjson [quotechar <Character>]]
 def printShowNotes(users):
   csvPF = CSVPrintFile(['User', 'name', 'title']) if Act.csvFormat() else None
@@ -54580,6 +54611,7 @@ def printShowNotes(users):
   compact = False
   fieldsList = []
   noteFilter = None
+  role = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -54588,10 +54620,14 @@ def printShowNotes(users):
       pass
     elif myarg == 'filter':
       noteFilter = getString(Cmd.OB_STRING)
+    elif myarg == 'role':
+      role = getChoice(NOTES_ROLE_CHOICE_MAP, mapChoice=True)
     elif not csvPF and myarg == 'compact':
       compact = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if role is not None and fieldsList:
+    fieldsList.append('permissions')
   fields = getItemFieldsFromFieldsList('notes', fieldsList, returnItemIfNoneList=False)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -54610,19 +54646,21 @@ def printShowNotes(users):
         j = 0
         for note in notes:
           j += 1
-          _showNote(note, j, jcount, FJQC, compact)
+          if role is None or _checkNoteUserkRole(note, user, role):
+            _showNote(note, j, jcount, FJQC, compact)
       else:
         for note in notes:
-          row = flattenJSON(note, flattened={'User': user}, timeObjects=NOTES_TIME_OBJECTS)
-          if not FJQC.formatJSON:
-            csvPF.WriteRowTitles(row)
-          elif csvPF.CheckRowTitles(row):
-            csvPF.WriteRowNoFilter({'User': user, 'name': note['name'], 'title': note.get('title', ''),
-                                    'JSON': json.dumps(cleanJSON(note, timeObjects=NOTES_TIME_OBJECTS),
-                                                       ensure_ascii=False, sort_keys=True)})
-    except (GAPI.permissionDenied, GAPI.invalidArgument) as e:
+          if role is None or _checkNoteUserkRole(note, user, role):
+            row = flattenJSON(note, flattened={'User': user}, timeObjects=NOTES_TIME_OBJECTS)
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(row)
+            elif csvPF.CheckRowTitles(row):
+              csvPF.WriteRowNoFilter({'User': user, 'name': note['name'], 'title': note.get('title', ''),
+                                      'JSON': json.dumps(cleanJSON(note, timeObjects=NOTES_TIME_OBJECTS),
+                                                         ensure_ascii=False, sort_keys=True)})
+    except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.NOTE, None], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+    except GAPI.serviceNotAvailable:
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
     csvPF.writeCSVfile('Notes')
@@ -54681,7 +54719,6 @@ def createNotesACLs(users):
           Ind.DEcrement()
       except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning(entityKVList, str(e), i, count)
-        break
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
@@ -54749,7 +54786,6 @@ def deleteNotesACLs(users):
         entityNumItemsActionPerformed(entityKVList, kcount, Ent.NOTE_ACL, j, jcount)
       except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning(entityKVList, str(e), i, count)
-        break
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
