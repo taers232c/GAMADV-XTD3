@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.03'
+__version__ = '6.06.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19085,7 +19085,7 @@ def doPrintShowChromePolicies():
     norm['parentOrgUnitPath'] = convertOrgUnitIDtoPath(cd, parentOrgUnitId) if parentOrgUnitId else 'Unknown'
     norm['direct'] = orgUnitId == parentOrgUnitId
     norm['additionalTargetKeys'] = []
-    for setting, value in sorted(policy.get('targetKey', {}).get('additionalTargetKeys', {})):
+    for setting, value in sorted(policy.get('targetKey', {}).get('additionalTargetKeys', {}).items()):
       norm['additionalTargetKeys'].append({'name': setting, 'value': value})
     norm['fields'] = []
     name = policy['value']['policySchema']

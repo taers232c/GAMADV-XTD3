@@ -1,3 +1,7 @@
+6.06.04
+
+Fixed bug in `gam print|show chromepolicies` that caused a trap.
+
 6.06.03
 
 Fixed `gam print|show chromepolicies` to display `targetKey.additionalTargetKey` fields.
