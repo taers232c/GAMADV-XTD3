@@ -19084,6 +19084,9 @@ def doPrintShowChromePolicies():
     parentOrgUnitId = policy.get('sourceKey', {}).get('targetResource')
     norm['parentOrgUnitPath'] = convertOrgUnitIDtoPath(cd, parentOrgUnitId) if parentOrgUnitId else 'Unknown'
     norm['direct'] = orgUnitId == parentOrgUnitId
+    norm['additionalTargetKeys'] = []
+    for setting, value in sorted(policy.get('targetKey', {}).get('additionalTargetKeys', {})):
+      norm['additionalTargetKeys'].append({'name': setting, 'value': value})
     norm['fields'] = []
     name = policy['value']['policySchema']
     # Handle TYPE_MESSAGE fields with durations or counts as a special case
@@ -19100,8 +19103,6 @@ def doPrintShowChromePolicies():
         value = value.split('_ENUM_')[-1]
       elif isinstance(value, list):
         value = ','.join(value)
-      norm['fields'].append({'name': setting, 'value': value})
-    for setting, value in sorted(policy.get('targetKey', {}).get('additionalTargetKeys', {})):
       norm['fields'].append({'name': setting, 'value': value})
     return norm
 
