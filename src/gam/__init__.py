@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.04'
+__version__ = '6.06.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -701,6 +701,18 @@ def getArgumentEmptyAllowed():
     Cmd.Advance()
     return argument.replace('_', '')
   missingArgumentExit(Cmd.OB_ARGUMENT)
+
+def getACLRoles(aclRolesMap):
+  roles = []
+  for role in getString(Cmd.OB_ROLE_LIST, minLen=0).strip().lower().replace(',', ' ').split():
+    if role == 'all':
+      for arole in aclRolesMap:
+        roles.append(aclRolesMap[arole])
+    elif role in aclRolesMap:
+      roles.append(aclRolesMap[role])
+    else:
+      invalidChoiceExit(role, aclRolesMap, True)
+  return set(roles)
 
 def getBoolean(defaultValue=True):
   if Cmd.ArgumentsRemaining():
@@ -1658,6 +1670,21 @@ def getYYYYMMDD(minLen=1, returnTimeStamp=False, returnDateTime=False, alternate
       return ''
   missingArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
 
+FORMAT = '%H:%M'
+FORMAT_REQUIRED = 'hh:mm'
+
+def getHHMM():
+  if Cmd.ArgumentsRemaining():
+    argstr = Cmd.Current().strip().upper()
+    if argstr:
+      try:
+        datetime.datetime.strptime(argstr, FORMAT)
+        Cmd.Advance()
+        return argstr
+      except ValueError:
+        invalidArgumentExit(FORMAT_REQUIRED)
+  missingArgumentExit(FORMAT_REQUIRED)
+
 YYYYMMDD_HHMM_FORMAT = '%Y-%m-%d %H:%M'
 YYYYMMDD_HHMM_FORMAT_REQUIRED = 'yyyy-mm-dd hh:mm'
 
@@ -1926,6 +1953,7 @@ def getJSON(deleteFields):
       else:
         jsonData = json.loads(argstr.encode(encoding).decode(UTF8))
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      Cmd.Backup()
       usageErrorExit(f'{str(e)}: {argstr if encoding == UTF8 else argstr.encode(encoding).decode(UTF8)}')
   else:
     filename = getString(Cmd.OB_FILE_NAME)
@@ -1933,6 +1961,7 @@ def getJSON(deleteFields):
     try:
       jsonData = json.loads(readFile(filename, encoding=encoding))
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      Cmd.Backup()
       usageErrorExit(f'{str(e)}: {filename}')
   for field in deleteFields:
     jsonData.pop(field, None)
@@ -2461,11 +2490,6 @@ def entityActionPerformed(entityValueList, i=0, count=0):
                                  Ent.FormatEntityValueList(entityValueList)+[Act.Performed()],
                                  currentCountNL(i, count)))
 
-def entityNumItemsActionPerformed(entityValueList, itemCount, itemType, i=0, count=0):
-  writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+[f'{itemCount} {Ent.Choose(itemType, itemCount)} {Act.Performed()}'],
-                                 currentCountNL(i, count)))
-
 def entityActionPerformedMessage(entityValueList, message, i=0, count=0):
   if message:
     writeStdout(formatKeyValueList(Ind.Spaces(),
@@ -2475,6 +2499,11 @@ def entityActionPerformedMessage(entityValueList, message, i=0, count=0):
     writeStdout(formatKeyValueList(Ind.Spaces(),
                                    Ent.FormatEntityValueList(entityValueList)+[Act.Performed()],
                                    currentCountNL(i, count)))
+
+def entityNumItemsActionPerformed(entityValueList, itemCount, itemType, i=0, count=0):
+  writeStdout(formatKeyValueList(Ind.Spaces(),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{itemCount} {Ent.Choose(itemType, itemCount)} {Act.Performed()}'],
+                                 currentCountNL(i, count)))
 
 def entityModifierItemValueListActionPerformed(entityValueList, modifier, infoTypeValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
@@ -18923,21 +18952,45 @@ def doDeleteChromePolicy():
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
 
 CHROME_SCHEMA_TYPE_MESSAGE = {
-  'chrome.users.SessionLength':
-    {'field': 'sessiondurationlimit', 'casedField': 'sessionDurationLimit',
-     'type': 'duration', 'minVal': 1, 'maxVal': 1440, 'scale': 60},
+  'chrome.users.AutoUpdateCheckPeriodNew':
+    {'autoupdatecheckperiodminutesnew':
+       {'casedField': 'autoUpdateCheckPeriodMinutesNew',
+        'type': 'duration', 'minVal': 1, 'maxVal': 720, 'scale': 60}},
   'chrome.users.BrowserSwitcherDelayDuration':
-    {'field': 'browserswitcherdelayduration', 'casedField': 'browserSwitcherDelayDuration',
-     'type': 'duration', 'minVal': 0, 'maxVal': 30, 'scale': 1},
+    {'browserswitcherdelayduration':
+       {'casedField': 'browserSwitcherDelayDuration',
+        'type': 'duration', 'minVal': 0, 'maxVal': 30, 'scale': 1}},
+  'chrome.users.FetchKeepaliveDurationSecondsOnShutdown':
+    {'fetchkeepalivedurationsecondsonshutdown':
+       {'casedField': 'fetchKeepaliveDurationSecondsOnShutdown',
+        'type': 'duration', 'minVal': 0, 'maxVal': 5, 'scale': 1}},
   'chrome.users.MaxInvalidationFetchDelay':
-    {'field': 'maxinvalidationfetchdelay', 'casedField': 'maxInvalidationFetchDelay',
-     'type': 'duration', 'minVal': 1, 'maxVal': 30, 'scale': 1, 'default': 10},
-  'chrome.users.SecurityTokenSessionSettings':
-    {'field': 'securitytokensessionnotificationseconds', 'casedField': 'securityTokenSessionNotificationSeconds',
-     'type': 'duration', 'minVal': 0, 'maxVal': 9999, 'scale': 1},
+    {'maxinvalidationfetchdelay':
+       {'casedField': 'maxInvalidationFetchDelay',
+        'type': 'duration', 'minVal': 1, 'maxVal': 30, 'scale': 1, 'default': 10}},
   'chrome.users.PrintingMaxSheetsAllowed':
-    {'field': 'printingmaxsheetsallowednullable', 'casedField': 'printingMaxSheetsAllowedNullable',
-     'type': 'value', 'minVal': 1, 'maxVal': None, 'scale': 1},
+    {'printingmaxsheetsallowednullable':
+       {'casedField': 'printingMaxSheetsAllowedNullable',
+        'type': 'value', 'minVal': 1, 'maxVal': None, 'scale': 1}},
+  'chrome.users.PrintJobHistoryExpirationPeriodNew':
+    {'printjobhistoryexpirationperioddaysnew':
+       {'casedField': 'printJobHistoryExpirationPeriodDaysNew',
+        'type': 'duration', 'minVal': -1, 'maxVal': None, 'scale': 86400}},
+  'chrome.users.SecurityTokenSessionSettings':
+    {'securitytokensessionnotificationseconds':
+       {'casedField': 'securityTokenSessionNotificationSeconds',
+        'type': 'duration', 'minVal': 0, 'maxVal': 9999, 'scale': 1}},
+  'chrome.users.SessionLength':
+    {'sessiondurationlimit':
+       {'casedField': 'sessionDurationLimit',
+        'type': 'duration', 'minVal': 1, 'maxVal': 1440, 'scale': 60}},
+  'chrome.users.UpdatesSuppressed':
+    {'updatessuppresseddurationmin':
+       {'casedField': 'updatesSuppressedDurationMin',
+        'type': 'count', 'minVal': 1, 'maxVal': 1440, 'scale': 1},
+     'updatessuppressedstarttime':
+       {'casedField': 'updatesSuppressedStartTime',
+        'type': 'timeOfDay'}},
   }
 
 # gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
@@ -18971,18 +19024,28 @@ def doUpdateChromePolicy():
         if field in {'ou', 'org', 'orgunit', 'printerid', 'appid'} or '.' in field:
           Cmd.Backup()
           break # field is actually a new policy name or orgunit
-        # Handle TYPE_MESSAGE fields with durations or counts as a special case
-        schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName)
-        if schema and field == schema['field']:
+        # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
+        schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(field)
+        if schema:
           casedField = schema['casedField']
-          if 'default' not in  schema:
-            value = getInteger(minVal=schema['minVal'], maxVal=schema['maxVal'])*schema['scale']
+          type = schema['type']
+          if type != 'timeOfDay':
+            if 'default' not in  schema:
+              value = getInteger(minVal=schema['minVal'], maxVal=schema['maxVal'])*schema['scale']
+            else:
+              value = getIntegerEmptyAllowed(minVal=schema['minVal'], maxVal=schema['maxVal'], default=schema['default'])*schema['scale']
           else:
-            value = getIntegerEmptyAllowed(minVal=schema['minVal'], maxVal=schema['maxVal'], default=schema['default'])*schema['scale']
-          if schema['type'] == 'duration':
-            body['requests'][-1]['policyValue']['value'][casedField] = {schema['type']: f'{value}s'}
-          else:
-            body['requests'][-1]['policyValue']['value'][casedField] = {schema['type']: value}
+            value = getHHMM()
+          if type == 'duration':
+            body['requests'][-1]['policyValue']['value'][casedField] = {type: f'{value}s'}
+          elif type == 'value':
+            body['requests'][-1]['policyValue']['value'][casedField] = {type: value}
+          elif type == 'count':
+            body['requests'][-1]['policyValue']['value'][casedField] = value
+          else: ##timeOfDay
+            hours, minutes = value.split(':')
+            body['requests'][-1]['policyValue']['value'][casedField] = {type: {'hours': hours, 'minutes': minutes}}
+            pass
           body['requests'][-1]['updateMask'] += f'{casedField},'
           continue
         if field not in schemas[myarg]['settings']:
@@ -19089,16 +19152,24 @@ def doPrintShowChromePolicies():
       norm['additionalTargetKeys'].append({'name': setting, 'value': value})
     norm['fields'] = []
     name = policy['value']['policySchema']
-    # Handle TYPE_MESSAGE fields with durations or counts as a special case
-    schema = CHROME_SCHEMA_TYPE_MESSAGE.get(name)
     values = policy.get('value', {}).get('value', {})
     for setting, value in values.items():
+      # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
+      schema = CHROME_SCHEMA_TYPE_MESSAGE.get(name, {}).get(setting.lower())
       if schema and setting == schema['casedField']:
-        value = value.get(schema['type'], '')
-        if value:
-          if value.endswith('s'):
-            value = value[:-1]
-          value = int(value) // schema['scale']
+        type = schema['type']
+        if type in {'duration', 'value'}:
+          value = value.get(type, '')
+          if value:
+            if value.endswith('s'):
+              value = value[:-1]
+            value = int(value) // schema['scale']
+        elif type == 'count':
+          pass
+        else: ##timeOfDay
+          hours = value.get('timeOfDay', {}).get('hours', 0)
+          minutes = value.get('timeOfDay', {}).get('minutes', 0)
+          value = f'{hours:02}:{minutes:02}'
       elif isinstance(value, str) and value.find('_ENUM_') != -1:
         value = value.split('_ENUM_')[-1]
       elif isinstance(value, list):
@@ -30863,18 +30934,6 @@ SITE_ACL_ROLES_MAP = {
   'reader': 'reader',
   'writer': 'writer',
   }
-
-def getACLRoles(aclRolesMap):
-  roles = []
-  for role in getString(Cmd.OB_ROLE_LIST, minLen=0).strip().lower().replace(',', ' ').split():
-    if role == 'all':
-      for arole in aclRolesMap:
-        roles.append(aclRolesMap[arole])
-    elif role in aclRolesMap:
-      roles.append(aclRolesMap[role])
-    else:
-      invalidChoiceExit(role, aclRolesMap, True)
-  return set(roles)
 
 def _infoSites(users, entityType):
   siteEntity = getSiteEntity()

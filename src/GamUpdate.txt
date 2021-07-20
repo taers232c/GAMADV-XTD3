@@ -1,3 +1,19 @@
+6.06.05
+
+Updated `gam print|show|update chromepolicy` to handle the following special case policies:
+```
+chrome.users.AutoUpdateCheckPeriodNew autoupdatecheckperiodminutesnew
+chrome.users.BrowserSwitcherDelayDuration browserswitcherdelayduration
+chrome.users.FetchKeepaliveDurationSecondsOnShutdown fetchkeepalivedurationsecondsonshutdown
+chrome.users.MaxInvalidationFetchDelay maxinvalidationfetchdelay
+chrome.users.PrintingMaxSheetsAllowed printingmaxsheetsallowednullable
+chrome.users.PrintJobHistoryExpirationPeriodNew printjobhistoryexpirationperioddaysnew
+chrome.users.SecurityTokenSessionSettings securitytokensessionnotificationseconds
+chrome.users.SessionLength sessiondurationlimit
+chrome.users.UpdatesSuppressed updatessuppresseddurationmin
+chrome.users.UpdatesSuppressed updatessuppressedstarttime
+```
+
 6.06.04
 
 Fixed bug in `gam print|show chromepolicies` that caused a trap.
