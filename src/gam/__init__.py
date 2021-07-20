@@ -19028,24 +19028,23 @@ def doUpdateChromePolicy():
         schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(field)
         if schema:
           casedField = schema['casedField']
-          type = schema['type']
-          if type != 'timeOfDay':
+          vtype = schema['type']
+          if vtype != 'timeOfDay':
             if 'default' not in  schema:
               value = getInteger(minVal=schema['minVal'], maxVal=schema['maxVal'])*schema['scale']
             else:
               value = getIntegerEmptyAllowed(minVal=schema['minVal'], maxVal=schema['maxVal'], default=schema['default'])*schema['scale']
           else:
             value = getHHMM()
-          if type == 'duration':
-            body['requests'][-1]['policyValue']['value'][casedField] = {type: f'{value}s'}
-          elif type == 'value':
-            body['requests'][-1]['policyValue']['value'][casedField] = {type: value}
-          elif type == 'count':
+          if vtype == 'duration':
+            body['requests'][-1]['policyValue']['value'][casedField] = {vtype: f'{value}s'}
+          elif vtype == 'value':
+            body['requests'][-1]['policyValue']['value'][casedField] = {vtype: value}
+          elif vtype == 'count':
             body['requests'][-1]['policyValue']['value'][casedField] = value
           else: ##timeOfDay
             hours, minutes = value.split(':')
-            body['requests'][-1]['policyValue']['value'][casedField] = {type: {'hours': hours, 'minutes': minutes}}
-            pass
+            body['requests'][-1]['policyValue']['value'][casedField] = {vtype: {'hours': hours, 'minutes': minutes}}
           body['requests'][-1]['updateMask'] += f'{casedField},'
           continue
         if field not in schemas[myarg]['settings']:
@@ -19157,14 +19156,14 @@ def doPrintShowChromePolicies():
       # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
       schema = CHROME_SCHEMA_TYPE_MESSAGE.get(name, {}).get(setting.lower())
       if schema and setting == schema['casedField']:
-        type = schema['type']
-        if type in {'duration', 'value'}:
-          value = value.get(type, '')
+        vtype = schema['type']
+        if vtype in {'duration', 'value'}:
+          value = value.get(vtype, '')
           if value:
             if value.endswith('s'):
               value = value[:-1]
             value = int(value) // schema['scale']
-        elif type == 'count':
+        elif vtype == 'count':
           pass
         else: ##timeOfDay
           hours = value.get('timeOfDay', {}).get('hours', 0)
