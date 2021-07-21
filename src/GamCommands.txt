@@ -1006,6 +1006,9 @@ gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive <ToDriveAttribute>*] [data <
 
 # Authorization
 
+gam create gcpfolder <String>
+gam create gcpfolder [admin <EmailAddress] folder <String>
+
 gam create|add project [<EmailAddress>] [<ProjectID>]
 gam create project [admin <EmailAddress>] [project <ProjectID>]
         [appname <String>] [supportemail <EmailAddress>]

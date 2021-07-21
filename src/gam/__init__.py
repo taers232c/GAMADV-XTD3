@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.05'
+__version__ = '6.06.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1296,7 +1296,7 @@ def getIntegerEmptyAllowed(minVal=None, maxVal=None, default=0):
     except ValueError:
       pass
     invalidArgumentExit(integerLimits(minVal, maxVal))
-  missingArgumentExit(integerLimits(minVal, maxVal))
+  return default
 
 SORTORDER_CHOICE_MAP = {'ascending': 'ASCENDING', 'descending': 'DESCENDING'}
 
@@ -1670,20 +1670,20 @@ def getYYYYMMDD(minLen=1, returnTimeStamp=False, returnDateTime=False, alternate
       return ''
   missingArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
 
-FORMAT = '%H:%M'
-FORMAT_REQUIRED = 'hh:mm'
+HHMM_FORMAT = '%H:%M'
+HHMM_FORMAT_REQUIRED = 'hh:mm'
 
 def getHHMM():
   if Cmd.ArgumentsRemaining():
     argstr = Cmd.Current().strip().upper()
     if argstr:
       try:
-        datetime.datetime.strptime(argstr, FORMAT)
+        datetime.datetime.strptime(argstr, HHMM_FORMAT)
         Cmd.Advance()
         return argstr
       except ValueError:
-        invalidArgumentExit(FORMAT_REQUIRED)
-  missingArgumentExit(FORMAT_REQUIRED)
+        invalidArgumentExit(HHMM_FORMAT_REQUIRED)
+  missingArgumentExit(HHMM_FORMAT_REQUIRED)
 
 YYYYMMDD_HHMM_FORMAT = '%Y-%m-%d %H:%M'
 YYYYMMDD_HHMM_FORMAT_REQUIRED = 'yyyy-mm-dd hh:mm'
@@ -8992,10 +8992,11 @@ def convertGCPFolderNameToID(parent, crm):
     Ind.Increment()
     j = 0
     for folder in folders:
+      j += 1
       printKeyValueListWithCount(['Name', folder['name'], 'ID', folder['displayName']], j, jcount)
     Ind.Decrement()
     systemErrorExit(MULTIPLE_PROJECT_FOLDERS_FOUND_RC, None)
-  return folders['folders'][0]['name']
+  return folders[0]['name']
 
 PROJECTID_PATTERN = re.compile(r'^[a-z][a-z0-9-]{4,28}[a-z0-9]$')
 PROJECTID_FORMAT_REQUIRED = '[a-z][a-z0-9-]{4,28}[a-z0-9]'
@@ -9090,16 +9091,11 @@ def _getLoginHintProjectInfo(createCmd):
   httpObj, crm = getCRMService(login_hint)
   if projectInfo['parent'] and not projectInfo['parent'].startswith('organizations/') and not projectInfo['parent'].startswith('folders/'):
     projectInfo['parent'] = convertGCPFolderNameToID(projectInfo['parent'], crm)
-  if projectInfo['parent']:
-    parent_type, parent_id = projectInfo['parent'].split('/')
-    if parent_type[-1] == 's':
-      parent_type = parent_type[:-1] # folders > folder, organizations > organization
-    projectInfo['parent'] = {'type': parent_type, 'id': parent_id}
   projects = _getProjects(crm, f'id:{projectInfo["projectId"]}')
   if not createCmd:
     if not projects:
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.DOES_NOT_EXIST)
-    if projects[0]['lifecycleState'] != 'ACTIVE':
+    if projects[0]['state'] != 'ACTIVE':
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.NOT_ACTIVE)
   else:
     if projects:
@@ -9186,6 +9182,47 @@ def _checkForExistingProjectFiles(projectFiles):
     if os.path.exists(a_file):
       systemErrorExit(JSON_ALREADY_EXISTS_RC, Msg.AUTHORIZATION_FILE_ALREADY_EXISTS.format(a_file, Act.ToPerform()))
 
+def getGCPOrg(crm, login_domain):
+  getorg = callGAPI(crm.organizations(), 'search',
+                    query=f'domain:{login_domain}')
+  try:
+    organization = getorg['organizations'][0]['name']
+    sys.stdout.write(Msg.YOUR_ORGANIZATION_NAME_IS.format(organization))
+    return organization
+  except (KeyError, IndexError):
+    systemErrorExit(3, Msg.YOU_HAVE_NO_RIGHTS_TO_CREATE_PROJECTS_AND_YOU_ARE_NOT_A_SUPER_ADMIN)
+
+# gam create gcpfolder <String>
+# gam create gcpfolder [admin <EmailAddress] folder <String>
+def doCreateGCPFolder():
+  login_hint = None
+  if not Cmd.PeekArgumentPresent(['admin', 'folder']):
+    name = getString(Cmd.OB_STRING)
+    checkForExtraneousArguments()
+  else:
+    name = ''
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == 'admin':
+        login_hint = getEmailAddress(noUid=True)
+      elif myarg == 'folder':
+        name = getString(Cmd.OB_STRING)
+      else:
+        unknownArgumentExit()
+    if not name:
+      missingChoiceExit('folder')
+  login_hint = _getValidateLoginHint(login_hint)
+  login_domain = getEmailAddressDomain(login_hint)
+  _, crm = getCRMService(login_hint)
+  organization = getGCPOrg(crm, login_domain)
+  try:
+    result = callGAPI(crm.folders(), 'create',
+                      throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                      body={'parent': organization, 'displayName': name})
+  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
+    entityActionFailedExit([Ent.USER, login_hint, Ent.GCP_FOLDER, name], str(e))
+  entityActionPerformed([Ent.USER, login_hint, Ent.GCP_FOLDER, name, Ent.GCP_FOLDER_NAME, result['name']])
+
 # gam create project [<EmailAddress>] [<ProjectID>]
 # gam create project [admin <EmailAddress>] [project <ProjectID>]
 #	[appname <String>] [supportemail <EmailAddress>]
@@ -9216,13 +9253,7 @@ def doCreateProject():
       if 'error' in status:
         if status['error'].get('message', '') == 'No permission to create project in organization':
           sys.stdout.write(Msg.NO_RIGHTS_GOOGLE_CLOUD_ORGANIZATION)
-          getorg = callGAPI(crm.organizations(), 'search',
-                            query=f'domain:{login_domain}')
-          try:
-            organization = getorg['organizations'][0]['name']
-            sys.stdout.write(Msg.YOUR_ORGANIZATION_NAME_IS.format(organization))
-          except (KeyError, IndexError):
-            systemErrorExit(3, Msg.YOU_HAVE_NO_RIGHTS_TO_CREATE_PROJECTS_AND_YOU_ARE_NOT_A_SUPER_ADMIN)
+          organization = getGCPOrg(crm, login_domain)
           org_policy = callGAPI(crm.organizations(), 'getIamPolicy',
                                 resource=organization)
           if 'bindings' not in org_policy:
@@ -9366,17 +9397,19 @@ def doPrintShowProjects():
     i = 0
     for project in projects:
       i += 1
-      if project['lifecycleState'] not in lifecycleStates:
+      if project['state'] not in lifecycleStates:
         continue
       projectId = project['projectId']
       if showIAMPolicies >= 0:
         policy = _getProjectPolicies(crm, projectId, policyBody, i, count)
       printEntity([Ent.PROJECT, projectId], i, count)
       Ind.Increment()
-      printKeyValueList(['projectNumber', project['projectNumber']])
       printKeyValueList(['name', project['name']])
-      printKeyValueList(['createTime', formatLocalTime(project['createTime'])])
-      printKeyValueList(['lifecycleState', project['lifecycleState']])
+      printKeyValueList(['displayName', project['displayName']])
+      for field in ['createTime', 'updateTime', 'deleteTime']:
+        if field in project:
+          printKeyValueList([field, formatLocalTime(project[field])])
+      printKeyValueList(['state', project['state']])
       jcount = len(project.get('labels', []))
       if jcount > 0:
         printKeyValueList(['labels', jcount])
@@ -9385,11 +9418,7 @@ def doPrintShowProjects():
           printKeyValueList([k, v])
         Ind.Decrement()
       if 'parent' in project:
-        printKeyValueList(['parent', ''])
-        Ind.Increment()
-        printKeyValueList(['type', project['parent']['type']])
-        printKeyValueList(['id', project['parent']['id']])
-        Ind.Decrement()
+        printKeyValueList(['parent', project['parent']])
       if policy:
         printKeyValueList([Ent.Singular(Ent.IAM_POLICY), ''])
         Ind.Increment()
@@ -9418,13 +9447,13 @@ def doPrintShowProjects():
     Ind.Decrement()
   else:
     if not FJQC.formatJSON:
-      csvPF.AddTitles(['projectId', 'projectNumber', 'name', 'createTime', 'lifecycleState'])
+      csvPF.AddTitles(['projectId', 'name', 'displayName', 'createTime', 'updateTime', 'deleteTime', 'state'])
       csvPF.SetSortAllTitles()
     count = len(projects)
     i = 0
     for project in projects:
       i += 1
-      if project['lifecycleState'] not in lifecycleStates:
+      if project['state'] not in lifecycleStates:
         continue
       projectId = project['projectId']
       if showIAMPolicies >= 0:
@@ -9807,7 +9836,7 @@ def doPrintShowSvcAccts():
     projectId = project['projectId']
     if csvPF:
       printGettingAllEntityItemsForWhom(Ent.SVCACCT, projectId, i, count)
-    if project['lifecycleState'] != 'ACTIVE':
+    if project['state'] != 'ACTIVE':
       entityActionNotPerformedWarning([Ent.PROJECT, projectId], Msg.DELETED, i, count)
       continue
     try:
@@ -19166,8 +19195,8 @@ def doPrintShowChromePolicies():
         elif vtype == 'count':
           pass
         else: ##timeOfDay
-          hours = value.get('timeOfDay', {}).get('hours', 0)
-          minutes = value.get('timeOfDay', {}).get('minutes', 0)
+          hours = value.get(vtype, {}).get('hours', 0)
+          minutes = value.get(vtype, {}).get('minutes', 0)
           value = f'{hours:02}:{minutes:02}'
       elif isinstance(value, str) and value.find('_ENUM_') != -1:
         value = value.split('_ENUM_')[-1]

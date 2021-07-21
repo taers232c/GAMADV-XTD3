@@ -1,3 +1,14 @@
+6.06.06
+
+Fixed issues caused by update to Cloud Resource Manager API v3.
+
+Following Jay's lead, added command to create a Google Cloud Platform folder.
+This folder can be used in a subsequent `gam create project` command.
+```
+gam create gcpfolder <String>
+gam create gcpfolder [admin <EmailAddress] folder <String>
+```
+
 6.06.05
 
 Updated `gam print|show|update chromepolicy` to handle the following special case policies:

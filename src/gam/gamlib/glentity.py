@@ -172,6 +172,8 @@ class GamEntity():
   FILTER = 'filt'
   FORWARD_ENABLED = 'fwde'
   FORWARDING_ADDRESS = 'fwda'
+  GCP_FOLDER = 'gcpf'
+  GCP_FOLDER_NAME = 'gcpn'
   GMAIL_PROFILE = 'gmpr'
   GROUP = 'grou'
   GROUP_ALIAS = 'gali'
@@ -441,6 +443,8 @@ class GamEntity():
     FILTER: ['Filters', 'Filter'],
     FORWARD_ENABLED: ['Forward Enabled', 'Forward Enabled'],
     FORWARDING_ADDRESS: ['Forwarding Addresses', 'Forwarding Address'],
+    GCP_FOLDER: ['GCP Folders', 'GCP Folder'],
+    GCP_FOLDER_NAME: ['GCP Folder Names', 'GCP Folder Name'],
     GMAIL_PROFILE: ['Gmail Profile', 'Gmail Profile'],
     GROUP: ['Groups', 'Group'],
     GROUP_ALIAS: ['Group Aliases', 'Group Alias'],
