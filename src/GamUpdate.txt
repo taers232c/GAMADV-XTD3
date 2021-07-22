@@ -1,3 +1,7 @@
+6.06.09
+
+Fixed more issues caused by update to Cloud Resource Manager API v3.
+
 6.06.08
 
 Fixed bug in `gam update project` that caused a trap.

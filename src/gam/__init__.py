@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.08'
+__version__ = '6.06.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5047,7 +5047,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
     try:
       result = callGAPIpages(cd.members(), 'list', 'members',
                              pageMessage=getPageMessageForWhom(),
-                             throwReasons=GAPI.MEMBERS_THROW_REASONS,
+                             throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                              includeDerivedMembership=includeDerivedMembership,
                              groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
@@ -5173,7 +5173,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
         try:
           result = callGAPIpages(cd.members(), 'list', 'members',
                                  pageMessage=getPageMessageForWhom(),
-                                 throwReasons=GAPI.MEMBERS_THROW_REASONS,
+                                 throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                  includeDerivedMembership=includeDerivedMembership,
                                  groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
@@ -9361,7 +9361,7 @@ def doDeleteProject():
     try:
       callGAPI(crm.projects(), 'delete',
                throwReasons=[GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-               projectId=projectId)
+               name=project['name'])
       entityActionPerformed([Ent.PROJECT, projectId])
     except (GAPI.forbidden, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
@@ -9380,14 +9380,14 @@ PROJECT_STATE_CHOICE_MAP = {
 # gam show projects [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
 #	[states all|active|deleterequested] [showiampolicies 0|1|3]
 def doPrintShowProjects():
-  def _getProjectPolicies(crm, projectId, policyBody, i, count):
+  def _getProjectPolicies(crm, project, policyBody, i, count):
     try:
       policy = callGAPI(crm.projects(), 'getIamPolicy',
                         throwReasons=[GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
-                        resource=projectId, body=policyBody)
+                        resource=project['name'], body=policyBody)
       return policy
     except (GAPI.forbidden, GAPI.permissionDenied) as e:
-      entityActionFailedWarning([Ent.PROJECT, projectId, Ent.IAM_POLICY], str(e), i, count)
+      entityActionFailedWarning([Ent.PROJECT, project['projectId'], Ent.IAM_POLICY], str(e), i, count)
     return {}
 
   crm, _, login_hint, projects = _getLoginHintProjects(printShowCmd=True, readOnly=True)
@@ -9426,7 +9426,7 @@ def doPrintShowProjects():
         continue
       projectId = project['projectId']
       if showIAMPolicies >= 0:
-        policy = _getProjectPolicies(crm, projectId, policyBody, i, count)
+        policy = _getProjectPolicies(crm, project, policyBody, i, count)
       printEntity([Ent.PROJECT, projectId], i, count)
       Ind.Increment()
       printKeyValueList(['name', project['name']])
@@ -9484,7 +9484,7 @@ def doPrintShowProjects():
         continue
       projectId = project['projectId']
       if showIAMPolicies >= 0:
-        policy = _getProjectPolicies(crm, projectId, policyBody, i, count)
+        policy = _getProjectPolicies(crm, project, policyBody, i, count)
       if FJQC.formatJSON:
         if policy is not None:
           project['policy'] = policy
@@ -22753,7 +22753,7 @@ def doUpdateGroups():
       try:
         result = callGAPIpages(cd.members(), 'list', 'members',
                                pageMessage=getPageMessageForWhom(),
-                               throwReasons=GAPI.MEMBERS_THROW_REASONS,
+                               throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                groupKey=group, roles=None if Ent.ROLE_MEMBER in rolesSet else memberRoles,
                                fields='nextPageToken,members(email,id,type,status,role)',
                                maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
@@ -22878,7 +22878,7 @@ def doUpdateGroups():
       try:
         result = callGAPIpages(cd.members(), 'list', 'members',
                                pageMessage=getPageMessageForWhom(),
-                               throwReasons=GAPI.MEMBERS_THROW_REASONS,
+                               throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                groupKey=group, roles=None if Ent.ROLE_MEMBER in rolesSet else memberRoles,
                                fields='nextPageToken,members(email,id,type,status,role)',
                                maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
