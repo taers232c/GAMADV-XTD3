@@ -760,6 +760,7 @@ class GamCLArgs():
   OB_PRODUCT_ID = 'ProductID'
   OB_PRODUCT_ID_LIST = 'ProductIDList'
   OB_PROJECT_ID = 'ProjectID'
+  OB_PROJECT_ID_ENTITY = 'ProjectIDEntity'
   OB_PROPERTY_KEY = 'PropertyKey'
   OB_PROPERTY_VALUE = 'PropertyValue'
   OB_QUERY = 'Query'

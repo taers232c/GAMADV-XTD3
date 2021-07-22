@@ -1,3 +1,33 @@
+6.06.07
+
+Defined `<ProjectIDEntity>` to allow selection of project IDs from a flot or CSV file in addition
+to the current options.
+```
+<ProjectIDList> ::= "<ProjectID>(,<ProjectID>)*"
+<ProjectIDEntity> ::=
+        current | gam | <ProjectID> | (filter <String>) |
+        (select <ProjectIDList> | <FileSelector> | <CSVFileSelector>)
+gam update project [[admin] <EmailAddress>] [<ProjectIDEntity>]
+gam delete project [[admin] <EmailAddress>] [<ProjectIDEntity>]
+gam show projects [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
+        [states all|active|deleterequested] [showiampolicies 0|1|3]
+gam print projects [[admin] <EmailAddress>] [all|<ProjectIDEntity>] [todrive <ToDriveAttribute>*]
+        [states all|active|deleterequested] [showiampolicies 0|1|3 [onememberperrow]]
+        [delimiter <Character>]] [[formatjson [quotechar <Character>]]
+
+gam create|add svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
+        [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]
+        [sadescription <ServiceAccountDescription>]
+gam delete svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
+        (saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
+gam show svcaccts [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
+        [showsakeys all|system|user]
+gam print svcaccts [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
+        [showsakeys all|system|user]
+        [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
+```
+
 6.06.06
 
 Fixed issues caused by update to Cloud Resource Manager API v3.

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.06'
+__version__ = '6.06.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8972,13 +8972,22 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
   sys.stdout.write(Msg.GO_BACK_TO_YOUR_BROWSER_AND_CLICK_OK_TO_CLOSE_THE_OAUTH_CLIENT_POPUP)
   sys.stdout.write(Msg.YOUR_GAM_PROJECT_IS_CREATED_AND_READY_TO_USE)
 
-def _getProjects(crm, pfilter):
+def _getProjects(crm, pfilter, returnNF=False):
   try:
-    return callGAPIpages(crm.projects(), 'search', 'projects',
-                         throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
-                         query=pfilter)
+    projects = callGAPIpages(crm.projects(), 'search', 'projects',
+                             throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                             query=pfilter)
+    if projects or not returnNF:
+      return projects
+    return [{'projectId': pfilter[3:], 'state': 'NF'}]
   except (GAPI.badRequest, GAPI.invalidArgument) as e:
     entityActionFailedExit([Ent.PROJECT, pfilter], str(e))
+
+def _checkProjectFound(project, i, count):
+  if project['state'] != 'NF':
+    return True
+  entityActionFailedWarning([Ent.PROJECT, project['projectId']], Msg.DOES_NOT_EXIST, i, count)
+  return False
 
 def convertGCPFolderNameToID(parent, crm):
   folders = callGAPIpages(crm.folders(), 'search', 'folders',
@@ -9112,7 +9121,7 @@ def _getCurrentProjectId():
     invalidClientSecretsJsonExit()
 
 GAM_PROJECT_FILTER = 'id:gam-project-*'
-PROJECTID_FILTER_REQUIRED = 'current|gam|<ProjectID>|(filter <String>)'
+PROJECTID_FILTER_REQUIRED = '<ProjectIDEntity>'
 PROJECTS_CREATESVCACCT_OPTIONS = {'saname', 'sadisplayname', 'sadescription'}
 PROJECTS_DELETESVCACCT_OPTIONS = {'saemail', 'saname', 'sauniqueid'}
 PROJECTS_PRINTSHOW_OPTIONS = {'showsakeys', 'showiampolicies', 'onememberperrow', 'states', 'todrive', 'delimiter', 'formatjson', 'quotechar'}
@@ -9125,6 +9134,7 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
   if login_hint and login_hint.find('@') == -1:
     Cmd.Backup()
     login_hint = None
+  projectIds = None
   pfilter = getString(Cmd.OB_STRING, optional=True)
   if not pfilter:
     pfilter = 'current' if not printShowCmd else GAM_PROJECT_FILTER
@@ -9145,6 +9155,9 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
     pfilter = GAM_PROJECT_FILTER
   elif pfilter.lower() == 'filter':
     pfilter = getString(Cmd.OB_STRING)
+  elif pfilter.lower() == 'select':
+    projectIds = getEntityList(Cmd.OB_PROJECT_ID_ENTITY, False)
+    projectId = None
   elif PROJECTID_PATTERN.match(pfilter):
     pfilter = f'id:{pfilter}'
   else:
@@ -9152,10 +9165,11 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
     invalidArgumentExit(['', 'all|'][printShowCmd]+PROJECTID_FILTER_REQUIRED)
   if not printShowCmd and not createSvcAcctCmd and not deleteSvcAcctCmd:
     checkForExtraneousArguments()
-  if pfilter in {'current', 'id:current'}:
-    projectId = _getCurrentProjectId()
-  else:
-    projectId = f'filter {pfilter or "all"}'
+  if projectIds is None:
+    if pfilter in {'current', 'id:current'}:
+      projectId = _getCurrentProjectId()
+    else:
+      projectId = f'filter {pfilter or "all"}'
   login_hint = _getValidateLoginHint(login_hint, projectId)
   crm = None
   if readOnly:
@@ -9168,13 +9182,18 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
         httpObj = crm._http
   if not crm:
     httpObj, crm = getCRMService(login_hint)
-  if pfilter in {'current', 'id:current'}:
-    if not printShowCmd:
-      projects = [{'projectId': projectId}]
+  if projectIds is None:
+    if pfilter in {'current', 'id:current'}:
+      if not printShowCmd:
+        projects = [{'projectId': projectId}]
+      else:
+        projects = _getProjects(crm, f'id:{projectId}', returnNF=True)
     else:
-      projects = _getProjects(crm, f'id:{projectId}')
+      projects = _getProjects(crm, pfilter)
   else:
-    projects = _getProjects(crm, pfilter)
+    projects = []
+    for projectId in projectIds:
+      projects.extend(_getProjects(crm, f'id:{projectId}', returnNF=True))
   return (crm, httpObj, login_hint, projects)
 
 def _checkForExistingProjectFiles(projectFiles):
@@ -9305,7 +9324,7 @@ def doUseProject():
   _, httpObj, login_hint, _, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(False)
   _createClientSecretsOauth2service(httpObj, login_hint, {}, projectInfo, svcAcctInfo)
 
-# gam update project [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+# gam update project [[admin] <EmailAddress>] [<ProjectIDEntity>]
 def doUpdateProject():
   _, httpObj, login_hint, projects = _getLoginHintProjects()
   count = len(projects)
@@ -9314,6 +9333,8 @@ def doUpdateProject():
   i = 0
   for project in projects:
     i += 1
+    if not _checkProjectFound(project, i, count):
+      continue
     projectId = project['projectId']
     Act.Set(Act.UPDATE)
     if not enableGAMProjectAPIs(httpObj, projectId, True, i, count):
@@ -9325,7 +9346,7 @@ def doUpdateProject():
                        GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'])
   Ind.Decrement()
 
-# gam delete project [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+# gam delete project [[admin] <EmailAddress>] [<ProjectIDEntity>]
 def doDeleteProject():
   crm, _, login_hint, projects = _getLoginHintProjects()
   count = len(projects)
@@ -9334,6 +9355,8 @@ def doDeleteProject():
   i = 0
   for project in projects:
     i += 1
+    if not _checkProjectFound(project, i, count):
+      continue
     projectId = project['projectId']
     try:
       callGAPI(crm.projects(), 'delete',
@@ -9351,10 +9374,10 @@ PROJECT_STATE_CHOICE_MAP = {
   'deleterequested': {'DELETE_REQUESTED'}
   }
 
-# gam print projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)] [todrive <ToDriveAttribute>*]
+# gam print projects [[admin] <EmailAddress>] [all|<ProjectIDEntity>] [todrive <ToDriveAttribute>*]
 #	[states all|active|deleterequested] [showiampolicies 0|1|3 [onememberperrow]]
 #	[delimiter <Character>] [formatjson [quotechar <Character>]]
-# gam show projects [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+# gam show projects [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
 #	[states all|active|deleterequested] [showiampolicies 0|1|3]
 def doPrintShowProjects():
   def _getProjectPolicies(crm, projectId, policyBody, i, count):
@@ -9397,6 +9420,8 @@ def doPrintShowProjects():
     i = 0
     for project in projects:
       i += 1
+      if not _checkProjectFound(project, i, count):
+        continue
       if project['state'] not in lifecycleStates:
         continue
       projectId = project['projectId']
@@ -9453,6 +9478,8 @@ def doPrintShowProjects():
     i = 0
     for project in projects:
       i += 1
+      if not _checkProjectFound(project, i, count):
+        continue
       if project['state'] not in lifecycleStates:
         continue
       projectId = project['projectId']
@@ -9489,7 +9516,7 @@ def doPrintShowProjects():
             csvPF.WriteRowTitles(mrow)
     csvPF.writeCSVfile('Projects')
 
-# gam create|add svcacct [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+# gam create|add svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
 #	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doCreateSvcAcct():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
@@ -9513,11 +9540,13 @@ def doCreateSvcAcct():
   i = 0
   for project in projects:
     i += 1
+    if not _checkProjectFound(project, i, count):
+      continue
     projectInfo = {'projectId': project['projectId']}
     _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo)
   Ind.Decrement()
 
-# gam delete svcacct [[admin] <EmailAddress>] [current|gam|<ProjectID>|(filter <String>)]
+# gam delete svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
 #	(saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
 def doDeleteSvcAcct():
   _, httpObj, login_hint, projects = _getLoginHintProjects(deleteSvcAcctCmd=True)
@@ -9545,6 +9574,8 @@ def doDeleteSvcAcct():
   i = 0
   for project in projects:
     i += 1
+    if not _checkProjectFound(project, i, count):
+      continue
     projectId = project['projectId']
     try:
       if clientEmail:
@@ -9802,10 +9833,10 @@ SVCACCT_KEY_TYPE_CHOICE_MAP = {
   'usermanaged': 'USER_MANAGED'
   }
 
-# gam print svcaccts [[admin] <EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+# gam print svcaccts [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
 #	[showsakeys all|system|user]
 #	[todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
-# gam show svcaccts [<EmailAddress>] [all|current|gam|<ProjectID>|(filter <String>)]
+# gam show svcaccts [<EmailAddress>] [all|<ProjectIDEntity>]
 #	[showsakeys all|system|user]
 def doPrintShowSvcAccts():
   _, httpObj, login_hint, projects = _getLoginHintProjects(printShowCmd=True, readOnly=True)
@@ -9833,6 +9864,8 @@ def doPrintShowSvcAccts():
   i = 0
   for project in projects:
     i += 1
+    if not _checkProjectFound(project, i, count):
+      continue
     projectId = project['projectId']
     if csvPF:
       printGettingAllEntityItemsForWhom(Ent.SVCACCT, projectId, i, count)
@@ -9880,7 +9913,7 @@ def doPrintShowSvcAccts():
                                     'JSON': json.dumps(cleanJSON(svcAcct, timeObjects=SVCACCT_KEY_TIME_OBJECTS),
                                                        ensure_ascii=False, sort_keys=True)})
     except (GAPI.notFound, GAPI.permissionDenied) as e:
-      entityActionFailedWarning([Ent.PROJECT, projectId], str(e))
+      entityActionFailedWarning([Ent.PROJECT, projectId], str(e), i, count)
   Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Service Accounts')
