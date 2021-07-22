@@ -1,6 +1,10 @@
+6.06.08
+
+Fixed bug in `gam update project` that caused a trap.
+
 6.06.07
 
-Defined `<ProjectIDEntity>` to allow selection of project IDs from a flot or CSV file in addition
+Defined `<ProjectIDEntity>` to allow selection of project IDs from a flat or CSV file in addition
 to the current options.
 ```
 <ProjectIDList> ::= "<ProjectID>(,<ProjectID>)*"

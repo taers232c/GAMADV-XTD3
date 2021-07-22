@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.07'
+__version__ = '6.06.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8984,7 +8984,7 @@ def _getProjects(crm, pfilter, returnNF=False):
     entityActionFailedExit([Ent.PROJECT, pfilter], str(e))
 
 def _checkProjectFound(project, i, count):
-  if project['state'] != 'NF':
+  if project.get('state', '') != 'NF':
     return True
   entityActionFailedWarning([Ent.PROJECT, project['projectId']], Msg.DOES_NOT_EXIST, i, count)
   return False
