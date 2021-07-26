@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.09'
+__version__ = '6.06.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7371,7 +7371,7 @@ DEFAULT_SKIP_OBJECTS = {'kind', 'etag', 'etags', '@type'}
 
 # Clean a JSON object
 def cleanJSON(topStructure, listLimit=None, skipObjects=None, timeObjects=None):
-  def _clean(structure, key):
+  def _clean(structure, key, subSkipObjects):
     if not isinstance(structure, (dict, list)):
       if key not in timeObjects:
         if isinstance(structure, str) and GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]:
@@ -7383,12 +7383,11 @@ def cleanJSON(topStructure, listLimit=None, skipObjects=None, timeObjects=None):
     if isinstance(structure, list):
       listLen = len(structure)
       listLen = min(listLen, listLimit or listLen)
-      return [_clean(v, '') for v in structure[0:listLen]]
-    return {k: _clean(v, k) for k, v in sorted(iter(structure.items())) if k not in allSkipObjects}
+      return [_clean(v, '', DEFAULT_SKIP_OBJECTS) for v in structure[0:listLen]]
+    return {k: _clean(v, k, DEFAULT_SKIP_OBJECTS) for k, v in sorted(iter(structure.items())) if k not in subSkipObjects}
 
-  allSkipObjects = DEFAULT_SKIP_OBJECTS.union(skipObjects or set())
   timeObjects = timeObjects or set()
-  return _clean(topStructure, '')
+  return _clean(topStructure, '', DEFAULT_SKIP_OBJECTS.union(skipObjects or set()))
 
 # Flatten a JSON object
 def flattenJSON(topStructure, flattened=None,
@@ -7421,7 +7420,7 @@ def flattenJSON(topStructure, flattened=None,
     else:
       if structure:
         for k, v in sorted(iter(structure.items())):
-          if k not in allSkipObjects:
+          if k not in DEFAULT_SKIP_OBJECTS:
             _flatten(v, k, f'{path}.{k}')
       else:
         flattened[path] = ''
@@ -7440,8 +7439,8 @@ def flattenJSON(topStructure, flattened=None,
 def showJSON(showName, showValue, skipObjects=None, timeObjects=None,
              simpleLists=None, dictObjectsKey=None, sortDictKeys=True,
              noIndents=False):
-  def _show(objectName, objectValue, subObjectKey, level):
-    if objectName in allSkipObjects:
+  def _show(objectName, objectValue, subObjectKey, level, subSkipObjects):
+    if objectName in subSkipObjects:
       return
     if objectName is not None:
       printJSONKey(objectName)
@@ -7463,7 +7462,7 @@ def showJSON(showName, showValue, skipObjects=None, timeObjects=None,
         if isinstance(subValue, (str, bool, float, int)):
           printKeyValueList([subValue])
         else:
-          _show(None, subValue, subObjectKey, level+1)
+          _show(None, subValue, subObjectKey, level+1, DEFAULT_SKIP_OBJECTS)
       if objectName is not None:
         Ind.Decrement()
     elif isinstance(objectValue, dict):
@@ -7479,8 +7478,8 @@ def showJSON(showName, showValue, skipObjects=None, timeObjects=None,
         subObjects.insert(0, subObjectKey)
         subObjectKey = None
       for subObject in subObjects:
-        if subObject not in allSkipObjects:
-          _show(subObject, objectValue[subObject], subObjectKey, level+1)
+        if subObject not in subSkipObjects:
+          _show(subObject, objectValue[subObject], subObjectKey, level+1, DEFAULT_SKIP_OBJECTS)
           if indentAfterFirst:
             Ind.Increment()
             indentAfterFirst = False
@@ -7504,11 +7503,10 @@ def showJSON(showName, showValue, skipObjects=None, timeObjects=None,
         else:
           printJSONValue(formatLocalTimestamp(objectValue))
 
-  allSkipObjects = DEFAULT_SKIP_OBJECTS.union(skipObjects or set())
   timeObjects = timeObjects or set()
   simpleLists = simpleLists or set()
   dictObjectsKey = dictObjectsKey or {}
-  _show(showName, showValue, None, 0)
+  _show(showName, showValue, None, 0, DEFAULT_SKIP_OBJECTS.union(skipObjects or set()))
 
 class FormatJSONQuoteChar():
 
@@ -21641,9 +21639,9 @@ def doPrintMobileDevices():
 
   def _printMobile(mobile):
     if FJQC.formatJSON:
-      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS)):
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(mobile, listLimit=listLimit, timeObjects=MOBILE_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'resourceId': mobile['resourceId'],
-                                'JSON': json.dumps(cleanJSON(mobile, listLimit=listLimit, skipObjects=DEFAULT_SKIP_OBJECTS, timeObjects=MOBILE_TIME_OBJECTS),
+                                'JSON': json.dumps(cleanJSON(mobile, listLimit=listLimit, timeObjects=MOBILE_TIME_OBJECTS),
                                                    ensure_ascii=False, sort_keys=True)})
       return
     row = {}

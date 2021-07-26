@@ -1,3 +1,7 @@
+6.06.10
+
+Code cleanup for internal routines cleanJSON, flattenJSON, showJSON.
+
 6.06.09
 
 Fixed more issues caused by update to Cloud Resource Manager API v3.
