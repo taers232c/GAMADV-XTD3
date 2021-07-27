@@ -550,20 +550,18 @@ def checkEntityItemValueAFDNEorAccessErrorExit(cd, entityType, entityName, itemT
     systemErrorExit(INVALID_DOMAIN_RC, message)
   entityActionFailedWarning([entityType, entityName, itemType, itemValue], Msg.DOES_NOT_EXIST, i, count)
 
-def invalidClientSecretsJsonExit():
-  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CLIENT_SECRETS_JSON_FILE), GC.Values[GC.CLIENT_SECRETS_JSON]))
+def invalidClientSecretsJsonExit(errMsg):
+  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.CLIENT_SECRETS_JSON_FILE), GC.Values[GC.CLIENT_SECRETS_JSON], errMsg))
   writeStderr(Msg.INSTRUCTIONS_CLIENT_SECRETS_JSON)
   systemErrorExit(CLIENT_SECRETS_JSON_REQUIRED_RC, None)
 
-def invalidOauth2serviceJsonExit(missingFields=None):
-  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2SERVICE_JSON_FILE), GC.Values[GC.OAUTH2SERVICE_JSON]))
-  if missingFields:
-    writeStderr(Msg.MISSING_FIELDS.format(','.join(missingFields)))
+def invalidOauth2serviceJsonExit(errMsg):
+  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2SERVICE_JSON_FILE), GC.Values[GC.OAUTH2SERVICE_JSON], errMsg))
   writeStderr(Msg.INSTRUCTIONS_OAUTH2SERVICE_JSON)
   systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, None)
 
-def invalidOauth2TxtExit():
-  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), GC.Values[GC.OAUTH2_TXT]))
+def invalidOauth2TxtExit(errMsg):
+  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.OAUTH2_TXT_FILE), GC.Values[GC.OAUTH2_TXT], errMsg))
   writeStderr(Msg.EXECUTE_GAM_OAUTH_CREATE)
   systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
 
@@ -572,8 +570,8 @@ def expiredRevokedOauth2TxtExit():
   writeStderr(Msg.EXECUTE_GAM_OAUTH_CREATE)
   systemErrorExit(OAUTH2_TXT_REQUIRED_RC, None)
 
-def invalidDiscoveryJsonExit(fileName):
-  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.DISCOVERY_JSON_FILE), fileName))
+def invalidDiscoveryJsonExit(fileName, errMsg):
+  stderrErrorMsg(Msg.DOES_NOT_EXIST_OR_HAS_INVALID_FORMAT.format(Ent.Singular(Ent.DISCOVERY_JSON_FILE), fileName, errMsg))
   systemErrorExit(INVALID_JSON_RC, None)
 
 def entityActionFailedExit(entityValueList, errMsg, i=0, count=0):
@@ -3756,9 +3754,9 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
             creds = JWTCredentials.from_service_account_info(jsonDict,
                                                              audience=f'https://{api}.googleapis.com/')
             return (True, creds)
-      except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
-        pass
-    invalidOauth2serviceJsonExit()
+      except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+        invalidOauth2serviceJsonExit(str(e))
+    invalidOauth2serviceJsonExit(Msg.NO_DATA)
   jsonData = readFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True, displayError=False)
   if jsonData:
     try:
@@ -3814,10 +3812,10 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
           creds.expiry = datetime.datetime.strptime(REFRESH_EXPIRY, YYYYMMDDTHHMMSSZ_FORMAT)
           return (False, creds)
       if jsonDict and exitOnError:
-        invalidOauth2TxtExit()
-    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
+        invalidOauth2TxtExit(Msg.INVALID)
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
       if exitOnError:
-        invalidOauth2TxtExit()
+        invalidOauth2TxtExit(str(e))
   if exitOnError:
     systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
   return (None, None)
@@ -3872,7 +3870,7 @@ def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, ap
   with lock:
     writeCreds, credentials = getOauth2TxtCredentials(api=api, noDASA=noDASA, refreshOnly=refreshOnly)
     if not credentials:
-      invalidOauth2TxtExit()
+      invalidOauth2TxtExit('')
     if credentials.expired or forceRefresh:
       retries = 3
       for n in range(1, retries+1):
@@ -3967,8 +3965,8 @@ def getService(api, httpObj):
     if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
       clearServiceCache(service)
     return service
-  except (KeyError, ValueError):
-    invalidDiscoveryJsonExit(disc_file)
+  except (KeyError, ValueError) as e:
+    invalidDiscoveryJsonExit(disc_file, str(e))
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, str(e))
 
@@ -3988,13 +3986,22 @@ def _getSvcAcctData():
   if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
     json_string = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=True)
     if not json_string:
-      invalidOauth2serviceJsonExit()
+      invalidOauth2serviceJsonExit(Msg.NO_DATA)
     try:
       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(json_string)
-    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
-      invalidOauth2serviceJsonExit()
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      invalidOauth2serviceJsonExit(str(e))
     if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
       systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
+    missingFields = []
+    for field in ['client_email', 'client_id', "private_key", 'private_key_id', 'project_id', 'token_uri']:
+      if field not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
+        missingFields.append(field)
+    if missingFields:
+      invalidOauth2serviceJsonExit(Msg.MISSING_FIELDS.format(','.join(missingFields)))
+# Some old oauth2service.json files have: 'https://accounts.google.com/o/oauth2/auth' which no longer works
+    if GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['token_uri'] == 'https://accounts.google.com/o/oauth2/auth':
+      GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['token_uri'] = 'https://oauth2.googleapis.com/token'
     if API.OAUTH2SA_SCOPES not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
       GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = False
       GM.Globals[GM.SVCACCT_SCOPES] = defaultSvcAcctScopes()
@@ -4020,16 +4027,16 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
   if not GM.Globals[GM.CURRENT_SVCACCT_API] or scopesOrAPI not in API.JWT_APIS:
     try:
       credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
-    except (ValueError, IndexError, KeyError):
-      invalidOauth2serviceJsonExit()
+    except (ValueError, IndexError, KeyError) as e:
+      invalidOauth2serviceJsonExit(str(e))
     credentials = credentials.with_scopes(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES])
   else:
     try:
       credentials = JWTCredentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
                                                              audience=f'https://{scopesOrAPI}.googleapis.com/')
       credentials.project_id = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
-    except (ValueError, IndexError, KeyError):
-      invalidOauth2serviceJsonExit()
+    except (ValueError, IndexError, KeyError) as e:
+      invalidOauth2serviceJsonExit(str(e))
   GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
   if userEmail:
     credentials = credentials.with_subject(userEmail)
@@ -4584,12 +4591,12 @@ def readDiscoveryFile(api_version):
   else:
     json_string = None
   if not json_string:
-    invalidDiscoveryJsonExit(disc_file)
+    invalidDiscoveryJsonExit(disc_file, Msg.NO_DATA)
   try:
     discovery = json.loads(json_string)
     return (disc_file, discovery)
-  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
-    invalidDiscoveryJsonExit(disc_file)
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+    invalidDiscoveryJsonExit(disc_file, str(e))
 
 def buildGAPIObject(api):
   credentials = getClientCredentials(api=api, refreshOnly=True)
@@ -8414,7 +8421,7 @@ def _getValidateLoginHint(login_hint, projectId=None):
 def getOAuthClientIDAndSecret():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
   if not cs_data:
-    invalidClientSecretsJsonExit()
+    invalidClientSecretsJsonExit(Msg.NO_DATA)
   try:
     cs_json = json.loads(cs_data)
     if not cs_json:
@@ -8422,8 +8429,8 @@ def getOAuthClientIDAndSecret():
     # chop off .apps.googleusercontent.com suffix as it's not needed and we need to keep things short for the Auth URL.
     return (re.sub(r'\.apps\.googleusercontent\.com$', '', cs_json['installed']['client_id']),
             cs_json['installed']['client_secret'])
-  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
-    invalidClientSecretsJsonExit()
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+    invalidClientSecretsJsonExit(str(e))
 
 def getScopesFromUser(scopesList, clientAccess, currentScopes=None):
   OAUTH2_CMDS = ['s', 'u', 'e', 'c']
@@ -8742,7 +8749,7 @@ def doOAuthUpdate():
   with lock:
     jsonData = readFile(GC.Values[GC.OAUTH2_TXT], continueOnError=True, displayError=False)
   if not jsonData:
-    invalidOauth2TxtExit()
+    invalidOauth2TxtExit(Msg.NO_DATA)
   try:
     jsonDict = json.loads(jsonData)
     if 'client_id' in jsonDict:
@@ -8772,8 +8779,8 @@ def doOAuthUpdate():
       currentScopes = list(set(import1Credentials['scopes']).union(set(import2Credentials['scopes'])))
     else:
       currentScopes = []
-  except (AttributeError, IndexError, KeyError, SyntaxError, TypeError, ValueError):
-    invalidOauth2TxtExit()
+  except (AttributeError, IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+    invalidOauth2TxtExit(str(e))
   if not doOAuthRequest(currentScopes, login_hint, verifyScopes=True):
     entityActionNotPerformedWarning([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Msg.USER_CANCELLED)
     sys.exit(GM.Globals[GM.SYSEXITRC])
@@ -9112,11 +9119,11 @@ def _getLoginHintProjectInfo(createCmd):
 def _getCurrentProjectId():
   cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
   if not cs_data:
-    invalidClientSecretsJsonExit()
+    invalidClientSecretsJsonExit(Msg.NO_DATA)
   try:
     return json.loads(cs_data)['installed']['project_id']
-  except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
-    invalidClientSecretsJsonExit()
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+    invalidClientSecretsJsonExit(str(e))
 
 GAM_PROJECT_FILTER = 'id:gam-project-*'
 PROJECTID_FILTER_REQUIRED = '<ProjectIDEntity>'
@@ -9596,7 +9603,7 @@ def _getSvcAcctKeyProjectClientFields():
     if field not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
       missingFields.append(field)
   if missingFields:
-    invalidOauth2serviceJsonExit(missingFields)
+    invalidOauth2serviceJsonExit(Msg.MISSING_FIELDS.format(','.join(missingFields)))
   return (GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id'],
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'],
@@ -9710,7 +9717,7 @@ def checkServiceAccount(users):
   printPassFail(f'Authentication{auth_error}', saTokenStatus)
   Ind.Decrement()
   if saTokenStatus == 'FAIL':
-    invalidOauth2serviceJsonExit()
+    invalidOauth2serviceJsonExit(f'Authentication{auth_error}')
   _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
   if GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and API.IAM not in GM.Globals[GM.SVCACCT_SCOPES]:
     GM.Globals[GM.SVCACCT_SCOPES][API.IAM] = [API.IAM_SCOPE]
@@ -10051,8 +10058,8 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
   if GM.Globals[GM.SVCACCT_SCOPES_DEFINED]:
     try:
       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(oauth2service_data)
-    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
-      invalidOauth2serviceJsonExit()
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+      invalidOauth2serviceJsonExit(str(e))
     GM.Globals[GM.OAUTH2SERVICE_JSON_DATA][API.OAUTH2SA_SCOPES] = GM.Globals[GM.SVCACCT_SCOPES]
     oauth2service_data = json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], ensure_ascii=False, sort_keys=True, indent=2)
   writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], oauth2service_data, continueOnError=False)

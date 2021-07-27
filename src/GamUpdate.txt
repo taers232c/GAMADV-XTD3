@@ -1,3 +1,8 @@
+6.06.11
+
+Following Jay's lead, improved error messages when invalid client_secrets.json, oauth2service.json
+and oauth2.txt files are encountered.
+
 6.06.10
 
 Code cleanup for internal routines cleanJSON, flattenJSON, showJSON.
