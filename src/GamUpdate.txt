@@ -1,3 +1,8 @@
+6.06.12
+
+Fixed bug in `gam report <ActivityApplicationName>` where only the last subevent
+of an event was shown rather than all subevents.
+
 6.06.11
 
 Following Jay's lead, improved error messages when invalid client_secrets.json, oauth2service.json

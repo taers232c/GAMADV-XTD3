@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.11'
+__version__ = '6.06.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9598,12 +9598,6 @@ def doDeleteSvcAcct():
     Ind.Decrement()
 
 def _getSvcAcctKeyProjectClientFields():
-  missingFields = []
-  for field in ['private_key_id', 'project_id', 'client_email', 'client_id']:
-    if field not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
-      missingFields.append(field)
-  if missingFields:
-    invalidOauth2serviceJsonExit(Msg.MISSING_FIELDS.format(','.join(missingFields)))
   return (GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id'],
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'],
@@ -11218,16 +11212,16 @@ def doReport():
                 event.pop('parameters', None)
               row = flattenJSON(event)
               row.update(activity_row)
-            if not countsOnly:
-              csvPF.WriteRowTitles(row)
-            elif csvPF.CheckRowTitles(row):
-              if not summary:
-                eventCounts.setdefault(actor, {})
-                eventCounts[actor].setdefault(event['name'], 0)
-                eventCounts[actor][event['name']] += 1
-              else:
-                eventCounts.setdefault(event['name'], 0)
-                eventCounts[event['name']] += 1
+              if not countsOnly:
+                csvPF.WriteRowTitles(row)
+              elif csvPF.CheckRowTitles(row):
+                if not summary:
+                  eventCounts.setdefault(actor, {})
+                  eventCounts[actor].setdefault(event['name'], 0)
+                  eventCounts[actor][event['name']] += 1
+                else:
+                  eventCounts.setdefault(event['name'], 0)
+                  eventCounts[event['name']] += 1
           elif not summary:
             eventCounts.setdefault(actor, {})
             for event in events:
@@ -15466,7 +15460,7 @@ def _clearUpdateContacts(users, entityType, updateContacts):
       else:
         unknownArgumentExit()
     if not contactClear['emailClearPattern']:
-      missingArgumentExit('emailClearPattern')
+      missingArgumentExit('emailclearpattern')
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
