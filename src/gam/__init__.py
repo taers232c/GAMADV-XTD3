@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.13'
+__version__ = '6.06.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -44110,6 +44110,23 @@ def initCopyMoveOptions(move):
     'copySubFolderPermissions': True,
     }
 
+DUPLICATE_FILE_CHOICES = {
+  'overwriteall': DUPLICATE_FILE_OVERWRITE_ALL,
+  'overwriteolder': DUPLICATE_FILE_OVERWRITE_OLDER,
+  'duplicatename': DUPLICATE_FILE_DUPLICATE_NAME,
+  'uniquename': DUPLICATE_FILE_UNIQUE_NAME,
+  'skip': DUPLICATE_FILE_SKIP,
+  }
+DUPLICATE_FOLDER_CHOICES = {
+  'merge': DUPLICATE_FOLDER_MERGE,
+  'duplicatename': DUPLICATE_FOLDER_DUPLICATE_NAME,
+  'uniquename': DUPLICATE_FOLDER_UNIQUE_NAME,
+  'skip': DUPLICATE_FOLDER_SKIP,
+  }
+COPY_TOP_PARENTS_CHOICES = {'none': COPY_NO_PARENTS}
+COPY_SUB_PARENTS_CHOICES = {'none': COPY_NO_PARENTS}
+MOVE_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'nonpath': COPY_NONPATH_PARENTS}
+
 def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
   if myarg == 'newfilename':
     copyMoveOptions['newFilename'] = getString(Cmd.OB_DRIVE_FILE_NAME)
@@ -44125,10 +44142,6 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
     copyMoveOptions['duplicateFiles'] = getChoice(DUPLICATE_FILE_CHOICES, mapChoice=True)
   elif myarg == 'duplicatefolders':
     copyMoveOptions['duplicateFolders'] = getChoice(DUPLICATE_FOLDER_CHOICES, mapChoice=True)
-  elif myarg == 'copysubfileparents':
-    copyMoveOptions['copySubFileParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
-  elif myarg == 'copysubfolderparents':
-    copyMoveOptions['copySubFolderParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
   else:
     if not copyCmd:
       if myarg == 'retainsourcefolders':
@@ -44137,6 +44150,10 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
         copyMoveOptions['mergeWithParentRetain'] = getBoolean()
         if copyMoveOptions['mergeWithParentRetain']:
           copyMoveOptions['mergeWithParent'] = False
+      elif myarg == 'copysubfileparents':
+        copyMoveOptions['copySubFileParents'] = getChoice(MOVE_SUB_PARENTS_CHOICES, mapChoice=True)
+      elif myarg == 'copysubfolderparents':
+        copyMoveOptions['copySubFolderParents'] = getChoice(MOVE_SUB_PARENTS_CHOICES, mapChoice=True)
       else:
         return False
     else:
@@ -44144,6 +44161,10 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
         copyMoveOptions['copyTopFileParents'] = getChoice(COPY_TOP_PARENTS_CHOICES, mapChoice=True)
       elif myarg == 'copytopfolderparents':
         copyMoveOptions['copyTopFolderParents'] = getChoice(COPY_TOP_PARENTS_CHOICES, mapChoice=True)
+      elif myarg == 'copysubfileparents':
+        copyMoveOptions['copySubFileParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
+      elif myarg == 'copysubfolderparents':
+        copyMoveOptions['copySubFolderParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
       elif myarg == 'copyfilepermissions':
         copyMoveOptions['copyFilePermissions'] = getBoolean()
       elif myarg == 'copytopfolderpermissions':
@@ -44321,22 +44342,6 @@ def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilenam
   _incrStatistic(statistics, STAT_FILE_FAILED)
   return None
 
-DUPLICATE_FILE_CHOICES = {
-  'overwriteall': DUPLICATE_FILE_OVERWRITE_ALL,
-  'overwriteolder': DUPLICATE_FILE_OVERWRITE_OLDER,
-  'duplicatename': DUPLICATE_FILE_DUPLICATE_NAME,
-  'uniquename': DUPLICATE_FILE_UNIQUE_NAME,
-  'skip': DUPLICATE_FILE_SKIP,
-  }
-DUPLICATE_FOLDER_CHOICES = {
-  'merge': DUPLICATE_FOLDER_MERGE,
-  'duplicatename': DUPLICATE_FOLDER_DUPLICATE_NAME,
-  'uniquename': DUPLICATE_FOLDER_UNIQUE_NAME,
-  'skip': DUPLICATE_FOLDER_SKIP,
-  }
-COPY_TOP_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS}
-COPY_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'nonpath': COPY_NONPATH_PARENTS}
-
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity>
 #	[newfilename <DriveFileName>] [stripnameprefix <String>]
 #	[summary [<Boolean>]] [excludetrashed] [returnidonly|returnlinkonly]
@@ -44344,8 +44349,8 @@ COPY_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'n
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
-#	[copytopfileparents none|all] [copytopfolderparents none|all]
-#	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
+#	[copytopfileparents none] [copytopfolderparents none]
+#	[copysubfileparents none] [copysubfolderparents none]
 #	[copyfilepermissions [<Boolean>]]
 #	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
 def copyDriveFile(users):
@@ -44475,13 +44480,9 @@ def copyDriveFile(users):
           entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(child), childTitle], Msg.NOT_COPYABLE, k, kcount)
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
-        childParents = child.pop('parents', [])
+        child.pop('parents', [])
         child['parents'] = [newFolderId]
         if child['mimeType'] == MIMETYPE_GA_FOLDER:
-          if copyMoveOptions['copySubFolderParents'] != COPY_NO_PARENTS:
-            for parentId in childParents:
-              if parentId != folderId or copyMoveOptions['copySubFolderParents'] == COPY_ALL_PARENTS:
-                child['parents'].append(parentId)
           _recursiveFolderCopy(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, depth, False, newFolderId)
         else:
           if not child.pop('capabilities')['canCopy']:
@@ -44490,10 +44491,6 @@ def copyDriveFile(users):
             continue
           if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, child['name'], subTargetChildren, copyMoveOptions, statistics):
             continue
-          if copyMoveOptions['copySubFileParents'] != COPY_NO_PARENTS:
-            for parentId in childParents:
-              if parentId != folderId or copyMoveOptions['copySubFileParents'] == COPY_ALL_PARENTS:
-                child['parents'].append(parentId)
           child.pop('id')
           if copyMoveOptions['destDriveId']:
             child.pop('copyRequiresWriterPermission', None)
@@ -44621,8 +44618,7 @@ def copyDriveFile(users):
         targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
-        if copyMoveOptions['sourceDriveId'] or copyMoveOptions['destDriveId']:
-          copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
+        copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
 #        if copyMoveOptions['destDriveId']:
 #          copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
@@ -44638,10 +44634,6 @@ def copyDriveFile(users):
               entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, destFilename], Msg.DUPLICATE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
               continue
-          if copyMoveOptions['copyTopFolderParents'] == COPY_ALL_PARENTS:
-            for parentId in sourceParents:
-              if parentId not in newParents:
-                source['parents'].append(parentId)
           if recursive:
             _recursiveFolderCopy(drive, user, i, count, j, jcount, source, destFilename, targetChildren, 0, True, newParentId)
           else:
@@ -44658,10 +44650,6 @@ def copyDriveFile(users):
             continue
           if _checkForDuplicateTargetFile(drive, user, j, jcount, source, destFilename, targetChildren, copyMoveOptions, statistics):
             continue
-          if copyMoveOptions['copyTopFileParents'] == COPY_ALL_PARENTS:
-            for parentId in sourceParents:
-              if parentId not in newParents:
-                source['parents'].append(parentId)
           sourceId = source.pop('id')
           source.pop('trashed', None)
           if copyMoveOptions['destDriveId']:

@@ -1,3 +1,22 @@
+6.06.14
+
+The following options have been deprecated in `gam <UserTypeEntity> copy drivefile <DriveFileEntity>`
+as Google no longer supports multiple parents on files; using them will cause an error so as to alert
+you to review the command.
+
+No existing parents are copied for source top/sub files/folders.
+```
+These options control the action Gam takes when a source top file/folder has multiple parents.
+* `copytopfileparents all` - Copy all of the existing parents.
+* `copytopfolderparents all` - Copy all of the existing parents.
+
+These options control the action Gam takes when a source sub file/folder has multiple parents.
+* `copysubfileparents nonpath` - Copy all of the existing parents except the parent on the path from the top folder; this is the default action.
+* `copysubfileparents all` - Copy all of the existing parents.
+* `copysubfolderparents nonpath` - Copy all of the existing parents except the parent on the path from the top folder; this is the default action.
+* `copysubfolderparents all` - Copy all of the existing parents.
+```
+
 6.06.13
 
 Fixed bug in `gam info user <UserItem> quick` that generated the following error:

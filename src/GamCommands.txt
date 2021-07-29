@@ -4693,8 +4693,8 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
-        [copytopfileparents none|all] [copytopfolderparents none|all]
-        [copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
+        [copytopfileparents none] [copytopfolderparents none]
+        [copysubfileparents none] [copysubfolderparents none]
         [copyfilepermissions [<Boolean>]]
         [copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
 
