@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.12'
+__version__ = '6.06.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -32770,7 +32770,7 @@ def infoUsers(entityList):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'quick':
-      getAliases = getBuildingNames = getGroups = getLicenses = getSchemas = False
+      getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = False
     elif myarg in {'noaliases', 'aliases'}:
       getAliases = myarg == 'aliases'
     elif myarg in {'nobuildingnames', 'buildingnames'}:
@@ -41907,11 +41907,19 @@ class PermissionMatch():
         roleLocation = Cmd.Location()
         body['role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
         self.permissionFields.add('role')
+      elif myarg == 'notrole':
+        roleLocation = Cmd.Location()
+        body['notrole'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
+        self.permissionFields.add('role')
       elif myarg == 'emailaddress':
         body['emailAddress'] = getREPattern(re.IGNORECASE)
         self.permissionFields.add('emailAddress')
       elif myarg in {'domain', 'notdomain'}:
         body[myarg] = getREPattern(re.IGNORECASE)
+        self.permissionFields.add('domain')
+        self.permissionFields.add('emailAddress')
+      elif myarg in {'domainlist', 'notdomainlist'}:
+        body[myarg] = getString(Cmd.OB_DOMAIN_NAME_LIST).replace(',', ' ').split()
         self.permissionFields.add('domain')
         self.permissionFields.add('emailAddress')
       elif myarg == 'withlink':
@@ -41977,6 +41985,9 @@ class PermissionMatch():
       if field in {'type', 'role'}:
         if value != permission.get(field, ''):
           break
+      elif field in {'notrole'}:
+        if value == permission.get('role', ''):
+          break
       elif field in {'allowFileDiscovery', 'deleted'}:
         if value != permission.get(field, False):
           break
@@ -41991,20 +42002,20 @@ class PermissionMatch():
               break
         else:
           break
-      elif field not in {'domain', 'notdomain'}:
+      elif field not in {'domain', 'notdomain', 'domainlist', 'notdomainlist'}:
         if not value.match(permission.get(field, '')):
           break
       else:
-        if field in permission:
-          if ((field == 'domain' and not value.match(permission[field])) or
-              (field == 'notdomain' and value.match(permission['domain']))):
-            break
+        if 'domain' in permission:
+          domain = permission['domain']
         elif 'emailAddress' in permission and permission['emailAddress']:
           _, domain = splitEmailAddress(permission['emailAddress'])
-          if ((field == 'domain' and not value.match(domain)) or
-              (field == 'notdomain' and value.match(domain))):
-            break
         else:
+          break
+        if ((field == 'domain' and not value.match(domain)) or
+            (field == 'notdomain' and value.match(domain)) or
+            (field == 'domainlist' and domain not in value) or
+            (field == 'notdomainlist' and domain in value)):
           break
     else:
       match = True

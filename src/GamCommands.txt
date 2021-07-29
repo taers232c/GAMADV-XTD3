@@ -5072,8 +5072,9 @@ gam <UserTypeEntity> collect orphans
 
 <PermissionMatch> ::=
         permissionmatch|pm [not]
-            [type anyone|user|group|domain] [role <DriveFileACLRole>] [allowfilediscovery|withlink <Boolean>]
-            [emailaddress <RegularExpression>] [domain|notdomain <RegularExpression>] [name|displayname <String>]
+            [type anyone|user|group|domain] [role|notrole <DriveFileACLRole>] [allowfilediscovery|withlink <Boolean>]
+            [emailaddress <RegularExpression>] [name|displayname <String>]
+            [domain|notdomain <RegularExpression>] [domainlist|notdomainlist <DomainNameList>]
             [expirationstart <Time>] [expirationend <Time>]
             [deleted <Boolean>]
         endmatch|em

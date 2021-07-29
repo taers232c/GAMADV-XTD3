@@ -1,3 +1,16 @@
+6.06.13
+
+Fixed bug in `gam info user <UserItem> quick` that generated the following error:
+```
+Cloud Identity Group: groups/-, Lookup Failed: Error(4016): Insufficient permissions to retrieve membership graph.
+```
+
+Added option `domainlist|notdomainlist <DomainNameList>` to `<PermissionMatch>`
+to make it easier to specify a list of domains.
+
+Added option `notrole <DriveFileACLRole>` to `<PermissionMatch>`
+to make it possible to match any role other that the specified role.
+
 6.06.12
 
 Fixed bug in `gam report <ActivityApplicationName>` where only the last subevent
