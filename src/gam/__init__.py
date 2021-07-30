@@ -56555,18 +56555,27 @@ def doLoop():
   else:
     mpQueue = None
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueue
-  pid = 0
-  for row in csvFile:
-    if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
+  if not logCmds:
+    for row in csvFile:
+      if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
+        ProcessGAMCommand(processSubFields(GAM_argv, row, subFields), processGamCfg=processGamCfg, inLoop=True)
+        if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
+          break
+    closeFile(f)
+  else:
+    items = []
+    for row in csvFile:
+      if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
+        items.append(processSubFields(GAM_argv, row, subFields))
+    closeFile(f)
+    numItems = len(items)
+    pid = 0
+    for item in items:
       pid += 1
-      item = processSubFields(GAM_argv, row, subFields)
-      if logCmds:
-        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{Cmd.QuotedArgumentList(item)}\n')
       ProcessGAMCommand(item, processGamCfg=processGamCfg, inLoop=True)
-      if logCmds:
-        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},Complete\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Complete\n')
       if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
         break
-  closeFile(f)
   if multi:
     terminateCSVFileQueueHandler(mpQueue, mpQueueHandler)
