@@ -35,6 +35,9 @@ CACHE_DIR = 'gacd'
 CACHE_DISCOVERY_ONLY = 'gcdo'
 # Classroom service not available
 CLASSROOM_SERVICE_NOT_AVAILABLE = 'csna'
+# Command logging
+CMDLOG_HANDLER = 'clha'
+CMDLOG_LOGGER = 'cllo'
 # Convert to local time
 CONVERT_TO_LOCAL_TIME = 'ctlt'
 # Credentials scopes
@@ -176,6 +179,8 @@ Globals = {
   CACHE_DIR: None,
   CACHE_DISCOVERY_ONLY: True,
   CLASSROOM_SERVICE_NOT_AVAILABLE: False,
+  CMDLOG_HANDLER: None,
+  CMDLOG_LOGGER: None,
   CONVERT_TO_LOCAL_TIME: False,
   CREDENTIALS_SCOPES: set(),
   CSV_DATA_DICT: {},

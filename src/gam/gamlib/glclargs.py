@@ -911,6 +911,10 @@ class GamCLArgs():
   def QuotedArgumentList(items):
     return ' '.join([item if item and (item.find(' ') == -1) and (item.find(',') == -1) and (item.find("'") == -1) else '"'+item+'"' for item in items])
 
+# Quoted argmuent list for logging
+  def QuotedLogCommand(self):
+    return self.QuotedArgumentList([self.GAM_CMD]+self.argv[1:])
+
 # Mark bad argument in command line
   def CommandLineWithBadArgumentMarked(self, extraneous):
     if extraneous:

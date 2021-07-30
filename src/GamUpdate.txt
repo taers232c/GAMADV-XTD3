@@ -1,3 +1,20 @@
+6.07.00
+
+Added to following keywords to `gam.cfg` to support logging of GAM commands.
+```
+cmdlog
+        Path to GAM Log file
+        Default: ''
+cmdlog_max_backups
+        Maximum number of backup log files
+        Default: 5
+        Range: 1 - 10
+cmdlog_max_kilo_bytes
+        Maximum kilobytes per log file
+        Default: 1000
+        Range: 100 - 10000
+```
+
 6.06.15
 
 Updated option`showcmds` output in `gam batch|csv|tbatch` to show the total number of commands

@@ -276,6 +276,7 @@ MULTIPLE_SEARCH_METHODS_SPECIFIED = 'Multiple search methods ({0}) specified, on
 MUST_BE_NUMERIC = 'Must be numeric'
 NEED_READ_ACCESS = 'Need Read access'
 NEED_READ_WRITE_ACCESS = 'Need Read/Write access'
+NEED_WRITE_ACCESS = 'Need Write access'
 NESTED_LOOP_CMD_NOT_ALLOWED = 'Command can not be nested.'
 NEWUSER_REQUIREMENTS = 'newuser option requires: at least 1 recipient and givenname, familyname and password options'
 NEW_OWNER_MUST_DIFFER_FROM_OLD_OWNER = 'New owner must differ from old owner'

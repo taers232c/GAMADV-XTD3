@@ -71,6 +71,12 @@ CHARSET = 'charset'
 CLASSROOM_MAX_RESULTS = 'classroom_max_results'
 # Path to client_secrets.json
 CLIENT_SECRETS_JSON = 'client_secrets_json'
+# Command logging filename
+CMDLOG = 'cmdlog'
+# Command logging maximum number of backup log files
+CMDLOG_MAX_BACKUPS = 'cmdlog_max__backups'
+# Command logging max kilo bytes per log file
+CMDLOG_MAX_KILO_BYTES = 'cmdlog_max_kilo_bytes'
 # GAM config directory containing client_secrets.json, oauth2.txt, oauth2service.json, extra_args.txt
 CONFIG_DIR = 'config_dir'
 # When retrieving lists of Google Contacts from API, how many should be retrieved in each chunk
@@ -234,6 +240,9 @@ Defaults = {
   CHARSET: DEFAULT_CHARSET,
   CLASSROOM_MAX_RESULTS: '0',
   CLIENT_SECRETS_JSON: FN_CLIENT_SECRETS_JSON,
+  CMDLOG: '',
+  CMDLOG_MAX_BACKUPS: 5,
+  CMDLOG_MAX_KILO_BYTES: 1000,
   CONFIG_DIR: '',
   CONTACT_MAX_RESULTS: '100',
   CSV_INPUT_COLUMN_DELIMITER: ',',
@@ -351,6 +360,9 @@ VAR_INFO = {
   CHARSET: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'GAM_CHARSET', VAR_LIMITS: (1, None)},
   CLASSROOM_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, 1000)},
   CLIENT_SECRETS_JSON: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: 'CLIENTSECRETS', VAR_ACCESS: os.R_OK},
+  CMDLOG: {VAR_TYPE: TYPE_FILE, VAR_ACCESS: os.W_OK},
+  CMDLOG_MAX_BACKUPS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 10)},
+  CMDLOG_MAX_KILO_BYTES: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (100, 10000)},
   CONFIG_DIR: {VAR_TYPE: TYPE_DIRECTORY, VAR_ENVVAR: 'GAMUSERCONFIGDIR'},
   CONTACT_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 10000)},
   CSV_INPUT_COLUMN_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},

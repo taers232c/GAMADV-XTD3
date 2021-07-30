@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.15'
+__version__ = '6.07.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -50,6 +50,7 @@ import http.client as http_client
 import io
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import mimetypes
 import multiprocessing
 import os
@@ -3248,7 +3249,7 @@ def SetGlobalVariables():
     for itemName in GC.VAR_INFO:
       if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_FILE:
         fileName = GC.Values[itemName]
-        if (not fileName) and (itemName == GC.EXTRA_ARGS):
+        if (not fileName) and (itemName in {GC.EXTRA_ARGS, GC.CMDLOG}):
           continue
         if GC.Values[GC.ENABLE_DASA] and (itemName in {GC.OAUTH2_TXT, GC.CLIENT_SECRETS_JSON}):
           continue
@@ -3263,12 +3264,18 @@ def SetGlobalVariables():
           if itemName == GC.CACERTS_PEM:
             status['errors'] = True
         elif not os.access(fileName, GC.VAR_INFO[itemName][GC.VAR_ACCESS]):
+          if GC.VAR_INFO[itemName][GC.VAR_ACCESS] == os.R_OK | os.W_OK:
+            accessMsg = Msg.NEED_READ_WRITE_ACCESS
+          elif GC.VAR_INFO[itemName][GC.VAR_ACCESS] == os.R_OK:
+            accessMsg = Msg.NEED_READ_ACCESS
+          else:
+            accessMsg = Msg.NEED_WRITE_ACCESS
           writeStderr(formatKeyValueList(ERROR_PREFIX,
                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
                                           Ent.Singular(Ent.SECTION), sectionName,
                                           Ent.Singular(Ent.ITEM), itemName,
                                           Ent.Singular(Ent.VALUE), fileName,
-                                          [Msg.NEED_READ_ACCESS, Msg.NEED_READ_WRITE_ACCESS][GC.VAR_INFO[itemName][GC.VAR_ACCESS] == os.R_OK | os.W_OK]],
+                                          accessMsg],
                                          '\n'))
           status['errors'] = True
 
@@ -3616,9 +3623,18 @@ def SetGlobalVariables():
     os.environ['DEFAULT_CA_BUNDLE_PATH'] = GC.Values[GC.CACERTS_PEM]
     os.environ['SSL_CERT_FILE'] = GC.Values[GC.CACERTS_PEM]
     httplib2.CA_CERTS = GC.Values[GC.CACERTS_PEM]
-    return True
 # Needs to be set so oauthlib doesn't puke when Google changes our scopes
-  os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
+    os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
+# Set up command logging at top level only
+    if (GM.Globals[GM.PID] == 0) and GC.Values[GC.CMDLOG]:
+      GM.Globals[GM.CMDLOG_LOGGER] = logging.getLogger('cmdlog')
+      GM.Globals[GM.CMDLOG_LOGGER].setLevel(logging.INFO)
+      GM.Globals[GM.CMDLOG_HANDLER] = RotatingFileHandler(GC.Values[GC.CMDLOG],
+                                                          maxBytes=1024*GC.Values[GC.CMDLOG_MAX_KILO_BYTES],
+                                                          backupCount=GC.Values[GC.CMDLOG_MAX_BACKUPS],
+                                                          encoding=GC.Values[GC.CHARSET])
+      GM.Globals[GM.CMDLOG_LOGGER].addHandler(GM.Globals[GM.CMDLOG_HANDLER])
+    return True
 # We're done, nothing else to do
   return False
 
@@ -7726,7 +7742,8 @@ def initializeLogging():
   logging.getLogger().addHandler(nh)
 
 def saveNonPickleableValues():
-  savedValues = {GM.STDOUT: {}, GM.STDERR: {}, GM.SAVED_STDOUT: None}
+  savedValues = {GM.STDOUT: {}, GM.STDERR: {}, GM.SAVED_STDOUT: None,
+                 GM.CMDLOG_HANDLER: None, GM.CMDLOG_LOGGER: None}
   savedValues[GM.SAVED_STDOUT] = GM.Globals[GM.SAVED_STDOUT]
   GM.Globals[GM.SAVED_STDOUT] = None
   savedValues[GM.STDOUT][GM.REDIRECT_FD] = GM.Globals[GM.STDOUT].get(GM.REDIRECT_FD, None)
@@ -7737,6 +7754,10 @@ def saveNonPickleableValues():
   GM.Globals[GM.STDOUT].pop(GM.REDIRECT_MULTI_FD, None)
   savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, None)
   GM.Globals[GM.STDERR].pop(GM.REDIRECT_MULTI_FD, None)
+  savedValues[GM.CMDLOG_HANDLER] = GM.Globals[GM.CMDLOG_HANDLER]
+  GM.Globals[GM.CMDLOG_HANDLER] = None
+  savedValues[GM.CMDLOG_LOGGER] = GM.Globals[GM.CMDLOG_LOGGER]
+  GM.Globals[GM.CMDLOG_LOGGER] = None
   return savedValues
 
 def restoreNonPickleableValues(savedValues):
@@ -7745,6 +7766,8 @@ def restoreNonPickleableValues(savedValues):
   GM.Globals[GM.STDERR][GM.REDIRECT_FD] = savedValues[GM.STDERR][GM.REDIRECT_FD]
   GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDOUT][GM.REDIRECT_MULTI_FD]
   GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD]
+  GM.Globals[GM.CMDLOG_HANDLER] = savedValues[GM.CMDLOG_HANDLER]
+  GM.Globals[GM.CMDLOG_LOGGER] = savedValues[GM.CMDLOG_LOGGER]
 
 def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
   global Cmd
@@ -56411,6 +56434,9 @@ def closeSTDFilesIfNotMultiprocessing(closeSTD):
 
 # Process GAM command
 def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
+  def logGAMCommand():
+    GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{Cmd.QuotedLogCommand()}')
+
   setSysExitRC(0)
   Cmd.InitializeArguments(args)
   Ind.Reset()
@@ -56418,16 +56444,22 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
     if checkArgumentPresent(Cmd.LOOP_CMD):
       if processGamCfg and (not SetGlobalVariables()):
         sys.exit(GM.Globals[GM.SYSEXITRC])
+      if GM.Globals[GM.CMDLOG_LOGGER]:
+        logGAMCommand()
       doLoop()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if processGamCfg and (not SetGlobalVariables()):
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if checkArgumentPresent(Cmd.LOOP_CMD):
+      if GM.Globals[GM.CMDLOG_LOGGER]:
+        logGAMCommand()
       doLoop()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if not Cmd.ArgumentsRemaining():
       doUsage()
       sys.exit(GM.Globals[GM.SYSEXITRC])
+    if GM.Globals[GM.CMDLOG_LOGGER]:
+      logGAMCommand()
     CL_command = getChoice(BATCH_CSV_COMMANDS, defaultChoice=None)
     if CL_command:
       Act.Set(BATCH_CSV_COMMANDS[CL_command][CMD_ACTION])
