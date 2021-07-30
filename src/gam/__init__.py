@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.06.14'
+__version__ = '6.06.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7991,17 +7991,18 @@ def MultiprocessGAMCommands(items, logCmds):
   def poolCallback(pid):
     poolProcessResults[0] -= 1
     if logCmds:
-      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},Complete\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Complete\n')
 
   if not items:
     return
-  numPoolProcesses = min(len(items), GC.Values[GC.NUM_THREADS])
+  numItems = len(items)
+  numPoolProcesses = min(numItems, GC.Values[GC.NUM_THREADS])
   if GC.Values[GC.MULTIPROCESS_POOL_LIMIT] == -1:
     parallelPoolProcesses = -1
   elif GC.Values[GC.MULTIPROCESS_POOL_LIMIT] == 0:
     parallelPoolProcesses = numPoolProcesses
   else:
-    parallelPoolProcesses = min(len(items), GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
+    parallelPoolProcesses = min(numItems, GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
   try:
     pool = multiprocessing.Pool(processes=numPoolProcesses, maxtasksperchild=200)
@@ -8033,20 +8034,21 @@ def MultiprocessGAMCommands(items, logCmds):
     mpQueueCSVFile = None
   signal.signal(signal.SIGINT, origSigintHandler)
   batchWriteStderr(Msg.USING_N_PROCESSES.format(currentISOformatTimeStamp(),
-                                                numPoolProcesses, PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
+                                                numItems, numPoolProcesses,
+                                                PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
   try:
     pid = 0
     poolProcessResults = {pid: 0}
     for item in items:
       if item[0] == Cmd.COMMIT_BATCH_CMD:
         batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
-                                                                  poolProcessResults[0],
+                                                                  numItems, poolProcessResults[0],
                                                                   PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
         while poolProcessResults[0] > 0:
           time.sleep(1)
-        batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), Msg.PROCESSES))
+        batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), numItems, Msg.PROCESSES))
         if len(item) > 1:
-          readStdin(f'{currentISOformatTimeStamp()},0,{Cmd.QuotedArgumentList(item[1:])}')
+          readStdin(f'{currentISOformatTimeStamp()},0/{numItems},{Cmd.QuotedArgumentList(item[1:])}')
         continue
       if item[0] == Cmd.PRINT_CMD:
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
@@ -8055,7 +8057,7 @@ def MultiprocessGAMCommands(items, logCmds):
       if not logCmds and pid % 100 == 0:
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
       if logCmds:
-        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
+        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{Cmd.QuotedArgumentList(item)}\n')
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                         GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
@@ -8075,7 +8077,7 @@ def MultiprocessGAMCommands(items, logCmds):
     pool.close()
   pool.join()
   if logCmds:
-    batchWriteStderr(f'{currentISOformatTimeStamp()},0,Complete\n')
+    batchWriteStderr(f'{currentISOformatTimeStamp()},0/{numItems},Complete\n')
   if mpQueueCSVFile:
     terminateCSVFileQueueHandler(mpQueueCSVFile, mpQueueHandlerCSVFile)
   if mpQueueStdout:
@@ -8089,16 +8091,16 @@ def MultiprocessGAMCommands(items, logCmds):
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
     terminateStdQueueHandler(mpQueueStderr, mpQueueHandlerStderr)
 
-def threadBatchWorker(logCmds=False):
+def threadBatchWorker(logCmds=False, numItems=0):
   while True:
     pid, item = GM.Globals[GM.TBATCH_QUEUE].get()
     try:
       sysRC = subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout),
                               stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
       if logCmds:
-        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},Complete,{sysRC}\n')
+        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Complete,{sysRC}\n')
     except Exception as e:
-      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{str(e)}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{str(e)}\n')
     GM.Globals[GM.TBATCH_QUEUE].task_done()
 
 BATCH_COMMANDS = [Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD]
@@ -8110,13 +8112,15 @@ def ThreadBatchGAMCommands(items, logCmds):
   pythonCmd = [sys.executable]
   if not getattr(sys, 'frozen', False): # we're not frozen
     pythonCmd.append(os.path.realpath(Cmd.Argument(0)))
-  numWorkerThreads = min(len(items), GC.Values[GC.NUM_TBATCH_THREADS])
+  numItems = len(items)
+  numWorkerThreads = min(numItems, GC.Values[GC.NUM_TBATCH_THREADS])
 # GM.Globals[GM.TBATCH_QUEUE].put() gets blocked when trying to create more items than there are workers
   GM.Globals[GM.TBATCH_QUEUE] = queue.Queue(maxsize=numWorkerThreads)
   batchWriteStderr(Msg.USING_N_PROCESSES.format(currentISOformatTimeStamp(),
-                                                numWorkerThreads, THREAD_PLURAL_SINGULAR[numWorkerThreads == 1]))
+                                                numItems, numWorkerThreads,
+                                                THREAD_PLURAL_SINGULAR[numWorkerThreads == 1]))
   for _ in range(numWorkerThreads):
-    t = threading.Thread(target=threadBatchWorker, kwargs={'logCmds': logCmds})
+    t = threading.Thread(target=threadBatchWorker, kwargs={'logCmds': logCmds, 'numItems': numItems})
     t.daemon = True
     t.start()
   pid = 0
@@ -8124,22 +8128,22 @@ def ThreadBatchGAMCommands(items, logCmds):
   for item in items:
     if item[0] == Cmd.COMMIT_BATCH_CMD:
       batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
-                                                                numThreadsInUse,
+                                                                numItems, numThreadsInUse,
                                                                 THREAD_PLURAL_SINGULAR[numThreadsInUse == 1]))
       GM.Globals[GM.TBATCH_QUEUE].join()
-      batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), Msg.THREADS))
+      batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), numItems, Msg.THREADS))
       numThreadsInUse = 0
       if len(item) > 1:
-        readStdin(f'{currentISOformatTimeStamp()},0,{Cmd.QuotedArgumentList(item[1:])}')
+        readStdin(f'{currentISOformatTimeStamp()},0/{numItems},{Cmd.QuotedArgumentList(item[1:])}')
       continue
     if item[0] == Cmd.PRINT_CMD:
-      batchWriteStderr(f'{currentISOformatTimeStamp()},0,{Cmd.QuotedArgumentList(item[1:])}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},0/{numItems},{Cmd.QuotedArgumentList(item[1:])}\n')
       continue
     pid += 1
     if not logCmds and pid % 100 == 0:
       batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
     if logCmds:
-      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{Cmd.QuotedArgumentList(item)}\n')
     if item[0] == Cmd.GAM_CMD:
       GM.Globals[GM.TBATCH_QUEUE].put((pid, pythonCmd+item[1:]))
     else:
@@ -8147,9 +8151,9 @@ def ThreadBatchGAMCommands(items, logCmds):
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
   if logCmds:
-    batchWriteStderr(f'{currentISOformatTimeStamp()},0,Complete\n')
+    batchWriteStderr(f'{currentISOformatTimeStamp()},0/{numItems},Complete\n')
 
-# gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
+# gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 def doBatch(threadBatch=False):
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
@@ -8204,7 +8208,7 @@ def doBatch(threadBatch=False):
     writeStderr(Msg.BATCH_NOT_PROCESSED_ERRORS.format(ERROR_PREFIX, filename, errors, ERROR_PLURAL_SINGULAR[errors == 1]))
     setSysExitRC(USAGE_ERROR_RC)
 
-# gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds]
+# gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 def doThreadBatch():
   adjustRedirectedSTDFilesIfNotMultiprocessing()
   doBatch(True)
@@ -56520,7 +56524,7 @@ def CallGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=False):
 
 # gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]
 #	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-#	(matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAM argument list>
+#	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAM argument list>
 def doLoop():
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
@@ -56528,6 +56532,9 @@ def doLoop():
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.LOOP_CMD))
   f, csvFile, fieldnames = openCSVFileReader(filename)
   matchFields, skipFields = getMatchSkipFields(fieldnames)
+  logCmds = checkArgumentPresent('showcmds')
+  if logCmds:
+    logCmds = getBoolean()
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
@@ -56548,9 +56555,16 @@ def doLoop():
   else:
     mpQueue = None
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueue
+  pid = 0
   for row in csvFile:
     if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
-      ProcessGAMCommand(processSubFields(GAM_argv, row, subFields), processGamCfg=processGamCfg, inLoop=True)
+      pid += 1
+      item = processSubFields(GAM_argv, row, subFields)
+      if logCmds:
+        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},{Cmd.QuotedArgumentList(item)}\n')
+      ProcessGAMCommand(item, processGamCfg=processGamCfg, inLoop=True)
+      if logCmds:
+        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid},Complete\n')
       if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
         break
   closeFile(f)

@@ -1,3 +1,16 @@
+6.06.15
+
+Updated option`showcmds` output in `gam batch|csv|tbatch` to show the total number of commands
+to be executed in addition to the current command number.
+
+Added option `showcmds [<Boolean>]` option to `gam loop`; this causes Gam to display each command to stderr
+as it is initiated so you can monitor Gam's progress. If `<Boolean>` is omitted, True is assumed.
+
+The total number of commands is not available as the input file is not pre-processed.
+
+If stderr is redirected, the commands will be written to the redirected stderr and to sys.stderr so you can still
+monitor Gam's progress on your screen.
+
 6.06.14
 
 The following options have been deprecated in `gam <UserTypeEntity> copy drivefile <DriveFileEntity>`

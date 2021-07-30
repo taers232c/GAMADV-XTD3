@@ -995,7 +995,7 @@ gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<B
 
 gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
         [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-        (matchfield|skipfield <FieldName> <RegularExpression>)* gam <GAMArgumentList>
+        (matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAMArgumentList>
 
 You can make substitutions in <GAMArgumentList> with values from the CSV file.
 An argument containing exactly ~xxx is replaced by the value of field xxx from the CSV file
