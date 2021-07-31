@@ -7951,6 +7951,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
   GM.Globals[GM.PID] = pid
   GM.Globals[GM.DEBUG_LEVEL] = debugLevel
   GM.Globals[GM.SYSEXITRC] = 0
+  GM.Globals[GM.CMDLOG_LOGGER] = None
   GM.Globals[GM.SAVED_STDOUT] = None
   GM.Globals[GM.CSV_DATA_DICT] = {}
   GM.Globals[GM.CSV_KEY_FIELD] = None
@@ -56500,7 +56501,7 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
   def closeLogging():
     GM.Globals[GM.CMDLOG_HANDLER].flush()
     GM.Globals[GM.CMDLOG_HANDLER].close()
-    GM.Globals[GM.CMDLOG_LOGGER].RemoveHandler(GM.Globals[GM.CMDLOG_HANDLER])
+    GM.Globals[GM.CMDLOG_LOGGER].removeHandler(GM.Globals[GM.CMDLOG_HANDLER])
 
   setSysExitRC(0)
   Cmd.InitializeArguments(args)
