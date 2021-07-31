@@ -8016,7 +8016,7 @@ def MultiprocessGAMCommands(items, showCmds):
     if showCmds:
       batchWriteStderr(f'{currentISOformatTimeStamp()},End,{result[0]}/{numItems},{result[1]},{Cmd.QuotedArgumentList(result[2])}\n')
     if GM.Globals[GM.CMDLOG_LOGGER]:
-      GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},End,{result[1]},{Cmd.QuotedArgumentList(result[2])}')
+      GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{result[1]},{Cmd.QuotedArgumentList(result[2])}')
 
   if not items:
     return
@@ -8083,8 +8083,6 @@ def MultiprocessGAMCommands(items, showCmds):
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
       if showCmds:
         batchWriteStderr(f'{currentISOformatTimeStamp()},Start,{pid}/{numItems},0,{Cmd.QuotedArgumentList(item)}\n')
-      if GM.Globals[GM.CMDLOG_LOGGER]:
-        GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},Start,0,{Cmd.QuotedArgumentList(item)}')
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                         GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
@@ -56496,11 +56494,13 @@ def closeSTDFilesIfNotMultiprocessing(closeSTD):
 
 # Process GAM command
 def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
-  def logStartGAMCommand(logCmd):
-    GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},Start,0,{logCmd}')
+  def logGAMCommand(logCmd, sysRC):
+    GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{sysRC},{logCmd}')
 
-  def logEndGAMCommand(logCmd):
-    GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},End,{GM.Globals[GM.SYSEXITRC]},{logCmd}')
+  def closeLogging():
+    GM.Globals[GM.CMDLOG_HANDLER].flush()
+    GM.Globals[GM.CMDLOG_HANDLER].close()
+    GM.Globals[GM.CMDLOG_LOGGER].RemoveHandler(GM.Globals[GM.CMDLOG_HANDLER])
 
   setSysExitRC(0)
   Cmd.InitializeArguments(args)
@@ -56511,31 +56511,31 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
       if processGamCfg and (not SetGlobalVariables()):
         sys.exit(GM.Globals[GM.SYSEXITRC])
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        logStartGAMCommand(logCmd)
+        logGAMCommand(logCmd, '*')
       doLoop()
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        logEndGAMCommand(logCmd)
-        GM.Globals[GM.CMDLOG_LOGGER] = None
+        closeLogging()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if processGamCfg and (not SetGlobalVariables()):
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if checkArgumentPresent(Cmd.LOOP_CMD):
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        logStartGAMCommand(logCmd)
+        logGAMCommand(logCmd, '*')
       doLoop()
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        logEndGAMCommand(logCmd)
-        GM.Globals[GM.CMDLOG_LOGGER] = None
+        closeLogging()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if not Cmd.ArgumentsRemaining():
       doUsage()
       sys.exit(GM.Globals[GM.SYSEXITRC])
-    if GM.Globals[GM.PID] == 0 and GM.Globals[GM.CMDLOG_LOGGER]:
-      logStartGAMCommand(logCmd)
     CL_command = getChoice(BATCH_CSV_COMMANDS, defaultChoice=None)
     if CL_command:
       Act.Set(BATCH_CSV_COMMANDS[CL_command][CMD_ACTION])
+      if GM.Globals[GM.CMDLOG_LOGGER]:
+        logGAMCommand(logCmd, '*')
       BATCH_CSV_COMMANDS[CL_command][CMD_FUNCTION]()
+      if GM.Globals[GM.CMDLOG_LOGGER]:
+        closeLogging()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     CL_command = getChoice(MAIN_COMMANDS, defaultChoice=None)
     if CL_command:
@@ -56621,7 +56621,8 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
         sys.stdout = GM.Globals[GM.SAVED_STDOUT]
       closeSTDFilesIfNotMultiprocessing(closeSTD)
   if GM.Globals[GM.PID] == 0 and GM.Globals[GM.CMDLOG_LOGGER]:
-    logEndGAMCommand(logCmd)
+    logGAMCommand(logCmd, GM.Globals[GM.SYSEXITRC])
+    closeLogging()
   return GM.Globals[GM.SYSEXITRC]
 
 # Process GAM command
