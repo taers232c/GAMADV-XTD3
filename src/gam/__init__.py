@@ -7754,10 +7754,10 @@ def saveNonPickleableValues():
   GM.Globals[GM.STDOUT].pop(GM.REDIRECT_MULTI_FD, None)
   savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, None)
   GM.Globals[GM.STDERR].pop(GM.REDIRECT_MULTI_FD, None)
-#  savedValues[GM.CMDLOG_HANDLER] = GM.Globals[GM.CMDLOG_HANDLER]
-#  GM.Globals[GM.CMDLOG_HANDLER] = None
-#  savedValues[GM.CMDLOG_LOGGER] = GM.Globals[GM.CMDLOG_LOGGER]
-#  GM.Globals[GM.CMDLOG_LOGGER] = None
+  savedValues[GM.CMDLOG_HANDLER] = GM.Globals[GM.CMDLOG_HANDLER]
+  GM.Globals[GM.CMDLOG_HANDLER] = None
+  savedValues[GM.CMDLOG_LOGGER] = GM.Globals[GM.CMDLOG_LOGGER]
+  GM.Globals[GM.CMDLOG_LOGGER] = None
   return savedValues
 
 def restoreNonPickleableValues(savedValues):
@@ -7766,8 +7766,8 @@ def restoreNonPickleableValues(savedValues):
   GM.Globals[GM.STDERR][GM.REDIRECT_FD] = savedValues[GM.STDERR][GM.REDIRECT_FD]
   GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDOUT][GM.REDIRECT_MULTI_FD]
   GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD]
-#  GM.Globals[GM.CMDLOG_HANDLER] = savedValues[GM.CMDLOG_HANDLER]
-#  GM.Globals[GM.CMDLOG_LOGGER] = savedValues[GM.CMDLOG_LOGGER]
+  GM.Globals[GM.CMDLOG_HANDLER] = savedValues[GM.CMDLOG_HANDLER]
+  GM.Globals[GM.CMDLOG_LOGGER] = savedValues[GM.CMDLOG_LOGGER]
 
 def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
   global Cmd
@@ -7873,7 +7873,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
   def _writePidData(pid, data):
     try:
       if pid != 0 and GC.Values[GC.SHOW_MULTIPROCESS_INFO]:
-        _writeData(PROCESS_MSG.format(pidData[pid]['queue'], pid, 'Start', pidData[pid]['start'], data[0], pidData[pid]['cmd']))
+        _writeData(PROCESS_MSG.format(pidData[pid]['queue'], pid, 'Start', pidData[pid]['start'], 0, pidData[pid]['cmd']))
       if data[1] is not None:
         _writeData(data[1])
       if GC.Values[GC.SHOW_MULTIPROCESS_INFO]:
@@ -7990,7 +7990,7 @@ def ProcessGAMCommandMulti(pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
     mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()]))
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].close()
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
-  return pid
+  return (pid, sysRC, args)
 
 def batchWriteStderr(data):
   fd = GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr)
@@ -8010,11 +8010,13 @@ ERROR_PLURAL_SINGULAR = [Msg.ERRORS, Msg.ERROR]
 PROCESS_PLURAL_SINGULAR = [Msg.PROCESSES, Msg.PROCESS]
 THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
 
-def MultiprocessGAMCommands(items, logCmds):
-  def poolCallback(pid):
+def MultiprocessGAMCommands(items, showCmds):
+  def poolCallback(result):
     poolProcessResults[0] -= 1
-    if logCmds:
-      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Complete\n')
+    if showCmds:
+      batchWriteStderr(f'{currentISOformatTimeStamp()},End,{result[0]}/{numItems},{result[1]},{Cmd.QuotedArgumentList(result[2])}\n')
+    if GM.Globals[GM.CMDLOG_LOGGER]:
+      GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},End,{result[1]},{Cmd.QuotedArgumentList(result[2])}')
 
   if not items:
     return
@@ -8077,10 +8079,12 @@ def MultiprocessGAMCommands(items, logCmds):
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
         continue
       pid += 1
-      if not logCmds and pid % 100 == 0:
+      if not showCmds and pid % 100 == 0:
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
-      if logCmds:
-        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{Cmd.QuotedArgumentList(item)}\n')
+      if showCmds:
+        batchWriteStderr(f'{currentISOformatTimeStamp()},Start,{pid}/{numItems},0,{Cmd.QuotedArgumentList(item)}\n')
+      if GM.Globals[GM.CMDLOG_LOGGER]:
+        GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},Start,0,{Cmd.QuotedArgumentList(item)}')
       pool.apply_async(ProcessGAMCommandMulti,
                        [pid, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                         GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
@@ -8099,7 +8103,7 @@ def MultiprocessGAMCommands(items, logCmds):
   else:
     pool.close()
   pool.join()
-  if logCmds:
+  if showCmds:
     batchWriteStderr(f'{currentISOformatTimeStamp()},0/{numItems},Complete\n')
   if mpQueueCSVFile:
     terminateCSVFileQueueHandler(mpQueueCSVFile, mpQueueHandlerCSVFile)
@@ -8114,13 +8118,13 @@ def MultiprocessGAMCommands(items, logCmds):
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
     terminateStdQueueHandler(mpQueueStderr, mpQueueHandlerStderr)
 
-def threadBatchWorker(logCmds=False, numItems=0):
+def threadBatchWorker(showCmds=False, numItems=0):
   while True:
     pid, item = GM.Globals[GM.TBATCH_QUEUE].get()
     try:
       sysRC = subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout),
                               stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
-      if logCmds:
+      if showCmds:
         batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Complete,{sysRC}\n')
     except Exception as e:
       batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{str(e)}\n')
@@ -8129,7 +8133,7 @@ def threadBatchWorker(logCmds=False, numItems=0):
 BATCH_COMMANDS = [Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD]
 TBATCH_COMMANDS = [Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.EXECUTE_CMD, Cmd.PRINT_CMD]
 
-def ThreadBatchGAMCommands(items, logCmds):
+def ThreadBatchGAMCommands(items, showCmds):
   if not items:
     return
   pythonCmd = [sys.executable]
@@ -8143,7 +8147,7 @@ def ThreadBatchGAMCommands(items, logCmds):
                                                 numItems, numWorkerThreads,
                                                 THREAD_PLURAL_SINGULAR[numWorkerThreads == 1]))
   for _ in range(numWorkerThreads):
-    t = threading.Thread(target=threadBatchWorker, kwargs={'logCmds': logCmds, 'numItems': numItems})
+    t = threading.Thread(target=threadBatchWorker, kwargs={'showCmds': showCmds, 'numItems': numItems})
     t.daemon = True
     t.start()
   pid = 0
@@ -8163,9 +8167,9 @@ def ThreadBatchGAMCommands(items, logCmds):
       batchWriteStderr(f'{currentISOformatTimeStamp()},0/{numItems},{Cmd.QuotedArgumentList(item[1:])}\n')
       continue
     pid += 1
-    if not logCmds and pid % 100 == 0:
+    if not showCmds and pid % 100 == 0:
       batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid))
-    if logCmds:
+    if showCmds:
       batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{Cmd.QuotedArgumentList(item)}\n')
     if item[0] == Cmd.GAM_CMD:
       GM.Globals[GM.TBATCH_QUEUE].put((pid, pythonCmd+item[1:]))
@@ -8173,7 +8177,7 @@ def ThreadBatchGAMCommands(items, logCmds):
       GM.Globals[GM.TBATCH_QUEUE].put((pid, item[1:]))
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
-  if logCmds:
+  if showCmds:
     batchWriteStderr(f'{currentISOformatTimeStamp()},0/{numItems},Complete\n')
 
 # gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
@@ -8188,11 +8192,11 @@ def doBatch(threadBatch=False):
   else:
     f = getGDocData(MIMETYPE_TEXT_PLAIN)
     getCharSet()
-  logCmds = False
+  showCmds = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'showcmds':
-      logCmds = getBoolean()
+      showCmds = getBoolean()
     else:
       unknownArgumentExit()
   validCommands = BATCH_COMMANDS if not threadBatch else TBATCH_COMMANDS
@@ -8224,9 +8228,9 @@ def doBatch(threadBatch=False):
   closeFile(f)
   if errors == 0:
     if not threadBatch:
-      MultiprocessGAMCommands(items, logCmds)
+      MultiprocessGAMCommands(items, showCmds)
     else:
-      ThreadBatchGAMCommands(items, logCmds)
+      ThreadBatchGAMCommands(items, showCmds)
   else:
     writeStderr(Msg.BATCH_NOT_PROCESSED_ERRORS.format(ERROR_PREFIX, filename, errors, ERROR_PLURAL_SINGULAR[errors == 1]))
     setSysExitRC(USAGE_ERROR_RC)
@@ -8335,9 +8339,9 @@ def doCSV(testMode=False):
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.CSV_CMD))
   f, csvFile, fieldnames = openCSVFileReader(filename)
   matchFields, skipFields = getMatchSkipFields(fieldnames)
-  logCmds = checkArgumentPresent('showcmds')
-  if logCmds:
-    logCmds = getBoolean()
+  showCmds = checkArgumentPresent('showcmds')
+  if showCmds:
+    showCmds = getBoolean()
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
@@ -8353,7 +8357,7 @@ def doCSV(testMode=False):
       items.append(processSubFields(GAM_argv, row, subFields))
   closeFile(f)
   if not testMode:
-    MultiprocessGAMCommands(items, logCmds)
+    MultiprocessGAMCommands(items, showCmds)
   else:
     numItems = min(len(items), 10)
     writeStdout(Msg.CSV_FILE_HEADERS.format(filename))
@@ -8369,6 +8373,64 @@ def doCSV(testMode=False):
 
 def doCSVTest():
   doCSV(testMode=True)
+
+# gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]
+#	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+#	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAM argument list>
+def doLoop():
+  filename = getString(Cmd.OB_FILE_NAME)
+  if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
+    Cmd.Backup()
+    usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.LOOP_CMD))
+  f, csvFile, fieldnames = openCSVFileReader(filename)
+  matchFields, skipFields = getMatchSkipFields(fieldnames)
+  showCmds = checkArgumentPresent('showcmds')
+  if showCmds:
+    showCmds = getBoolean()
+  checkArgumentPresent(Cmd.GAM_CMD, required=True)
+  if not Cmd.ArgumentsRemaining():
+    missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
+  if GC.Values[GC.CSV_INPUT_ROW_FILTER] or GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER]:
+    CheckInputRowFilterHeaders(fieldnames, GC.Values[GC.CSV_INPUT_ROW_FILTER], GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER])
+  choice = Cmd.Current().strip().lower()
+  if choice == Cmd.LOOP_CMD:
+    usageErrorExit(Msg.NESTED_LOOP_CMD_NOT_ALLOWED)
+# gam loop ... gam redirect|select|config ... process gam.cfg on each iteration
+# gam redirect|select|config ... loop ... gam redirect|select|config ... process gam.cfg on each iteration
+# gam loop ... gam !redirect|select|config ... no further processing of gam.cfg
+# gam redirect|select|config ... loop ... gam !redirect|select|config ... no further processing of gam.cfg
+  processGamCfg = choice in Cmd.GAM_META_COMMANDS
+  GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], fieldnames)
+  multi = GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]
+  if multi:
+    mpQueue, mpQueueHandler = initializeCSVFileQueueHandler(None, None)
+  else:
+    mpQueue = None
+  GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueue
+  if not showCmds:
+    for row in csvFile:
+      if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
+        ProcessGAMCommand(processSubFields(GAM_argv, row, subFields), processGamCfg=processGamCfg, inLoop=True)
+        if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
+          break
+    closeFile(f)
+  else:
+    items = []
+    for row in csvFile:
+      if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
+        items.append(processSubFields(GAM_argv, row, subFields))
+    closeFile(f)
+    numItems = len(items)
+    pid = 0
+    for item in items:
+      pid += 1
+      batchWriteStderr(f'{currentISOformatTimeStamp()},Start,{pid}/{numItems},0,{Cmd.QuotedArgumentList(item)}\n')
+      sysRC = ProcessGAMCommand(item, processGamCfg=processGamCfg, inLoop=True)
+      batchWriteStderr(f'{currentISOformatTimeStamp()},End,{pid}/{numItems},{sysRC},{Cmd.QuotedArgumentList(item)}\n')
+      if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
+        break
+  if multi:
+    terminateCSVFileQueueHandler(mpQueue, mpQueueHandler)
 
 def _doList(entityList, entityType):
   buildGAPIObject(API.DIRECTORY)
@@ -56434,32 +56496,42 @@ def closeSTDFilesIfNotMultiprocessing(closeSTD):
 
 # Process GAM command
 def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
-  def logGAMCommand():
-    GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{Cmd.QuotedLogCommand()}')
+  def logStartGAMCommand(logCmd):
+    GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},Start,0,{logCmd}')
+
+  def logEndGAMCommand(logCmd):
+    GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},End,{GM.Globals[GM.SYSEXITRC]},{logCmd}')
 
   setSysExitRC(0)
   Cmd.InitializeArguments(args)
   Ind.Reset()
   try:
+    logCmd = Cmd.QuotedLogCommand()
     if checkArgumentPresent(Cmd.LOOP_CMD):
       if processGamCfg and (not SetGlobalVariables()):
         sys.exit(GM.Globals[GM.SYSEXITRC])
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        logGAMCommand()
+        logStartGAMCommand(logCmd)
       doLoop()
+      if GM.Globals[GM.CMDLOG_LOGGER]:
+        logEndGAMCommand(logCmd)
+        GM.Globals[GM.CMDLOG_LOGGER] = None
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if processGamCfg and (not SetGlobalVariables()):
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if checkArgumentPresent(Cmd.LOOP_CMD):
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        logGAMCommand()
+        logStartGAMCommand(logCmd)
       doLoop()
+      if GM.Globals[GM.CMDLOG_LOGGER]:
+        logEndGAMCommand(logCmd)
+        GM.Globals[GM.CMDLOG_LOGGER] = None
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if not Cmd.ArgumentsRemaining():
       doUsage()
       sys.exit(GM.Globals[GM.SYSEXITRC])
-    if GM.Globals[GM.CMDLOG_LOGGER]:
-      logGAMCommand()
+    if GM.Globals[GM.PID] == 0 and GM.Globals[GM.CMDLOG_LOGGER]:
+      logStartGAMCommand(logCmd)
     CL_command = getChoice(BATCH_CSV_COMMANDS, defaultChoice=None)
     if CL_command:
       Act.Set(BATCH_CSV_COMMANDS[CL_command][CMD_ACTION])
@@ -56548,66 +56620,10 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
       if GM.Globals.get(GM.SAVED_STDOUT) is not None:
         sys.stdout = GM.Globals[GM.SAVED_STDOUT]
       closeSTDFilesIfNotMultiprocessing(closeSTD)
+  if GM.Globals[GM.PID] == 0 and GM.Globals[GM.CMDLOG_LOGGER]:
+    logEndGAMCommand(logCmd)
   return GM.Globals[GM.SYSEXITRC]
 
 # Process GAM command
 def CallGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=False):
   return ProcessGAMCommand(args, processGamCfg=processGamCfg, inLoop=inLoop, closeSTD=closeSTD)
-
-# gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]
-#	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-#	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAM argument list>
-def doLoop():
-  filename = getString(Cmd.OB_FILE_NAME)
-  if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
-    Cmd.Backup()
-    usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.LOOP_CMD))
-  f, csvFile, fieldnames = openCSVFileReader(filename)
-  matchFields, skipFields = getMatchSkipFields(fieldnames)
-  logCmds = checkArgumentPresent('showcmds')
-  if logCmds:
-    logCmds = getBoolean()
-  checkArgumentPresent(Cmd.GAM_CMD, required=True)
-  if not Cmd.ArgumentsRemaining():
-    missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
-  if GC.Values[GC.CSV_INPUT_ROW_FILTER] or GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER]:
-    CheckInputRowFilterHeaders(fieldnames, GC.Values[GC.CSV_INPUT_ROW_FILTER], GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER])
-  choice = Cmd.Current().strip().lower()
-  if choice == Cmd.LOOP_CMD:
-    usageErrorExit(Msg.NESTED_LOOP_CMD_NOT_ALLOWED)
-# gam loop ... gam redirect|select|config ... process gam.cfg on each iteration
-# gam redirect|select|config ... loop ... gam redirect|select|config ... process gam.cfg on each iteration
-# gam loop ... gam !redirect|select|config ... no further processing of gam.cfg
-# gam redirect|select|config ... loop ... gam !redirect|select|config ... no further processing of gam.cfg
-  processGamCfg = choice in Cmd.GAM_META_COMMANDS
-  GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], fieldnames)
-  multi = GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]
-  if multi:
-    mpQueue, mpQueueHandler = initializeCSVFileQueueHandler(None, None)
-  else:
-    mpQueue = None
-  GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueue
-  if not logCmds:
-    for row in csvFile:
-      if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
-        ProcessGAMCommand(processSubFields(GAM_argv, row, subFields), processGamCfg=processGamCfg, inLoop=True)
-        if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
-          break
-    closeFile(f)
-  else:
-    items = []
-    for row in csvFile:
-      if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
-        items.append(processSubFields(GAM_argv, row, subFields))
-    closeFile(f)
-    numItems = len(items)
-    pid = 0
-    for item in items:
-      pid += 1
-      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{Cmd.QuotedArgumentList(item)}\n')
-      ProcessGAMCommand(item, processGamCfg=processGamCfg, inLoop=True)
-      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Complete\n')
-      if (GM.Globals[GM.SYSEXITRC] > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
-        break
-  if multi:
-    terminateCSVFileQueueHandler(mpQueue, mpQueueHandler)
