@@ -7754,10 +7754,10 @@ def saveNonPickleableValues():
   GM.Globals[GM.STDOUT].pop(GM.REDIRECT_MULTI_FD, None)
   savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, None)
   GM.Globals[GM.STDERR].pop(GM.REDIRECT_MULTI_FD, None)
-  savedValues[GM.CMDLOG_HANDLER] = GM.Globals[GM.CMDLOG_HANDLER]
-  GM.Globals[GM.CMDLOG_HANDLER] = None
-  savedValues[GM.CMDLOG_LOGGER] = GM.Globals[GM.CMDLOG_LOGGER]
-  GM.Globals[GM.CMDLOG_LOGGER] = None
+#  savedValues[GM.CMDLOG_HANDLER] = GM.Globals[GM.CMDLOG_HANDLER]
+#  GM.Globals[GM.CMDLOG_HANDLER] = None
+#  savedValues[GM.CMDLOG_LOGGER] = GM.Globals[GM.CMDLOG_LOGGER]
+#  GM.Globals[GM.CMDLOG_LOGGER] = None
   return savedValues
 
 def restoreNonPickleableValues(savedValues):
@@ -7766,8 +7766,8 @@ def restoreNonPickleableValues(savedValues):
   GM.Globals[GM.STDERR][GM.REDIRECT_FD] = savedValues[GM.STDERR][GM.REDIRECT_FD]
   GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDOUT][GM.REDIRECT_MULTI_FD]
   GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = savedValues[GM.STDERR][GM.REDIRECT_MULTI_FD]
-  GM.Globals[GM.CMDLOG_HANDLER] = savedValues[GM.CMDLOG_HANDLER]
-  GM.Globals[GM.CMDLOG_LOGGER] = savedValues[GM.CMDLOG_LOGGER]
+#  GM.Globals[GM.CMDLOG_HANDLER] = savedValues[GM.CMDLOG_HANDLER]
+#  GM.Globals[GM.CMDLOG_LOGGER] = savedValues[GM.CMDLOG_LOGGER]
 
 def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
   global Cmd
