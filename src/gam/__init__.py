@@ -2844,6 +2844,28 @@ def checkAPICallsRate():
       GM.Globals[GM.RATE_CHECK_START] = current
     GM.Globals[GM.RATE_CHECK_COUNT] = 0
 
+def openGAMCommandLog():
+  try:
+    GM.Globals[GM.CMDLOG_LOGGER] = logging.getLogger('cmdlog')
+    GM.Globals[GM.CMDLOG_LOGGER].setLevel(logging.INFO)
+    GM.Globals[GM.CMDLOG_HANDLER] = RotatingFileHandler(GC.Values[GC.CMDLOG],
+                                                        maxBytes=1024*GC.Values[GC.CMDLOG_MAX_KILO_BYTES],
+                                                        backupCount=GC.Values[GC.CMDLOG_MAX_BACKUPS],
+                                                        encoding=GC.Values[GC.CHARSET])
+    GM.Globals[GM.CMDLOG_LOGGER].addHandler(GM.Globals[GM.CMDLOG_HANDLER])
+  except Exception as e:
+    GM.Globals[GM.CMDLOG_LOGGER] = None
+    systemErrorExit(CONFIG_ERROR_RC, Msg.LOGGING_INITIALIZATION_ERROR.format(str(e)))
+
+def closeGAMCommandLogging():
+  try:
+    GM.Globals[GM.CMDLOG_HANDLER].flush()
+    GM.Globals[GM.CMDLOG_HANDLER].close()
+    GM.Globals[GM.CMDLOG_LOGGER].removeHandler(GM.Globals[GM.CMDLOG_HANDLER])
+  except Exception:
+    pass
+  GM.Globals[GM.CMDLOG_LOGGER] = None
+
 # Set global variables from config file
 # Return True if there are additional commands on the command line
 def SetGlobalVariables():
@@ -3627,13 +3649,7 @@ def SetGlobalVariables():
     os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
 # Set up command logging at top level only
     if (GM.Globals[GM.PID] == 0) and GC.Values[GC.CMDLOG]:
-      GM.Globals[GM.CMDLOG_LOGGER] = logging.getLogger('cmdlog')
-      GM.Globals[GM.CMDLOG_LOGGER].setLevel(logging.INFO)
-      GM.Globals[GM.CMDLOG_HANDLER] = RotatingFileHandler(GC.Values[GC.CMDLOG],
-                                                          maxBytes=1024*GC.Values[GC.CMDLOG_MAX_KILO_BYTES],
-                                                          backupCount=GC.Values[GC.CMDLOG_MAX_BACKUPS],
-                                                          encoding=GC.Values[GC.CHARSET])
-      GM.Globals[GM.CMDLOG_LOGGER].addHandler(GM.Globals[GM.CMDLOG_HANDLER])
+      openGAMCommandLog()
     return True
 # We're done, nothing else to do
   return False
@@ -56498,11 +56514,6 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
   def logGAMCommand(logCmd, sysRC):
     GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{sysRC},{logCmd}')
 
-  def closeLogging():
-    GM.Globals[GM.CMDLOG_HANDLER].flush()
-    GM.Globals[GM.CMDLOG_HANDLER].close()
-    GM.Globals[GM.CMDLOG_LOGGER].removeHandler(GM.Globals[GM.CMDLOG_HANDLER])
-
   setSysExitRC(0)
   Cmd.InitializeArguments(args)
   Ind.Reset()
@@ -56515,7 +56526,7 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
         logGAMCommand(logCmd, '*')
       doLoop()
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        closeLogging()
+        closeGAMCommandLogging()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if processGamCfg and (not SetGlobalVariables()):
       sys.exit(GM.Globals[GM.SYSEXITRC])
@@ -56524,7 +56535,7 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
         logGAMCommand(logCmd, '*')
       doLoop()
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        closeLogging()
+        closeGAMCommandLogging()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     if not Cmd.ArgumentsRemaining():
       doUsage()
@@ -56536,7 +56547,7 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
         logGAMCommand(logCmd, '*')
       BATCH_CSV_COMMANDS[CL_command][CMD_FUNCTION]()
       if GM.Globals[GM.CMDLOG_LOGGER]:
-        closeLogging()
+        closeGAMCommandLogging()
       sys.exit(GM.Globals[GM.SYSEXITRC])
     CL_command = getChoice(MAIN_COMMANDS, defaultChoice=None)
     if CL_command:
@@ -56623,7 +56634,8 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
       closeSTDFilesIfNotMultiprocessing(closeSTD)
   if GM.Globals[GM.PID] == 0 and GM.Globals[GM.CMDLOG_LOGGER]:
     logGAMCommand(logCmd, GM.Globals[GM.SYSEXITRC])
-    closeLogging()
+    if not inLoop:
+      closeGAMCommandLogging()
   return GM.Globals[GM.SYSEXITRC]
 
 # Process GAM command
