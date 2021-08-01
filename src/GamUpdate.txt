@@ -14,14 +14,15 @@ cmdlog_max_kilo_bytes
         Default: 1000
         Range: 100 - 10000
 ```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Command-Logging-Progress#command-logging
 
-Added he following keyword to `gam.cfg` to display commands to stderr when executing `gam batch|tbatch|csv|loop`.
+Added the following keyword to `gam.cfg` to display commands to stderr when executing `gam batch|tbatch|csv|loop`.
 ```
 show_commands
 	Display commands to stderr when executing `gam batch|tbatch|csv|loop`.
 	Default: False
 ```
-This value will be used when not overridden by the `showcmds [<Boolean>]` command line option.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Command-Logging-Progress#command-progress
 
 6.06.15
 
