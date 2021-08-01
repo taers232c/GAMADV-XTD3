@@ -168,6 +168,8 @@ QUICK_INFO_USER = 'quick_info_user'
 SECTION = 'section'
 # Show API calls retry data
 SHOW_API_CALLS_RETRY_DATA = 'show_api_calls_retry_data'
+# Show commands when processing batch/csv/loop
+SHOW_COMMANDS = 'show_commands'
 # Convert newlines in text fields to "\n" in show commands
 SHOW_CONVERT_CR_NL = 'show_convert_cr_nl'
 # Add (n/m) to end of messages if number of items to be processed exceeds this number
@@ -288,6 +290,7 @@ Defaults = {
   QUICK_INFO_USER: FALSE,
   SECTION: '',
   SHOW_API_CALLS_RETRY_DATA: FALSE,
+  SHOW_COMMANDS: FALSE,
   SHOW_CONVERT_CR_NL: FALSE,
   SHOW_COUNTS_MIN: '1',
   SHOW_GETTINGS: TRUE,
@@ -408,6 +411,7 @@ VAR_INFO = {
   QUICK_INFO_USER: {VAR_TYPE: TYPE_BOOLEAN},
   SECTION: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   SHOW_API_CALLS_RETRY_DATA: {VAR_TYPE: TYPE_BOOLEAN},
+  SHOW_COMMANDS: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_CONVERT_CR_NL: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_COUNTS_MIN: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, 100)},
   SHOW_GETTINGS: {VAR_TYPE: TYPE_BOOLEAN},
