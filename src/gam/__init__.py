@@ -7965,7 +7965,7 @@ def batchWriteStderr(data):
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage('stderr', e))
 
-def ProcessGAMCommandMulti(pid, numItems, showCmds, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
+def ProcessGAMCommandMulti(pid, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                            debugLevel, todrive,
                            csvColumnDelimiter, csvQuoteChar,
                            csvHeaderFilter, csvHeaderDropFilter,
@@ -8008,14 +8008,7 @@ def ProcessGAMCommandMulti(pid, numItems, showCmds, mpQueueCSVFile, mpQueueStdou
       GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
   else:
     GM.Globals[GM.STDERR] = {}
-  if not showCmds and pid % 100 == 0:
-    batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid, numItems))
-  logCmd = Cmd.QuotedArgumentList(args)
-  if showCmds:
-    batchWriteStderr(f'{currentISOformatTimeStamp()},Start,{pid}/{numItems},0,{logCmd}\n')
   sysRC = ProcessGAMCommand(args)
-  if showCmds:
-    batchWriteStderr(f'{currentISOformatTimeStamp()},End,{pid}/{numItems},{sysRC},{logCmd}\n')
   if mpQueueStdout:
     mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()]))
     GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].close()
@@ -8024,7 +8017,7 @@ def ProcessGAMCommandMulti(pid, numItems, showCmds, mpQueueCSVFile, mpQueueStdou
     mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()]))
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].close()
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
-  return (sysRC, logCmd)
+  return (pid, sysRC, logCmd)
 
 ERROR_PLURAL_SINGULAR = [Msg.ERRORS, Msg.ERROR]
 PROCESS_PLURAL_SINGULAR = [Msg.PROCESSES, Msg.PROCESS]
@@ -8033,8 +8026,10 @@ THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
 def MultiprocessGAMCommands(items, showCmds):
   def poolCallback(result):
     poolProcessResults[0] -= 1
+    if showCmds:
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{result[0]}/{numItems},End,{result[1]},{result[2]}\n')
     if GM.Globals[GM.CMDLOG_LOGGER]:
-      GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{result[0]},{result[1]}')
+      GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{result[1]},{result[2]}')
 
   if not items:
     return
@@ -8097,8 +8092,16 @@ def MultiprocessGAMCommands(items, showCmds):
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
         continue
       pid += 1
+      if not showCmds and pid % 100 == 0:
+        batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid, numItems))
+      if showCmds or GM.Globals[GM.CMDLOG_LOGGER]:
+        logCmd = Cmd.QuotedArgumentList(item)
+        if showCmds:
+          batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Start,0,{logCmd}\n')
+      else:
+        logCmd = ''
       pool.apply_async(ProcessGAMCommandMulti,
-                       [pid, numItems, showCmds, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
+                       [pid, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                         GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
                         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
@@ -8132,14 +8135,14 @@ def MultiprocessGAMCommands(items, showCmds):
 
 def threadBatchWorker(showCmds=False, numItems=0):
   while True:
-    pid, item = GM.Globals[GM.TBATCH_QUEUE].get()
+    pid, item, logCmd = GM.Globals[GM.TBATCH_QUEUE].get()
     try:
       sysRC = subprocess.call(item, stdout=GM.Globals[GM.STDOUT].get(GM.REDIRECT_MULTI_FD, sys.stdout),
                               stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
       if showCmds:
-        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Complete,{sysRC}\n')
+        batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},End,{sysRC},{logCmd}\n')
     except Exception as e:
-      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{str(e)}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Error,{str(e)},{logCmd}\n')
     GM.Globals[GM.TBATCH_QUEUE].task_done()
 
 BATCH_COMMANDS = [Cmd.GAM_CMD, Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD]
@@ -8182,11 +8185,14 @@ def ThreadBatchGAMCommands(items, showCmds):
     if not showCmds and pid % 100 == 0:
       batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid, numItems))
     if showCmds:
-      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},{Cmd.QuotedArgumentList(item)}\n')
-    if item[0] == Cmd.GAM_CMD:
-      GM.Globals[GM.TBATCH_QUEUE].put((pid, pythonCmd+item[1:]))
+      logCmd = Cmd.QuotedArgumentList(item)
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Start,{Cmd.QuotedArgumentList(item)}\n')
     else:
-      GM.Globals[GM.TBATCH_QUEUE].put((pid, item[1:]))
+      logCmd = ''
+    if item[0] == Cmd.GAM_CMD:
+      GM.Globals[GM.TBATCH_QUEUE].put((pid, pythonCmd+item[1:], logCmd))
+    else:
+      GM.Globals[GM.TBATCH_QUEUE].put((pid, item[1:], logCmd))
     numThreadsInUse += 1
   GM.Globals[GM.TBATCH_QUEUE].join()
   if showCmds:
@@ -8449,9 +8455,9 @@ def doLoop(loopCmd):
     for item in items:
       pid += 1
       logCmd = Cmd.QuotedArgumentList(item)
-      batchWriteStderr(f'{currentISOformatTimeStamp()},Start,{pid}/{numItems},0,{logCmd}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Start,0,{logCmd}\n')
       sysRC = ProcessGAMCommand(item, processGamCfg=processGamCfg, inLoop=True)
-      batchWriteStderr(f'{currentISOformatTimeStamp()},End,{pid}/{numItems},{sysRC},{logCmd}\n')
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},End,{sysRC},{logCmd}\n')
       if (GM.Globals[GM.PID] > 0) and LoopGlobals[GM.CMDLOG_LOGGER]:
         writeGAMCommandLog(LoopGlobals, logCmd, sysRC)
       if (sysRC > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
