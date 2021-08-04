@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.00'
+__version__ = '6.07.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -12940,25 +12940,31 @@ def doPrintShowAdmins():
   cd = buildGAPIObject(API.DIRECTORY)
   roleId = None
   userKey = None
+  kwargs = {}
   csvPF = CSVPrintFile(PRINT_ADMIN_TITLES) if Act.csvFormat() else None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'user':
-      userKey = getEmailAddress()
+      userKey = kwargs['userKey'] = getEmailAddress()
     elif myarg == 'role':
       _, roleId = getRoleId()
     else:
       unknownArgumentExit()
+  if roleId and not kwargs:
+    kwargs['roleId'] = roleId
+    roleId = None
   try:
     admins = callGAPIpages(cd.roleAssignments(), 'list', 'items',
                            throwReasons=[GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
-                           customer=GC.Values[GC.CUSTOMER_ID], userKey=userKey, roleId=roleId, fields=PRINT_ADMIN_FIELDS)
+                           customer=GC.Values[GC.CUSTOMER_ID], fields=PRINT_ADMIN_FIELDS, **kwargs)
   except (GAPI.invalid, GAPI.userNotFound):
     entityUnknownWarning(Ent.USER, userKey)
     return
-  except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
+  except GAPI.forbidden as e:
+    entityActionFailedExit([Ent.USER, userKey, Ent.ROLE, roleId], str(e))
+  except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
   if not csvPF:
     count = len(admins)
@@ -12967,6 +12973,8 @@ def doPrintShowAdmins():
     i = 0
     for admin in admins:
       i += 1
+      if roleId and roleId != admin['roleId']:
+        continue
       _setNamesFromIds(admin)
       printEntity([Ent.ROLE_ASSIGNMENT_ID, admin['roleAssignmentId']], i, count)
       Ind.Increment()
@@ -12977,6 +12985,8 @@ def doPrintShowAdmins():
     Ind.Decrement()
   else:
     for admin in admins:
+      if roleId and roleId != admin['roleId']:
+        continue
       _setNamesFromIds(admin)
       csvPF.WriteRow(flattenJSON(admin))
   if csvPF:
@@ -32384,7 +32394,7 @@ def updateUsers(entityList):
           PwdOpts.AssignPassword(body, notify, notFoundBody, parameters['createIfNotFound'])
         try:
           result = callGAPI(cd.users(), 'update',
-                            throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
+                            throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
                                           GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
                                           GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.DUPLICATE,
                                           GAPI.INSUFFICIENT_ARCHIVED_USER_LICENSES],
@@ -32431,7 +32441,7 @@ def updateUsers(entityList):
       entityActionFailedWarning([Ent.USER, user, Ent.USER, body['primaryEmail']], str(e), i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
-    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
             GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter, GAPI.insufficientArchivedUserLicenses,
             GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
@@ -32571,12 +32581,12 @@ def suspendUnsuspendUsers(entityList):
     try:
       callGAPI(cd.users(), 'update',
                throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                             GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
+                             GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                userKey=user, body=body)
       entityActionPerformed([Ent.USER, user], i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
+    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam suspend users <UserTypeEntity> [noactionifalias]
