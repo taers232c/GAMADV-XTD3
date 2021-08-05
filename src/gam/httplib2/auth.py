@@ -12,15 +12,17 @@ unquote = lambda s, l, t: UNQUOTE_PAIRS.sub(r"\1", t[0][1:-1])
 # https://tools.ietf.org/html/rfc7235#appendix-B
 tchar = "!#$%&'*+-.^_`|~" + pp.nums + pp.alphas
 token = pp.Word(tchar).setName("token")
-token68 = pp.Combine(pp.Word("-._~+/" + pp.nums + pp.alphas) + pp.ZeroOrMore("=")).setName("token68")
+token68 = pp.Combine(pp.Word("-._~+/" + pp.nums + pp.alphas) + pp.Optional(pp.Word("=").leaveWhitespace())).setName(
+    "token68"
+)
 
 quoted_string = pp.dblQuotedString.copy().setName("quoted-string").setParseAction(unquote)
 auth_param_name = token.copy().setName("auth-param-name").addParseAction(pp.downcaseTokens)
-auth_param = auth_param_name + pp.Suppress("=") + (token ^ quoted_string)
+auth_param = auth_param_name + pp.Suppress("=") + (quoted_string | token)
 params = pp.Dict(pp.delimitedList(pp.Group(auth_param)))
 
 scheme = token("scheme")
-challenge = scheme + (token68("token") ^ params("params"))
+challenge = scheme + (params("params") | token68("token"))
 
 authentication_info = params.copy()
 www_authenticate = pp.delimitedList(pp.Group(challenge))

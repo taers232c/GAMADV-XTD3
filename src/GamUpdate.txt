@@ -1,7 +1,11 @@
+6.07.02
+
+Updated various Google libraries and httplib2.
+
 6.07.01
 
 Updated `gam print|show admins` to allow specification of both `user <UserItem>`
-and `role <RoleItem>` and then avoid the undocumented API rule that disallowed both.
+and `role <RoleItem>` and then avoid the undocumented API rule that disallows both.
 
 6.07.00
 

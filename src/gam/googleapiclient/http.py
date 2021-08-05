@@ -19,17 +19,13 @@ object supporting an execute() method that does the
 actual HTTP request.
 """
 from __future__ import absolute_import
-import six
-from six.moves import http_client
-from six.moves import range
 
 __author__ = "jcgregorio@google.com (Joe Gregorio)"
 
-from six import BytesIO, StringIO
-from six.moves.urllib.parse import urlparse, urlunparse, quote, unquote
-
 import copy
 import httplib2
+import http.client as http_client
+import io
 import json
 import logging
 import mimetypes
@@ -37,6 +33,7 @@ import os
 import random
 import socket
 import time
+import urllib
 import uuid
 
 # TODO(issue 221): Remove this conditional import jibbajabba.
@@ -78,22 +75,17 @@ DEFAULT_HTTP_TIMEOUT_SEC = 60
 
 _LEGACY_BATCH_URI = "https://www.googleapis.com/batch"
 
-if six.PY2:
-    # That's a builtin python3 exception, nonexistent in python2.
-    # Defined to None to avoid NameError while trying to catch it
-    ConnectionError = None
-
 
 def _should_retry_response(resp_status, content):
     """Determines whether a response should be retried.
 
-  Args:
-    resp_status: The response status received.
-    content: The response content body.
+    Args:
+      resp_status: The response status received.
+      content: The response content body.
 
-  Returns:
-    True if the response should be retried, otherwise False.
-  """
+    Returns:
+      True if the response should be retried, otherwise False.
+    """
     reason = None
 
     # Retry on 5xx errors.
@@ -106,7 +98,7 @@ def _should_retry_response(resp_status, content):
 
     # For 403 errors, we have to check for the `reason` in the response to
     # determine if we should retry.
-    if resp_status == six.moves.http_client.FORBIDDEN:
+    if resp_status == http_client.FORBIDDEN:
         # If there's no details about the 403 type, don't retry.
         if not content:
             return False
@@ -122,7 +114,14 @@ def _should_retry_response(resp_status, content):
                 # first.
                 # See Issue #1243
                 # https://github.com/googleapis/google-api-python-client/issues/1243
-                error_detail_keyword = next((kw for kw in ["errors", "status", "message"] if kw in data["error"]), "")
+                error_detail_keyword = next(
+                    (
+                        kw
+                        for kw in ["errors", "status", "message"]
+                        if kw in data["error"]
+                    ),
+                    "",
+                )
 
                 if error_detail_keyword:
                     reason = data["error"][error_detail_keyword]
@@ -152,21 +151,21 @@ def _retry_request(
 ):
     """Retries an HTTP request multiple times while handling errors.
 
-  If after all retries the request still fails, last error is either returned as
-  return value (for HTTP 5xx errors) or thrown (for ssl.SSLError).
+    If after all retries the request still fails, last error is either returned as
+    return value (for HTTP 5xx errors) or thrown (for ssl.SSLError).
 
-  Args:
-    http: Http object to be used to execute request.
-    num_retries: Maximum number of retries.
-    req_type: Type of the request (used for logging retries).
-    sleep, rand: Functions to sleep for random time between retries.
-    uri: URI to be requested.
-    method: HTTP method to be used.
-    args, kwargs: Additional arguments passed to http.request.
+    Args:
+      http: Http object to be used to execute request.
+      num_retries: Maximum number of retries.
+      req_type: Type of the request (used for logging retries).
+      sleep, rand: Functions to sleep for random time between retries.
+      uri: URI to be requested.
+      method: HTTP method to be used.
+      args, kwargs: Additional arguments passed to http.request.
 
-  Returns:
-    resp, content - Response from the http request (may be HTTP 5xx).
-  """
+    Returns:
+      resp, content - Response from the http request (may be HTTP 5xx).
+    """
     resp = None
     content = None
     exception = None
@@ -235,21 +234,21 @@ class MediaUploadProgress(object):
     def __init__(self, resumable_progress, total_size):
         """Constructor.
 
-    Args:
-      resumable_progress: int, bytes sent so far.
-      total_size: int, total bytes in complete upload, or None if the total
-        upload size isn't known ahead of time.
-    """
+        Args:
+          resumable_progress: int, bytes sent so far.
+          total_size: int, total bytes in complete upload, or None if the total
+            upload size isn't known ahead of time.
+        """
         self.resumable_progress = resumable_progress
         self.total_size = total_size
 
     def progress(self):
         """Percent of upload completed, as a float.
 
-    Returns:
-      the percentage complete as a float, returning 0.0 if the total size of
-      the upload is unknown.
-    """
+        Returns:
+          the percentage complete as a float, returning 0.0 if the total size of
+          the upload is unknown.
+        """
         if self.total_size is not None and self.total_size != 0:
             return float(self.resumable_progress) / float(self.total_size)
         else:
@@ -262,20 +261,20 @@ class MediaDownloadProgress(object):
     def __init__(self, resumable_progress, total_size):
         """Constructor.
 
-    Args:
-      resumable_progress: int, bytes received so far.
-      total_size: int, total bytes in complete download.
-    """
+        Args:
+          resumable_progress: int, bytes received so far.
+          total_size: int, total bytes in complete download.
+        """
         self.resumable_progress = resumable_progress
         self.total_size = total_size
 
     def progress(self):
         """Percent of download completed, as a float.
 
-    Returns:
-      the percentage complete as a float, returning 0.0 if the total size of
-      the download is unknown.
-    """
+        Returns:
+          the percentage complete as a float, returning 0.0 if the total size of
+          the download is unknown.
+        """
         if self.total_size is not None and self.total_size != 0:
             return float(self.resumable_progress) / float(self.total_size)
         else:
@@ -285,107 +284,107 @@ class MediaDownloadProgress(object):
 class MediaUpload(object):
     """Describes a media object to upload.
 
-  Base class that defines the interface of MediaUpload subclasses.
+    Base class that defines the interface of MediaUpload subclasses.
 
-  Note that subclasses of MediaUpload may allow you to control the chunksize
-  when uploading a media object. It is important to keep the size of the chunk
-  as large as possible to keep the upload efficient. Other factors may influence
-  the size of the chunk you use, particularly if you are working in an
-  environment where individual HTTP requests may have a hardcoded time limit,
-  such as under certain classes of requests under Google App Engine.
+    Note that subclasses of MediaUpload may allow you to control the chunksize
+    when uploading a media object. It is important to keep the size of the chunk
+    as large as possible to keep the upload efficient. Other factors may influence
+    the size of the chunk you use, particularly if you are working in an
+    environment where individual HTTP requests may have a hardcoded time limit,
+    such as under certain classes of requests under Google App Engine.
 
-  Streams are io.Base compatible objects that support seek(). Some MediaUpload
-  subclasses support using streams directly to upload data. Support for
-  streaming may be indicated by a MediaUpload sub-class and if appropriate for a
-  platform that stream will be used for uploading the media object. The support
-  for streaming is indicated by has_stream() returning True. The stream() method
-  should return an io.Base object that supports seek(). On platforms where the
-  underlying httplib module supports streaming, for example Python 2.6 and
-  later, the stream will be passed into the http library which will result in
-  less memory being used and possibly faster uploads.
+    Streams are io.Base compatible objects that support seek(). Some MediaUpload
+    subclasses support using streams directly to upload data. Support for
+    streaming may be indicated by a MediaUpload sub-class and if appropriate for a
+    platform that stream will be used for uploading the media object. The support
+    for streaming is indicated by has_stream() returning True. The stream() method
+    should return an io.Base object that supports seek(). On platforms where the
+    underlying httplib module supports streaming, for example Python 2.6 and
+    later, the stream will be passed into the http library which will result in
+    less memory being used and possibly faster uploads.
 
-  If you need to upload media that can't be uploaded using any of the existing
-  MediaUpload sub-class then you can sub-class MediaUpload for your particular
-  needs.
-  """
+    If you need to upload media that can't be uploaded using any of the existing
+    MediaUpload sub-class then you can sub-class MediaUpload for your particular
+    needs.
+    """
 
     def chunksize(self):
         """Chunk size for resumable uploads.
 
-    Returns:
-      Chunk size in bytes.
-    """
+        Returns:
+          Chunk size in bytes.
+        """
         raise NotImplementedError()
 
     def mimetype(self):
         """Mime type of the body.
 
-    Returns:
-      Mime type.
-    """
+        Returns:
+          Mime type.
+        """
         return "application/octet-stream"
 
     def size(self):
         """Size of upload.
 
-    Returns:
-      Size of the body, or None of the size is unknown.
-    """
+        Returns:
+          Size of the body, or None of the size is unknown.
+        """
         return None
 
     def resumable(self):
         """Whether this upload is resumable.
 
-    Returns:
-      True if resumable upload or False.
-    """
+        Returns:
+          True if resumable upload or False.
+        """
         return False
 
     def getbytes(self, begin, end):
         """Get bytes from the media.
 
-    Args:
-      begin: int, offset from beginning of file.
-      length: int, number of bytes to read, starting at begin.
+        Args:
+          begin: int, offset from beginning of file.
+          length: int, number of bytes to read, starting at begin.
 
-    Returns:
-      A string of bytes read. May be shorter than length if EOF was reached
-      first.
-    """
+        Returns:
+          A string of bytes read. May be shorter than length if EOF was reached
+          first.
+        """
         raise NotImplementedError()
 
     def has_stream(self):
         """Does the underlying upload support a streaming interface.
 
-    Streaming means it is an io.IOBase subclass that supports seek, i.e.
-    seekable() returns True.
+        Streaming means it is an io.IOBase subclass that supports seek, i.e.
+        seekable() returns True.
 
-    Returns:
-      True if the call to stream() will return an instance of a seekable io.Base
-      subclass.
-    """
+        Returns:
+          True if the call to stream() will return an instance of a seekable io.Base
+          subclass.
+        """
         return False
 
     def stream(self):
         """A stream interface to the data being uploaded.
 
-    Returns:
-      The returned value is an io.IOBase subclass that supports seek, i.e.
-      seekable() returns True.
-    """
+        Returns:
+          The returned value is an io.IOBase subclass that supports seek, i.e.
+          seekable() returns True.
+        """
         raise NotImplementedError()
 
     @util.positional(1)
     def _to_json(self, strip=None):
         """Utility function for creating a JSON representation of a MediaUpload.
 
-    Args:
-      strip: array, An array of names of members to not include in the JSON.
+        Args:
+          strip: array, An array of names of members to not include in the JSON.
 
-    Returns:
-       string, a JSON representation of this instance, suitable to pass to
-       from_json().
-    """
+        Returns:
+           string, a JSON representation of this instance, suitable to pass to
+           from_json().
+        """
         t = type(self)
         d = copy.copy(self.__dict__)
         if strip is not None:
@@ -398,24 +397,24 @@ class MediaUpload(object):
     def to_json(self):
         """Create a JSON representation of an instance of MediaUpload.
 
-    Returns:
-       string, a JSON representation of this instance, suitable to pass to
-       from_json().
-    """
+        Returns:
+           string, a JSON representation of this instance, suitable to pass to
+           from_json().
+        """
         return self._to_json()
 
     @classmethod
     def new_from_json(cls, s):
         """Utility class method to instantiate a MediaUpload subclass from a JSON
-    representation produced by to_json().
+        representation produced by to_json().
 
-    Args:
-      s: string, JSON from to_json().
+        Args:
+          s: string, JSON from to_json().
 
-    Returns:
-      An instance of the subclass of MediaUpload that was serialized with
-      to_json().
-    """
+        Returns:
+          An instance of the subclass of MediaUpload that was serialized with
+          to_json().
+        """
         data = json.loads(s)
         # Find and call the right classmethod from_json() to restore the object.
         module = data["_module"]
@@ -428,44 +427,44 @@ class MediaUpload(object):
 class MediaIoBaseUpload(MediaUpload):
     """A MediaUpload for a io.Base objects.
 
-  Note that the Python file object is compatible with io.Base and can be used
-  with this class also.
+    Note that the Python file object is compatible with io.Base and can be used
+    with this class also.
 
-    fh = BytesIO('...Some data to upload...')
-    media = MediaIoBaseUpload(fh, mimetype='image/png',
-      chunksize=1024*1024, resumable=True)
-    farm.animals().insert(
-        id='cow',
-        name='cow.png',
-        media_body=media).execute()
+      fh = BytesIO('...Some data to upload...')
+      media = MediaIoBaseUpload(fh, mimetype='image/png',
+        chunksize=1024*1024, resumable=True)
+      farm.animals().insert(
+          id='cow',
+          name='cow.png',
+          media_body=media).execute()
 
-  Depending on the platform you are working on, you may pass -1 as the
-  chunksize, which indicates that the entire file should be uploaded in a single
-  request. If the underlying platform supports streams, such as Python 2.6 or
-  later, then this can be very efficient as it avoids multiple connections, and
-  also avoids loading the entire file into memory before sending it. Note that
-  Google App Engine has a 5MB limit on request size, so you should never set
-  your chunksize larger than 5MB, or to -1.
-  """
+    Depending on the platform you are working on, you may pass -1 as the
+    chunksize, which indicates that the entire file should be uploaded in a single
+    request. If the underlying platform supports streams, such as Python 2.6 or
+    later, then this can be very efficient as it avoids multiple connections, and
+    also avoids loading the entire file into memory before sending it. Note that
+    Google App Engine has a 5MB limit on request size, so you should never set
+    your chunksize larger than 5MB, or to -1.
+    """
 
     @util.positional(3)
     def __init__(self, fd, mimetype, chunksize=DEFAULT_CHUNK_SIZE, resumable=False):
         """Constructor.
 
-    Args:
-      fd: io.Base or file object, The source of the bytes to upload. MUST be
-        opened in blocking mode, do not use streams opened in non-blocking mode.
-        The given stream must be seekable, that is, it must be able to call
-        seek() on fd.
-      mimetype: string, Mime-type of the file.
-      chunksize: int, File will be uploaded in chunks of this many bytes. Only
-        used if resumable=True. Pass in a value of -1 if the file is to be
-        uploaded as a single chunk. Note that Google App Engine has a 5MB limit
-        on request size, so you should never set your chunksize larger than 5MB,
-        or to -1.
-      resumable: bool, True if this is a resumable upload. False means upload
-        in a single request.
-    """
+        Args:
+          fd: io.Base or file object, The source of the bytes to upload. MUST be
+            opened in blocking mode, do not use streams opened in non-blocking mode.
+            The given stream must be seekable, that is, it must be able to call
+            seek() on fd.
+          mimetype: string, Mime-type of the file.
+          chunksize: int, File will be uploaded in chunks of this many bytes. Only
+            used if resumable=True. Pass in a value of -1 if the file is to be
+            uploaded as a single chunk. Note that Google App Engine has a 5MB limit
+            on request size, so you should never set your chunksize larger than 5MB,
+            or to -1.
+          resumable: bool, True if this is a resumable upload. False means upload
+            in a single request.
+        """
         super(MediaIoBaseUpload, self).__init__()
         self._fd = fd
         self._mimetype = mimetype
@@ -480,68 +479,68 @@ class MediaIoBaseUpload(MediaUpload):
     def chunksize(self):
         """Chunk size for resumable uploads.
 
-    Returns:
-      Chunk size in bytes.
-    """
+        Returns:
+          Chunk size in bytes.
+        """
         return self._chunksize
 
     def mimetype(self):
         """Mime type of the body.
 
-    Returns:
-      Mime type.
-    """
+        Returns:
+          Mime type.
+        """
         return self._mimetype
 
     def size(self):
         """Size of upload.
 
-    Returns:
-      Size of the body, or None of the size is unknown.
-    """
+        Returns:
+          Size of the body, or None of the size is unknown.
+        """
         return self._size
 
     def resumable(self):
         """Whether this upload is resumable.
 
-    Returns:
-      True if resumable upload or False.
-    """
+        Returns:
+          True if resumable upload or False.
+        """
         return self._resumable
 
     def getbytes(self, begin, length):
         """Get bytes from the media.
 
-    Args:
-      begin: int, offset from beginning of file.
-      length: int, number of bytes to read, starting at begin.
+        Args:
+          begin: int, offset from beginning of file.
+          length: int, number of bytes to read, starting at begin.
 
-    Returns:
-      A string of bytes read. May be shorted than length if EOF was reached
-      first.
-    """
+        Returns:
+          A string of bytes read. May be shorted than length if EOF was reached
+          first.
+        """
         self._fd.seek(begin)
         return self._fd.read(length)
 
     def has_stream(self):
         """Does the underlying upload support a streaming interface.
 
-    Streaming means it is an io.IOBase subclass that supports seek, i.e.
-    seekable() returns True.
+        Streaming means it is an io.IOBase subclass that supports seek, i.e.
+        seekable() returns True.
 
-    Returns:
-      True if the call to stream() will return an instance of a seekable io.Base
-      subclass.
-    """
+        Returns:
+          True if the call to stream() will return an instance of a seekable io.Base
+          subclass.
+        """
         return True
 
     def stream(self):
         """A stream interface to the data being uploaded.
 
-    Returns:
-      The returned value is an io.IOBase subclass that supports seek, i.e.
-      seekable() returns True.
-    """
+        Returns:
+          The returned value is an io.IOBase subclass that supports seek, i.e.
+          seekable() returns True.
+        """
         return self._fd
 
     def to_json(self):
@@ -552,24 +551,24 @@ class MediaIoBaseUpload(MediaUpload):
 class MediaFileUpload(MediaIoBaseUpload):
     """A MediaUpload for a file.
 
-  Construct a MediaFileUpload and pass as the media_body parameter of the
-  method. For example, if we had a service that allowed uploading images:
+    Construct a MediaFileUpload and pass as the media_body parameter of the
+    method. For example, if we had a service that allowed uploading images:
 
-    media = MediaFileUpload('cow.png', mimetype='image/png',
-      chunksize=1024*1024, resumable=True)
-    farm.animals().insert(
-        id='cow',
-        name='cow.png',
-        media_body=media).execute()
+      media = MediaFileUpload('cow.png', mimetype='image/png',
+        chunksize=1024*1024, resumable=True)
+      farm.animals().insert(
+          id='cow',
+          name='cow.png',
+          media_body=media).execute()
 
-  Depending on the platform you are working on, you may pass -1 as the
-  chunksize, which indicates that the entire file should be uploaded in a single
-  request. If the underlying platform supports streams, such as Python 2.6 or
-  later, then this can be very efficient as it avoids multiple connections, and
-  also avoids loading the entire file into memory before sending it. Note that
-  Google App Engine has a 5MB limit on request size, so you should never set
-  your chunksize larger than 5MB, or to -1.
-  """
+    Depending on the platform you are working on, you may pass -1 as the
+    chunksize, which indicates that the entire file should be uploaded in a single
+    request. If the underlying platform supports streams, such as Python 2.6 or
+    later, then this can be very efficient as it avoids multiple connections, and
+    also avoids loading the entire file into memory before sending it. Note that
+    Google App Engine has a 5MB limit on request size, so you should never set
+    your chunksize larger than 5MB, or to -1.
+    """
 
     @util.positional(2)
     def __init__(
@@ -577,18 +576,18 @@ class MediaFileUpload(MediaIoBaseUpload):
     ):
         """Constructor.
 
-    Args:
-      filename: string, Name of the file.
-      mimetype: string, Mime-type of the file. If None then a mime-type will be
-        guessed from the file extension.
-      chunksize: int, File will be uploaded in chunks of this many bytes. Only
-        used if resumable=True. Pass in a value of -1 if the file is to be
-        uploaded in a single chunk. Note that Google App Engine has a 5MB limit
-        on request size, so you should never set your chunksize larger than 5MB,
-        or to -1.
-      resumable: bool, True if this is a resumable upload. False means upload
-        in a single request.
-    """
+        Args:
+          filename: string, Name of the file.
+          mimetype: string, Mime-type of the file. If None then a mime-type will be
+            guessed from the file extension.
+          chunksize: int, File will be uploaded in chunks of this many bytes. Only
+            used if resumable=True. Pass in a value of -1 if the file is to be
+            uploaded in a single chunk. Note that Google App Engine has a 5MB limit
+            on request size, so you should never set your chunksize larger than 5MB,
+            or to -1.
+          resumable: bool, True if this is a resumable upload. False means upload
+            in a single request.
+        """
         self._fd = None
         self._filename = filename
         self._fd = open(self._filename, "rb")
@@ -609,10 +608,10 @@ class MediaFileUpload(MediaIoBaseUpload):
     def to_json(self):
         """Creating a JSON representation of an instance of MediaFileUpload.
 
-    Returns:
-       string, a JSON representation of this instance, suitable to pass to
-       from_json().
-    """
+        Returns:
+           string, a JSON representation of this instance, suitable to pass to
+           from_json().
+        """
         return self._to_json(strip=["_fd"])
 
     @staticmethod
@@ -629,9 +628,9 @@ class MediaFileUpload(MediaIoBaseUpload):
 class MediaInMemoryUpload(MediaIoBaseUpload):
     """MediaUpload for a chunk of bytes.
 
-  DEPRECATED: Use MediaIoBaseUpload with either io.TextIOBase or StringIO for
-  the stream.
-  """
+    DEPRECATED: Use MediaIoBaseUpload with either io.TextIOBase or io.StringIO for
+    the stream.
+    """
 
     @util.positional(2)
     def __init__(
@@ -643,55 +642,55 @@ class MediaInMemoryUpload(MediaIoBaseUpload):
     ):
         """Create a new MediaInMemoryUpload.
 
-  DEPRECATED: Use MediaIoBaseUpload with either io.TextIOBase or StringIO for
-  the stream.
+        DEPRECATED: Use MediaIoBaseUpload with either io.TextIOBase or io.StringIO for
+        the stream.
 
-  Args:
-    body: string, Bytes of body content.
-    mimetype: string, Mime-type of the file or default of
-      'application/octet-stream'.
-    chunksize: int, File will be uploaded in chunks of this many bytes. Only
-      used if resumable=True.
-    resumable: bool, True if this is a resumable upload. False means upload
-      in a single request.
-    """
-        fd = BytesIO(body)
+        Args:
+          body: string, Bytes of body content.
+          mimetype: string, Mime-type of the file or default of
+            'application/octet-stream'.
+          chunksize: int, File will be uploaded in chunks of this many bytes. Only
+            used if resumable=True.
+          resumable: bool, True if this is a resumable upload. False means upload
+            in a single request.
+        """
+        fd = io.BytesIO(body)
         super(MediaInMemoryUpload, self).__init__(
             fd, mimetype, chunksize=chunksize, resumable=resumable
         )
 
 
 class MediaIoBaseDownload(object):
-    """"Download media resources.
+    """ "Download media resources.
 
-  Note that the Python file object is compatible with io.Base and can be used
-  with this class also.
+    Note that the Python file object is compatible with io.Base and can be used
+    with this class also.
 
 
-  Example:
-    request = farms.animals().get_media(id='cow')
-    fh = io.FileIO('cow.png', mode='wb')
-    downloader = MediaIoBaseDownload(fh, request, chunksize=1024*1024)
+    Example:
+      request = farms.animals().get_media(id='cow')
+      fh = io.FileIO('cow.png', mode='wb')
+      downloader = MediaIoBaseDownload(fh, request, chunksize=1024*1024)
 
-    done = False
-    while done is False:
-      status, done = downloader.next_chunk()
-      if status:
-        print "Download %d%%." % int(status.progress() * 100)
-    print "Download Complete!"
-  """
+      done = False
+      while done is False:
+        status, done = downloader.next_chunk()
+        if status:
+          print "Download %d%%." % int(status.progress() * 100)
+      print "Download Complete!"
+    """
 
     @util.positional(3)
     def __init__(self, fd, request, chunksize=DEFAULT_CHUNK_SIZE):
         """Constructor.
 
-    Args:
-      fd: io.Base or file object, The stream in which to write the downloaded
-        bytes.
-      request: googleapiclient.http.HttpRequest, the media request to perform in
-        chunks.
-      chunksize: int, File will be downloaded in chunks of this many bytes.
-    """
+        Args:
+          fd: io.Base or file object, The stream in which to write the downloaded
+            bytes.
+          request: googleapiclient.http.HttpRequest, the media request to perform in
+            chunks.
+          chunksize: int, File will be downloaded in chunks of this many bytes.
+        """
         self._fd = fd
         self._request = request
         self._uri = request.uri
@@ -705,7 +704,7 @@ class MediaIoBaseDownload(object):
         self._rand = random.random
 
         self._headers = {}
-        for k, v in six.iteritems(request.headers):
+        for k, v in request.headers.items():
             # allow users to supply custom headers by setting them on the request
             # but strip out the ones that are set by default on requests generated by
             # API methods like Drive's files().get(fileId=...)
@@ -716,21 +715,21 @@ class MediaIoBaseDownload(object):
     def next_chunk(self, num_retries=0):
         """Get the next chunk of the download.
 
-    Args:
-      num_retries: Integer, number of times to retry with randomized
-            exponential backoff. If all retries fail, the raised HttpError
-            represents the last request. If zero (default), we attempt the
-            request only once.
+        Args:
+          num_retries: Integer, number of times to retry with randomized
+                exponential backoff. If all retries fail, the raised HttpError
+                represents the last request. If zero (default), we attempt the
+                request only once.
 
-    Returns:
-      (status, done): (MediaDownloadProgress, boolean)
-         The value of 'done' will be True when the media has been fully
-         downloaded or the total size of the media is unknown.
+        Returns:
+          (status, done): (MediaDownloadProgress, boolean)
+             The value of 'done' will be True when the media has been fully
+             downloaded or the total size of the media is unknown.
 
-    Raises:
-      googleapiclient.errors.HttpError if the response was not a 2xx.
-      httplib2.HttpLib2Error if a transport error has occurred.
-    """
+        Raises:
+          googleapiclient.errors.HttpError if the response was not a 2xx.
+          httplib2.HttpLib2Error if a transport error has occurred.
+        """
         headers = self._headers.copy()
         headers["range"] = "bytes=%d-%d" % (
             self._progress,
@@ -773,28 +772,31 @@ class MediaIoBaseDownload(object):
             self._total_size = int(length)
             if self._total_size == 0:
                 self._done = True
-                return MediaDownloadProgress(self._progress, self._total_size), self._done
+                return (
+                    MediaDownloadProgress(self._progress, self._total_size),
+                    self._done,
+                )
         raise HttpError(resp, content, uri=self._uri)
 
 
 class _StreamSlice(object):
     """Truncated stream.
 
-  Takes a stream and presents a stream that is a slice of the original stream.
-  This is used when uploading media in chunks. In later versions of Python a
-  stream can be passed to httplib in place of the string of data to send. The
-  problem is that httplib just blindly reads to the end of the stream. This
-  wrapper presents a virtual stream that only reads to the end of the chunk.
-  """
+    Takes a stream and presents a stream that is a slice of the original stream.
+    This is used when uploading media in chunks. In later versions of Python a
+    stream can be passed to httplib in place of the string of data to send. The
+    problem is that httplib just blindly reads to the end of the stream. This
+    wrapper presents a virtual stream that only reads to the end of the chunk.
+    """
 
     def __init__(self, stream, begin, chunksize):
         """Constructor.
 
-    Args:
-      stream: (io.Base, file object), the stream to wrap.
-      begin: int, the seek position the chunk begins at.
-      chunksize: int, the size of the chunk.
-    """
+        Args:
+          stream: (io.Base, file object), the stream to wrap.
+          begin: int, the seek position the chunk begins at.
+          chunksize: int, the size of the chunk.
+        """
         self._stream = stream
         self._begin = begin
         self._chunksize = chunksize
@@ -803,12 +805,12 @@ class _StreamSlice(object):
     def read(self, n=-1):
         """Read n bytes.
 
-    Args:
-      n, int, the number of bytes to read.
+        Args:
+          n, int, the number of bytes to read.
 
-    Returns:
-      A string of length 'n', or less if EOF is reached.
-    """
+        Returns:
+          A string of length 'n', or less if EOF is reached.
+        """
         # The data left available to read sits in [cur, end)
         cur = self._stream.tell()
         end = self._begin + self._chunksize
@@ -834,18 +836,18 @@ class HttpRequest(object):
     ):
         """Constructor for an HttpRequest.
 
-    Args:
-      http: httplib2.Http, the transport object to use to make a request
-      postproc: callable, called on the HTTP response and content to transform
-                it into a data object before returning, or raising an exception
-                on an error.
-      uri: string, the absolute URI to send the request to
-      method: string, the HTTP method to use
-      body: string, the request body of the HTTP request,
-      headers: dict, the HTTP request headers
-      methodId: string, a unique identifier for the API method being called.
-      resumable: MediaUpload, None if this is not a resumbale request.
-    """
+        Args:
+          http: httplib2.Http, the transport object to use to make a request
+          postproc: callable, called on the HTTP response and content to transform
+                    it into a data object before returning, or raising an exception
+                    on an error.
+          uri: string, the absolute URI to send the request to
+          method: string, the HTTP method to use
+          body: string, the request body of the HTTP request,
+          headers: dict, the HTTP request headers
+          methodId: string, a unique identifier for the API method being called.
+          resumable: MediaUpload, None if this is not a resumbale request.
+        """
         self.uri = uri
         self.method = method
         self.body = body
@@ -874,22 +876,22 @@ class HttpRequest(object):
     def execute(self, http=None, num_retries=0):
         """Execute the request.
 
-    Args:
-      http: httplib2.Http, an http object to be used in place of the
-            one the HttpRequest request object was constructed with.
-      num_retries: Integer, number of times to retry with randomized
-            exponential backoff. If all retries fail, the raised HttpError
-            represents the last request. If zero (default), we attempt the
-            request only once.
+        Args:
+          http: httplib2.Http, an http object to be used in place of the
+                one the HttpRequest request object was constructed with.
+          num_retries: Integer, number of times to retry with randomized
+                exponential backoff. If all retries fail, the raised HttpError
+                represents the last request. If zero (default), we attempt the
+                request only once.
 
-    Returns:
-      A deserialized object model of the response body as determined
-      by the postproc.
+        Returns:
+          A deserialized object model of the response body as determined
+          by the postproc.
 
-    Raises:
-      googleapiclient.errors.HttpError if the response was not a 2xx.
-      httplib2.HttpLib2Error if a transport error has occurred.
-    """
+        Raises:
+          googleapiclient.errors.HttpError if the response was not a 2xx.
+          httplib2.HttpLib2Error if a transport error has occurred.
+        """
         if http is None:
             http = self.http
 
@@ -909,8 +911,8 @@ class HttpRequest(object):
             self.method = "POST"
             self.headers["x-http-method-override"] = "GET"
             self.headers["content-type"] = "application/x-www-form-urlencoded"
-            parsed = urlparse(self.uri)
-            self.uri = urlunparse(
+            parsed = urllib.parse.urlparse(self.uri)
+            self.uri = urllib.parse.urlunparse(
                 (parsed.scheme, parsed.netloc, parsed.path, parsed.params, None, None)
             )
             self.body = parsed.query
@@ -939,53 +941,53 @@ class HttpRequest(object):
     def add_response_callback(self, cb):
         """add_response_headers_callback
 
-    Args:
-      cb: Callback to be called on receiving the response headers, of signature:
+        Args:
+          cb: Callback to be called on receiving the response headers, of signature:
 
-      def cb(resp):
-        # Where resp is an instance of httplib2.Response
-    """
+          def cb(resp):
+            # Where resp is an instance of httplib2.Response
+        """
         self.response_callbacks.append(cb)
 
     @util.positional(1)
     def next_chunk(self, http=None, num_retries=0):
         """Execute the next step of a resumable upload.
 
-    Can only be used if the method being executed supports media uploads and
-    the MediaUpload object passed in was flagged as using resumable upload.
+        Can only be used if the method being executed supports media uploads and
+        the MediaUpload object passed in was flagged as using resumable upload.
 
-    Example:
+        Example:
 
-      media = MediaFileUpload('cow.png', mimetype='image/png',
-                              chunksize=1000, resumable=True)
-      request = farm.animals().insert(
-          id='cow',
-          name='cow.png',
-          media_body=media)
+          media = MediaFileUpload('cow.png', mimetype='image/png',
+                                  chunksize=1000, resumable=True)
+          request = farm.animals().insert(
+              id='cow',
+              name='cow.png',
+              media_body=media)
 
-      response = None
-      while response is None:
-        status, response = request.next_chunk()
-        if status:
-          print "Upload %d%% complete." % int(status.progress() * 100)
+          response = None
+          while response is None:
+            status, response = request.next_chunk()
+            if status:
+              print "Upload %d%% complete." % int(status.progress() * 100)
 
 
-    Args:
-      http: httplib2.Http, an http object to be used in place of the
-            one the HttpRequest request object was constructed with.
-      num_retries: Integer, number of times to retry with randomized
-            exponential backoff. If all retries fail, the raised HttpError
-            represents the last request. If zero (default), we attempt the
-            request only once.
+        Args:
+          http: httplib2.Http, an http object to be used in place of the
+                one the HttpRequest request object was constructed with.
+          num_retries: Integer, number of times to retry with randomized
+                exponential backoff. If all retries fail, the raised HttpError
+                represents the last request. If zero (default), we attempt the
+                request only once.
 
-    Returns:
-      (status, body): (ResumableMediaStatus, object)
-         The body will be None until the resumable media is fully uploaded.
+        Returns:
+          (status, body): (ResumableMediaStatus, object)
+             The body will be None until the resumable media is fully uploaded.
 
-    Raises:
-      googleapiclient.errors.HttpError if the response was not a 2xx.
-      httplib2.HttpLib2Error if a transport error has occurred.
-    """
+        Raises:
+          googleapiclient.errors.HttpError if the response was not a 2xx.
+          httplib2.HttpLib2Error if a transport error has occurred.
+        """
         if http is None:
             http = self.http
 
@@ -1063,7 +1065,11 @@ class HttpRequest(object):
         # sending "bytes 0--1/0" results in an invalid request
         # Only add header "Content-Range" if chunk_end != -1
         if chunk_end != -1:
-            headers["Content-Range"] = "bytes %d-%d/%s" % (self.resumable_progress, chunk_end, size)
+            headers["Content-Range"] = "bytes %d-%d/%s" % (
+                self.resumable_progress,
+                chunk_end,
+                size,
+            )
 
         for retry_num in range(num_retries + 1):
             if retry_num > 0:
@@ -1088,17 +1094,17 @@ class HttpRequest(object):
     def _process_response(self, resp, content):
         """Process the response from a single chunk upload.
 
-    Args:
-      resp: httplib2.Response, the response object.
-      content: string, the content of the response.
+        Args:
+          resp: httplib2.Response, the response object.
+          content: string, the content of the response.
 
-    Returns:
-      (status, body): (ResumableMediaStatus, object)
-         The body will be None until the resumable media is fully uploaded.
+        Returns:
+          (status, body): (ResumableMediaStatus, object)
+             The body will be None until the resumable media is fully uploaded.
 
-    Raises:
-      googleapiclient.errors.HttpError if the response was not a 2xx or a 308.
-    """
+        Raises:
+          googleapiclient.errors.HttpError if the response was not a 2xx or a 308.
+        """
         if resp.status in [200, 201]:
             self._in_error_state = False
             return None, self.postproc(resp, content)
@@ -1158,48 +1164,48 @@ class HttpRequest(object):
 class BatchHttpRequest(object):
     """Batches multiple HttpRequest objects into a single HTTP request.
 
-  Example:
-    from googleapiclient.http import BatchHttpRequest
+    Example:
+      from googleapiclient.http import BatchHttpRequest
 
-    def list_animals(request_id, response, exception):
-      \"\"\"Do something with the animals list response.\"\"\"
-      if exception is not None:
-        # Do something with the exception.
-        pass
-      else:
-        # Do something with the response.
-        pass
+      def list_animals(request_id, response, exception):
+        \"\"\"Do something with the animals list response.\"\"\"
+        if exception is not None:
+          # Do something with the exception.
+          pass
+        else:
+          # Do something with the response.
+          pass
 
-    def list_farmers(request_id, response, exception):
-      \"\"\"Do something with the farmers list response.\"\"\"
-      if exception is not None:
-        # Do something with the exception.
-        pass
-      else:
-        # Do something with the response.
-        pass
+      def list_farmers(request_id, response, exception):
+        \"\"\"Do something with the farmers list response.\"\"\"
+        if exception is not None:
+          # Do something with the exception.
+          pass
+        else:
+          # Do something with the response.
+          pass
 
-    service = build('farm', 'v2')
+      service = build('farm', 'v2')
 
-    batch = BatchHttpRequest()
+      batch = BatchHttpRequest()
 
-    batch.add(service.animals().list(), list_animals)
-    batch.add(service.farmers().list(), list_farmers)
-    batch.execute(http=http)
-  """
+      batch.add(service.animals().list(), list_animals)
+      batch.add(service.farmers().list(), list_farmers)
+      batch.execute(http=http)
+    """
 
     @util.positional(1)
     def __init__(self, callback=None, batch_uri=None):
         """Constructor for a BatchHttpRequest.
 
-    Args:
-      callback: callable, A callback to be called for each response, of the
-        form callback(id, response, exception). The first parameter is the
-        request id, and the second is the deserialized response object. The
-        third is an googleapiclient.errors.HttpError exception object if an HTTP error
-        occurred while processing the request, or None if no error occurred.
-      batch_uri: string, URI to send batch requests to.
-    """
+        Args:
+          callback: callable, A callback to be called for each response, of the
+            form callback(id, response, exception). The first parameter is the
+            request id, and the second is the deserialized response object. The
+            third is an googleapiclient.errors.HttpError exception object if an HTTP error
+            occurred while processing the request, or None if no error occurred.
+          batch_uri: string, URI to send batch requests to.
+        """
         if batch_uri is None:
             batch_uri = _LEGACY_BATCH_URI
 
@@ -1242,10 +1248,10 @@ class BatchHttpRequest(object):
     def _refresh_and_apply_credentials(self, request, http):
         """Refresh the credentials and apply to the request.
 
-    Args:
-      request: HttpRequest, the request.
-      http: httplib2.Http, the global http object for the batch.
-    """
+        Args:
+          request: HttpRequest, the request.
+          http: httplib2.Http, the global http object for the batch.
+        """
         # For the credentials to refresh, but only once per refresh_token
         # If there is no http per the request then refresh the http passed in
         # via execute()
@@ -1272,57 +1278,57 @@ class BatchHttpRequest(object):
     def _id_to_header(self, id_):
         """Convert an id to a Content-ID header value.
 
-    Args:
-      id_: string, identifier of individual request.
+        Args:
+          id_: string, identifier of individual request.
 
-    Returns:
-      A Content-ID header with the id_ encoded into it. A UUID is prepended to
-      the value because Content-ID headers are supposed to be universally
-      unique.
-    """
+        Returns:
+          A Content-ID header with the id_ encoded into it. A UUID is prepended to
+          the value because Content-ID headers are supposed to be universally
+          unique.
+        """
         if self._base_id is None:
             self._base_id = uuid.uuid4()
 
         # NB: we intentionally leave whitespace between base/id and '+', so RFC2822
         # line folding works properly on Python 3; see
         # https://github.com/googleapis/google-api-python-client/issues/164
-        return "<%s + %s>" % (self._base_id, quote(id_))
+        return "<%s + %s>" % (self._base_id, urllib.parse.quote(id_))
 
     def _header_to_id(self, header):
         """Convert a Content-ID header value to an id.
 
-    Presumes the Content-ID header conforms to the format that _id_to_header()
-    returns.
+        Presumes the Content-ID header conforms to the format that _id_to_header()
+        returns.
 
-    Args:
-      header: string, Content-ID header value.
+        Args:
+          header: string, Content-ID header value.
 
-    Returns:
-      The extracted id value.
+        Returns:
+          The extracted id value.
 
-    Raises:
-      BatchError if the header is not in the expected format.
-    """
+        Raises:
+          BatchError if the header is not in the expected format.
+        """
         if header[0] != "<" or header[-1] != ">":
             raise BatchError("Invalid value for Content-ID: %s" % header)
         if "+" not in header:
             raise BatchError("Invalid value for Content-ID: %s" % header)
         base, id_ = header[1:-1].split(" + ", 1)
 
-        return unquote(id_)
+        return urllib.parse.unquote(id_)
 
     def _serialize_request(self, request):
         """Convert an HttpRequest object into a string.
 
-    Args:
-      request: HttpRequest, the request to serialize.
+        Args:
+          request: HttpRequest, the request to serialize.
 
-    Returns:
-      The request as a string in application/http format.
-    """
+        Returns:
+          The request as a string in application/http format.
+        """
         # Construct status line
-        parsed = urlparse(request.uri)
-        request_line = urlunparse(
+        parsed = urllib.parse.urlparse(request.uri)
+        request_line = urllib.parse.urlunparse(
             ("", "", parsed.path, parsed.params, parsed.query, "")
         )
         status_line = request.method + " " + request_line + " HTTP/1.1\n"
@@ -1341,7 +1347,7 @@ class BatchHttpRequest(object):
         if "content-type" in headers:
             del headers["content-type"]
 
-        for key, value in six.iteritems(headers):
+        for key, value in headers.items():
             msg[key] = value
         msg["Host"] = parsed.netloc
         msg.set_unixfrom(None)
@@ -1351,7 +1357,7 @@ class BatchHttpRequest(object):
             msg["content-length"] = str(len(request.body))
 
         # Serialize the mime message.
-        fp = StringIO()
+        fp = io.StringIO()
         # maxheaderlen=0 means don't line wrap headers.
         g = Generator(fp, maxheaderlen=0)
         g.flatten(msg, unixfrom=False)
@@ -1362,12 +1368,12 @@ class BatchHttpRequest(object):
     def _deserialize_response(self, payload):
         """Convert string into httplib2 response and content.
 
-    Args:
-      payload: string, headers and body as a string.
+        Args:
+          payload: string, headers and body as a string.
 
-    Returns:
-      A pair (resp, content), such as would be returned from httplib2.request.
-    """
+        Returns:
+          A pair (resp, content), such as would be returned from httplib2.request.
+        """
         # Strip off the status line
         status_line, payload = payload.split("\n", 1)
         protocol, status, reason = status_line.split(" ", 2)
@@ -1390,11 +1396,11 @@ class BatchHttpRequest(object):
     def _new_id(self):
         """Create a new id.
 
-    Auto incrementing number that avoids conflicts with ids already used.
+        Auto incrementing number that avoids conflicts with ids already used.
 
-    Returns:
-       string, a new unique id.
-    """
+        Returns:
+           string, a new unique id.
+        """
         self._last_auto_id += 1
         while str(self._last_auto_id) in self._requests:
             self._last_auto_id += 1
@@ -1404,31 +1410,31 @@ class BatchHttpRequest(object):
     def add(self, request, callback=None, request_id=None):
         """Add a new request.
 
-    Every callback added will be paired with a unique id, the request_id. That
-    unique id will be passed back to the callback when the response comes back
-    from the server. The default behavior is to have the library generate it's
-    own unique id. If the caller passes in a request_id then they must ensure
-    uniqueness for each request_id, and if they are not an exception is
-    raised. Callers should either supply all request_ids or never supply a
-    request id, to avoid such an error.
+        Every callback added will be paired with a unique id, the request_id. That
+        unique id will be passed back to the callback when the response comes back
+        from the server. The default behavior is to have the library generate it's
+        own unique id. If the caller passes in a request_id then they must ensure
+        uniqueness for each request_id, and if they are not an exception is
+        raised. Callers should either supply all request_ids or never supply a
+        request id, to avoid such an error.
 
-    Args:
-      request: HttpRequest, Request to add to the batch.
-      callback: callable, A callback to be called for this response, of the
-        form callback(id, response, exception). The first parameter is the
-        request id, and the second is the deserialized response object. The
-        third is an googleapiclient.errors.HttpError exception object if an HTTP error
-        occurred while processing the request, or None if no errors occurred.
-      request_id: string, A unique id for the request. The id will be passed
-        to the callback with the response.
+        Args:
+          request: HttpRequest, Request to add to the batch.
+          callback: callable, A callback to be called for this response, of the
+            form callback(id, response, exception). The first parameter is the
+            request id, and the second is the deserialized response object. The
+            third is an googleapiclient.errors.HttpError exception object if an HTTP error
+            occurred while processing the request, or None if no errors occurred.
+          request_id: string, A unique id for the request. The id will be passed
+            to the callback with the response.
 
-    Returns:
-      None
+        Returns:
+          None
 
-    Raises:
-      BatchError if a media request is added to a batch.
-      KeyError is the request_id is not unique.
-    """
+        Raises:
+          BatchError if a media request is added to a batch.
+          KeyError is the request_id is not unique.
+        """
 
         if len(self._order) >= MAX_BATCH_LIMIT:
             raise BatchError(
@@ -1448,16 +1454,16 @@ class BatchHttpRequest(object):
     def _execute(self, http, order, requests):
         """Serialize batch request, send to server, process response.
 
-    Args:
-      http: httplib2.Http, an http object to be used to make the request with.
-      order: list, list of request ids in the order they were added to the
-        batch.
-      requests: list, list of request objects to send.
+        Args:
+          http: httplib2.Http, an http object to be used to make the request with.
+          order: list, list of request ids in the order they were added to the
+            batch.
+          requests: list, list of request objects to send.
 
-    Raises:
-      httplib2.HttpLib2Error if a transport error has occurred.
-      googleapiclient.errors.BatchError if the response is the wrong format.
-    """
+        Raises:
+          httplib2.HttpLib2Error if a transport error has occurred.
+          googleapiclient.errors.BatchError if the response is the wrong format.
+        """
         message = MIMEMultipart("mixed")
         # Message should not write out it's own headers.
         setattr(message, "_write_headers", lambda self: None)
@@ -1476,7 +1482,7 @@ class BatchHttpRequest(object):
 
         # encode the body: note that we can't use `as_string`, because
         # it plays games with `From ` lines.
-        fp = StringIO()
+        fp = io.StringIO()
         g = Generator(fp, mangle_from_=False)
         g.flatten(message, unixfrom=False)
         body = fp.getvalue()
@@ -1497,8 +1503,7 @@ class BatchHttpRequest(object):
         header = "content-type: %s\r\n\r\n" % resp["content-type"]
         # PY3's FeedParser only accepts unicode. So we should decode content
         # here, and encode each payload again.
-        if six.PY3:
-            content = content.decode("utf-8")
+        content = content.decode("utf-8")
         for_parser = header + content
 
         parser = FeedParser()
@@ -1514,7 +1519,7 @@ class BatchHttpRequest(object):
             request_id = self._header_to_id(part["Content-ID"])
             response, content = self._deserialize_response(part.get_payload())
             # We encode content here to emulate normal http response.
-            if isinstance(content, six.text_type):
+            if isinstance(content, str):
                 content = content.encode("utf-8")
             self._responses[request_id] = (response, content)
 
@@ -1522,18 +1527,18 @@ class BatchHttpRequest(object):
     def execute(self, http=None):
         """Execute all the requests as a single batched HTTP request.
 
-    Args:
-      http: httplib2.Http, an http object to be used in place of the one the
-        HttpRequest request object was constructed with. If one isn't supplied
-        then use a http object from the requests in this batch.
+        Args:
+          http: httplib2.Http, an http object to be used in place of the one the
+            HttpRequest request object was constructed with. If one isn't supplied
+            then use a http object from the requests in this batch.
 
-    Returns:
-      None
+        Returns:
+          None
 
-    Raises:
-      httplib2.HttpLib2Error if a transport error has occurred.
-      googleapiclient.errors.BatchError if the response is the wrong format.
-    """
+        Raises:
+          httplib2.HttpLib2Error if a transport error has occurred.
+          googleapiclient.errors.BatchError if the response is the wrong format.
+        """
         # If we have no requests return
         if len(self._order) == 0:
             return None
@@ -1603,18 +1608,18 @@ class BatchHttpRequest(object):
 class HttpRequestMock(object):
     """Mock of HttpRequest.
 
-  Do not construct directly, instead use RequestMockBuilder.
-  """
+    Do not construct directly, instead use RequestMockBuilder.
+    """
 
     def __init__(self, resp, content, postproc):
         """Constructor for HttpRequestMock
 
-    Args:
-      resp: httplib2.Response, the response to emulate coming from the request
-      content: string, the response body
-      postproc: callable, the post processing function usually supplied by
-                the model class. See model.JsonModel.response() as an example.
-    """
+        Args:
+          resp: httplib2.Response, the response to emulate coming from the request
+          content: string, the response body
+          postproc: callable, the post processing function usually supplied by
+                    the model class. See model.JsonModel.response() as an example.
+        """
         self.resp = resp
         self.content = content
         self.postproc = postproc
@@ -1626,9 +1631,9 @@ class HttpRequestMock(object):
     def execute(self, http=None):
         """Execute the request.
 
-    Same behavior as HttpRequest.execute(), but the response is
-    mocked and not really from an HTTP request/response.
-    """
+        Same behavior as HttpRequest.execute(), but the response is
+        mocked and not really from an HTTP request/response.
+        """
         return self.postproc(self.resp, self.content)
 
 
@@ -1657,21 +1662,21 @@ class RequestMockBuilder(object):
     in the discovery document.
 
     For more details see the project wiki.
-  """
+    """
 
     def __init__(self, responses, check_unexpected=False):
         """Constructor for RequestMockBuilder
 
-    The constructed object should be a callable object
-    that can replace the class HttpResponse.
+        The constructed object should be a callable object
+        that can replace the class HttpResponse.
 
-    responses - A dictionary that maps methodIds into tuples
-                of (httplib2.Response, content). The methodId
-                comes from the 'rpcName' field in the discovery
-                document.
-    check_unexpected - A boolean setting whether or not UnexpectedMethodError
-                       should be raised on unsupplied method.
-    """
+        responses - A dictionary that maps methodIds into tuples
+                    of (httplib2.Response, content). The methodId
+                    comes from the 'rpcName' field in the discovery
+                    document.
+        check_unexpected - A boolean setting whether or not UnexpectedMethodError
+                           should be raised on unsupplied method.
+        """
         self.responses = responses
         self.check_unexpected = check_unexpected
 
@@ -1687,10 +1692,10 @@ class RequestMockBuilder(object):
         resumable=None,
     ):
         """Implements the callable interface that discovery.build() expects
-    of requestBuilder, which is to build an object compatible with
-    HttpRequest.execute(). See that method for the description of the
-    parameters and the expected response.
-    """
+        of requestBuilder, which is to build an object compatible with
+        HttpRequest.execute(). See that method for the description of the
+        parameters and the expected response.
+        """
         if methodId in self.responses:
             response = self.responses[methodId]
             resp, content = response[:2]
@@ -1719,10 +1724,10 @@ class HttpMock(object):
 
     def __init__(self, filename=None, headers=None):
         """
-    Args:
-      filename: string, absolute filename to read response from
-      headers: dict, header to return with response
-    """
+        Args:
+          filename: string, absolute filename to read response from
+          headers: dict, header to return with response
+        """
         if headers is None:
             headers = {"status": "200"}
         if filename:
@@ -1755,35 +1760,36 @@ class HttpMock(object):
     def close(self):
         return None
 
+
 class HttpMockSequence(object):
     """Mock of httplib2.Http
 
-  Mocks a sequence of calls to request returning different responses for each
-  call. Create an instance initialized with the desired response headers
-  and content and then use as if an httplib2.Http instance.
+    Mocks a sequence of calls to request returning different responses for each
+    call. Create an instance initialized with the desired response headers
+    and content and then use as if an httplib2.Http instance.
 
-    http = HttpMockSequence([
-      ({'status': '401'}, ''),
-      ({'status': '200'}, '{"access_token":"1/3w","expires_in":3600}'),
-      ({'status': '200'}, 'echo_request_headers'),
-      ])
-    resp, content = http.request("http://examples.com")
+      http = HttpMockSequence([
+        ({'status': '401'}, ''),
+        ({'status': '200'}, '{"access_token":"1/3w","expires_in":3600}'),
+        ({'status': '200'}, 'echo_request_headers'),
+        ])
+      resp, content = http.request("http://examples.com")
 
-  There are special values you can pass in for content to trigger
-  behavours that are helpful in testing.
+    There are special values you can pass in for content to trigger
+    behavours that are helpful in testing.
 
-  'echo_request_headers' means return the request headers in the response body
-  'echo_request_headers_as_json' means return the request headers in
-     the response body
-  'echo_request_body' means return the request body in the response body
-  'echo_request_uri' means return the request uri in the response body
-  """
+    'echo_request_headers' means return the request headers in the response body
+    'echo_request_headers_as_json' means return the request headers in
+       the response body
+    'echo_request_body' means return the request body in the response body
+    'echo_request_uri' means return the request uri in the response body
+    """
 
     def __init__(self, iterable):
         """
-    Args:
-      iterable: iterable, a sequence of pairs of (headers, body)
-    """
+        Args:
+          iterable: iterable, a sequence of pairs of (headers, body)
+        """
         self._iterable = iterable
         self.follow_redirects = True
         self.request_sequence = list()
@@ -1800,7 +1806,8 @@ class HttpMockSequence(object):
         # Remember the request so after the fact this mock can be examined
         self.request_sequence.append((uri, method, body, headers))
         resp, content = self._iterable.pop(0)
-        content = six.ensure_binary(content)
+        if isinstance(content, str):
+            content = content.encode("utf-8")
 
         if content == b"echo_request_headers":
             content = headers
@@ -1813,7 +1820,7 @@ class HttpMockSequence(object):
                 content = body
         elif content == b"echo_request_uri":
             content = uri
-        if isinstance(content, six.text_type):
+        if isinstance(content, str):
             content = content.encode("utf-8")
         return httplib2.Response(resp), content
 
@@ -1821,22 +1828,22 @@ class HttpMockSequence(object):
 def set_user_agent(http, user_agent):
     """Set the user-agent on every request.
 
-  Args:
-     http - An instance of httplib2.Http
-         or something that acts like it.
-     user_agent: string, the value for the user-agent header.
+    Args:
+       http - An instance of httplib2.Http
+           or something that acts like it.
+       user_agent: string, the value for the user-agent header.
 
-  Returns:
-     A modified instance of http that was passed in.
+    Returns:
+       A modified instance of http that was passed in.
 
-  Example:
+    Example:
 
-    h = httplib2.Http()
-    h = set_user_agent(h, "my-app-name/6.0")
+      h = httplib2.Http()
+      h = set_user_agent(h, "my-app-name/6.0")
 
-  Most of the time the user-agent will be set doing auth, this is for the rare
-  cases where you are accessing an unauthenticated endpoint.
-  """
+    Most of the time the user-agent will be set doing auth, this is for the rare
+    cases where you are accessing an unauthenticated endpoint.
+    """
     request_orig = http.request
 
     # The closure that will replace 'httplib2.Http.request'.
@@ -1871,22 +1878,22 @@ def set_user_agent(http, user_agent):
 
 def tunnel_patch(http):
     """Tunnel PATCH requests over POST.
-  Args:
-     http - An instance of httplib2.Http
-         or something that acts like it.
+    Args:
+       http - An instance of httplib2.Http
+           or something that acts like it.
 
-  Returns:
-     A modified instance of http that was passed in.
+    Returns:
+       A modified instance of http that was passed in.
 
-  Example:
+    Example:
 
-    h = httplib2.Http()
-    h = tunnel_patch(h, "my-app-name/6.0")
+      h = httplib2.Http()
+      h = tunnel_patch(h, "my-app-name/6.0")
 
-  Useful if you are running on a platform that doesn't support PATCH.
-  Apply this last if you are using OAuth 1.0, as changing the method
-  will result in a different signature.
-  """
+    Useful if you are running on a platform that doesn't support PATCH.
+    Apply this last if you are using OAuth 1.0, as changing the method
+    will result in a different signature.
+    """
     request_orig = http.request
 
     # The closure that will replace 'httplib2.Http.request'.
@@ -1925,14 +1932,14 @@ def tunnel_patch(http):
 def build_http():
     """Builds httplib2.Http object
 
-  Returns:
-  A httplib2.Http object, which is used to make http requests, and which has timeout set by default.
-  To override default timeout call
+    Returns:
+    A httplib2.Http object, which is used to make http requests, and which has timeout set by default.
+    To override default timeout call
 
-    socket.setdefaulttimeout(timeout_in_sec)
+      socket.setdefaulttimeout(timeout_in_sec)
 
-  before interacting with this method.
-  """
+    before interacting with this method.
+    """
     if socket.getdefaulttimeout() is not None:
         http_timeout = socket.getdefaulttimeout()
     else:
@@ -1943,12 +1950,12 @@ def build_http():
     # This asks httplib2 to exclude 308s from the status codes
     # it treats as redirects
     try:
-      http.redirect_codes = http.redirect_codes - {308}
+        http.redirect_codes = http.redirect_codes - {308}
     except AttributeError:
-      # Apache Beam tests depend on this library and cannot
-      # currently upgrade their httplib2 version
-      # http.redirect_codes does not exist in previous versions
-      # of httplib2, so pass
-      pass
+        # Apache Beam tests depend on this library and cannot
+        # currently upgrade their httplib2 version
+        # http.redirect_codes does not exist in previous versions
+        # of httplib2, so pass
+        pass
 
     return http
