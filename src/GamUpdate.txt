@@ -1,3 +1,7 @@
+6.07.03
+
+Fixed bug in `gam show ownership` that always showed file name as blank.
+
 6.07.02
 
 Updated various Google libraries and httplib2.

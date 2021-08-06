@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.02'
+__version__ = '6.07.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -9848,9 +9848,8 @@ def checkServiceAccount(users):
     key = callGAPI(iam.projects().serviceAccounts().keys(), 'get',
                    throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                    name=name, fields='validAfterTime')
-    # Both Google and GAM set key valid after to day before creation
     key_created, _ = iso8601.parse_date(key['validAfterTime'])
-    key_age = todaysTime()-(key_created+datetime.timedelta(days=1))
+    key_age = todaysTime()-key_created
     printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), 'WARN' if key_age.days > 30 else 'PASS')
   except GAPI.permissionDenied:
     printMessage(Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
@@ -48145,7 +48144,7 @@ def doPrintShowOwnership():
           if not csvPF:
             if not FJQC.formatJSON:
               printEntityKVList([Ent.OWNER, fileInfo['Owner']],
-                                ['id', fileInfo['id'], fileNameTitle, fileInfo.get('title', ''),
+                                ['id', fileInfo['id'], fileNameTitle, fileInfo.get(fileNameTitle, ''),
                                  'type', fileInfo.get('type', ''), 'ownerIsSharedDrive', fileInfo.get('ownerIsSharedDrive', False), 'driveId', fileInfo.get('driveId', '')])
             else:
               printLine(json.dumps(cleanJSON(fileInfo), ensure_ascii=False, sort_keys=True))
