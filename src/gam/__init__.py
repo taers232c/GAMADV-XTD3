@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.03'
+__version__ = '6.07.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -44628,6 +44628,8 @@ def copyDriveFile(users):
           if copyMoveOptions['destDriveId']:
             child.pop('copyRequiresWriterPermission', None)
             child.pop('writersCanShare', None)
+          if child['mimeType'] == MIMETYPE_GA_SHORTCUT:
+            child.pop('folderColorRgb', None)
           try:
             result = callGAPI(drive.files(), 'copy',
                               bailOnInternalError=True,
@@ -44788,6 +44790,8 @@ def copyDriveFile(users):
           if copyMoveOptions['destDriveId']:
             source.pop('copyRequiresWriterPermission', None)
             source.pop('writersCanShare', None)
+          if source['mimeType'] == MIMETYPE_GA_SHORTCUT:
+            source.pop('folderColorRgb', None)
           source.update(copyBody)
           result = callGAPI(drive.files(), 'copy',
                             bailOnInternalError=True,

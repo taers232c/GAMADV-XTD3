@@ -1,3 +1,10 @@
+6.07.04
+
+Updated `gam copy drivefile` to avoid the following error when copying a shortcut to a folder.
+```
+ERROR: 403: fieldNotWritable - The resource body includes fields which are not directly writable.
+```
+
 6.07.03
 
 Fixed bug in `gam show ownership` that always showed file name as blank.
