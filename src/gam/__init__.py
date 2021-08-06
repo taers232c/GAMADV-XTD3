@@ -34966,7 +34966,7 @@ class CourseAttributes():
           if self.csvPF:
             self.csvPF.WriteRow({'courseId': self.courseId, 'ownerId': self.ownerId, 'fileId': result['id']})
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
+                GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
                 GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
           _copyMaterialsError(fileId, str(e))
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -44127,7 +44127,7 @@ def updateDriveFile(users):
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, fileId],
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
+                GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
                 GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded,
                 GAPI.cannotModifyViewersCanCopyContent) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, fileId], str(e), j, jcount)
@@ -44643,7 +44643,7 @@ def copyDriveFile(users):
               _copyPermissions(drive, user, i, count, k, kcount, Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                  GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
+                  GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
                   GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
@@ -44810,7 +44810,7 @@ def copyDriveFile(users):
             _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
                              statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable,
+              GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
               GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         _incrStatistic(statistics, STAT_FILE_FAILED)
