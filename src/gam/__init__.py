@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.04'
+__version__ = '6.07.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13132,7 +13132,7 @@ def doInfoDataTransfer():
 DATA_TRANSFER_STATUS_MAP = {
   'completed': 'completed',
   'failed': 'failed',
-  'pending': 'pending',
+#  'pending': 'pending',
   'inprogress': 'inProgress',
   }
 DATA_TRANSFER_SORT_TITLES = ['id', 'requestTime', 'oldOwnerUserEmail', 'newOwnerUserEmail',
@@ -13164,11 +13164,11 @@ def doPrintShowDataTransfers():
       unknownArgumentExit()
   try:
     transfers = callGAPIpages(dt.transfers(), 'list', 'dataTransfers',
-                              throwReasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN],
+                              throwReasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN, GAPI.INVALID_INPUT],
                               customerId=GC.Values[GC.CUSTOMER_ID], status=status,
                               newOwnerUserId=newOwnerUserId, oldOwnerUserId=oldOwnerUserId)
-  except (GAPI.unknownError, GAPI.forbidden):
-    accessErrorExit(None)
+  except (GAPI.unknownError, GAPI.forbidden, GAPI.invalidInput) as e:
+    entityActionFailedExit([Ent.TRANSFER_REQUEST, None], str(e))
   if not csvPF:
     count = len(transfers)
     performActionNumItems(count, Ent.TRANSFER_REQUEST)

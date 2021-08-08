@@ -1,3 +1,8 @@
+6.07.05
+
+Updated `gam print|show datatransfers status completed|failed|inprogress`;
+previously, `pending` was allowed but it generates an error.
+
 6.07.04
 
 Updated `gam copy drivefile` to avoid the following error when copying a shortcut to a folder.

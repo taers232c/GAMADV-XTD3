@@ -2478,10 +2478,10 @@ gam create|add datatransfer|transfer <OldOwnerID> <DataTransferServiceList> <New
 gam info datatransfer|transfer <TransferID>
 gam print datatransfers|transfers [todrive <ToDriveAttribute>*]
         [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
-        [status completed|failed|inprogress|pending|<String>] [delimiter <Character>]
+        [status completed|failed|inprogress|<String>] [delimiter <Character>]
 gam show datatransfers|transfers
         [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
-        [status completed|failed|inprogress|pending|<String>] [delimiter <Character>]
+        [status completed|failed|inprogress|<String>] [delimiter <Character>]
 
 # Domains
 
