@@ -1,3 +1,10 @@
+6.07.06
+
+Handle the following error in `gam create|update drivefileacl`:
+```
+ERROR: 400: publishOutNotPermitted - Bad Request. User message: "publishOutNotPermitted"
+```
+
 6.07.05
 
 Updated `gam print|show datatransfers status completed|failed|inprogress`;

@@ -116,6 +116,7 @@ PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE = 'participantIsNeitherOrganizerNo
 PERMISSION_DENIED = 'permissionDenied'
 PERMISSION_NOT_FOUND = 'permissionNotFound'
 PHOTO_NOT_FOUND = 'photoNotFound'
+PUBLISH_OUT_NOT_PERMITTED = 'publishOutNotPermitted'
 QUERY_REQUIRES_ADMIN_CREDENTIALS = 'queryRequiresAdminCredentials'
 QUOTA_EXCEEDED = 'quotaExceeded'
 RATE_LIMIT_EXCEEDED = 'rateLimitExceeded'
@@ -171,7 +172,7 @@ DRIVE_GET_THROW_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND]
 DRIVE3_CREATE_ACL_THROW_REASONS = [INVALID, INVALID_SHARING_REQUEST, OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
                                    NOT_FOUND, TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION,
                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, SHARING_RATE_LIMIT_EXCEEDED,
-                                   SHARE_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED_TO_USER,
+                                   PUBLISH_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED_TO_USER,
                                    CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                    CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS,
                                    OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
@@ -184,7 +185,7 @@ DRIVE3_UPDATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID_OWNERSHIP_TRANSFER, CANN
                                    OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
                                    NOT_FOUND, TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION,
                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, SHARING_RATE_LIMIT_EXCEEDED,
-                                   SHARE_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED_TO_USER,
+                                   PUBLISH_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED_TO_USER,
                                    CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                    CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS,
                                    OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
@@ -471,6 +472,8 @@ class permissionNotFound(Exception):
   pass
 class photoNotFound(Exception):
   pass
+class publishOutNotPermitted((Exception):
+  pass
 class queryRequiresAdminCredentials(Exception):
   pass
 class quotaExceeded(Exception):
@@ -630,6 +633,7 @@ REASON_EXCEPTION_MAP = {
   PERMISSION_DENIED: permissionDenied,
   PERMISSION_NOT_FOUND: permissionNotFound,
   PHOTO_NOT_FOUND: photoNotFound,
+  PUBLISH_OUT_NOT_PERMITTED: publishOutNotPermitted,
   QUERY_REQUIRES_ADMIN_CREDENTIALS: queryRequiresAdminCredentials,
   QUOTA_EXCEEDED: quotaExceeded,
   RATE_LIMIT_EXCEEDED: rateLimitExceeded,
