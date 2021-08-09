@@ -472,7 +472,7 @@ class permissionNotFound(Exception):
   pass
 class photoNotFound(Exception):
   pass
-class publishOutNotPermitted((Exception):
+class publishOutNotPermitted(Exception):
   pass
 class queryRequiresAdminCredentials(Exception):
   pass
