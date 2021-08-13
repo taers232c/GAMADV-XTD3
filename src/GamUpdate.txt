@@ -1,3 +1,10 @@
+6.07.07
+
+Added option `alias|aliases <EmailAddressList>` to `gam create user` that causes GAM
+to create the user aliases in `<EmailAddressList>` after creation of the user. The
+same option was added to `gam update user createifnotfound` and applies when a user is
+not found and must be created.
+
 6.07.06
 
 Handle the following error in `gam create|update drivefileacl`:

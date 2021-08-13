@@ -287,6 +287,7 @@ If an item contains spaces, it should be surrounded by ".
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
         domain:<DomainName>)|domain|default
 <CalendarItem> ::= <EmailAddress>|<String>
+<GIGroupAlias> ::= <EmailAddress>|<String>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
 <CIGroupType> ::= customer|group|serviceaccount|user
 <ChatMember> ::= spaces/<String>/members/<String>
@@ -512,6 +513,7 @@ If an item contains spaces, it should be surrounded by ".
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
 <ChatSpaceList> ::= "<ChatSpace>(,<ChatSpace>)*"
+<CIGroupAliasList> ::= "<CIGroupAlias>(,<CIGroupAlias>)*"
 <CIGroupTypeList> ::= "<CIGroupType>(,<CIGroupType>)*"
 <ClassroomInvitationIDList> ::= "<ClassroomInvitationID>(,<ClassroomInvitationID>)*"
 <ContactGroupList> ::= "<ContactGroupItem>(,<ContactGroupItem>)*"
@@ -2478,10 +2480,10 @@ gam create|add datatransfer|transfer <OldOwnerID> <DataTransferServiceList> <New
 gam info datatransfer|transfer <TransferID>
 gam print datatransfers|transfers [todrive <ToDriveAttribute>*]
         [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
-        [status completed|failed|inprogress|<String>] [delimiter <Character>]
+        [status completed|failed|inprogress] [delimiter <Character>]
 gam show datatransfers|transfers
         [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
-        [status completed|failed|inprogress|<String>] [delimiter <Character>]
+        [status completed|failed|inprogress] [delimiter <Character>]
 
 # Domains
 
@@ -2789,7 +2791,7 @@ gam show group-members
 <CIGroupFieldNameList> ::= "<CIGroupFieldName>(,<CIGroupFieldName>)*"
 
 gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
-        [makeowner] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+        [makeowner] [alias|aliases <CIGroupAliasList>] [dynamic <QueryDynamicGroup>]
 gam update cigroup <GroupEntity> [copyfrom <GroupItem>] <GroupAttribute>
         [security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
 gam update cigroups <GroupEntity> create|add [<GroupRole>]
@@ -4085,6 +4087,7 @@ gam show vaultholds|holds [matters <MatterItemList>]
 
 gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+        [alias|aliases <EmailAddressList>]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
@@ -4102,6 +4105,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+        [alias|aliases <EmailAddressList>]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]

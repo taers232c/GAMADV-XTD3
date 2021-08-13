@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.06'
+__version__ = '6.07.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -87,6 +87,8 @@ sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from dateutil.relativedelta import relativedelta
 
 from filelock import FileLock
+
+#from pathvalidate import sanitize_filename
 
 from gamlib import glaction
 from gamlib import glapi as API
@@ -2528,6 +2530,7 @@ def cleanFilename(filename):
   for ch in '\\/:*|~':
     filename = filename.replace(ch, '_')
   return filename
+#  return sanitize_filename(filename, '_')
 
 def fileErrorMessage(filename, e, entityType=Ent.FILE):
   return f'{Ent.Singular(entityType)}: {filename}, {str(e)}'
@@ -22161,7 +22164,7 @@ def doCreateGroup(ciGroupsAPI=False):
       gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
     elif ciGroupsAPI and myarg in ['alias', 'aliases']:
       body.setdefault('additionalGroupKeys', [])
-      for alias in convertEntityToList(getString(Cmd.OB_GROUP_ALIAS_LIST), shlexSplit=True):
+      for alias in convertEntityToList(getString(Cmd.OB_CIGROUP_ALIAS_LIST), shlexSplit=True):
         body['additionalGroupKeys'].append({'id': alias})
     elif ciGroupsAPI and myarg == 'dynamic':
       body.setdefault('dynamicGroupMetadata', {'queries': []})
@@ -24753,7 +24756,7 @@ def doPrintShowGroupTree():
     csvPF.writeCSVfile('Group Tree')
 
 # gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>
-#	[makeowner] [alias|aliases <AliasList>] [dynamic <QueryDynamicGroup>]
+#	[makeowner] [alias|aliases <CIGroupAliasList>] [dynamic <QueryDynamicGroup>]
 def doCreateCIGroup():
   doCreateGroup(ciGroupsAPI=True)
 
@@ -31910,6 +31913,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   groupOrgUnitMap = None
   tagReplacements = _initTagReplacements()
   addGroups = {}
+  addAliases = []
   PwdOpts = PasswordOptions(updateCmd)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -32209,6 +32213,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       delivery_settings = getDeliverySettings()
       for group in getEntityList(Cmd.OB_GROUP_ENTITY):
         addGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': delivery_settings}
+    elif myarg in {'alias', 'aliases'}:
+      addAliases.extend(convertEntityToList(getString(Cmd.OB_EMAIL_ADDRESS_LIST, minLen=0)))
     elif myarg == 'clearschema':
       if not updateCmd:
         unknownArgumentExit()
@@ -32254,16 +32260,27 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       unknownArgumentExit()
   if not PwdOpts.makeUniqueRandomPassword:
     PwdOpts.AssignPassword(body, notify, notFoundBody, parameters['createIfNotFound'])
-  return (body, notify, tagReplacements, addGroups, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters)
+  return (body, notify, tagReplacements, addGroups, addAliases, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters)
 
 def createUserAddToGroups(cd, user, addGroups, i, count):
   action = Act.Get()
   Act.Set(Act.ADD)
+  Ind.Increment()
   _addUserToGroups(cd, user, set(addGroups), addGroups, i, count)
+  Ind.Decrement()
+  Act.Set(action)
+
+def createUserAddAliases(cd, user, aliasList, i, count):
+  action = Act.Get()
+  Act.Set(Act.ADD)
+  Ind.Increment()
+  _addUserAliases(cd, user, aliasList, i, count)
+  Ind.Decrement()
   Act.Set(action)
 
 # gam create user <EmailAddress> <UserAttribute>
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+#	[alias|aliases <EmailAddressList>]
 #	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
@@ -32272,7 +32289,7 @@ def createUserAddToGroups(cd, user, addGroups, i, count):
 #	[verifynotinvitable]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addGroups, PwdOpts, _, _, _, parameters = getUserAttributes(cd, False, noUid=True)
+  body, notify, tagReplacements, addGroups, addAliases, PwdOpts, _, _, _, parameters = getUserAttributes(cd, False, noUid=True)
   user = body['primaryEmail']
   if parameters['verifyNotInvitable']:
     isInvitableUser, _ = _getIsInvitableUser(None, user)
@@ -32292,6 +32309,8 @@ def doCreateUser():
       writeFile(PwdOpts.filename, f'{user},{PwdOpts.password}\n', mode='a', continueOnError=True)
     if addGroups:
       createUserAddToGroups(cd, result['primaryEmail'], addGroups, 0, 0)
+    if addAliases:
+      createUserAddAliases(cd, result['primaryEmail'], addAliases, 0, 0)
     if notify.get('recipients'):
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
   except GAPI.duplicate:
@@ -32328,6 +32347,7 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 #	[createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+#	[alias|aliases <EmailAddressList>]
 #	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
@@ -32337,7 +32357,7 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   ci = None
-  body, notify, tagReplacements, addGroups, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters = getUserAttributes(cd, True)
+  body, notify, tagReplacements, addGroups, addAliases, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters = getUserAttributes(cd, True)
   vfe = 'primaryEmail' in body and body['primaryEmail'][:4].lower() == 'vfe@'
   i, count, entityList = getEntityArgument(entityList)
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
@@ -32421,6 +32441,8 @@ def updateUsers(entityList):
                   writeFile(PwdOpts.filename, f'{user},{PwdOpts.notFoundPassword}\n', mode='a', continueOnError=True)
                 if addGroups:
                   createUserAddToGroups(cd, result['primaryEmail'], addGroups, i, count)
+                if addAliases:
+                  createUserAddAliases(cd, result['primaryEmail'], addAliases, i, count)
                 if notify.get('recipients'):
                   notify['password'] = notify['notFoundPassword']
                   sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count)
@@ -35296,14 +35318,14 @@ def _doDeleteCourses(entityList):
       if body:
         callGAPI(croom.courses(), 'patch',
                  throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
-                               GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                               GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR],
                  id=courseId, body=body, updateMask=updateMask, fields='')
       callGAPI(croom.courses(), 'delete',
                throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
                id=courseId)
       entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId)], i, count)
     except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
-            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument, GAPI.internalError) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam delete courses <CourseEntity> [archive|archived]
@@ -48885,6 +48907,32 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
 
 def doPrintShowTeamDriveACLs():
   printShowTeamDriveACLs([_getAdminEmail()], True)
+
+def _addUserAliases(cd, user, aliasList, i, count):
+  jcount = len(aliasList)
+  entityPerformActionNumItems([Ent.USER, user], jcount, Ent.USER_ALIAS, i, count)
+  Ind.Increment()
+  j = 0
+  for aliasEmail in aliasList:
+    j += 1
+    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
+    body = {'alias': aliasEmail}
+    try:
+      callGAPI(cd.users().aliases(), 'insert',
+               throwReasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST,
+                             GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN, GAPI.DUPLICATE,
+                             GAPI.CONDITION_NOT_MET, GAPI.LIMIT_EXCEEDED],
+               userKey=user, body=body, fields='')
+      entityActionPerformed([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], j, jcount)
+    except (GAPI.conditionNotMet, GAPI.limitExceeded) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], str(e), j, jcount)
+    except GAPI.duplicate:
+      duplicateAliasGroupUserWarning(cd, [Ent.USER, user, Ent.USER_ALIAS, aliasEmail], j, jcount)
+    except (GAPI.invalid, GAPI.invalidInput):
+      entityActionFailedWarning([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], Msg.INVALID_ALIAS, j, jcount)
+    except (GAPI.userNotFound, GAPI.badRequest, GAPI.forbidden):
+      entityUnknownWarning(Ent.USER, user, i, count)
+  Ind.Decrement()
 
 # gam <UserTypeEntity> delete alias|aliases
 def deleteUsersAliases(users):
