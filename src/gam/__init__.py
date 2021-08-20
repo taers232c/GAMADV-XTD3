@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.07'
+__version__ = '6.07.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -7676,10 +7676,7 @@ MACOS_CODENAMES = {
     15: 'Catalina',
     16: 'Big Sur'
     },
-  11: {
-    0: 'Big Sur',
-    1: 'Big Sur'
-    }
+  11: 'Big Sur',
   }
 
 def getOSPlatform():
@@ -7693,7 +7690,10 @@ def getOSPlatform():
     mac_ver = platform.mac_ver()[0]
     major_ver = int(mac_ver.split('.')[0]) # macver 10.14.6 == major_ver 10
     minor_ver = int(mac_ver.split('.')[1]) # macver 10.14.6 == minor_ver 14
-    codename = MACOS_CODENAMES.get(major_ver, {}).get(minor_ver, '')
+    if major_ver == 10:
+      codename = MACOS_CODENAMES[major_ver].get(minor_ver, '')
+    else:
+      codename = MACOS_CODENAMES.get(major_ver, '')
     pltfrm = ' '.join([codename, mac_ver])
   else:
     pltfrm = platform.platform()
@@ -38821,7 +38821,10 @@ def transferCalendars(users):
                             calendarId=calId, fields=appendFields)
             for field in appendFieldsList:
               if field in updateBody:
-                body[field] += updateBody[field]
+                if field in body:
+                  body[field] += updateBody[field]
+                else:
+                  body[field] = updateBody[field]
           else:
             body = {}
           for field in updateBody:

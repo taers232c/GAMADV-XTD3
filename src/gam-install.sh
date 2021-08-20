@@ -254,7 +254,7 @@ if [ "$upgrade_only" = true ]; then
   "$target_dir/$target_gam" version extended
   rc=$?
   if (( $rc != 0 )); then
-    echo_red "ERROR: Failed running GAM for the first time with $rc. Please report this error to GAM mailing list. Exiting."
+    echo_red "ERROR: Failed running GAM for the first time with return code $rc. Please report this error to GAM mailing list. Exiting."
     exit
   fi
 
