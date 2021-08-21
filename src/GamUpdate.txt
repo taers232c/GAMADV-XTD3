@@ -1,3 +1,10 @@
+6.07.10
+
+Due to missing API documentation, `gam <UserTypeEntity> print|show datastudioassets orderby title ascending|descending`'
+displayed in the opposite of the specified order.
+
+Fixed bug that caused a trap in `gam print|show chromeschemas std`.
+
 6.07.09
 
 Following Jay's suggestion, added `all` to `assettype` in all `datastudioassets`

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.09'
+__version__ = '6.07.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1302,21 +1302,28 @@ def getIntegerEmptyAllowed(minVal=None, maxVal=None, default=0):
 SORTORDER_CHOICE_MAP = {'ascending': 'ASCENDING', 'descending': 'DESCENDING'}
 
 class OrderBy():
-  def __init__(self, choiceMap):
+  def __init__(self, choiceMap, ascendingKeyword='', descendingKeyword='desc'):
     self.choiceMap = choiceMap
+    self.ascendingKeyword = ascendingKeyword
+    self.descendingKeyword = descendingKeyword
     self.items = []
 
   def GetChoice(self):
     fieldName = getChoice(self.choiceMap, mapChoice=True)
-    if fieldName in self.items:
-      self.items.remove(fieldName)
-    fieldNameDesc = f'{fieldName} desc'
-    if fieldNameDesc in self.items:
-      self.items.remove(fieldNameDesc)
+    fieldNameAscending = fieldName
+    if self.ascendingKeyword:
+      fieldNameAscending += f' {self.ascendingKeyword}'
+    if fieldNameAscending in self.items:
+      self.items.remove(fieldNameAscending)
+    fieldNameDescending = fieldName
+    if self.descendingKeyword:
+      fieldNameDescending += f' {self.descendingKeyword}'
+    if fieldNameDescending in self.items:
+      self.items.remove(fieldNameDescending)
     if getChoice(SORTORDER_CHOICE_MAP, defaultChoice=None, mapChoice=True) != 'DESCENDING':
-      self.items.append(fieldName)
+      self.items.append(fieldNameAscending)
     else:
-      self.items.append(fieldNameDesc)
+      self.items.append(fieldNameDescending)
 
   def SetItems(self, itemList):
     self.items = itemList.split(',')
@@ -19082,8 +19089,8 @@ def buildChromeSchemas(cp=None, sfilter=None):
               setting_dict['descriptions'] = ['']*len(setting_dict['enums'])
               for i, an in enumerate(setting_dict['enums']):
                 for fdesc in fieldDescriptions:
-                  if fdesc['field'] == setting_name:
-                    for d in fdesc['knownValueDescriptions']:
+                  if fdesc.get('field') == setting_name:
+                    for d in fdesc.get('knownValueDescriptions', []):
                       if d['value'][prefix_len:] == an:
                         setting_dict['descriptions'][i] = d['description']
                         break
@@ -49074,7 +49081,7 @@ def printShowDataStudioAssets(users):
 
   csvPF = CSVPrintFile(['User', 'title']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  OBY = OrderBy(DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP)
+  OBY = OrderBy(DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP, ascendingKeyword='ascending', descendingKeyword='')
   parameters, assetTypes = initDataStudioAssetSelectionParameters()
   assetIdEntity = None
   while Cmd.ArgumentsRemaining():
