@@ -4527,33 +4527,33 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
 <DataStudioPermissionEntity> ::= <DataStudioPermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 gam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
-        [([assettype report|datasource] [title <String>]
+        [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]
           [orderby title [ascending|descending]]) |
          (assetids <DataStudioAssetIDEntity>)]
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show datastudioassets
-        [([assettype report|datasource] [title <String>]
+        [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]
           [orderby title [ascending|descending]]) |
          (assetids <DataStudioAssetIDEntity>)]
         [formatjson]
 
 gam <UserTypeEntity> add datastudiopermissions
-        [([assettype report|datasource] [title <String>]
+        [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]
           [orderby title [ascending|descending]]) |
          (assetids <DataStudioAssetIDEntity>)]
         (role editor|viewer <DataStudioPermissionEntity>)+
         [nodetails]
 gam <UserTypeEntity> delete datastudiopermissions
-        [([assettype report|datasource] [title <String>]
+        [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]) |
          (assetids <DataStudioAssetIDEntity>)]
         (role any <DataStudioPermissionEntity>)+
         [nodetails]
 gam <UserTypeEntity> update datastudiopermissions
-        [([assettype report|datasource] [title <String>]
+        [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]
           [orderby title [ascending|descending]]) |
          (assetids <DataStudioAssetIDEntity>)]
@@ -4561,14 +4561,14 @@ gam <UserTypeEntity> update datastudiopermissions
         [nodetails]
 
 gam <UserTypeEntity> print datastudiopermissions [todrive <ToDriveAttribute>*]
-        [([assettype report|datasource] [title <String>]
+        [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]
           [orderby title [ascending|descending]]) |
          (assetids <DataStudioAssetIDEntity>)]
         [role editor|owner|viewer]
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show datastudiopermissions
-        [([assettype report|datasource] [title <String>]
+        [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]
           [orderby title [ascending|descending]]) |
          (assetids <DataStudioAssetIDEntity>)]

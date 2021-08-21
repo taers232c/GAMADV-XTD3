@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.08'
+__version__ = '6.07.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -48972,16 +48972,17 @@ def deleteUsersAliases(users):
       entityUnknownWarning(Ent.USER, user, i, count)
 
 DATASTUDIO_ASSETTYPE_CHOICE_MAP = {
-  'report': 'REPORT',
-  'datasource': 'DATA_SOURCE'
+  'report': ['REPORT'],
+  'datasource': ['DATA_SOURCE'],
+  'all': ['REPORT', 'DATA_SOURCE'],
   }
 
 def initDataStudioAssetSelectionParameters():
-  return {'assetTypes': 'REPORT', 'owner': None, 'title': None, 'includeTrashed': False}
+  return ({'owner': None, 'title': None, 'includeTrashed': False}, {'assetTypes': ['REPORT']})
 
-def getDataStudioAssetSelectionParameters(myarg, parameters):
-  if myarg == 'assettype':
-    parameters['assetTypes'] = getChoice(DATASTUDIO_ASSETTYPE_CHOICE_MAP, mapChoice=True)
+def getDataStudioAssetSelectionParameters(myarg, parameters, assetTypes):
+  if myarg in {'assettype', 'assettypes'}:
+    assetTypes['assetTypes'] = getChoice(DATASTUDIO_ASSETTYPE_CHOICE_MAP, mapChoice=True)
   elif myarg == 'title':
     parameters['title'] = getString(Cmd.OB_STRING)
   elif myarg == 'owner':
@@ -49017,19 +49018,24 @@ def _getDataStudioAssetByID(ds, user, i, count, assetId):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   return None
 
-def _getDataStudioAssets(ds, user, i, count, parameters, fields, orderBy=None):
-  printGettingAllEntityItemsForWhom(Ent.DATASTUDIO_ASSET, user, i, count)
-  try:
-    assets = callGAPIpages(ds.assets(), 'search', 'assets',
-                           pageMessage=getPageMessage(),
-                           throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
-                           **parameters, orderBy=orderBy, fields=fields)
-    return  (assets, len(assets))
-  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.permissionDenied) as e:
-    entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-  except GAPI.serviceNotAvailable:
-    entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-  return (None, 0)
+def _getDataStudioAssets(ds, user, i, count, parameters, assetTypes, fields, orderBy=None):
+  assets = []
+  for assetType in assetTypes['assetTypes']:
+    entityType = Ent.DATASTUDIO_ASSET_REPORT if assetType == 'REPORT' else Ent.DATASTUDIO_ASSET_DATASOURCE
+    printGettingAllEntityItemsForWhom(entityType, user, i, count)
+    parameters['assetTypes'] = assetType
+    try:
+      assets.extend(callGAPIpages(ds.assets(), 'search', 'assets',
+                                  pageMessage=getPageMessage(),
+                                  throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
+                                  **parameters, orderBy=orderBy, fields=fields))
+    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.permissionDenied) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+      return (None, 0)
+    except GAPI.serviceNotAvailable:
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      return (None, 0)
+  return (assets, len(assets))
 
 DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP = {
   'title': 'title'
@@ -49069,11 +49075,11 @@ def printShowDataStudioAssets(users):
   csvPF = CSVPrintFile(['User', 'title']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   OBY = OrderBy(DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP)
-  parameters = initDataStudioAssetSelectionParameters()
+  parameters, assetTypes = initDataStudioAssetSelectionParameters()
   assetIdEntity = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if getDataStudioAssetSelectionParameters(myarg, parameters):
+    if getDataStudioAssetSelectionParameters(myarg, parameters, assetTypes):
       pass
     elif myarg in {'assetid', 'assetids'}:
       assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
@@ -49088,7 +49094,7 @@ def printShowDataStudioAssets(users):
     if not ds:
       continue
     if assetIdEntity is None:
-      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, 'nextPageToken,assets', OBY.orderBy)
+      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, assetTypes, 'nextPageToken,assets', OBY.orderBy)
       if assets is None:
         continue
     if not csvPF:
@@ -49180,13 +49186,13 @@ def processDataStudioPermissions(users):
   if action == Act.CREATE:
     action = Act.ADD
   modifier = DATASTUDIO_PERMISSION_MODIFIER_MAP[action]
-  parameters = initDataStudioAssetSelectionParameters()
+  parameters, assetTypes = initDataStudioAssetSelectionParameters()
   permissions = {}
   assetIdEntity = None
   showDetails = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if getDataStudioAssetSelectionParameters(myarg, parameters):
+    if getDataStudioAssetSelectionParameters(myarg, parameters, assetTypes):
       pass
     elif myarg in {'assetid', 'assetids'}:
       assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
@@ -49214,7 +49220,7 @@ def processDataStudioPermissions(users):
     if not ds:
       continue
     if assetIdEntity is None:
-      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, 'nextPageToken,assets(name,title)', None)
+      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, assetTypes, 'nextPageToken,assets(name,title)', None)
       if assets is None:
         continue
     entityPerformActionSubItemModifierNumItems([Ent.USER, user], Ent.DATASTUDIO_PERMISSION, modifier, jcount, Ent.DATASTUDIO_ASSET, i, count)
@@ -49270,12 +49276,12 @@ def printShowDataStudioPermissions(users):
   csvPF = CSVPrintFile(['User', 'assetId']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  parameters = initDataStudioAssetSelectionParameters()
+  parameters, assetTypes = initDataStudioAssetSelectionParameters()
   assetIdEntity = None
   role = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if getDataStudioAssetSelectionParameters(myarg, parameters):
+    if getDataStudioAssetSelectionParameters(myarg, parameters, assetTypes):
       pass
     elif myarg in {'assetid', 'assetids'}:
       assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
@@ -49292,7 +49298,7 @@ def printShowDataStudioPermissions(users):
     if not ds:
       continue
     if assetIdEntity is None:
-      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, 'nextPageToken,assets(name,title)', None)
+      assets, jcount = _getDataStudioAssets(ds, user, i, count, parameters, assetTypes, 'nextPageToken,assets(name,title)', None)
       if assets is None:
         continue
     if not csvPF and not FJQC.formatJSON:

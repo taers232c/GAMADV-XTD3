@@ -126,7 +126,9 @@ class GamEntity():
   CUSTOMER_DOMAIN = 'cudo'
   CUSTOMER_ID = 'cuid'
   DATASTUDIO_ASSET = 'dsas'
+  DATASTUDIO_ASSET_DATASOURCE = 'dsad'
   DATASTUDIO_ASSETID = 'dsai'
+  DATASTUDIO_ASSET_REPORT = 'dsar'
   DATASTUDIO_PERMISSION = 'dspe'
   DEFAULT_LANGUAGE = 'dfla'
   DELEGATE = 'dele'
@@ -397,7 +399,9 @@ class GamEntity():
     CUSTOMER_DOMAIN: ['Customer Domains', 'Customer Domain'],
     CUSTOMER_ID: ['Customer IDs', 'Customer ID'],
     DATASTUDIO_ASSET: ['Data Studio Assets', 'Data Studio Asset'],
+    DATASTUDIO_ASSET_DATASOURCE: ['Data Studio DATA_SOURCE Assets', 'Data Studio DATA_SOURCE Asset'],
     DATASTUDIO_ASSETID: ['Data Studio Asset IDs', 'Data Studio Asset ID'],
+    DATASTUDIO_ASSET_REPORT: ['Data Studio REPORT Assets', 'Data Studio REPORT Asset'],
     DATASTUDIO_PERMISSION: ['Data Studio Permissions', 'Data Studio Permission'],
     DEFAULT_LANGUAGE: ['Default Language', 'Default Language'],
     DELEGATE: ['Delegates', 'Delegate'],

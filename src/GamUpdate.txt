@@ -1,3 +1,9 @@
+6.07.09
+
+Following Jay's suggestion, added `all` to `assettype` in all `datastudioassets`
+and `datastudiopermissions` commands so you can get information on both `reports`
+and `datasources` in a single command.
+
 6.07.08
 
 Fixed bug that caused a trap in `gam <UserTypeEntity> transfer calendars <UserItem> <UserCalendarEntity> append description|location|summary`.
