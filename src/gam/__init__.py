@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.10'
+__version__ = '6.07.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -49050,13 +49050,13 @@ DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP = {
 DATASTUDIO_ASSETS_TIME_OBJECTS = ['updateTime', 'updateByMeTime', 'createTime', 'lastViewByMeTime']
 
 # gam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
-#	[([assettype report|datasource] [title <String>]
+#	[([assettype report|datasource|all] [title <String>]
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show datastudioassets
-#	[([assettype report|datasource] [title <String>]
+#	[([assettype report|datasource|all] [title <String>]
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
@@ -49168,21 +49168,21 @@ DATASTUDIO_PERMISSION_MODIFIER_MAP = {
   }
 
 # gam <UserTypeEntity> add datastudiopermissions
-#	[([assettype report|datasource] [title <String>]
+#	[([assettype report|datasource|all] [title <String>]
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
 #	(role editor|viewer <DataStudioPermissionEntity>)+
 #	[nodetails]
 # gam <UserTypeEntity> delete datastudiopermissions
-#	([[assettype report|datasource] [title <String>]
+#	([[assettype report|datasource|all] [title <String>]
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
 #	(role any <DataStudioPermissionEntity>)+
 #	[nodetails]
 # gam <UserTypeEntity> update datastudiopermissions
-#	[([assettype report|datasource] [title <String>]
+#	[([assettype report|datasource|all] [title <String>]
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
@@ -49257,14 +49257,14 @@ def processDataStudioPermissions(users):
           break
 
 # gam <UserTypeEntity> print datastudiopermissions [todrive <ToDriveAttribute>*]
-#	[([assettype report|datasource] [title <String>]
+#	[([assettype report|datasource|all] [title <String>]
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
 #	[role editor|owner|viewer]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show datastudiopermissions
-#	[([assettype report|datasource] [title <String>]
+#	[([assettype report|datasource|all] [title <String>]
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)[
@@ -51558,34 +51558,35 @@ def _initLabelNameMap(userGmailLabels):
     if label['type'] == 'system':
       labelNameMap[label['id']] = label['id']
     else:
-      labelNameMap[label['name']] = label['id']
+      labelNameMap[label['name']] = labelNameMap[label['name'].upper()] = label['id']
   return labelNameMap
 
 def _convertLabelNamesToIds(gmail, bodyLabels, labelNameMap, addLabelIfMissing):
   labelIds = []
   for label in bodyLabels:
-    if label.upper() in labelNameMap:
-      label = label.upper()
-    if label not in labelNameMap:
-      results = callGAPI(gmail.users().labels(), 'create',
-                         userId='me', body={'labelListVisibility': 'labelShow', 'messageListVisibility': 'show', 'name': label}, fields='id')
-      labelNameMap[label] = results['id']
-    try:
+    if label in labelNameMap:
       labelIds.append(labelNameMap[label])
-    except KeyError:
-      pass
-    if addLabelIfMissing:
-      if label.find('/') != -1:
-        # make sure to create parent labels for proper nesting
-        parent_label = label[:label.rfind('/')]
-        while True:
-          if not parent_label in labelNameMap:
-            result = callGAPI(gmail.users().labels(), 'create',
-                              userId='me', body={'name': parent_label}, fields='id')
-            labelNameMap[parent_label] = result['id']
-          if parent_label.find('/') == -1:
-            break
-          parent_label = parent_label[:parent_label.rfind('/')]
+      continue
+    if label.upper() in labelNameMap:
+      labelIds.append(labelNameMap[label.upper()])
+      continue
+    if not addLabelIfMissing:
+      continue
+    results = callGAPI(gmail.users().labels(), 'create',
+                       userId='me', body={'labelListVisibility': 'labelShow', 'messageListVisibility': 'show', 'name': label}, fields='id')
+    labelNameMap[label] = labelNameMap[label.upper()] = results['id']
+    labelIds.append(results['id'])
+    if label.find('/') != -1:
+      # make sure to create parent labels for proper nesting
+      parent_label = label[:label.rfind('/')]
+      while True:
+        if (not parent_label in labelNameMap) and (not parent_label.upper() in labelNameMap):
+          result = callGAPI(gmail.users().labels(), 'create',
+                            userId='me', body={'name': parent_label}, fields='id')
+          labelNameMap[parent_label] = labelNameMap[parent_label.upper()] = result['id']
+        if parent_label.find('/') == -1:
+          break
+        parent_label = parent_label[:parent_label.rfind('/')]
   return labelIds
 
 MESSAGES_MAX_TO_KEYWORDS = {

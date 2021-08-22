@@ -1,3 +1,8 @@
+6.07.11
+
+Fixed bug in `gam <UserTypeEntity> modify messages|threads removelabel <LabelName>` where `<LabelName>`
+was being created inappropriately.
+
 6.07.10
 
 Due to missing API documentation, `gam <UserTypeEntity> print|show datastudioassets orderby title ascending|descending`'
