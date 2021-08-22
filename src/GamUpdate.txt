@@ -1,3 +1,10 @@
+6.07.12
+
+Updated various course related commands to handle the following error.
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
 6.07.11
 
 Fixed bug in `gam <UserTypeEntity> modify messages|threads removelabel <LabelName>` where `<LabelName>`

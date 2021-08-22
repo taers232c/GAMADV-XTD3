@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.11'
+__version__ = '6.07.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34897,14 +34897,15 @@ class CourseAttributes():
       try:
         self.courseAnnouncements = callGAPIpages(self.croom.courses().announcements(), 'list', 'announcements',
                                                  pageMessage=getPageMessage(),
-                                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                                  courseId=self.courseId, announcementStates=self.announcementStates,
                                                  pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseAnnouncement in self.courseAnnouncements:
           for field in self.COURSE_ANNOUNCEMENT_READONLY_FIELDS:
             courseAnnouncement.pop(field, None)
           self.CleanMaterials(courseAnnouncement, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncement['id'])
-      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
     if self.materialStates:
@@ -34912,15 +34913,16 @@ class CourseAttributes():
                                         _gettingCourseEntityQuery(Ent.COURSE_MATERIAL_STATE, self.materialStates))
       try:
         self.courseMaterials = callGAPIpages(self.croom.courses().courseWorkMaterials(), 'list', 'courseWorkMaterial',
-                                                 pageMessage=getPageMessage(),
-                                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
-                                                 courseId=self.courseId, courseWorkMaterialStates=self.materialStates,
-                                                 pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
+                                             pageMessage=getPageMessage(),
+                                             throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                                             courseId=self.courseId, courseWorkMaterialStates=self.materialStates,
+                                             pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseMaterial in self.courseMaterials:
           for field in self.COURSE_MATERIAL_READONLY_FIELDS:
             courseMaterial.pop(field, None)
           self.CleanMaterials(courseMaterial, Ent.COURSE_MATERIAL_ID, courseMaterial['id'])
-      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
     if self.workStates:
@@ -34929,7 +34931,8 @@ class CourseAttributes():
       try:
         self.courseWorks = callGAPIpages(self.croom.courses().courseWork(), 'list', 'courseWork',
                                          pageMessage=getPageMessage(),
-                                         throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                         throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                         retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                          courseId=self.courseId, courseWorkStates=self.workStates,
                                          pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseWork in self.courseWorks:
@@ -34942,7 +34945,7 @@ class CourseAttributes():
           if self.removeDueDate:
             courseWork.pop('dueDate', None)
             courseWork.pop('dueTime', None)
-      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
     if self.copyTopics:
@@ -34950,12 +34953,13 @@ class CourseAttributes():
       try:
         courseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
                                      pageMessage=getPageMessage(),
-                                     throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                     throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                     retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                      courseId=self.courseId, fields='nextPageToken,topic(topicId,name)',
                                      pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for topic in courseTopics:
           self.topicsById[topic['topicId']] = topic['name']
-      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
     return True
@@ -35035,7 +35039,8 @@ class CourseAttributes():
     if self.copyTopics:
       try:
         newCourseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
-                                        throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
+                                        throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.SERVICE_NOT_AVAILABLE],
+                                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                         courseId=newCourseId, fields='nextPageToken,topic(topicId,name)',
                                         pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         newTopicsByName = {}
@@ -35044,7 +35049,7 @@ class CourseAttributes():
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
         return
-      except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.failedPrecondition, GAPI.invalidArgument) as e:
+      except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.failedPrecondition, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
       jcount = len(self.topicsById)
       j = 0
@@ -35712,7 +35717,8 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getO
     try:
       return callGAPIpages(croom.courses(), 'list', 'courses',
                            pageMessage=getPageMessage(),
-                           throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID],
+                           throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.SERVICE_NOT_AVAILABLE],
+                           retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                            teacherId=courseSelectionParameters['teacherId'],
                            studentId=courseSelectionParameters['studentId'],
                            courseStates=courseSelectionParameters['courseStates'],
@@ -35724,7 +35730,7 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getO
         entityUnknownWarning(Ent.STUDENT, courseSelectionParameters['studentId'])
       elif courseSelectionParameters['studentId'] and courseSelectionParameters['teacherId']:
         entityOrEntityUnknownWarning(Ent.TEACHER, courseSelectionParameters['teacherId'], Ent.STUDENT, courseSelectionParameters['studentId'])
-    except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest) as e:
+    except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.COURSE, None], str(e))
     return None
   fields = _setCourseFields(courseShowProperties, False, getOwnerId)
@@ -35989,12 +35995,13 @@ def doPrintCourseAnnouncements():
       try:
         results = callGAPIpages(croom.courses().announcements(), 'list', 'announcements',
                                 pageMessage=getPageMessage(),
-                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=OBY.orderBy,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseAnnouncement in results:
           _printCourseAnnouncement(course, courseAnnouncement, i, count)
-      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     else:
       jcount = len(courseAnnouncementIds)
@@ -36074,12 +36081,13 @@ def doPrintCourseTopics():
       try:
         results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
                                 pageMessage=getPageMessage(),
-                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 courseId=courseId,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for courseTopic in results:
           _printCourseTopic(course, courseTopic)
-      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     else:
       jcount = len(courseTopicIds)
@@ -36175,12 +36183,13 @@ def doPrintCourseWM(entityIDType, entityStateType):
     topicNames = {}
     try:
       results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
-                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                               courseId=courseId,
                               fields='nextPageToken,topic(topicId,name)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
       for courseTopic in results:
         topicNames[courseTopic['topicId']] = courseTopic['name']
-    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument):
+    except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable):
       pass
     return topicNames
 
@@ -36468,13 +36477,14 @@ def doPrintCourseSubmissions():
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
                                 pageMessage=getPageMessage(),
-                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 courseId=courseId, courseWorkStates=courseWMSelectionParameters['courseWMStates'], orderBy=OBY.orderBy,
                                 fields='nextPageToken,courseWork(id)', pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         courseWorkIdsForCourse = [courseWork['id'] for courseWork in results]
       except GAPI.notFound:
         continue
-      except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+      except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
         continue
     else:
@@ -36492,14 +36502,15 @@ def doPrintCourseSubmissions():
         try:
           results = callGAPIpages(croom.courses().courseWork().studentSubmissions(), 'list', 'studentSubmissions',
                                   pageMessage=getPageMessage(),
-                                  throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                  throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                   courseId=courseId, courseWorkId=courseWorkId, states=courseSubmissionStates, late=late, userId=courseSelectionParameters['studentId'],
                                   fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
           for submission in results:
             _printCourseSubmission(course, submission)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], j, jcount)
-        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId], str(e), j, jcount)
       else:
         if courseSubmissionIdsLists:
