@@ -7,12 +7,16 @@ env:
   global:
     - BUILD_PYTHON_VERSION=3.9.6
     - MIN_PYTHON_VERSION=3.9.6
-    - LINUX_OPENSSL_VERSION=1.1.1k
+    - LINUX_BUILD_OPENSSL_VERSION=1.1.1k
+    - LINUX_MIN_OPENSSL_VERSION=1.1.1k
     - WINDOWS_BUILD_OPENSSL_VERSION=1.1.1L
-    - MAC_OPENSSL_VERSION=1.1.1k
+    - WINDOWS_MIN_OPENSSL_VERSION=1.1.1L
+    - MAC_BUILD_OPENSSL_VERSION=1.1.1k
+    - MAC_MIN_OPENSSL_VERSION=1.1.1k
+    - MIN_OPENSSL_VERSION=$LINUX_MIN_OPENSSL_VERSION
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.20
-    - PYINSTALLER_VERSION=90431c010a23b1c9080fcb44f932d4615bb71825
+    - PYINSTALLER_VERSION=5a02f55c696f16b98f23a8b487f3daa8f644a8d2
 
 cache:
   directories:
@@ -82,12 +86,18 @@ jobs:
       name: "MacOS"
       language: generic
       osx_image: xcode12.4
+      env:
+        - MIN_OPENSSL_VERSION=$MAC_MIN_OPENSSL_VERSION
     - os: windows
       name: "Windows 64-bit"
       language: shell
+      env:
+        - MIN_OPENSSL_VERSION=$WINDOWS_MIN_OPENSSL_VERSION
     - os: windows
       name: "Windows 32-bit"
       language: shell
+      env:
+        - MIN_OPENSSL_VERSION=$WINDOWS_MIN_OPENSSL_VERSION
 
 before_install:
 - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
