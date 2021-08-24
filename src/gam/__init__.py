@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.12'
+__version__ = '6.07.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -43002,6 +43002,7 @@ def printFileList(users):
         csvPF.SetTitles(titles)
       else:
         csvPF.SetTitles(nodataFields)
+        csvPF.SetJSONTitles(nodataFields)
       if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
         _mapDrive3TitlesToDrive2(csvPF.titlesList, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
         _mapDrive3TitlesToDrive2(csvPF.titlesList, API.DRIVE3_TO_DRIVE2_CAPABILITIES_TITLES_MAP)
@@ -43011,7 +43012,8 @@ def printFileList(users):
     else:
       csvPF.JSONtitlesList.sort()
       csvPF.FixPathsTitles(csvPF.JSONtitlesList)
-      csvPF.MoveJSONTitlesToEnd(['JSON'])
+      if 'JSON' in csvPF.JSONtitlesList:
+        csvPF.MoveJSONTitlesToEnd(['JSON'])
     csvPF.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive Files')
   else:
     if not csvPFco.rows:
