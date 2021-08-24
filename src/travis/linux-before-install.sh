@@ -19,12 +19,12 @@ else
   PYRESULT=$?
   sudo apt-get -qq --yes install libxml2-dev > /dev/null
   sudo apt-get -qq --yes install libxslt-dev > /dev/null
-  if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
+  if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
     echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
     if [ $SSLRESULT -ne 0 ]; then
       echo "sslresult -ne 0"
     fi
-    if [[ "$SSLVER" != "OpenSSL $BUILD_OPENSSL_VERSION "* ]]; then
+    if [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]]; then
       echo "sslver not equal to..."
     fi
     if [ $PYRESULT -ne 0 ]; then
@@ -57,11 +57,11 @@ else
     sudo apt-get -qq --yes build-dep python3 > /dev/null
 
     # Compile latest OpenSSL
-    wget --quiet https://www.openssl.org/source/openssl-$BUILD_OPENSSL_VERSION.tar.gz
+    wget --quiet https://www.openssl.org/source/openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
     echo "Extracting OpenSSL..."
-    tar xf openssl-$BUILD_OPENSSL_VERSION.tar.gz
-    cd openssl-$BUILD_OPENSSL_VERSION
-    echo "Compiling OpenSSL $BUILD_OPENSSL_VERSION..."
+    tar xf openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
+    cd openssl-$LINUX_BUILD_OPENSSL_VERSION
+    echo "Compiling OpenSSL $LINUX_BUILD_OPENSSL_VERSION..."
     ./config shared --prefix=$HOME/ssl
     echo "Running make for OpenSSL..."
     make -j$cpucount -s

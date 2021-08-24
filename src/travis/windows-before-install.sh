@@ -45,7 +45,7 @@ export PATH=$PATH:/c/python/scripts
 
 # OpenSSL
 echo "Installing OpenSSL..."
-export exefile=Win${BITS}OpenSSL_Light-${BUILD_OPENSSL_VERSION//./_}.exe
+export exefile=Win${BITS}OpenSSL_Light-${WINDOWS_BUILD_OPENSSL_VERSION//./_}.exe
 if [ ! -e $exefile ]; then
   echo "Downloading $exefile..."
   wget --quiet https://slproweb.com/download/$exefile
