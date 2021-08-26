@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.13'
+__version__ = '6.07.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -29792,7 +29792,6 @@ def md5MatchesFile(filename, expected_md5, j=0, jcount=0):
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
 ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
-COUNT_ZIP_EXTENSION_PATTERN = re.compile(r'^.*(-\d+\.zip)$', re.IGNORECASE)
 
 # gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
 # gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
@@ -29864,6 +29863,7 @@ def doDownloadVaultExport():
     entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], jcount, Ent.CLOUD_STORAGE_FILE)
   Ind.Increment()
   j = 0
+  extCounts = {}
   for s_file in export['cloudStorageSink']['files']:
     j += 1
     bucket = s_file['bucketName']
@@ -29873,14 +29873,11 @@ def doDownloadVaultExport():
       continue
     if targetName:
       _, s_objectFilename = s_object.rsplit('/', 1)
-      mg = COUNT_ZIP_EXTENSION_PATTERN.match(s_objectFilename)
-      if mg:
-        s_objectExtension = mg.group(1)
-      else:
-        _, s_objectExtension = s_objectFilename.rsplit('.', 1)
-        s_objectExtension = '.'+s_objectExtension
+      s_objectFilename, s_objectExtension = s_objectFilename.rsplit('.', 1)
       if targetName.find('#') == -1:
-        filename = targetName+s_objectExtension
+        extCounts.setdefault(s_objectExtension, 0)
+        extCounts[s_objectExtension] += 1
+        filename = f"{targetName}-{extCounts[s_objectExtension]}.{s_objectExtension}"
       else:
         filename = targetName.replace('#objectname#', s_object).replace('#filename#', s_objectFilename).replace('#extension#', s_objectExtension)
       filename = os.path.join(targetFolder, filename.replace('/', '-'))
