@@ -1,3 +1,9 @@
+6.07.14
+
+Following Jay's suggestions, updated `gam download vaultexport <ExportItem> matter <MatterItem> targetname <FileName>`
+to avaid data loss when `<FileName>` does not contain `#filename#` and there are multiple top level files with the same extension.
+The files will be named `FileName-N.ext` where `N` is `1,2,3,...`.
+
 6.07.13
 
 Fixed `gam <UserTypeEntity> print filelist ... formatjson nodataheaders <String>` to
