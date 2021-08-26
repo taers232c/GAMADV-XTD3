@@ -19147,10 +19147,11 @@ def doDeleteChromePolicy():
   updatePolicyRequests(body, orgUnit, printer_id, app_id)
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchInherit',
-             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND],
+             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
+             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
     actionPerformedNumItems(count, Ent.CHROME_POLICY)
-  except GAPI.notFound as e:
+  except (GAPI.notFound, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
@@ -19308,10 +19309,11 @@ def doUpdateChromePolicy():
   updatePolicyRequests(body, orgUnit, printer_id, app_id)
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchModify',
-             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND],
+             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
+             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
     actionPerformedNumItems(count, Ent.CHROME_POLICY)
-  except GAPI.notFound as e:
+  except (GAPI.notFound, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
@@ -40146,6 +40148,56 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
     return False
   return True
 
+def getDriveFileCopyAttribute(myarg, body, parameters, updateCmd):
+  if myarg == 'ignoredefaultvisibility':
+    parameters[DFA_IGNORE_DEFAULT_VISIBILITY] = getBoolean()
+  elif myarg in {'keeprevisionforever', 'pinned'}:
+    parameters[DFA_KEEP_REVISION_FOREVER] = getBoolean()
+  elif myarg == 'ocrlanguage':
+    parameters[DFA_OCRLANGUAGE] = getLanguageCode()
+  elif myarg == 'description':
+    body['description'] = getStringWithCRsNLs()
+  elif myarg == 'mimetype':
+    body['mimeType'] = getMimeType()
+  elif myarg in {'lastviewedbyme', 'lastviewedbyuser', 'lastviewedbymedate', 'lastviewedbymetime'}:
+    body['viewedByMeTime'] = getTimeOrDeltaFromNow()
+  elif myarg in {'modifieddate', 'modifiedtime'}:
+    body['modifiedTime'] = getTimeOrDeltaFromNow()
+  elif myarg == 'viewerscancopycontent':
+    body['copyRequiresWriterPermission'] = not getBoolean()
+  elif myarg in {'copyrequireswriterpermission', 'restrict', 'restricted'}:
+    body['copyRequiresWriterPermission'] = getBoolean()
+  elif myarg == 'writerscanshare':
+    body['writersCanShare'] = getBoolean()
+  elif myarg == 'writerscantshare':
+    body['writersCanShare'] = not getBoolean()
+  elif myarg == 'contentrestrictions':
+    body['contentRestrictions'] = [{}]
+    restriction = getChoice(DRIVE_FILE_CONTENT_RESTRICTIONS_CHOICE_MAP, mapChoice=True)
+    if restriction == 'readOnly':
+      body['contentRestrictions'][0][restriction] = getBoolean()
+      if checkArgumentPresent(['reason']):
+        if body['contentRestrictions'][0][restriction]:
+          body['contentRestrictions'][0]['reason'] = getString(Cmd.OB_STRING, minLen=0)
+        else:
+          Cmd.Backup()
+          usageErrorExit(Msg.REASON_ONLY_VALID_WITH_CONTENTRESTRICTIONS_READONLY_TRUE)
+  elif myarg == 'property':
+    driveprop = getDriveFileProperty()
+    body.setdefault(driveprop['visibility'], [])
+    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
+  elif myarg == 'privateproperty':
+    driveprop = getDriveFileProperty('appProperties')
+    body.setdefault(driveprop['visibility'], [])
+    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
+  elif myarg == 'publicproperty':
+    driveprop = getDriveFileProperty('properties')
+    body.setdefault(driveprop['visibility'], [])
+    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
+  else:
+    return False
+  return True
+
 def getDriveFileAttribute(myarg, body, parameters, updateCmd):
   if myarg == 'localfile':
     parameters[DFA_LOCALFILEPATH] = os.path.expanduser(getString(Cmd.OB_FILE_NAME))
@@ -40186,72 +40238,29 @@ def getDriveFileAttribute(myarg, body, parameters, updateCmd):
     parameters[DFA_STRIPNAMEPREFIX] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg in {'convert', 'ocr'}:
     deprecatedArgument(myarg)
-  elif myarg == 'ocrlanguage':
-    parameters[DFA_OCRLANGUAGE] = getLanguageCode()
-  elif myarg == 'contentrestrictions':
-    body['contentRestrictions'] = [{}]
-    restriction = getChoice(DRIVE_FILE_CONTENT_RESTRICTIONS_CHOICE_MAP, mapChoice=True)
-    if restriction == 'readOnly':
-      body['contentRestrictions'][0][restriction] = getBoolean()
-      if checkArgumentPresent(['reason']):
-        if body['contentRestrictions'][0][restriction]:
-          body['contentRestrictions'][0]['reason'] = getString(Cmd.OB_STRING, minLen=0)
-        else:
-          Cmd.Backup()
-          usageErrorExit(Msg.REASON_ONLY_VALID_WITH_CONTENTRESTRICTIONS_READONLY_TRUE)
-  elif myarg == 'viewerscancopycontent':
-    body['copyRequiresWriterPermission'] = not getBoolean()
-  elif myarg in {'copyrequireswriterpermission', 'restrict', 'restricted'}:
-    body['copyRequiresWriterPermission'] = getBoolean()
   elif myarg in DRIVE_LABEL_CHOICE_MAP:
     myarg = DRIVE_LABEL_CHOICE_MAP[myarg]
     body[myarg] = getBoolean()
-  elif myarg in {'lastviewedbyme', 'lastviewedbyuser', 'lastviewedbymedate', 'lastviewedbymetime'}:
-    body['viewedByMeTime'] = getTimeOrDeltaFromNow()
   elif not updateCmd and myarg in {'createddate', 'createdtime'}:
     body['createdTime'] = getTimeOrDeltaFromNow()
-  elif myarg in {'modifieddate', 'modifiedtime'}:
-    body['modifiedTime'] = getTimeOrDeltaFromNow()
   elif myarg == 'preservefiletimes':
     parameters[DFA_PRESERVE_FILE_TIMES] = getBoolean()
-  elif myarg == 'description':
-    body['description'] = getStringWithCRsNLs()
-  elif myarg == 'mimetype':
-    body['mimeType'] = getMimeType()
   elif myarg == 'shortcut':
     body['mimeType'] = MIMETYPE_GA_SHORTCUT
     body['shortcutDetails'] = {'targetId': getString(Cmd.OB_DRIVE_FOLDER_ID)}
   elif getDriveFileParentAttribute(myarg, parameters):
     pass
-  elif myarg == 'writerscanshare':
-    body['writersCanShare'] = getBoolean()
-  elif myarg == 'writerscantshare':
-    body['writersCanShare'] = not getBoolean()
   elif myarg == 'foldercolorrgb':
     body['folderColorRgb'] = getColor()
-  elif myarg == 'ignoredefaultvisibility':
-    parameters[DFA_IGNORE_DEFAULT_VISIBILITY] = getBoolean()
-  elif myarg in {'keeprevisionforever', 'pinned'}:
-    parameters[DFA_KEEP_REVISION_FOREVER] = getBoolean()
   elif myarg == 'usecontentasindexabletext':
     parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT] = getBoolean()
   elif myarg == 'indexabletext':
     body.setdefault('contentHints', {})
     body['contentHints']['indexableText'] = getString(Cmd.OB_STRING)
-  elif myarg == 'property':
-    driveprop = getDriveFileProperty()
-    body.setdefault(driveprop['visibility'], [])
-    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
-  elif myarg == 'privateproperty':
-    driveprop = getDriveFileProperty('appProperties')
-    body.setdefault(driveprop['visibility'], [])
-    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
-  elif myarg == 'publicproperty':
-    driveprop = getDriveFileProperty('properties')
-    body.setdefault(driveprop['visibility'], [])
-    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
   elif myarg == 'securityupdate':
     body['linkShareMetadata'] = {'securityUpdateEnabled': getBoolean(), 'securityUpdateEligible': True}
+  elif getDriveFileCopyAttribute(myarg, body, parameters):
+    pass
   else:
     unknownArgumentExit()
 
@@ -44720,12 +44729,8 @@ def copyDriveFile(users):
       maxdepth = getInteger(minVal=-1)
     elif myarg == 'convert':
       deprecatedArgument(myarg)
-    elif myarg == 'mimetype':
-      copyBody['mimeType'] = getMimeType()
-    elif myarg == 'ignoredefaultvisibility':
-      copyParameters[DFA_IGNORE_DEFAULT_VISIBILITY] = getBoolean()
-    elif myarg in {'keeprevisionforever', 'pinned'}:
-      copyParameters[DFA_KEEP_REVISION_FOREVER] = getBoolean()
+    elif getDriveFileCopyAttribute(myarg, copyBody, copyParameters):
+      pass
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -44814,6 +44819,7 @@ def copyDriveFile(users):
           if recursive:
             _recursiveFolderCopy(drive, user, i, count, j, jcount, source, destFilename, targetChildren, 0, True, newParentId)
           else:
+            source.update(copyBody)
             _cloneFolderCopy(drive, user, i, count, j, jcount, source, destFilename, targetChildren,
                              True, newParentId, copyMoveOptions, statistics)
         else:

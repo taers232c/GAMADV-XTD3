@@ -1,3 +1,25 @@
+6.07.15
+
+Updated `gam <UserTypeEntity> copy drivefile <DriveFileEntity>` to allow more attributes
+to be specified on the copy. These only apply when a single file/folder is being copied.
+```
+<DriveFileCopyAttribute> ::=
+        (contentrestrictions readonly false)|
+        (contentrestrictions readonly true [reason <String>])|
+        (copyrequireswriterpermission [<Boolean>])|
+        (description <String>)|
+        ignoredefaultvisibility|
+        (keeprevisionforever|pinned)|
+        (lastviewedbyme <Time>)|
+        (modifieddate|modifiedtime <Time>)|
+        (mimetype <MimeType>)|
+        (ocrlanguage <Language>)|
+        (privateproperty <PropertyKey> <PropertyValue>)|
+        (publicproperty <PropertyKey> <PropertyValue>)|
+        (property <PropertyKey> <PropertyValue> [private|public])|
+        (viewerscancopycontent [<Boolean>])|
+        (writerscanshare|writerscantshare [<Boolean>])
+```
 6.07.14
 
 Following Jay's suggestions, updated `gam download vaultexport <ExportItem> matter <MatterItem> targetname <FileName>`
