@@ -40148,7 +40148,7 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
     return False
   return True
 
-def getDriveFileCopyAttribute(myarg, body, parameters, updateCmd):
+def getDriveFileCopyAttribute(myarg, body, parameters):
   if myarg == 'ignoredefaultvisibility':
     parameters[DFA_IGNORE_DEFAULT_VISIBILITY] = getBoolean()
   elif myarg in {'keeprevisionforever', 'pinned'}:
