@@ -1,3 +1,10 @@
+6.07.16
+
+Updated `gam <UserTypeEntity> claim|transfer ownership <DriveFileEntity>` to handle the following error:
+```
+ERROR: 403: insufficientFilePermissions - The user does not have sufficient permissions for this file.
+```
+
 6.07.15
 
 Updated `gam <UserTypeEntity> copy drivefile <DriveFileEntity>` to allow more attributes
