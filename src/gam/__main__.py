@@ -22,7 +22,7 @@ import multiprocessing
 
 import gam
 
-def main(argv):
+def main():
   if sys.platform.startswith('win'):
     multiprocessing.freeze_support()
   if sys.platform == 'darwin':
@@ -40,4 +40,4 @@ def main(argv):
 
 # Run from command line
 if __name__ == '__main__':
-    main(sys.argv)
+  main()
