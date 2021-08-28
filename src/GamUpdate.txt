@@ -1,3 +1,8 @@
+6.07.17
+
+Following Jay's suggestion, added option `maxresults <Number>` to `gam print|show resoldsubscriptions`;
+the default value is 100 and the range is 1-100.
+
 6.07.16
 
 Updated `gam <UserTypeEntity> claim|transfer ownership <DriveFileEntity>` to handle the following error:

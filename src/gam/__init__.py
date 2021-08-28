@@ -12192,11 +12192,15 @@ def doInfoResoldSubscription():
 
 PRINT_RESOLD_SUBSCRIPTIONS_TITLES = ['customerId', 'skuId', 'subscriptionId']
 
-# gam print resoldsubscriptions [todrive <ToDriveAttribute>*] [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
-# gam show resoldsubscriptions [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
+# gam print resoldsubscriptions [todrive <ToDriveAttribute>*]
+#	[customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
+#	[maxresults <Number>]
+# gam show resoldsubscriptions
+#	[customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
+#	[maxresults <Number>]
 def doPrintShowResoldSubscriptions():
   res = buildGAPIObject(API.RESELLER)
-  kwargs = {}
+  kwargs = {'maxResults': 100}
   csvPF = CSVPrintFile(PRINT_RESOLD_SUBSCRIPTIONS_TITLES, 'sortall') if Act.csvFormat() else None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -12208,6 +12212,8 @@ def doPrintShowResoldSubscriptions():
       kwargs['customerAuthToken'] = getString(Cmd.OB_CUSTOMER_AUTH_TOKEN)
     elif myarg == 'customerprefix':
       kwargs['customerNamePrefix'] = getString(Cmd.OB_STRING)
+    elif myarg == 'maxresults':
+      kwargs['maxResults'] = getInteger(minVal=1, maxVal=100)
     else:
       unknownArgumentExit()
   try:
