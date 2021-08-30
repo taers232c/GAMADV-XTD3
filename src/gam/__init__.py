@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.17'
+__version__ = '6.07.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -34673,12 +34673,13 @@ def checkCourseExists(croom, courseId, i=0, count=0, entityType=Ent.COURSE):
   courseId = addCourseIdScope(courseId)
   try:
     result = callGAPI(croom.courses(), 'get',
-                      throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                      throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                       id=courseId, fields='id,ownerId')
     return result
   except GAPI.notFound:
     entityActionFailedWarning([entityType, removeCourseIdScope(courseId)], Msg.DOES_NOT_EXIST, i, count)
-  except GAPI.permissionDenied as e:
+  except (GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
   return None
 
@@ -34926,6 +34927,8 @@ class CourseAttributes():
         for courseMaterial in self.courseMaterials:
           for field in self.COURSE_MATERIAL_READONLY_FIELDS:
             courseMaterial.pop(field, None)
+          if self.markPublishedAsDraft and courseMaterial['state'] == 'PUBLISHED':
+            courseMaterial['state'] = 'DRAFT'
           self.CleanMaterials(courseMaterial, Ent.COURSE_MATERIAL_ID, courseMaterial['id'])
       except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
@@ -35066,7 +35069,8 @@ class CourseAttributes():
           continue
         try:
           result = callGAPI(tcroom.courses().topics(), 'create',
-                            throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT],
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             courseId=newCourseId, body={'name': topicName}, fields='topicId')
           newTopicsByName[topicName] = result['topicId']
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_TOPIC, topicName], Act.MODIFIER_FROM,
@@ -35074,7 +35078,7 @@ class CourseAttributes():
         except GAPI.notFound as e:
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
-        except (GAPI.failedPrecondition, GAPI.invalidArgument, GAPI.forbidden) as e:
+        except (GAPI.failedPrecondition, GAPI.invalidArgument, GAPI.forbidden, GAPI.serviceNotAvailable) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_TOPIC, topicName], str(e), j, jcount)
     if self.courseAnnouncements:
@@ -35093,7 +35097,8 @@ class CourseAttributes():
         try:
           result = callGAPI(tcroom.courses().announcements(), 'create',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
-                                          GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR],
+                                          GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             courseId=newCourseId, body=body, fields='id')
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_ANNOUNCEMENT_ID, result['id']], Act.MODIFIER_FROM,
                                                      [Ent.COURSE, self.courseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
@@ -35101,7 +35106,7 @@ class CourseAttributes():
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
         except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError,
-                GAPI.permissionDenied, GAPI.forbidden) as e:
+                GAPI.permissionDenied, GAPI.forbidden, GAPI.serviceNotAvailable) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
     if self.courseMaterials:
@@ -35128,7 +35133,8 @@ class CourseAttributes():
         try:
           result = callGAPI(tcroom.courses().courseWorkMaterials(), 'create',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
-                                          GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR],
+                                          GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             courseId=newCourseId, body=body, fields='id')
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_MATERIAL_ID, result['id']], Act.MODIFIER_FROM,
                                                      [Ent.COURSE, self.courseId, Ent.COURSE_MATERIAL_ID, courseMaterialId], j, jcount)
@@ -35136,7 +35142,7 @@ class CourseAttributes():
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
         except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError,
-                GAPI.permissionDenied, GAPI.forbidden) as e:
+                GAPI.permissionDenied, GAPI.forbidden, GAPI.serviceNotAvailable) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_MATERIAL_ID, courseMaterialId], str(e), j, jcount)
     if self.courseWorks:
@@ -35168,7 +35174,8 @@ class CourseAttributes():
                             bailOnInternalError=True,
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
                                           GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR,
-                                          GAPI.INTERNAL_ERROR, GAPI.INVALID_ARGUMENT],
+                                          GAPI.INTERNAL_ERROR, GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             courseId=newCourseId, body=body, fields='id')
           entityModifierItemValueListActionPerformed([Ent.COURSE, newCourseId, Ent.COURSE_WORK_ID, result['id']], Act.MODIFIER_FROM,
                                                      [Ent.COURSE, self.courseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], j, jcount)
@@ -35176,7 +35183,7 @@ class CourseAttributes():
           entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
           return
         except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.backendError, GAPI.internalError, GAPI.invalidArgument,
-                GAPI.permissionDenied, GAPI.forbidden) as e:
+                GAPI.permissionDenied, GAPI.forbidden, GAPI.serviceNotAvailable) as e:
           entityModifierItemValueListActionFailedWarning([Ent.COURSE, newCourseId], Act.MODIFIER_FROM,
                                                          [Ent.COURSE, self.courseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], str(e), j, jcount)
 
@@ -35212,12 +35219,13 @@ def doCreateCourse():
   try:
     result = callGAPI(croom.courses(), 'create',
                       throwReasons=[GAPI.ALREADY_EXISTS, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
-                                    GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
+                                    GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.SERVICE_NOT_AVAILABLE],
+                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                       body=courseAttributes.body, fields='id,name,ownerId,courseState,teacherFolder(id)')
     entityActionPerformed([Ent.COURSE_NAME, result['name'], Ent.COURSE, result['id']])
     if courseAttributes.courseId:
       courseAttributes.CopyFromCourse(result)
-  except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest) as e:
+  except (GAPI.alreadyExists, GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.forbidden, GAPI.badRequest, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning([Ent.COURSE_NAME, courseAttributes.body['name'], Ent.TEACHER, courseAttributes.body['ownerId']], str(e))
 
 def _doUpdateCourses(entityList):
@@ -35240,11 +35248,13 @@ def _doUpdateCourses(entityList):
         if body:
           result = callGAPI(croom.courses(), 'patch',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
-                                          GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                                          GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             id=courseId, body=body, updateMask=','.join(list(body)), fields='id,name,ownerId,courseState,teacherFolder(id)')
         else:
           result = callGAPI(croom.courses(), 'get',
-                            throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             id=courseId, fields='id,name,ownerId,courseState,teacherFolder(id)')
         if courseAttributes.body:
           if not newOwner:
@@ -35255,7 +35265,7 @@ def _doUpdateCourses(entityList):
         if courseAttributes.courseId:
           courseAttributes.CopyFromCourse(result, i, count)
       except (GAPI.notFound, GAPI.permissionDenied,
-              GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
       except GAPI.failedPrecondition as e:
         errMsg = str(e)
@@ -35273,6 +35283,7 @@ def _doUpdateCourses(entityList):
                      throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR,
                                    GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
                                    GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE],
+                     retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                      courseId=courseId, body={'userId': newOwner}, fields='')
             modifier = Act.MODIFIER_WITH_NEW_TEACHER_OWNER
             time.sleep(10)
@@ -35335,14 +35346,15 @@ def _doDeleteCourses(entityList):
       if body:
         callGAPI(croom.courses(), 'patch',
                  throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
-                               GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR],
+                               GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  id=courseId, body=body, updateMask=updateMask, fields='')
       callGAPI(croom.courses(), 'delete',
                throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
                id=courseId)
       entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId)], i, count)
     except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
-            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument, GAPI.internalError) as e:
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument, GAPI.internalError, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam delete courses <CourseEntity> [archive|archived]
@@ -35483,9 +35495,10 @@ def _convertCourseUserIdToEmail(croom, userId, emails, entityValueList, i, count
   if userEmail is None:
     try:
       userEmail = callGAPI(croom.userProfiles(), 'get',
-                           throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                           throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE],
+                           retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                            userId=userId, fields='emailAddress').get('emailAddress')
-    except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest, GAPI.forbidden):
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest, GAPI.forbidden, GAPI.serviceNotAvailable):
       pass
     if userEmail is None:
       entityDoesNotHaveItemWarning(entityValueList, i, count)
@@ -35574,7 +35587,8 @@ def _doInfoCourses(entityList):
     courseId = addCourseIdScope(course)
     try:
       course = callGAPI(croom.courses(), 'get',
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                         id=courseId, fields=fields)
       if courseShowProperties['ownerEmail']:
         course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
@@ -35636,7 +35650,7 @@ def _doInfoCourses(entityList):
       Ind.Decrement()
     except GAPI.notFound:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], Msg.DOES_NOT_EXIST, i, count)
-    except GAPI.permissionDenied as e:
+    except (GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
     except GAPI.forbidden:
       ClientAPIAccessDeniedExit()
@@ -35744,11 +35758,14 @@ def _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, getO
     courseId = addCourseIdScope(courseId)
     try:
       info = callGAPI(croom.courses(), 'get',
-                      throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                      throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE],
+                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                       id=courseId, fields=fields)
       coursesInfo.append(info)
     except GAPI.notFound:
       entityDoesNotExistWarning(Ent.COURSE, courseId)
+    except GAPI.serviceNotAvailable as e:
+      entityActionFailedWarning([Ent.COURSE, courseId], str(e))
     except GAPI.forbidden:
       ClientAPIAccessDeniedExit()
   return coursesInfo
@@ -36018,12 +36035,13 @@ def doPrintCourseAnnouncements():
         j += 1
         try:
           courseAnnouncement = callGAPI(croom.courses().announcements(), 'get',
-                                        throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                        throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                         courseId=courseId, id=courseAnnouncementId, fields=fields)
           _printCourseAnnouncement(course, courseAnnouncement, i, count)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], j, jcount)
-        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Announcements')
 
@@ -36104,12 +36122,13 @@ def doPrintCourseTopics():
         j += 1
         try:
           courseTopic = callGAPI(croom.courses().topics(), 'get',
-                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                  courseId=courseId, id=courseTopicId, fields=fields)
           _printCourseTopic(course, courseTopic)
         except GAPI.notFound:
           entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], j, jcount)
-        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+        except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
           entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_TOPIC_ID, courseTopicId], str(e), j, jcount)
   csvPF.writeCSVfile('Course Topics')
 
@@ -36403,10 +36422,11 @@ def doPrintCourseSubmissions():
         if userId not in userProfiles:
           try:
             userProfile = callGAPI(tcroom.userProfiles(), 'get',
-                                   throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                                   throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                   retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                    userId=userId, fields='emailAddress,name')
             userProfiles[userId] = {'profile': {'emailAddress': userProfile.get('emailAddress', ''), 'name': userProfile['name']}}
-          except (GAPI.notFound, GAPI.permissionDenied):
+          except (GAPI.notFound, GAPI.permissionDenied, GAPI.serviceNotAvailable):
             userProfiles[userId] = {'profile': {'emailAddress': '', 'name': {'givenName': '', 'familyName': '', 'fullName': ''}}}
         courseSubmission.update(userProfiles[userId])
     row = flattenJSON(courseSubmission, flattened={'courseId': course['id'], 'courseName': course['name']}, timeObjects=COURSE_SUBMISSION_TIME_OBJECTS)
@@ -36532,13 +36552,14 @@ def doPrintCourseSubmissions():
           k += 1
           try:
             submission = callGAPI(croom.courses().courseWork().studentSubmissions(), 'get',
-                                  throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
+                                  throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                   courseId=courseId, courseWorkId=courseWorkId, id=courseSubmissionId,
                                   fields=fields)
             _printCourseSubmission(course, submission)
           except GAPI.notFound:
             entityDoesNotHaveItemWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], k, kcount)
-          except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
+          except (GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
             entityActionFailedWarning([Ent.COURSE_NAME, course['name'], Ent.COURSE_WORK_ID, courseWorkId, Ent.COURSE_SUBMISSION_ID, courseSubmissionId], str(e), k, kcount)
   csvPF.writeCSVfile('Course Submissions')
 
@@ -36766,7 +36787,8 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
       coursesInfo[courseId] = {}
       try:
         info = callGAPI(croom.courses(), 'get',
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                         id=courseId, fields='name,ownerId')
         if not useAdminAccess:
           _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{info["ownerId"]}')
@@ -36776,7 +36798,7 @@ def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
           coursesInfo[courseId] = {'name': info['name'], 'croom': ocroom}
       except GAPI.notFound:
         entityDoesNotExistWarning(Ent.COURSE, courseId)
-      except GAPI.permissionDenied as e:
+      except (GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, courseId], str(e))
       except GAPI.forbidden:
         ClientAPIAccessDeniedExit()
@@ -37040,7 +37062,9 @@ def _inviteGuardian(croom, studentId, guardianEmail, i=0, count=0, j=0, jcount=0
   try:
     result = callGAPI(croom.userProfiles().guardianInvitations(), 'create',
                       throwReasons=[GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS,
-                                    GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.RESOURCE_EXHAUSTED],
+                                    GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN,
+                                    GAPI.PERMISSION_DENIED, GAPI.RESOURCE_EXHAUSTED, GAPI.SERVICE_NOT_AVAILABLE],
+                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                       studentId=studentId, body=body, fields='invitationId')
     entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, body['invitedEmailAddress'], Ent.GUARDIAN_INVITATION, result['invitationId']], j, jcount)
     return 1
@@ -37053,7 +37077,7 @@ def _inviteGuardian(croom, studentId, guardianEmail, i=0, count=0, j=0, jcount=0
   except GAPI.resourceExhausted as e:
     entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, body['invitedEmailAddress']], str(e), j, jcount)
     return -1
-  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
     studentUnknownWarning(studentId, str(e), i, count)
     return -1
 
@@ -37087,7 +37111,9 @@ def _cancelGuardianInvitation(croom, studentId, invitationId, i=0, count=0, j=0,
   try:
     result = callGAPI(croom.userProfiles().guardianInvitations(), 'patch',
                       throwReasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION,
-                                    GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                    GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN,
+                                    GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                       studentId=studentId, invitationId=invitationId, updateMask='state', body={'state': 'COMPLETE'}, fields='invitedEmailAddress')
     entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, result['invitedEmailAddress']], j, jcount)
     return 1
@@ -37097,7 +37123,7 @@ def _cancelGuardianInvitation(croom, studentId, invitationId, i=0, count=0, j=0,
   except GAPI.failedPrecondition:
     entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], Msg.GUARDIAN_INVITATION_STATUS_NOT_PENDING, j, jcount)
     return 1
-  except (GAPI.invalidArgument, GAPI.badRequest) as e:
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN_INVITATION, invitationId], str(e), j, jcount)
     return -1
   except (GAPI.forbidden, GAPI.permissionDenied) as e:
@@ -37133,7 +37159,8 @@ def cancelGuardianInvitations(users):
 def _deleteGuardian(croom, studentId, guardianId, guardianEmail, i, count, j, jcount):
   try:
     callGAPI(croom.userProfiles().guardians(), 'delete',
-             throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+             throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              studentId=studentId, guardianId=guardianId)
     entityActionPerformed([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianEmail], j, jcount)
     return 1
@@ -37141,6 +37168,9 @@ def _deleteGuardian(croom, studentId, guardianId, guardianEmail, i, count, j, jc
     if guardianId == guardianEmail:
       entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianEmail], Msg.NOT_FOUND, j, jcount)
     return 0
+  except GAPI.serviceNotAvailable as e:
+    entityActionFailedWarning([Ent.STUDENT, studentId, Ent.GUARDIAN, guardianEmail], str(e), j, jcount)
+    return -1
   except (GAPI.forbidden, GAPI.permissionDenied) as e:
     studentUnknownWarning(studentId, str(e), i, count)
     return -1
@@ -37153,7 +37183,9 @@ def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0,
       Act.Set(Act.CANCEL)
       if guardianIdIsEmail:
         invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), 'list', 'guardianInvitations',
-                                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                                  GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                    retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     studentId=studentId, invitedEmailAddress=guardianId, states=['PENDING'],
                                     fields='nextPageToken,guardianInvitations(studentId,invitationId)')
         for invitation in invitations:
@@ -37170,7 +37202,9 @@ def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0,
       Act.Set(Act.DELETE)
       if guardianIdIsEmail:
         guardians = callGAPIpages(croom.userProfiles().guardians(), 'list', 'guardians',
-                                  throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                  throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                                GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                   studentId=studentId, invitedEmailAddress=guardianId,
                                   fields='nextPageToken,guardians(studentId,guardianId)')
         for guardian in guardians:
@@ -37188,6 +37222,9 @@ def _doDeleteGuardian(croom, studentId, guardianId, guardianClass, i=0, count=0,
     return -1
   except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
     studentUnknownWarning(studentId, str(e), i, count)
+    return -1
+  except GAPI.serviceNotAvailable as e:
+    entityActionFailedWarning([Ent.STUDENT, studentId, GUARDIAN_CLASS_ENTITY[guardianClass], guardianId], str(e))
     return -1
   if not guardianFound:
     Act.Set(Act.DELETE)
@@ -37235,7 +37272,9 @@ def clearGuardians(users):
     try:
       if guardianClass != GUARDIAN_CLASS_ACCEPTED:
         invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), 'list', 'guardianInvitations',
-                                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                                  GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                    retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     studentId=studentId, states=['PENDING'], fields='nextPageToken,guardianInvitations(invitationId)')
         Act.Set(Act.CANCEL)
         jcount = len(invitations)
@@ -37261,6 +37300,8 @@ def clearGuardians(users):
         Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.STUDENT, studentId, i, count)
+    except GAPI.serviceNotAvailable as e:
+      entityActionFailedWarning([Ent.STUDENT, studentId], str(e))
     except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
       studentUnknownWarning(studentId, str(e), i, count)
 
@@ -37277,14 +37318,20 @@ def syncGuardians(users):
     entityPerformActionNumItems([Ent.STUDENT, studentId], jcount, Ent.GUARDIAN, i, count)
     try:
       invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), 'list', 'guardianInvitations',
-                                  throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                  throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                                GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                   studentId=studentId, states=['PENDING'], fields='nextPageToken,guardianInvitations(invitationId,invitedEmailAddress)')
       guardians = callGAPIpages(croom.userProfiles().guardians(), 'list', 'guardians',
-                                throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                              GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 studentId=studentId, fields='nextPageToken,guardians(guardianId,invitedEmailAddress)')
     except GAPI.notFound:
       entityUnknownWarning(Ent.STUDENT, studentId, i, count)
       continue
+    except GAPI.serviceNotAvailable as e:
+      entityActionFailedWarning([Ent.STUDENT, studentId], str(e), i, count)
     except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
       studentUnknownWarning(studentId, str(e), i, count)
       continue
@@ -37321,9 +37368,11 @@ def _getCourseName(croom, courseNames, courseId):
   if courseName is None:
     try:
       courseName = callGAPI(croom.courses(), 'get',
-                            throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                          GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             id=courseId, fields='name')['name']
-    except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied):
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied, GAPI.serviceNotAvailable):
       pass
     if courseName is None:
       courseName = courseId
@@ -37337,9 +37386,11 @@ def _getClassroomEmail(croom, classroomEmails, userId, user):
   if userEmail is None:
     try:
       userEmail = callGAPI(croom.userProfiles(), 'get',
-                           throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                           throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN,
+                                         GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                           retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                            userId=userId, fields='emailAddress').get('emailAddress')
-    except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied):
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied, GAPI.serviceNotAvailable):
       pass
     if userEmail is None:
       userEmail = userId
@@ -37422,7 +37473,9 @@ def _printShowGuardians(entityList=None):
     try:
       if guardianClass != GUARDIAN_CLASS_ACCEPTED:
         invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), 'list', 'guardianInvitations',
-                                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                                  GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                    retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     studentId=studentId, invitedEmailAddress=invitedEmailAddress, states=states)
         jcount = len(invitations)
         if not csvPF:
@@ -37488,6 +37541,8 @@ def _printShowGuardians(entityList=None):
       entityUnknownWarning(Ent.STUDENT, studentId, i, count)
     except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
       studentUnknownWarning(studentId, str(e), i, count)
+    except GAPI.serviceNotAvailable as e:
+      entityActionFailedWarning([Ent.STUDENT, studentId], str(e), i, count)
   if csvPF:
     csvPF.writeCSVfile('Guardians')
 
@@ -37515,7 +37570,9 @@ CLASSROOM_ROLE_TEACHER = 'TEACHER'
 def _getClassroomInvitations(croom, userId, courseId, role, i, count, j=0, jcount=0):
   try:
     invitations = callGAPIpages(croom.invitations(), 'list', 'invitations',
-                                throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                              GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 userId=userId, courseId=courseId)
   except GAPI.notFound:
     if userId is not None:
@@ -37523,7 +37580,7 @@ def _getClassroomInvitations(croom, userId, courseId, role, i, count, j=0, jcoun
       return (-1, None)
     entityUnknownWarning(Ent.COURSE, courseId, j, jcount)
     return (0, [])
-  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied) as e:
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.forbidden, GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
     if userId is not None:
       entityActionFailedWarning([Ent.USER, userId], str(e), i, count)
       return (-1, None)
@@ -37879,7 +37936,8 @@ def printShowClassroomProfile(users):
       printGettingEntityItemForWhom(Ent.CLASSROOM_USER_PROFILE, user, i, count)
     try:
       result = callGAPI(croom.userProfiles(), 'get',
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE],
+                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                         userId=userId, fields='*')
       result.setdefault('verifiedTeacher', False)
       if not csvPF:
@@ -37896,7 +37954,7 @@ def printShowClassroomProfile(users):
         Ind.Decrement()
       else:
         csvPF.WriteRowTitles(flattenJSON(result))
-    except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest, GAPI.forbidden) as e:
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.badRequest, GAPI.forbidden, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.USER, userId], str(e))
   if csvPF:
     csvPF.writeCSVfile('Classroom User Profiles')

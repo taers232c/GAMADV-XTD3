@@ -1,3 +1,14 @@
+6.07.18
+
+Updated `gam create|update course copyfrom <CourseID> ... markpublishedasdraft` to mark
+published course materials as draft as well as course work; this matches the console
+copy course behavior.
+
+Updated more course related commands to handle the following error.
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
 6.07.17
 
 Following Jay's suggestion, added option `maxresults <Number>` to `gam print|show resoldsubscriptions`;
