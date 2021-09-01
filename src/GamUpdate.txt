@@ -1,3 +1,10 @@
+6.07.19
+
+Fixed bug in `gam print chromepolicies` that caused the following error:
+```
+Chrome Policy: chrome.devices.*, Print Failed: Invalid page token, request parameters do not match page token.
+```
+
 6.07.18
 
 Updated `gam create|update course copyfrom <CourseID> ... markpublishedasdraft` to mark

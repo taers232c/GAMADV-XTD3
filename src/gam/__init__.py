@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.18'
+__version__ = '6.07.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19468,6 +19468,7 @@ def doPrintShowChromePolicies():
   policies = []
   for namespace in namespaces:
     body['policySchemaFilter'] = f'{namespace}.*' if not policySchemaFilter else policySchemaFilter
+    body['pageToken'] = None
     printGettingAllEntityItemsForWhom(Ent.CHROME_POLICY, orgUnitPath, query=body['policySchemaFilter'])
     pageMessage = getPageMessage()
     try:
