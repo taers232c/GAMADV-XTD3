@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.21'
+__version__ = '6.07.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -12508,14 +12508,9 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerKey=customerId)
     if 'customerDomain' not in customerInfo:
-      if FJQC.formatJSON:
-        if returnCustomerInfo is not None:
-          returnCustomerInfo.update(customerInfo)
-          return
-        printLine(json.dumps(cleanJSON(customerInfo), ensure_ascii=False, sort_keys=True))
-        return
-      printKeyValueList(['Customer ID', customerInfo['id']])
-      return
+      entityActionFailedExit([Ent.CONFIG_FILE, GM.Globals[GM.GAM_CFG_FILE], Ent.SECTION, GM.Globals[GM.GAM_CFG_SECTION_NAME],
+                             Ent.CUSTOMER_ID, customerId, Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT], Ent.CLIENT_ID, GM.Globals[GM.OAUTH2_CLIENT_ID]],
+                             Msg.VALUES_ARE_NOT_CONSISTENT)
     try:
       customerInfo['verified'] = callGAPI(cd.domains(), 'get',
                                           throwReasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],

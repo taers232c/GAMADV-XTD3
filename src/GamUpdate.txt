@@ -1,3 +1,8 @@
+6.07.22
+
+Updated `gam info domain` to generate an error when the `customer_id` and `oauth2_txt` values are not consistent.
+This typically happens when the wrong customer ID is assigned to a `gam.cfg` section.
+
 6.07.21
 
 Fixed bug in `gam create datatransfer <OldOwnerID> <DataTransferServiceList> <NewOwnerID>`
