@@ -1,3 +1,9 @@
+6.07.21
+
+Fixed bug in `gam create datatransfer <OldOwnerID> <DataTransferServiceList> <NewOwnerID>`
+where the privacy level was not being set in all applications if more than one was
+specified in `<DataTransferServiceList>`.
+
 6.07.20
 
 * Upgraded to Python 3.9.7

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.20'
+__version__ = '6.07.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13052,6 +13052,7 @@ PRIVACY_LEVEL_CHOICE_MAP = {
 #	[private|shared|all] [release_resources] (<ParameterKey> <ParameterValue>)*
 def doCreateDataTransfer():
   def _assignAppParameter(key, value, doubleBackup=False):
+    keyValid = False
     for app in apps:
       for params in app.get('transferParams', []):
         if key == params['key']:
@@ -13059,12 +13060,13 @@ def doCreateDataTransfer():
           if appIndex is not None:
             body['applicationDataTransfers'][appIndex].setdefault('applicationTransferParams', [])
             body['applicationDataTransfers'][appIndex]['applicationTransferParams'].append({'key': key, 'value': value})
-            return
+            keyValid = True
           break
-    Cmd.Backup()
-    if doubleBackup:
+    if not keyValid:
       Cmd.Backup()
-    usageErrorExit(Msg.NO_DATA_TRANSFER_APP_FOR_PARAMETER.format(key))
+      if doubleBackup:
+        Cmd.Backup()
+      usageErrorExit(Msg.NO_DATA_TRANSFER_APP_FOR_PARAMETER.format(key))
 
   dt = buildGAPIObject(API.DATATRANSFER)
   apps = getTransferApplications(dt)
