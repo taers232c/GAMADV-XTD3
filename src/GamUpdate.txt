@@ -1,3 +1,7 @@
+6.07.23
+
+Update Google API libraries, remove unused libraries.
+
 6.07.22
 
 Updated `gam info domain` to generate an error when the `customer_id` and `oauth2_txt` values are not consistent.

@@ -39,13 +39,13 @@ via the GCP STS endpoint.
 
 import hashlib
 import hmac
+import http.client
 import io
 import json
 import os
 import re
-
-from six.moves import http_client
-from six.moves import urllib
+import urllib
+from urllib.parse import urljoin
 
 from google.auth import _helpers
 from google.auth import environment_vars
@@ -113,13 +113,17 @@ class RequestSigner(object):
         additional_headers = additional_headers or {}
 
         uri = urllib.parse.urlparse(url)
+        # Normalize the URL path. This is needed for the canonical_uri.
+        # os.path.normpath can't be used since it normalizes "/" paths
+        # to "\\" in Windows OS.
+        normalized_uri = urllib.parse.urlparse(urljoin(url, uri.path))
         # Validate provided URL.
         if not uri.hostname or uri.scheme != "https":
             raise ValueError("Invalid AWS service URL")
 
         header_map = _generate_authentication_header_map(
             host=uri.hostname,
-            canonical_uri=os.path.normpath(uri.path or "/"),
+            canonical_uri=normalized_uri.path or "/",
             canonical_querystring=_get_canonical_querystring(uri.query),
             method=method,
             region=self._region_name,
@@ -627,7 +631,7 @@ class Credentials(external_account.Credentials):
             else response.data
         )
 
-        if response.status != http_client.OK:
+        if response.status != http.client.OK:
             raise exceptions.RefreshError(
                 "Unable to retrieve AWS security credentials", response_body
             )
@@ -666,7 +670,7 @@ class Credentials(external_account.Credentials):
             else response.data
         )
 
-        if response.status != http_client.OK:
+        if response.status != http.client.OK:
             raise exceptions.RefreshError(
                 "Unable to retrieve AWS role name", response_body
             )
