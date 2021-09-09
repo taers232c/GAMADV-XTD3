@@ -229,11 +229,13 @@ If an item contains spaces, it should be surrounded by ".
         voicestarter | gvstarter | googlevoicestarter | 1010330003 |
         workspacefrontline | workspacefrontlineworker | 1010020030 |
         wsbizplus | workspacebusinessplus | 1010020025 |
+        wsbizplusarchived | workspacebusinessplusarchived | 1010340003 |
         wsbizstan | workspacebusinessstandard | 1010020028 |
         wsbizstart | workspacebusinessstarter | 1010020027 |
         wsentess | workspaceenterpriseessentials | 1010060003 |
         wsentplus | workspaceenterpriseplus | gae | gse | enterprise | gsuiteenterprise | 1010020020 |
         wsentstan | workspaceenterprisestandard | 1010020026 |
+        wsentstanarchived | workspaceenterprisestandardarchived | 1010340004 |
         wsess | workspaceesentials | gsuiteessentials | essentials | d4e | driveenterprise | drive4enterprise | 1010060001
 <SKUIDList> ="<SKUID>(,<SKUID>)*"
 

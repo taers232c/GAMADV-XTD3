@@ -1,3 +1,7 @@
+6.07.25
+
+Cleaned up License Product/SKU names; replaced `G Suite` with `Google Workspace` where appropriate.
+
 6.07.24
 
 Added option `defaultsender self|group` to `<GroupSettingsAttribute>`.

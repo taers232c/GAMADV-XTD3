@@ -26,11 +26,11 @@ import re
 _PRODUCTS = {
   '101001': 'Cloud Identity Free',
   '101005': 'Cloud Identity Premium',
-  '101031': 'G Suite Workspace for Education',
+  '101031': 'Google Workspace for Education',
   '101033': 'Google Voice',
-  '101034': 'G Suite Archived',
+  '101034': 'Google Workspace Archived User',
   '101035': 'Cloud Search',
-  '101037': 'G Suite Workspace for Education',
+  '101037': 'Google Workspace for Education',
   'Google-Apps': 'Google Workspace',
   'Google-Chrome-Device-Management': 'Google Chrome Device Management',
   'Google-Drive-storage': 'Google Drive Storage',
@@ -68,13 +68,13 @@ _SKUS = {
   '1010370001': {
     'product': '101037', 'aliases': ['gwetlu', 'workspaceeducationupgrade'], 'displayName': 'Google Workspace for Education: Teaching and Learning Upgrade'},
   'Google-Apps': {
-    'product': 'Google-Apps', 'aliases': ['standard', 'free'], 'displayName': 'G Suite Free/Standard'},
+    'product': 'Google-Apps', 'aliases': ['standard', 'free'], 'displayName': 'Google Workspace Free/Standard'},
   'Google-Apps-For-Business': {
     'product': 'Google-Apps', 'aliases': ['gafb', 'gafw', 'basic', 'gsuitebasic'], 'displayName': 'G Suite Basic'},
   'Google-Apps-For-Government': {
-    'product': 'Google-Apps', 'aliases': ['gafg', 'gsuitegovernment', 'gsuitegov'], 'displayName': 'G Suite Government'},
+    'product': 'Google-Apps', 'aliases': ['gafg', 'gsuitegovernment', 'gsuitegov'], 'displayName': 'Google Workspace Government'},
   'Google-Apps-For-Postini': {
-    'product': 'Google-Apps', 'aliases': ['gams', 'postini', 'gsuitegams', 'gsuitepostini', 'gsuitemessagesecurity'], 'displayName': 'G Suite Message Security'},
+    'product': 'Google-Apps', 'aliases': ['gams', 'postini', 'gsuitegams', 'gsuitepostini', 'gsuitemessagesecurity'], 'displayName': 'Google Apps Message Security'},
   'Google-Apps-Lite': {
     'product': 'Google-Apps', 'aliases': ['gal', 'gsl', 'lite', 'gsuitelite'], 'displayName': 'G Suite Lite'},
   'Google-Apps-Unlimited': {
@@ -92,10 +92,14 @@ _SKUS = {
     'product': 'Google-Apps', 'aliases': ['wsbizstan', 'workspacebusinessstandard'], 'displayName': 'Google Workspace Business Standard'},
   '1010020030': {
     'product': 'Google-Apps', 'aliases': ['workspacefrontline', 'workspacefrontlineworker'], 'displayName': 'Google Workspace Frontline'},
-  '1010340002': {
-    'product': '101034', 'aliases': ['gsbau', 'businessarchived', 'gsuitebusinessarchived'], 'displayName': 'G Suite Business Archived'},
   '1010340001': {
-    'product': '101034', 'aliases': ['gseau', 'enterprisearchived', 'gsuiteenterprisearchived'], 'displayName': 'Google Workspace Enterprise Plus Archived'},
+    'product': '101034', 'aliases': ['gseau', 'enterprisearchived', 'gsuiteenterprisearchived'], 'displayName': 'Google Workspace Enterprise Plus - Archived User'},
+  '1010340002': {
+    'product': '101034', 'aliases': ['gsbau', 'businessarchived', 'gsuitebusinessarchived'], 'displayName': 'Google Workspace Business - Archived User'},
+  '1010340003': {
+    'product': '101034', 'aliases': ['wsbizplusarchived', 'workspacebusinessplusarchived'], 'displayName': 'Google Workspace Business Plus - Archived User'},
+  '1010340004': {
+    'product': '101034', 'aliases': ['wsentstanarchived', 'workspaceenterprisestandardarchived'], 'displayName': 'Google Workspace Enterprise Standard - Archived User'},
   '1010060001': {
     'product': 'Google-Apps', 'aliases': ['gsuiteessentials', 'essentials',
                                           'd4e', 'driveenterprise', 'drive4enterprise',
@@ -123,7 +127,7 @@ _SKUS = {
   'Google-Vault': {
     'product': 'Google-Vault', 'aliases': ['vault', 'googlevault'], 'displayName': 'Google Vault'},
   'Google-Vault-Former-Employee': {
-    'product': 'Google-Vault', 'aliases': ['vfe', 'googlevaultformeremployee'], 'displayName': 'Google Vault Former Employee'},
+    'product': 'Google-Vault', 'aliases': ['vfe', 'googlevaultformeremployee'], 'displayName': 'Google Vault - Former Employee'},
   'Google-Chrome-Device-Management': {
     'product': 'Google-Chrome-Device-Management', 'aliases': ['chrome', 'cdm', 'googlechromedevicemanagement'], 'displayName': 'Google Chrome Device Management'}
   }
