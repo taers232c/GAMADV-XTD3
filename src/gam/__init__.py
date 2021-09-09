@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.23'
+__version__ = '6.07.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4066,6 +4066,8 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
       systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
     if scopesOrAPI in {API.PEOPLE, API.PEOPLE_DIRECTORY, API.PEOPLE_OTHERCONTACTS}:
       GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES].append(API.USERINFO_PROFILE_SCOPE)
+      if scopesOrAPI in {API.PEOPLE_OTHERCONTACTS}:
+        GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES].append(API.PEOPLE_SCOPE)
   else:
     GM.Globals[GM.CURRENT_SVCACCT_API] = ''
     GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = scopesOrAPI
@@ -21984,6 +21986,8 @@ GROUP_SETTINGS_ATTRIBUTES = {
   'customreplyto': ['customReplyTo', {GC.VAR_TYPE: GC.TYPE_EMAIL_OPTIONAL}],
   'customrolesenabledforsettingstobemerged': ['customRolesEnabledForSettingsToBeMerged', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   'defaultmessagedenynotificationtext': ['defaultMessageDenyNotificationText', {GC.VAR_TYPE: GC.TYPE_STRING}],
+  'defaultsender': ['defaultSender', {GC.VAR_TYPE: GC.TYPE_CHOICE,
+                                      'choices': {'self': 'DEFAULT_SELF', 'defaultself': 'DEFAULT_SELF', 'group': 'GROUP'}}],
   'enablecollaborativeinbox': ['enableCollaborativeInbox', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   'includecustomfooter': ['includeCustomFooter', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
   'includeinglobaladdresslist': ['includeInGlobalAddressList', {GC.VAR_TYPE: GC.TYPE_BOOLEAN}],
@@ -24381,7 +24385,7 @@ GROUPMEMBERS_FIELDS_CHOICE_MAP = {
   'useremail': 'email',
   }
 
-GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
+GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email', 'delivery_settings']
 
 # gam print group-members [todrive <ToDriveAttribute>*]
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|

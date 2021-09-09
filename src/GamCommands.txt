@@ -2516,6 +2516,7 @@ gam show domainaliases|aliasdomains [formatjson]
         (customfootertext <String>)|
         (customreplyto <EmailAddress>)|
         (defaultmessagedenynotificationtext <String>)|
+        (defaultsender self|group)|
         (description <String>)|
         (enablecollaborativeinbox|collaborative <Boolean>)|
         (includeinglobaladdresslist|gal <Boolean>)|

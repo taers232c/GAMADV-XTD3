@@ -1,3 +1,9 @@
+6.07.24
+
+Added option `defaultsender self|group` to `<GroupSettingsAttribute>`.
+
+Added `delivery_settings` to the default list of fields in `gam print group-members`.
+
 6.07.23
 
 Update Google API libraries, remove unused libraries.

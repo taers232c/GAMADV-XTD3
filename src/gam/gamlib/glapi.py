@@ -80,6 +80,7 @@ CHROMEVERSIONHISTORY_URL = 'https://versionhistory.googleapis.com/v1/chrome/plat
 DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
 GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
 IAM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
+PEOPLE_SCOPE = 'https://www.googleapis.com/auth/contacts'
 USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
 USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile' # profile
 VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
@@ -336,7 +337,7 @@ _CLIENT_SCOPES = [
   {'name': 'People API',
    'api': PEOPLE,
    'subscopes': READONLY,
-   'scope': 'https://www.googleapis.com/auth/contacts'},
+   'scope': PEOPLE_SCOPE},
   {'name': 'Directory API - Printers',
    'api': PRINTERS,
    'subscopes': READONLY,
@@ -482,7 +483,7 @@ _SVCACCT_SCOPES = [
   {'name': 'People API',
    'api': PEOPLE,
    'subscopes': READONLY,
-   'scope': 'https://www.googleapis.com/auth/contacts'},
+   'scope': PEOPLE_SCOPE},
   {'name': 'People API - Other Contacts - read only',
    'api': PEOPLE_OTHERCONTACTS,
    'subscopes': [],
