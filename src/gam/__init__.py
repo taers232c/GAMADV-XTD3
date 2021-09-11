@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.25'
+__version__ = '6.07.26'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3361,6 +3361,25 @@ def SetGlobalVariables():
     GM.Globals[stdtype][GM.REDIRECT_MULTIPROCESS] = multi
     GM.Globals[stdtype][GM.REDIRECT_QUEUE] = 'stdout' if stdtype == GM.STDOUT else 'stderr'
 
+  MULTIPROCESS_EXIT_COMP_PATTERN = re.compile(r'^rc([<>]=?|=|!=)(.+)$', re.IGNORECASE)
+  MULTIPROCESS_EXIT_RANGE_PATTERN = re.compile(r'^rcrange(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
+
+  def _setMultiprocessExit():
+    rcStr = getString(Cmd.OB_STRING)
+    mg = MULTIPROCESS_EXIT_COMP_PATTERN.match(rcStr)
+    if mg:
+      if not mg.group(2).isdigit():
+        usageErrorExit(f'{Msg.EXPECTED}: rc<Operator><Value>')
+      GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] = {'comp': mg.group(1), 'value': int(mg.group(2))}
+      return
+    mg = MULTIPROCESS_EXIT_RANGE_PATTERN.match(rcStr)
+    if mg:
+      if not mg.group(2).isdigit() or not  mg.group(3).isdigit():
+        usageErrorExit(f'{Msg.EXPECTED}: rcrange<Operator><Value>/Value>')
+      GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] = {'range': mg.group(1), 'low': int(mg.group(2)), 'high': int(mg.group(3))}
+      return
+    usageErrorExit(f'{Msg.EXPECTED}: (rc<Operator><Value>)|(rcrange<Operator><Value>/Value>)')
+
   if not GM.Globals[GM.PARSER]:
     homePath = os.path.expanduser('~')
     GM.Globals[GM.GAM_CFG_PATH] = os.environ.get(EV_GAMCFGDIR, None)
@@ -3555,6 +3574,9 @@ def SetGlobalVariables():
     GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = {}
     GM.Globals[GM.OAUTH2SERVICE_CLIENT_ID] = None
   Cmd.SetEncoding(GM.Globals[GM.SYS_ENCODING])
+# multiprocessexit (rc<Operator><Number>)|(rcrange=<Number>/<Number>)|(rcrange!=<Number>/<Number>)
+  if checkArgumentPresent(Cmd.MULTIPROCESSEXIT_CMD):
+    _setMultiprocessExit()
 # redirect csv <FileName> [multiprocess] [append] [noheader] [charset <CharSet>]
 #	       [columndelimiter <Character>] [quotechar <Character>]]
 #	       [todrive <ToDriveAttribute>*]
@@ -8035,6 +8057,30 @@ ERROR_PLURAL_SINGULAR = [Msg.ERRORS, Msg.ERROR]
 PROCESS_PLURAL_SINGULAR = [Msg.PROCESSES, Msg.PROCESS]
 THREAD_PLURAL_SINGULAR = [Msg.THREADS, Msg.THREAD]
 
+def checkChildProcessRC(rc):
+# Comparison
+  if 'comp' in GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION]:
+    op = GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION]['comp']
+    value = GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION]['value']
+    if op == '<':
+      return rc < value
+    if op == '<=':
+      return rc <= value
+    if op == '>':
+      return rc > value
+    if op == '>=':
+      return rc >= value
+    if op == '!=':
+      return rc != value
+    return rc == value
+# Range
+  op = GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION]['range']
+  low = GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION]['low']
+  high = GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION]['high']
+  if op == '!=':
+    return not low <= rc <= high
+  return low <= rc <= high
+
 def MultiprocessGAMCommands(items, showCmds):
   def poolCallback(result):
     poolProcessResults[0] -= 1
@@ -8042,6 +8088,8 @@ def MultiprocessGAMCommands(items, showCmds):
       batchWriteStderr(f'{currentISOformatTimeStamp()},{result[0]}/{numItems},End,{result[1]},{result[2]}\n')
     if GM.Globals[GM.CMDLOG_LOGGER]:
       GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{result[1]},{result[2]}')
+    if GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] is not None:
+      GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING] = checkChildProcessRC(result[1])
 
   if not items:
     return
@@ -8090,6 +8138,8 @@ def MultiprocessGAMCommands(items, showCmds):
     pid = 0
     poolProcessResults = {pid: 0}
     for item in items:
+      if GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING]:
+        break
       if item[0] == Cmd.COMMIT_BATCH_CMD:
         batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                                   numItems, poolProcessResults[0],
@@ -8153,6 +8203,8 @@ def threadBatchWorker(showCmds=False, numItems=0):
                               stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
       if showCmds:
         batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},End,{sysRC},{logCmd}\n')
+      if GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] is not None:
+        GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING] = checkChildProcessRC(sysRC)
     except Exception as e:
       batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Error,{str(e)},{logCmd}\n')
     GM.Globals[GM.TBATCH_QUEUE].task_done()
@@ -8180,6 +8232,8 @@ def ThreadBatchGAMCommands(items, showCmds):
   pid = 0
   numThreadsInUse = 0
   for item in items:
+    if GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING]:
+      break
     if item[0] == Cmd.COMMIT_BATCH_CMD:
       batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                                 numItems, numThreadsInUse,

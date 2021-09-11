@@ -1,3 +1,16 @@
+6.07.26
+
+Added metacommand `multiprocessexit (rc<Operator><Number>)|(rcrange=<Number>/<Number>)|(rcrange!=<Number>/<Number>)`
+that will terminate processing of a CSV or batch file when one of the subprocesses returns a matching return code.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Meta-Commands-and-File-Redirection#specify-multiprocessing-termination-return-code
+
+This change was inspired by the brute force approach to finding the owner of a file by stepping through
+all users. Once the owner is found, there is no need to process the remaining users; this change allows
+processing to be terminated when the owner is found.
+```
+gam config auto_batch_min 1 multiprocessexit rc=0 redirect csv - multiprocess redirect stderr null multiprocess all users print filelist select id <DriveFileID> fields id,name,owners.emailaddress norecursion showownedby any
+```
+
 6.07.25
 
 Cleaned up License Product/SKU names; replaced `G Suite` with `Google Workspace` where appropriate.

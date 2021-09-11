@@ -116,6 +116,10 @@ MAP_ROLE_ID_TO_NAME = 'ri2n'
 MAP_ROLE_NAME_TO_ID = 'rn2i'
 # Dictionary mapping User ID to Name
 MAP_USER_ID_TO_NAME = 'ui2n'
+# Multiprocess exit condition
+MULTIPROCESS_EXIT_CONDITION = 'mpec'
+# Multiprocess exit processing
+MULTIPROCESS_EXIT_PROCESSING = 'mpep'
 # Values retrieved from oauth2.txt
 OAUTH2_CLIENT_ID = 'oaci'
 # oauth2.txt lock file
@@ -223,6 +227,8 @@ Globals = {
   MAP_ROLE_ID_TO_NAME: {},
   MAP_ROLE_NAME_TO_ID: {},
   MAP_USER_ID_TO_NAME: {},
+  MULTIPROCESS_EXIT_CONDITION: None,
+  MULTIPROCESS_EXIT_PROCESSING: False,
   OAUTH2_CLIENT_ID: None,
   OAUTH2_TXT_LOCK: None,
   OAUTH2SERVICE_CLIENT_ID: None,
