@@ -1,3 +1,7 @@
+6.07.27
+
+Updated from `Cloud Identity Groups API` version v1beta1 to version v1.
+
 6.07.26
 
 Added metacommand `multiprocessexit (rc<Operator><Number>)|(rcrange=<Number>/<Number>)|(rcrange!=<Number>/<Number>)`
