@@ -1,3 +1,7 @@
+6.07.28
+
+Fixed bug in `gam user user@domain.com remove calendars courses_with_teacher user@domain.com` that caused a trap.
+
 6.07.27
 
 Updated from `Cloud Identity Groups API` version v1beta1 to version v1.

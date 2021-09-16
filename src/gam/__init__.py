@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.27'
+__version__ = '6.07.28'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -16229,7 +16229,7 @@ def _printShowContacts(users, entityType, contactFeed=True):
     csvPF.writeCSVfile('Contacts')
 
 # gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
-#	[basic|full] [showgroups|showgroupnameslist] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[basic|full|countsonly] [showgroups|showgroupnameslist] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show contacts <UserContactSelection>
 #	[basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
@@ -38350,8 +38350,7 @@ def _validateUserGetCalendarIds(user, i, count, calendarEntity,
                                   calendarEntity['courseShowProperties'])
     if coursesInfo is None:
       return (user, None, None, 0)
-    for course in coursesInfo:
-      calIds.append(course['calendarId'])
+    calIds.extend([course['calendarId'] for course in coursesInfo if 'calendarId' in course])
   if calendarEntity['primary']:
     calIds.append(user)
   try:
