@@ -4023,7 +4023,6 @@ gam show vaultholds|holds [matters <MatterItemList>]
         familyname|lastname|givenname|firstname|email
 
 <UserBasicAttribute> ::=
-        (agreed2terms|agreedtoterms <Boolean>)|
         (archived <Boolean>)|
         (changepassword|changepasswordatnextlogin <Boolean>)|
         (base64-md5|base64-sha1|crypt|sha|sha1|sha-1|md5|nohash)|

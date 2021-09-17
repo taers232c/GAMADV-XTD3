@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.28'
+__version__ = '6.07.29'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -31781,8 +31781,6 @@ class PasswordOptions():
 UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'address': 'addresses',
   'addresses': 'addresses',
-  'agreed2terms': 'agreedToTerms',
-  'agreedtoterms': 'agreedToTerms',
   'archived': 'archived',
   'base64-md5': 'hashFunction',
   'base64-sha1': 'hashFunction',

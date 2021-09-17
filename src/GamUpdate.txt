@@ -1,3 +1,8 @@
+6.07.29
+
+Removed `agreed2terms|agreedtoterms <Boolean>` from `<UserBasicAttribute>`; this is a read-only attribute
+and can't be modified.
+
 6.07.28
 
 Fixed bug in `gam user user@domain.com remove calendars courses_with_teacher user@domain.com` that caused a trap.
