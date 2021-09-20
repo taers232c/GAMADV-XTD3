@@ -1,3 +1,8 @@
 lxml
 cryptography
-google-api-python-client>=2.15
+google-api-python-client>=2.21.0
+google-auth-httplib2>=0.1.0
+google-auth-oauthlib>=0.4.6
+google-auth>=2.1.0
+httplib2>=0.19.1
+passlib>=1.7.4

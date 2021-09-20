@@ -1,3 +1,7 @@
+6.07.30
+
+Update Google API libraries.
+
 6.07.29
 
 Removed `agreed2terms|agreedtoterms <Boolean>` from `<UserBasicAttribute>`; this is a read-only attribute
