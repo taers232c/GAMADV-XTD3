@@ -1,3 +1,4 @@
 lxml
 cryptography
 google-api-python-client>=2.15
+google-auth<2.1.0
