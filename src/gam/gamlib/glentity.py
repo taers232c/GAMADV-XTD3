@@ -145,6 +145,7 @@ class GamEntity():
   DOMAIN = 'doma'
   DOMAIN_ALIAS = 'doal'
   DOMAIN_CONTACT = 'doco'
+  DOMAIN_PEOPLE_CONTACT = 'dopc'
   DOMAIN_PROFILE = 'dopr'
   DRIVE_FILE = 'dfil'
   DRIVE_FILE_ID = 'fili'
@@ -419,6 +420,7 @@ class GamEntity():
     DOMAIN: ['Domains', 'Domain'],
     DOMAIN_ALIAS: ['Domain Aliases', 'Domain Alias'],
     DOMAIN_CONTACT: ['Domain Contacts', 'Domain Contact'],
+    DOMAIN_PEOPLE_CONTACT: ['Domain People Contacts', 'Domain People Contact'],
     DOMAIN_PROFILE: ['Domain Profiles', 'Domain Profile'],
     DRIVE_FILE: ['Drive Files', 'Drive File'],
     DRIVE_FILE_ID: ['Drive File IDs', 'Drive File ID'],

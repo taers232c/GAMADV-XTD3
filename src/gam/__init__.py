@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.30'
+__version__ = '6.07.31'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -47,6 +47,10 @@ import hashlib
 from html.entities import name2codepoint
 from html.parser import HTMLParser
 import http.client as http_client
+try:
+    from importlib.metadata import version as lib_version
+except ImportError:
+    from importlib_metadata import version as lib_version
 import io
 import json
 import logging
@@ -7758,8 +7762,6 @@ def doVersion(checkForArgs=True):
   writeStdout((f'{GAM} {__version__} - {GAM_URL} - {GM.Globals[GM.GAM_TYPE]}\n'
                f'{__author__}\n'
                f'Python {sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {struct.calcsize("P")*8}-bit {sys.version_info[3]}\n'
-               f'google-api-python-client {googleapiclient.__version__}\n'
-               f'httplib2 {httplib2.__version__}\n'
                f'{getOSPlatform()} {platform.machine()}\n'
                f'Path: {GM.Globals[GM.GAM_PATH]}\n'
                f'{Ent.Singular(Ent.CONFIG_FILE)}: {GM.Globals[GM.GAM_CFG_FILE]}, {Ent.Singular(Ent.SECTION)}: {GM.Globals[GM.GAM_CFG_SECTION_NAME]}, '
@@ -7777,6 +7779,21 @@ def doVersion(checkForArgs=True):
   if extended:
     printKeyValueList([ssl.OPENSSL_VERSION])
     tls_ver, cipher_name = _getServerTLSUsed(testLocation)
+    libs = ['cryptography',
+            'filelock',
+            'google-api-python-client',
+            'google-auth',
+            'google-auth-httplib2',
+            'google-auth-oauthlib',
+            'httplib2',
+            'passlib',
+            'python-dateutil',
+            ]
+    for lib in libs:
+      try:
+        writeStdout(f'{lib} {lib_version(lib)}\n')
+      except:
+        pass
     printKeyValueList([f'{testLocation} connects using {tls_ver} {cipher_name}'])
 
 # gam help
@@ -19819,6 +19836,7 @@ DEVICE_TYPE_MAP = {
   'android': 'ANDROID',
   'chromeos': 'CHROME_OS',
   'googlesync': 'GOOGLE_SYNC',
+  'ios': 'IOS',
   'linux': 'LINUX',
   'macos': 'MAC_OS',
   'windows': 'WINDOWS'
@@ -19849,11 +19867,12 @@ def doCreateCIDevice():
     result = callGAPI(ci.devices(), 'create',
                       throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
                       customer=customer, body=body)
-    deviceId = _makeDeviceId(f'{result["response"]["name"]}', body)
-    entityActionPerformed([Ent.COMPANY_DEVICE, deviceId])
+    if 'resoinse' in result:
+      entityActionPerformed([Ent.COMPANY_DEVICE, _makeDeviceId(f'{result["response"]["name"]}', body)])
+    else:
+      entityActionFailedWarning([Ent.COMPANY_DEVICE, _makeDeviceId('/devices/???', body)], result['error']['message'])
   except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.alreadyExists) as e:
-    deviceId = _makeDeviceId('/devices/???', body)
-    entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e))
+    entityActionFailedWarning([Ent.COMPANY_DEVICE, _makeDeviceId('/devices/???', body)], str(e))
 
 DEVICE_ACTION_CHOICES = {'cancelwipe', 'wipe'}
 
@@ -19966,7 +19985,7 @@ def doSyncCIDevices():
     csvFieldErrorExit(deviceTypeColumn, fieldnames)
   if assetTagColumn and assetTagColumn not in fieldnames:
     csvFieldErrorExit(assetTagColumn, fieldnames)
-  localDevices = []
+  localDevices = {}
   for row in csvFile:
     # upper() is very important to comparison since Google
     # always return uppercase serials
@@ -19974,36 +19993,46 @@ def doSyncCIDevices():
     if staticDeviceType:
       localDevice['deviceType'] = staticDeviceType
     else:
-      localDevice['deviceType'] = row[deviceTypeColumn].strip()
+      dt = row[deviceTypeColumn].strip()
+      localDevice['deviceType'] = DEVICE_TYPE_MAP.get(dt.lower().replace('_', '').replace('-', ''), dt.upper())
     if assetTagColumn:
       localDevice['assetTag'] = row[assetTagColumn].strip()
-    localDevices.append(localDevice)
+    sndt = f"{localDevice['serialNumber']}-{localDevice['deviceType']}"
+    localDevices[sndt] = localDevice
   closeFile(f)
   fields = f'nextPageToken,devices({",".join(fieldsList)})'
-  remoteDevices = []
+  remoteDevices = {}
+  remoteDeviceMap = {}
   substituteQueryTimes(queries, queryTimes)
   for query in queries:
     printGettingAllAccountEntities(Ent.COMPANY_DEVICE, query)
     pageMessage = getPageMessage()
     try:
-      remoteDevices += callGAPIpages(ci.devices(), 'list', 'devices',
-                                     throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                                     pageMessage=pageMessage,
-                                     customer=customer, filter=query, view='COMPANY_INVENTORY',
-                                     fields=fields, pageSize=100)
+      result = callGAPIpages(ci.devices(), 'list', 'devices',
+                             throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                             pageMessage=pageMessage,
+                             customer=customer, filter=query, view='COMPANY_INVENTORY',
+                             fields=fields, pageSize=100)
     except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.COMPANY_DEVICE, None], str(e))
       return
-  remoteDeviceMap = {}
-  for remoteDevice in remoteDevices:
-    sn = remoteDevice['serialNumber']
-    last_sync = remoteDevice.pop('lastSyncTime', NEVER_TIME_NOMS)
-    name = remoteDevice.pop('name')
-    remoteDeviceMap[sn] = {'name': name}
-    if last_sync == NEVER_TIME_NOMS:
-      remoteDeviceMap[sn]['unassigned'] = True
-  devicesToAdd = [device for device in localDevices if device not in remoteDevices]
-  missingDevices = [device for device in remoteDevices if device not in localDevices]
+    for remoteDevice in result:
+      sn = remoteDevice['serialNumber']
+      last_sync = remoteDevice.pop('lastSyncTime', NEVER_TIME_NOMS)
+      name = remoteDevice.pop('name')
+      sndt = f"{remoteDevice['serialNumber']}-{remoteDevice['deviceType']}"
+      remoteDevices[sndt] = remoteDevice
+      remoteDeviceMap[sndt] = {'name': name}
+      if last_sync == NEVER_TIME_NOMS:
+        remoteDeviceMap[sndt]['unassigned'] = True
+  devicesToAdd = []
+  for sndt, device in iter(localDevices.items()):
+    if sndt not in remoteDevices:
+      devicesToAdd.append(device)
+  missingDevices = []
+  for sndt, device in iter(remoteDevices.items()):
+    if sndt not in localDevices:
+      missingDevices.append(device)
   Act.Set([Act.CREATE, Act.CREATE_PREVIEW][preview])
   count = len(devicesToAdd)
   performActionNumItems(count, Ent.COMPANY_DEVICE)
@@ -20013,15 +20042,17 @@ def doSyncCIDevices():
     try:
       if not preview:
         result = callGAPI(ci.devices(), 'create',
-                          throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED, GAPI.DUPLICATE],
-                          customer=customer, body=device, fields='name')
+                          throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
+                          customer=customer, body=device)
+        if 'error' in result:
+          entityActionFailedWarning([Ent.COMPANY_DEVICE, _makeDeviceId('/devices/???', device)], result['error']['message'], i, count)
+          continue
         deviceId = _makeDeviceId(f'{result["response"]["name"]}', device)
       else:
         deviceId = _makeDeviceId('/devices/???', device)
       entityActionPerformed([Ent.COMPANY_DEVICE, deviceId], i, count)
-    except (GAPI.invalid, GAPI.permissionDenied, GAPI.duplicate) as e:
-      deviceId = _makeDeviceId('/devices/???', device)
-      entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e), i, count)
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.alreadyExists) as e:
+      entityActionFailedWarning([Ent.COMPANY_DEVICE, _makeDeviceId('/devices/???', device)], str(e), i, count)
   Act.Set([Act.PROCESS, Act.PROCESS_PREVIEW][preview])
   count = len(missingDevices)
   performActionNumItems(count, Ent.COMPANY_DEVICE)
@@ -20029,9 +20060,10 @@ def doSyncCIDevices():
   for device in missingDevices:
     i += 1
     sn = device['serialNumber']
-    name = remoteDeviceMap[sn]['name']
+    sndt = f"{sn}-{device['deviceType']}"
+    name = remoteDeviceMap[sndt]['name']
     deviceId = _makeDeviceId(f'{name}', device)
-    unassigned = remoteDeviceMap[sn].get('unassigned')
+    unassigned = remoteDeviceMap[sndt].get('unassigned')
     action = unassignedMissingAction if unassigned else assignedMissingAction
     if action == 'none':
       Act.Set([Act.NOACTION, Act.NOACTION_PREVIEW][preview])
@@ -20237,11 +20269,11 @@ def doPrintCIDevices():
     pageMessage = getPageMessage()
     try:
       devices += callGAPIpages(ci.devices(), 'list', 'devices',
-                               throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                               throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                                pageMessage=pageMessage,
                                customer=customer, filter=query,
                                orderBy=OBY.orderBy, view=view, fields=fields, pageSize=100)
-    except (GAPI.invalid, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       entityActionFailedWarning([entityType, None], str(e))
       continue
     if getDeviceUsers:

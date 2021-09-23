@@ -1,3 +1,13 @@
+6.07.31
+
+Fixed bugs in `gam sync devices` that rendered it useless.
+
+Deleted most local copies of Google and non-standard Python libraries.
+If you are using the source verson of GAMADV-XTD3, do the following command to update your Python libraries.
+```
+pip install --upgrade -r src/requirements.txt
+```
+
 6.07.30
 
 Update Google API libraries.
