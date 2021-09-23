@@ -1,3 +1,16 @@
+6.08.00
+
+GAM now uses the People API to manage user contacts rather than the Contacts API.
+
+Most commands will work unchanged but Google has completely changed how the data is presented. If you
+have scripts that process the output from `print contacts` for example, they will have to be changed.
+
+You might want to keep an older version of GAM available so you can compare the output from the two
+versions and make adjustments as necessary.
+
+This is work in progress, report issues/problems.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Users-People-Contacts-Profiles
+
 6.07.31
 
 Fixed bugs in `gam sync devices` that rendered it useless.
@@ -6,6 +19,15 @@ Deleted most local copies of Google and non-standard Python libraries.
 If you are using the source verson of GAMADV-XTD3, do the following command to update your Python libraries.
 ```
 pip install --upgrade -r src/requirements.txt
+```
+You should delete the following files from `src/gam`:
+```
+distro.py,filelock.py
+```
+You should delete the following directories from `src/gam`:
+```
+dateutil,google,google_auth_httplib2,googleapiclient,
+httplib2,oauthlib,passlib,requests,requests_oauthlib
 ```
 
 6.07.30
@@ -120,6 +142,7 @@ to be specified on the copy. These only apply when a single file/folder is being
         (viewerscancopycontent [<Boolean>])|
         (writerscanshare|writerscantshare [<Boolean>])
 ```
+
 6.07.14
 
 Following Jay's suggestions, updated `gam download vaultexport <ExportItem> matter <MatterItem> targetname <FileName>`

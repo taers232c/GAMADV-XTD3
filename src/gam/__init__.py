@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.07.31'
+__version__ = '6.08.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -48,9 +48,9 @@ from html.entities import name2codepoint
 from html.parser import HTMLParser
 import http.client as http_client
 try:
-    from importlib.metadata import version as lib_version
+  from importlib.metadata import version as lib_version
 except ImportError:
-    from importlib_metadata import version as lib_version
+  from importlib_metadata import version as lib_version
 import io
 import json
 import logging
@@ -4758,21 +4758,9 @@ def getGDataUserCredentials(api, user, i, count):
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     return (userEmail, None)
 
-def getContactsObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0, contactFeed=True):
-  if entityType == Ent.DOMAIN:
-    contactsObject = initGDataObject(gdata.apps.contacts.service.ContactsService(contactFeed=contactFeed),
-                                     API.CONTACTS)
-    return (entityName or GC.Values[GC.DOMAIN], contactsObject)
-  userEmail, credentials = getGDataUserCredentials(API.CONTACTS, entityName, i, count)
-  if not credentials:
-    return (userEmail, None)
-  if GC.Values[GC.NO_VERIFY_SSL]:
-    ssl._create_default_https_context = ssl._create_unverified_context
-  contactsObject = gdata.apps.contacts.service.ContactsService(source=GAM_USER_AGENT, contactFeed=contactFeed,
-                                                               additional_headers={'Authorization': f'Bearer {credentials.token}'})
-  if GC.Values[GC.DEBUG_LEVEL] > 0:
-    contactsObject.debug = True
-  return (userEmail, contactsObject)
+def getContactsObject(contactFeed):
+  return initGDataObject(gdata.apps.contacts.service.ContactsService(contactFeed=contactFeed),
+                         API.CONTACTS)
 
 def getContactsQuery(**kwargs):
   if GC.Values[GC.NO_VERIFY_SSL]:
@@ -7257,8 +7245,8 @@ class CSVPrintFile():
             body = {'requests': []}
             if not self.todrive['addsheet']:
               if self.todrive['backupSheetEntity']:
-                body['requests'].append({"copyPaste": {"source": {"sheetId": self.todrive['sheetEntity']['sheetId']},
-                                                       "destination": {"sheetId": self.todrive['backupSheetEntity']['sheetId']}, "pasteType": "PASTE_NORMAL"}})
+                body['requests'].append({'copyPaste': {'source': {'sheetId': self.todrive['sheetEntity']['sheetId']},
+                                                       'destination': {'sheetId': self.todrive['backupSheetEntity']['sheetId']}, 'pasteType': 'PASTE_NORMAL'}})
               if self.todrive['clearfilter']:
                 body['requests'].append({'clearBasicFilter': {'sheetId': self.todrive['sheetEntity']['sheetId']}})
             body['requests'].append({'updateCells': {'range': {'sheetId': self.todrive['sheetEntity']['sheetId']}, 'fields': '*'}})
@@ -7269,8 +7257,8 @@ class CSVPrintFile():
                                                       'fields': 'userEnteredFormat.wrapStrategy',
                                                       'cell': {'userEnteredFormat': {'wrapStrategy': self.todrive['cellwrap']}}}})
             if self.todrive['copySheetEntity']:
-              body['requests'].append({"copyPaste": {"source": {"sheetId": self.todrive['sheetEntity']['sheetId']},
-                                                     "destination": {"sheetId": self.todrive['copySheetEntity']['sheetId']}, "pasteType": "PASTE_NORMAL"}})
+              body['requests'].append({'copyPaste': {'source': {'sheetId': self.todrive['sheetEntity']['sheetId']},
+                                                     'destination': {'sheetId': self.todrive['copySheetEntity']['sheetId']}, 'pasteType': 'PASTE_NORMAL'}})
             try:
               callGAPI(sheet.spreadsheets(), 'batchUpdate',
                        throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
@@ -7792,7 +7780,7 @@ def doVersion(checkForArgs=True):
     for lib in libs:
       try:
         writeStdout(f'{lib} {lib_version(lib)}\n')
-      except:
+      except Exception:
         pass
     printKeyValueList([f'{testLocation} connects using {tls_ver} {cipher_name}'])
 
@@ -14445,16 +14433,6 @@ CONTACT_PHONES = 'Phones'
 CONTACT_RELATIONS = 'Relations'
 CONTACT_USER_DEFINED_FIELDS = 'User Defined Fields'
 CONTACT_WEBSITES = 'Websites'
-CONTACT_GROUPS = 'ContactGroups'
-CONTACT_GROUPS_LIST = 'ContactGroupsList'
-CONTACT_ADD_GROUPS = 'ContactAddGroups'
-CONTACT_ADD_GROUPS_LIST = 'ContactAddGroupsList'
-CONTACT_REMOVE_GROUPS = 'ContactRemoveGroups'
-CONTACT_REMOVE_GROUPS_LIST = 'ContactRemoveGroupsList'
-#
-CONTACT_GROUP_ID = 'ContactGroupID'
-CONTACT_GROUP_UPDATED = 'Updated'
-CONTACT_GROUP_NAME = 'ContactGroupName'
 #
 class ContactsManager():
   CONTACT_ARGUMENT_TO_PROPERTY_MAP = {
@@ -14511,12 +14489,6 @@ class ContactsManager():
     'userdefinedfields': CONTACT_USER_DEFINED_FIELDS,
     'website': CONTACT_WEBSITES,
     'websites': CONTACT_WEBSITES,
-    'contactgroup': CONTACT_GROUPS,
-    'contactgroups': CONTACT_GROUPS,
-    'addcontactgroup': CONTACT_ADD_GROUPS,
-    'addcontactgroups': CONTACT_ADD_GROUPS,
-    'removecontactgroup': CONTACT_REMOVE_GROUPS,
-    'removecontactgroups': CONTACT_REMOVE_GROUPS,
     'updated': CONTACT_UPDATED,
     }
 
@@ -14879,11 +14851,6 @@ class ContactsManager():
     CONTACT_WEBSITES: {'relMap': WEBSITE_REL_TO_TYPE_ARGUMENT, 'infoTitle': 'value', 'primary': True},
     }
 
-  CONTACT_GROUP_ARGUMENT_TO_PROPERTY_MAP = {
-    'json': CONTACT_JSON,
-    'name': CONTACT_GROUP_NAME,
-    }
-
   @staticmethod
   def GetContactShortId(contactEntry):
     full_id = contactEntry.id.text
@@ -14942,12 +14909,7 @@ class ContactsManager():
     primary = {}
     while Cmd.ArgumentsRemaining():
       fieldName = getChoice(ContactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
-      if fieldName == CONTACT_JSON:
-        if entityType == Ent.USER:
-          fields.update(getJSON([CONTACT_ID, CONTACT_GROUPS]))
-        else:
-          fields.update(getJSON([CONTACT_ID, CONTACT_GROUPS, CONTACT_GROUPS_LIST]))
-      elif fieldName == CONTACT_BIRTHDAY:
+      if fieldName == CONTACT_BIRTHDAY:
         fields[fieldName] = getYYYYMMDD(minLen=0)
       elif fieldName == CONTACT_GENDER:
         fields[fieldName] = getChoice(ContactsManager.GENDER_CHOICE_MAP, mapChoice=True)
@@ -15064,21 +15026,6 @@ class ContactsManager():
         entry['value'] = getString(Cmd.OB_STRING, minLen=0)
         GetPrimaryNotPrimaryChoice(entry)
         AppendItemToFieldsList(fieldName, entry, 'value')
-      elif fieldName == CONTACT_GROUPS:
-        if entityType != Ent.USER:
-          Cmd.Backup()
-          unknownArgumentExit()
-        AppendItemToFieldsList(CONTACT_GROUPS_LIST, getString(Cmd.OB_STRING))
-      elif fieldName == CONTACT_ADD_GROUPS:
-        if entityType != Ent.USER:
-          Cmd.Backup()
-          unknownArgumentExit()
-        AppendItemToFieldsList(CONTACT_ADD_GROUPS_LIST, getString(Cmd.OB_STRING))
-      elif fieldName == CONTACT_REMOVE_GROUPS:
-        if entityType != Ent.USER:
-          Cmd.Backup()
-          unknownArgumentExit()
-        AppendItemToFieldsList(CONTACT_REMOVE_GROUPS_LIST, getString(Cmd.OB_STRING))
       else:
         fields[fieldName] = getString(Cmd.OB_STRING, minLen=0)
     return fields
@@ -15215,28 +15162,6 @@ class ContactsManager():
     return contactEntry
 
   @staticmethod
-  def AddContactGroupsToContact(contactsObject, contactEntry, contactGroupsList, user):
-    contactEntry.groupMembershipInfo = []
-    for groupId in contactGroupsList:
-      if groupId != 'clear':
-        contactEntry.groupMembershipInfo.append(gdata.apps.contacts.GroupMembershipInfo(deleted='false',
-                                                                                        href=contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)))
-      else:
-        contactEntry.groupMembershipInfo = []
-
-  @staticmethod
-  def AddFilteredContactGroupsToContact(contactsObject, contactEntry, contactGroupsList, user, contactRemoveGroupsList):
-    contactEntry.groupMembershipInfo = []
-    for groupId in contactGroupsList:
-      if groupId not in contactRemoveGroupsList:
-        contactEntry.groupMembershipInfo.append(gdata.apps.contacts.GroupMembershipInfo(deleted='false',
-                                                                                        href=contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)))
-  @staticmethod
-  def AddAdditionalContactGroupsToContact(contactsObject, contactEntry, contactGroupsList, user):
-    for groupId in contactGroupsList:
-      contactEntry.groupMembershipInfo.append(gdata.apps.contacts.GroupMembershipInfo(deleted='false',
-                                                                                      href=contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)))
-  @staticmethod
   def ContactToFields(contactEntry):
     fields = {}
     def GetContactField(fieldName, attrlist):
@@ -15367,49 +15292,6 @@ class ContactsManager():
                               'label': website.label,
                               'value': website.href,
                               'primary': website.primary})
-    for group in contactEntry.groupMembershipInfo:
-      AppendItemToFieldsList(CONTACT_GROUPS, group.href[group.href.rfind('/')+1:])
-    return fields
-
-  @staticmethod
-  def GetContactGroupFields():
-
-    fields = {}
-    while Cmd.ArgumentsRemaining():
-      fieldName = getChoice(ContactsManager.CONTACT_GROUP_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
-      if fieldName == CONTACT_JSON:
-        fields.update(getJSON(['ContactGroupID']))
-      elif fieldName == CONTACT_GROUP_NAME:
-        fields[fieldName] = getString(Cmd.OB_STRING)
-      else:
-        fields[fieldName] = getString(Cmd.OB_STRING, minLen=0)
-    if not fields.get(CONTACT_GROUP_NAME):
-      missingArgumentExit('name')
-    return fields
-
-  @staticmethod
-  def FieldsToContactGroup(fields):
-    groupEntry = gdata.apps.contacts.GroupEntry(title=atom.Title(text=fields[CONTACT_GROUP_NAME]))
-    return groupEntry
-
-  @staticmethod
-  def ContactGroupToFields(groupEntry):
-    fields = {}
-
-    def GetGroupField(fieldName, attrlist):
-      objAttr = groupEntry
-      for attr in attrlist:
-        objAttr = getattr(objAttr, attr)
-        if not objAttr:
-          return
-      fields[fieldName] = objAttr
-
-    fields[CONTACT_GROUP_ID] = ContactsManager.GetContactShortId(groupEntry)
-    GetGroupField(CONTACT_GROUP_UPDATED, ['updated', 'text'])
-    if not groupEntry.deleted:
-      GetGroupField(CONTACT_GROUP_NAME, ['title', 'text'])
-    else:
-      fields[CONTACT_GROUP_NAME] = 'Deleted'
     return fields
 
 CONTACTS_PROJECTION_CHOICE_MAP = {'basic': 'thin', 'thin': 'thin', 'full': 'full'}
@@ -15422,23 +15304,11 @@ def normalizeContactId(contactId):
 
 def _initContactQueryAttributes():
   return {'query': None, 'projection': 'full', 'url_params': {'max-results': str(GC.Values[GC.CONTACT_MAX_RESULTS])},
-          'contactGroup': None, 'group': None, 'otherContacts': False, 'emailMatchPattern': None, 'emailMatchType': None}
+          'emailMatchPattern': None, 'emailMatchType': None}
 
-def _getContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, allowOutputAttributes):
+def _getContactQueryAttributes(contactQuery, myarg, unknownAction, allowOutputAttributes):
   if myarg == 'query':
     contactQuery['query'] = getString(Cmd.OB_QUERY)
-  elif myarg in {'contactgroup', 'selectcontactgroup'}:
-    if entityType == Ent.USER:
-      contactQuery['contactGroup'] = getString(Cmd.OB_CONTACT_GROUP_ITEM)
-      contactQuery['otherContacts'] = False
-    else:
-      unknownArgumentExit()
-  elif myarg in {'othercontacts', 'selectothercontacts'}:
-    if entityType == Ent.USER:
-      contactQuery['otherContacts'] = True
-      contactQuery['contactGroup'] = None
-    else:
-      unknownArgumentExit()
   elif myarg == 'emailmatchpattern':
     contactQuery['emailMatchPattern'] = getREPattern(re.IGNORECASE)
   elif myarg == 'emailmatchtype':
@@ -15467,51 +15337,47 @@ def _getContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, a
     return False
   return True
 
-CONTACT_SELECT_ARGUMENTS = {'query', 'contactgroup', 'selectcontactgroup', 'othercontacts', 'selectothercontacts',
-                            'emailmatchpattern', 'emailmatchtype', 'updatedmin'}
+CONTACT_SELECT_ARGUMENTS = {'query', 'emailmatchpattern', 'emailmatchtype', 'updatedmin'}
 
-def _getContactEntityList(entityType, unknownAction, allowOutputAttributes):
+def _getContactEntityList(unknownAction, allowOutputAttributes):
   contactQuery = _initContactQueryAttributes()
   if Cmd.PeekArgumentPresent(CONTACT_SELECT_ARGUMENTS):
     entityList = None
     queriedContacts = True
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
-      if not _getContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, allowOutputAttributes):
+      if not _getContactQueryAttributes(contactQuery, myarg, unknownAction, allowOutputAttributes):
         break
   else:
     entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
     queriedContacts = False
     if unknownAction < 0:
       checkForExtraneousArguments()
-  return (entityList, entityList if isinstance(entityList, dict) else None, contactQuery, queriedContacts)
+  return (entityList, contactQuery, queriedContacts)
 
-def queryContacts(contactsObject, contactQuery, entityType, user, i=0, count=0):
-  if contactQuery['query'] or contactQuery['group']:
+def queryContacts(contactsObject, contactQuery):
+  entityType = Ent.DOMAIN
+  user = GC.Values[GC.DOMAIN]
+  if contactQuery['query']:
     uri = getContactsQuery(feed=contactsObject.GetContactFeedUri(contact_list=user, projection=contactQuery['projection']),
-                           text_query=contactQuery['query'], group=contactQuery['group']).ToUri()
+                           text_query=contactQuery['query']).ToUri()
   else:
     uri = contactsObject.GetContactFeedUri(contact_list=user, projection=contactQuery['projection'])
-  printGettingAllEntityItemsForWhom(Ent.CONTACT, user, i, count, query=contactQuery['query'])
+  printGettingAllEntityItemsForWhom(Ent.CONTACT, user, query=contactQuery['query'])
   try:
     entityList = callGDataPages(contactsObject, 'GetContactsFeed',
                                 pageMessage=getPageMessage(),
-                                throwErrors=[GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
+                                throwErrors=[GDATA.BAD_REQUEST, GDATA.FORBIDDEN],
                                 retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
                                 uri=uri, url_params=contactQuery['url_params'])
     return entityList
   except GDATA.badRequest as e:
-    entityActionFailedWarning([entityType, user, Ent.CONTACT, ''], str(e), i, count)
+    entityActionFailedWarning([entityType, user, Ent.CONTACT, ''], str(e))
   except GDATA.forbidden:
-    entityServiceNotApplicableWarning(entityType, user, i, count)
-  except GDATA.serviceNotApplicable:
-    entityUnknownWarning(entityType, user, i, count)
+    entityServiceNotApplicableWarning(entityType, user)
   return None
 
 def localContactSelects(contactsManager, contactQuery, fields):
-  if contactQuery['otherContacts']:
-    if fields.get(CONTACT_GROUPS):
-      return False
   if contactQuery['emailMatchPattern']:
     emailMatchType = contactQuery['emailMatchType']
     for item in fields.get(CONTACT_EMAILS, []):
@@ -15523,6 +15389,17 @@ def localContactSelects(contactsManager, contactQuery, fields):
     else:
       return False
   return True
+
+def countLocalContactSelects(contactsManager, contacts, contactQuery):
+  if contacts is not None and contactQuery:
+    jcount = 0
+    for contact in contacts:
+      fields = contactsManager.ContactToFields(contact)
+      if localContactSelects(contactsManager, contactQuery, fields):
+        jcount += 1
+  else:
+    jcount = len(contacts) if contacts is not None else 0
+  return jcount
 
 def clearEmailAddressMatches(contactsManager, contactClear, fields):
   savedAddresses = []
@@ -15563,106 +15440,35 @@ def dedupEmailAddressMatches(contactsManager, emailMatchType, fields):
     fields[CONTACT_EMAILS] = savedAddresses
   return updateRequired
 
-def getContactGroupsInfo(contactsManager, contactsObject, entityType, entityName, i, count):
-  uri = contactsObject.GetContactGroupFeedUri(contact_list=entityName)
-  contactGroupIDs = {}
-  contactGroupNames = {}
-  try:
-    groups = callGDataPages(contactsObject, 'GetGroupsFeed',
-                            throwErrors=[GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                            retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                            uri=uri)
-    if groups:
-      for group in groups:
-        fields = contactsManager.ContactGroupToFields(group)
-        contactGroupIDs[fields[CONTACT_GROUP_ID]] = fields[CONTACT_GROUP_NAME]
-        contactGroupNames.setdefault(fields[CONTACT_GROUP_NAME], [])
-        contactGroupNames[fields[CONTACT_GROUP_NAME]].append(fields[CONTACT_GROUP_ID])
-  except GDATA.forbidden:
-    entityServiceNotApplicableWarning(entityType, entityName, i, count)
-    return (contactGroupIDs, False)
-  except GDATA.serviceNotApplicable:
-    entityUnknownWarning(entityType, entityName, i, count)
-    return (contactGroupIDs, False)
-  return (contactGroupIDs, contactGroupNames)
-
-def validateContactGroup(contactsManager, contactsObject, contactGroupName,
-                         contactGroupIDs, contactGroupNames, entityType, entityName, i, count):
-  if not contactGroupNames:
-    contactGroupIDs, contactGroupNames = getContactGroupsInfo(contactsManager, contactsObject, entityType, entityName, i, count)
-    if contactGroupNames is False:
-      return (None, contactGroupIDs, contactGroupNames)
-  if contactGroupName == 'clear':
-    return (contactGroupName, contactGroupIDs, contactGroupNames)
-  cg = UID_PATTERN.match(contactGroupName)
-  if cg:
-    if cg.group(1) in contactGroupIDs:
-      return (cg.group(1), contactGroupIDs, contactGroupNames)
-  else:
-    if contactGroupName in contactGroupNames:
-      return (contactGroupNames[contactGroupName][0], contactGroupIDs, contactGroupNames)
-    sgContactGroupName = 'System Group: '+contactGroupName
-    if sgContactGroupName in contactGroupNames:
-      return (contactGroupNames[sgContactGroupName][0], contactGroupIDs, contactGroupNames)
-  return (None, contactGroupIDs, contactGroupNames)
-
-def validateContactGroupsList(contactsManager, contactsObject, contactId,
-                              fields, groupsListField, entityType, entityName, i, count):
-  result = True
-  contactGroupIDs = contactGroupNames = None
-  contactGroupsList = []
-  for contactGroup in fields[groupsListField]:
-    groupId, contactGroupIDs, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactGroup,
-                                                                       contactGroupIDs, contactGroupNames, entityType, entityName, i, count)
-    if groupId:
-      contactGroupsList.append(groupId)
-    else:
-      if contactGroupNames:
-        entityActionNotPerformedWarning([entityType, entityName, Ent.CONTACT, contactId],
-                                        Ent.TypeNameMessage(Ent.CONTACT_GROUP, contactGroup, Msg.DOES_NOT_EXIST))
-      result = False
-  return (result, contactGroupsList)
-
-def _createContact(users, entityType):
+def _createContact():
+  entityType = Ent.DOMAIN
+  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   fields = contactsManager.GetContactFields(entityType)
   contactEntry = contactsManager.FieldsToContact(fields)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
-      continue
-    if fields.get(CONTACT_GROUPS_LIST):
-      result, contactGroupsList = validateContactGroupsList(contactsManager, contactsObject, '',
-                                                            fields, CONTACT_GROUPS_LIST, entityType, user, i, count)
-      if not result:
-        continue
-      contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, contactGroupsList, user)
-    try:
-      contact = callGData(contactsObject, 'CreateContact',
-                          throwErrors=[GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                          retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                          new_contact=contactEntry, insert_uri=contactsObject.GetContactFeedUri(contact_list=user))
-      entityActionPerformed([entityType, user, Ent.CONTACT, contactsManager.GetContactShortId(contact)], i, count)
-    except GDATA.badRequest as e:
-      entityActionFailedWarning([entityType, user, Ent.CONTACT, ''], str(e), i, count)
-    except GDATA.forbidden:
-      entityServiceNotApplicableWarning(entityType, user, i, count)
-    except GDATA.serviceNotApplicable:
-      entityUnknownWarning(entityType, user, i, count)
-
-# gam <UserTypeEntity> create contact [contactgroup <ContactGroupItem>] <ContactAttribute>+
-def createUserContact(users):
-  _createContact(users, Ent.USER)
+  contactsObject = getContactsObject(True)
+  try:
+    contact = callGData(contactsObject, 'CreateContact',
+                        throwErrors=[GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
+                        retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
+                        new_contact=contactEntry, insert_uri=contactsObject.GetContactFeedUri(contact_list=user))
+    entityActionPerformed([entityType, user, Ent.CONTACT, contactsManager.GetContactShortId(contact)])
+  except GDATA.badRequest as e:
+    entityActionFailedWarning([entityType, user, Ent.CONTACT, ''], str(e))
+  except GDATA.forbidden:
+    entityServiceNotApplicableWarning(entityType, user)
+  except GDATA.serviceNotApplicable:
+    entityUnknownWarning(entityType, user)
 
 # gam create contact <ContactAttribute>+
 def doCreateDomainContact():
-  _createContact([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+  _createContact()
 
-def _clearUpdateContacts(users, entityType, updateContacts):
+def _clearUpdateContacts(updateContacts):
+  entityType = Ent.DOMAIN
+  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
-  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, 1, False)
+  entityList, contactQuery, queriedContacts = _getContactEntityList(1, False)
   if updateContacts:
     update_fields = contactsManager.GetContactFields(entityType)
   else:
@@ -15680,130 +15486,80 @@ def _clearUpdateContacts(users, entityType, updateContacts):
         unknownArgumentExit()
     if not contactClear['emailClearPattern']:
       missingArgumentExit('emailclearpattern')
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if contactIdLists:
-      entityList = contactIdLists[user]
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
-      continue
-    if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactQuery['contactGroup'],
-                                                           None, None, entityType, user, i, count)
-      if not groupId:
-        if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
-        continue
-      contactQuery['group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)
-    if queriedContacts:
-      entityList = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
-      if entityList is None:
-        continue
-    j = 0
-    jcount = len(entityList)
-    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND_RC)
-      continue
-    contactGroupsList = {
-      CONTACT_GROUPS_LIST: [],
-      CONTACT_ADD_GROUPS_LIST: [],
-      CONTACT_REMOVE_GROUPS_LIST: []
-      }
-    Ind.Increment()
-    for contact in entityList:
-      j += 1
-      try:
-        if not queriedContacts:
-          contactId = normalizeContactId(contact)
-          contact = callGData(contactsObject, 'GetContact',
-                              throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
-                              retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                              uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
-          fields = contactsManager.ContactToFields(contact)
-        else:
-          contactId = contactsManager.GetContactShortId(contact)
-          fields = contactsManager.ContactToFields(contact)
-          if not localContactSelects(contactsManager, contactQuery, fields):
-            continue
-        if updateContacts:
-          groupError = False
-          for field in [CONTACT_GROUPS_LIST, CONTACT_ADD_GROUPS_LIST, CONTACT_REMOVE_GROUPS_LIST]:
-            if update_fields.get(field) and not contactGroupsList[field]:
-              result, contactGroupsList[field] = validateContactGroupsList(contactsManager, contactsObject, contactId,
-                                                                           update_fields, field, entityType, user, i, count)
-              if not result:
-                groupError = True
-          if groupError:
-            break
-          for field in update_fields:
-            fields[field] = update_fields[field]
-          contactEntry = contactsManager.FieldsToContact(fields)
-          if contactGroupsList[CONTACT_GROUPS_LIST]:
-            contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, contactGroupsList[CONTACT_GROUPS_LIST], user)
-          elif contactGroupsList[CONTACT_ADD_GROUPS_LIST] or contactGroupsList[CONTACT_REMOVE_GROUPS_LIST]:
-            contactEntry.groupMembershipInfo = []
-            if fields.get(CONTACT_GROUPS):
-              contactsManager.AddFilteredContactGroupsToContact(contactsObject, contactEntry, fields[CONTACT_GROUPS], user,
-                                                                contactGroupsList[CONTACT_REMOVE_GROUPS_LIST])
-            if contactGroupsList[CONTACT_ADD_GROUPS_LIST]:
-              contactsManager.AddAdditionalContactGroupsToContact(contactsObject, contactEntry, contactGroupsList[CONTACT_ADD_GROUPS_LIST], user)
-          elif fields.get(CONTACT_GROUPS):
-            contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, fields[CONTACT_GROUPS], user)
-        else:
-          if not clearEmailAddressMatches(contactsManager, contactClear, fields):
-            continue
-          if deleteClearedContactsWithNoEmails and not fields[CONTACT_EMAILS]:
-            Act.Set(Act.DELETE)
-            callGData(contactsObject, 'DeleteContact',
-                      throwErrors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                      edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), extra_headers={'If-Match': contact.etag})
-            entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
-            continue
-          contactEntry = contactsManager.FieldsToContact(fields)
-          if fields.get(CONTACT_GROUPS):
-            contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, fields[CONTACT_GROUPS], user)
-        contactEntry.category = contact.category
-        contactEntry.link = contact.link
-        contactEntry.etag = contact.etag
-        contactEntry.id = contact.id
-        Act.Set(Act.UPDATE)
-        callGData(contactsObject, 'UpdateContact',
-                  throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.PRECONDITION_FAILED, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                  edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), updated_contact=contactEntry, extra_headers={'If-Match': contact.etag})
-        entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
-      except (GDATA.notFound, GDATA.badRequest, GDATA.preconditionFailed) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
-      except (GDATA.forbidden, GDATA.notImplemented):
-        entityServiceNotApplicableWarning(entityType, user, i, count)
-        break
-      except GDATA.serviceNotApplicable:
-        entityUnknownWarning(entityType, user, i, count)
-        break
-    Ind.Decrement()
-
-# gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection>
-#	[clearmatchpattern <RegularExpression>] [clearmatchtype work|home|other|<String>]
-#	[deleteclearedcontactswithnoemails]
-def clearUserContacts(users):
-  _clearUpdateContacts(users, Ent.USER, False)
+  contactsObject = getContactsObject(True)
+  if queriedContacts:
+    entityList = queryContacts(contactsObject, contactQuery)
+    if entityList is None:
+      return
+  j = 0
+  jcount = len(entityList)
+  entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT)
+  if jcount == 0:
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
+    return
+  Ind.Increment()
+  for contact in entityList:
+    j += 1
+    try:
+      if not queriedContacts:
+        contactId = normalizeContactId(contact)
+        contact = callGData(contactsObject, 'GetContact',
+                            throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                            retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
+                            uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
+        fields = contactsManager.ContactToFields(contact)
+      else:
+        contactId = contactsManager.GetContactShortId(contact)
+        fields = contactsManager.ContactToFields(contact)
+        if not localContactSelects(contactsManager, contactQuery, fields):
+          continue
+      if updateContacts:
+        for field in update_fields:
+          fields[field] = update_fields[field]
+        contactEntry = contactsManager.FieldsToContact(fields)
+      else:
+        if not clearEmailAddressMatches(contactsManager, contactClear, fields):
+          continue
+        if deleteClearedContactsWithNoEmails and not fields[CONTACT_EMAILS]:
+          Act.Set(Act.DELETE)
+          callGData(contactsObject, 'DeleteContact',
+                    throwErrors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
+                    edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), extra_headers={'If-Match': contact.etag})
+          entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
+          continue
+        contactEntry = contactsManager.FieldsToContact(fields)
+      contactEntry.category = contact.category
+      contactEntry.link = contact.link
+      contactEntry.etag = contact.etag
+      contactEntry.id = contact.id
+      Act.Set(Act.UPDATE)
+      callGData(contactsObject, 'UpdateContact',
+                throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.PRECONDITION_FAILED, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
+                edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), updated_contact=contactEntry, extra_headers={'If-Match': contact.etag})
+      entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
+    except (GDATA.notFound, GDATA.badRequest, GDATA.preconditionFailed) as e:
+      entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
+    except (GDATA.forbidden, GDATA.notImplemented):
+      entityServiceNotApplicableWarning(entityType, user)
+      break
+    except GDATA.serviceNotApplicable:
+      entityUnknownWarning(entityType, user)
+      break
+  Ind.Decrement()
 
 # gam clear contacts <ContactEntity>|<ContactSelection>
 #	[clearmatchpattern <RegularExpression>] [clearmatchtype work|home|other|<String>]
 #	[deleteclearedcontactswithnoemails]
 def doClearDomainContacts():
-  _clearUpdateContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
-
-# gam <UserTypeEntity> update contacts <ContactEntity>|(<UserContactSelection> [endquery]) [contactgroup <ContactGroupItem>] <ContactAttribute>+
-def updateUserContacts(users):
-  _clearUpdateContacts(users, Ent.USER, True)
+  _clearUpdateContacts(False)
 
 # gam update contacts <ContactEntity>|<ContactSelection> <ContactAttribute>+
 def doUpdateDomainContacts():
-  _clearUpdateContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, True)
+  _clearUpdateContacts(True)
 
-def _dedupContacts(users, entityType):
+def _dedupContacts():
+  entityType = Ent.DOMAIN
+  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   contactQuery = _initContactQueryAttributes()
   emailMatchType = False
@@ -15812,140 +15568,104 @@ def _dedupContacts(users, entityType):
     if myarg == 'matchtype':
       emailMatchType = getBoolean()
     else:
-      _getContactQueryAttributes(contactQuery, myarg, entityType, -1, False)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
-      continue
-    if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactQuery['contactGroup'],
-                                                           None, None, entityType, user, i, count)
-      if not groupId:
-        if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+      _getContactQueryAttributes(contactQuery, myarg, -1, False)
+  contactsObject = getContactsObject(True)
+  contacts = queryContacts(contactsObject, contactQuery)
+  if contacts is None:
+    return
+  j = 0
+  jcount = len(contacts)
+  entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT)
+  if jcount == 0:
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
+    return
+  Ind.Increment()
+  for contact in contacts:
+    j += 1
+    try:
+      fields = contactsManager.ContactToFields(contact)
+      if not localContactSelects(contactsManager, contactQuery, fields):
         continue
-      contactQuery['group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)
-    contacts = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
-    if contacts is None:
-      continue
-    j = 0
-    jcount = len(contacts)
-    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND_RC)
-      continue
-    Ind.Increment()
-    for contact in contacts:
-      j += 1
-      try:
+      if not dedupEmailAddressMatches(contactsManager, emailMatchType, fields):
+        continue
+      contactId = fields[CONTACT_ID]
+      contactEntry = contactsManager.FieldsToContact(fields)
+      contactEntry.category = contact.category
+      contactEntry.link = contact.link
+      contactEntry.etag = contact.etag
+      contactEntry.id = contact.id
+      Act.Set(Act.UPDATE)
+      callGData(contactsObject, 'UpdateContact',
+                throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.PRECONDITION_FAILED, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
+                edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), updated_contact=contactEntry, extra_headers={'If-Match': contact.etag})
+      entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
+    except (GDATA.notFound, GDATA.badRequest, GDATA.preconditionFailed) as e:
+      entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
+    except (GDATA.forbidden, GDATA.notImplemented):
+      entityServiceNotApplicableWarning(entityType, user)
+      break
+    except GDATA.serviceNotApplicable:
+      entityUnknownWarning(entityType, user)
+      break
+  Ind.Decrement()
+
+# gam dedup contacts <ContactEntity>|<ContactSeleciotn> [matchType [<Boolean>]]
+def doDedupDomainContacts():
+  _dedupContacts()
+
+def _deleteContacts():
+  entityType = Ent.DOMAIN
+  user = GC.Values[GC.DOMAIN]
+  contactsManager = ContactsManager()
+  entityList, contactQuery, queriedContacts = _getContactEntityList(-1, False)
+  contactsObject = getContactsObject(True)
+  if queriedContacts:
+    entityList = queryContacts(contactsObject, contactQuery)
+    if entityList is None:
+      return
+  j = 0
+  jcount = len(entityList)
+  entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT)
+  if jcount == 0:
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
+    return
+  Ind.Increment()
+  for contact in entityList:
+    j += 1
+    try:
+      if not queriedContacts:
+        contactId = normalizeContactId(contact)
+        contact = callGData(contactsObject, 'GetContact',
+                            throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                            retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
+                            uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
+      else:
+        contactId = contactsManager.GetContactShortId(contact)
         fields = contactsManager.ContactToFields(contact)
         if not localContactSelects(contactsManager, contactQuery, fields):
           continue
-        if not dedupEmailAddressMatches(contactsManager, emailMatchType, fields):
-          continue
-        contactId = fields[CONTACT_ID]
-        contactEntry = contactsManager.FieldsToContact(fields)
-        if fields.get(CONTACT_GROUPS):
-          contactsManager.AddContactGroupsToContact(contactsObject, contactEntry, fields[CONTACT_GROUPS], user)
-        contactEntry.category = contact.category
-        contactEntry.link = contact.link
-        contactEntry.etag = contact.etag
-        contactEntry.id = contact.id
-        Act.Set(Act.UPDATE)
-        callGData(contactsObject, 'UpdateContact',
-                  throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.PRECONDITION_FAILED, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                  edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), updated_contact=contactEntry, extra_headers={'If-Match': contact.etag})
-        entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
-      except (GDATA.notFound, GDATA.badRequest, GDATA.preconditionFailed) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
-      except (GDATA.forbidden, GDATA.notImplemented):
-        entityServiceNotApplicableWarning(entityType, user, i, count)
-        break
-      except GDATA.serviceNotApplicable:
-        entityUnknownWarning(entityType, user, i, count)
-        break
-    Ind.Decrement()
-
-# gam <UserTypeEntity> dedup contacts <ContactEntity>|<UserContactSelection> [matchType [<Boolean>]]
-def dedupUserContacts(users):
-  _dedupContacts(users, Ent.USER)
-
-# gam dedup contacts <ContactEntity>|<ContactSelection> [matchType [<Boolean>]]
-def doDedupDomainContacts():
-  _dedupContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
-
-def _deleteContacts(users, entityType):
-  contactsManager = ContactsManager()
-  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, -1, False)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if contactIdLists:
-      entityList = contactIdLists[user]
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
-      continue
-    if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactQuery['contactGroup'],
-                                                           None, None, entityType, user, i, count)
-      if not groupId:
-        if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
-        continue
-      contactQuery['group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)
-    if queriedContacts:
-      entityList = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
-      if entityList is None:
-        continue
-    j = 0
-    jcount = len(entityList)
-    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND_RC)
-      continue
-    Ind.Increment()
-    for contact in entityList:
-      j += 1
-      try:
-        if not queriedContacts:
-          contactId = normalizeContactId(contact)
-          contact = callGData(contactsObject, 'GetContact',
-                              throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
-                              retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                              uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
-        else:
-          contactId = contactsManager.GetContactShortId(contact)
-          fields = contactsManager.ContactToFields(contact)
-          if not localContactSelects(contactsManager, contactQuery, fields):
-            continue
-        callGData(contactsObject, 'DeleteContact',
-                  throwErrors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                  edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), extra_headers={'If-Match': contact.etag})
-        entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
-      except (GDATA.notFound, GDATA.badRequest) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
-      except (GDATA.forbidden, GDATA.notImplemented):
-        entityServiceNotApplicableWarning(entityType, user, i, count)
-        break
-      except GDATA.serviceNotApplicable:
-        entityUnknownWarning(entityType, user, i, count)
-        break
-    Ind.Decrement()
-
-# gam <UserTypeEntity> delete contacts <ContactEntity>|<UserContactSelection>
-def deleteUserContacts(users):
-  _deleteContacts(users, Ent.USER)
+      callGData(contactsObject, 'DeleteContact',
+                throwErrors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
+                edit_uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId), extra_headers={'If-Match': contact.etag})
+      entityActionPerformed([entityType, user, Ent.CONTACT, contactId], j, jcount)
+    except (GDATA.notFound, GDATA.badRequest) as e:
+      entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
+    except (GDATA.forbidden, GDATA.notImplemented):
+      entityServiceNotApplicableWarning(entityType, user)
+      break
+    except GDATA.serviceNotApplicable:
+      entityUnknownWarning(entityType, user)
+      break
+  Ind.Decrement()
 
 # gam delete contacts <ContactEntity>|<ContactSelection>
 def doDeleteDomainContacts():
-  _deleteContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+  _deleteContacts()
 
 CONTACT_TIME_OBJECTS = {CONTACT_UPDATED}
 CONTACT_FIELDS_WITH_CRS_NLS = {CONTACT_NOTES, CONTACT_BILLING_INFORMATION}
 
-def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j, jcount, FJQC):
+def _showContact(contactsManager, fields, displayFieldsList, j, jcount, FJQC):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(fields, timeObjects=CONTACT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return
@@ -16000,18 +15720,6 @@ def _showContact(contactsManager, fields, displayFieldsList, contactGroupIDs, j,
         if keymap['relMap']:
           Ind.Decrement()
       Ind.Decrement()
-  if contactGroupIDs is not None and CONTACT_GROUPS in fields:
-    printEntitiesCount(Ent.CONTACT_GROUP, None)
-    Ind.Increment()
-    for group in fields[CONTACT_GROUPS]:
-      if group in contactGroupIDs:
-        printKeyValueList([contactGroupIDs[group]])
-        Ind.Increment()
-        printKeyValueList(['id', group])
-        Ind.Decrement()
-      else:
-        printKeyValueList(['id', group])
-    Ind.Decrement()
   Ind.Decrement()
 
 def _getContactFieldsList(contactsManager, displayFieldsList):
@@ -16021,140 +15729,102 @@ def _getContactFieldsList(contactsManager, displayFieldsList):
     else:
       invalidChoiceExit(field, contactsManager.CONTACT_ARGUMENT_TO_PROPERTY_MAP, True)
 
-def _infoContacts(users, entityType, contactFeed=True):
+def _infoContacts(contactFeed):
+  entityType = Ent.DOMAIN
+  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
-  contactIdLists = entityList if isinstance(entityList, dict) else None
   contactQuery = _initContactQueryAttributes()
-  showContactGroups = False
   FJQC = FormatJSONQuoteChar()
   displayFieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in CONTACTS_PROJECTION_CHOICE_MAP:
       contactQuery['projection'] = CONTACTS_PROJECTION_CHOICE_MAP[myarg]
-    elif myarg == 'showgroups':
-      showContactGroups = True
     elif myarg == 'fields':
       _getContactFieldsList(contactsManager, displayFieldsList)
-      if CONTACT_GROUPS in displayFieldsList:
-        showContactGroups = True
     else:
       FJQC.GetFormatJSON(myarg)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if contactIdLists:
-      entityList = contactIdLists[user]
-    user, contactsObject = getContactsObject(entityType, user, i, count, contactFeed=contactFeed)
-    if not contactsObject:
-      continue
-    contactGroupIDs = None
-    j = 0
-    jcount = len(entityList)
-    if not FJQC.formatJSON:
-      entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT, i, count)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND_RC)
-      continue
-    Ind.Increment()
-    for contact in entityList:
-      j += 1
-      try:
-        contactId = normalizeContactId(contact)
-        contact = callGData(contactsObject, 'GetContact',
-                            bailOnInternalServerError=True,
-                            throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE,
-                                         GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED, GDATA.INTERNAL_SERVER_ERROR],
-                            retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                            uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId, projection=contactQuery['projection']))
-        fields = contactsManager.ContactToFields(contact)
-        if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
-          contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
-        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount, FJQC)
-      except (GDATA.notFound, GDATA.badRequest, GDATA.forbidden, GDATA.notImplemented, GDATA.internalServerError) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
-      except GDATA.serviceNotApplicable:
-        entityUnknownWarning(entityType, user, i, count)
-        break
-    Ind.Decrement()
-
-# gam <UserTypeEntity> info contacts <ContactEntity>
-#	[basic|full] [showgroups]
-#	[fields <ContactFieldNameList>] [formatjson]
-def infoUserContacts(users):
-  _infoContacts(users, Ent.USER)
+  contactsObject = getContactsObject(contactFeed)
+  j = 0
+  jcount = len(entityList)
+  if not FJQC.formatJSON:
+    entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT)
+  if jcount == 0:
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
+    return
+  Ind.Increment()
+  for contact in entityList:
+    j += 1
+    try:
+      contactId = normalizeContactId(contact)
+      contact = callGData(contactsObject, 'GetContact',
+                          bailOnInternalServerError=True,
+                          throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE,
+                                       GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED, GDATA.INTERNAL_SERVER_ERROR],
+                          retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
+                          uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId, projection=contactQuery['projection']))
+      fields = contactsManager.ContactToFields(contact)
+      _showContact(contactsManager, fields, displayFieldsList, j, jcount, FJQC)
+    except (GDATA.notFound, GDATA.badRequest, GDATA.forbidden, GDATA.notImplemented, GDATA.internalServerError) as e:
+      entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
+    except GDATA.serviceNotApplicable:
+      entityUnknownWarning(entityType, user)
+      break
+  Ind.Decrement()
 
 # gam info contacts <ContactEntity>
-#	[basic|full] [showgroups]
+#	[basic|full]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doInfoDomainContacts():
-  _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+  _infoContacts(True)
 
 # gam info gal <ContactEntity>
 #	[basic|full]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doInfoGAL():
-  _infoContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
+  _infoContacts(False)
 
-def _printShowContacts(users, entityType, contactFeed=True):
+def _printShowContacts(contactFeed):
+  entityType = Ent.DOMAIN
+  user = GC.Values[GC.DOMAIN]
   entityTypeName = Ent.Singular(entityType)
   contactsManager = ContactsManager()
   csvPF = CSVPrintFile([entityTypeName, CONTACT_ID, CONTACT_NAME], 'sortall',
                        contactsManager.CONTACT_ARRAY_PROPERTY_PRINT_ORDER) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  CSVTitle = 'Contacts'
   contactQuery = _initContactQueryAttributes()
-  countsOnly = showContactGroups = showContactGroupNamesList = False
+  countsOnly = False
   displayFieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif contactFeed and myarg == 'showgroups':
-      showContactGroups = True
-    elif contactFeed and myarg == 'showgroupnameslist':
-      showContactGroups = showContactGroupNamesList = True
     elif myarg == 'fields':
       _getContactFieldsList(contactsManager, displayFieldsList)
-      if contactFeed and CONTACT_GROUPS in displayFieldsList:
-        showContactGroups = True
     elif myarg == 'countsonly':
       countsOnly = True
       contactQuery['projection'] = CONTACTS_PROJECTION_CHOICE_MAP['basic']
       if csvPF:
-        csvPF.SetTitles([entityTypeName, 'Contacts'])
-    elif _getContactQueryAttributes(contactQuery, myarg, entityType, 0, True):
+        csvPF.SetTitles([entityTypeName, CSVTitle])
+    elif _getContactQueryAttributes(contactQuery, myarg, 0, True):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, contactsObject = getContactsObject(entityType, user, i, count, contactFeed=contactFeed)
-    if not contactsObject:
-      continue
-    contactGroupIDs = contactGroupNames = None
-    if contactQuery['contactGroup']:
-      groupId, contactGroupIDs, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactQuery['contactGroup'],
-                                                                         None, None, entityType, user, i, count)
-      if not groupId:
-        if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
-        continue
-      contactQuery['group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)
-    contacts = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
-    jcount = len(contacts) if contacts is not None else 0
-    if countsOnly:
-      if csvPF:
-        csvPF.WriteRowTitles({entityTypeName: user, 'Contacts': jcount})
-      else:
-        printEntityKVList([entityType, user], ['Contacts', jcount], i, count)
-      continue
-    if contacts is None:
-      continue
+  contactsObject = getContactsObject(contactFeed)
+  contacts = queryContacts(contactsObject, contactQuery)
+  if countsOnly:
+    jcount = countLocalContactSelects(contactsManager, contacts, contactQuery)
+    if csvPF:
+      csvPF.WriteRowTitles({entityTypeName: user, CSVTitle: jcount})
+    else:
+      printEntityKVList([entityType, user], [CSVTitle, jcount])
+  elif contacts is not None:
+    jcount = len(contacts)
     if not csvPF:
       if not FJQC.formatJSON:
-        entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT, i, count)
+        entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.CONTACT)
       Ind.Increment()
       j = 0
       for contact in contacts:
@@ -16162,17 +15832,13 @@ def _printShowContacts(users, entityType, contactFeed=True):
         fields = contactsManager.ContactToFields(contact)
         if not localContactSelects(contactsManager, contactQuery, fields):
           continue
-        if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
-          contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
-        _showContact(contactsManager, fields, displayFieldsList, [None, contactGroupIDs][showContactGroups], j, jcount, FJQC)
+        _showContact(contactsManager, fields, displayFieldsList, j, jcount, FJQC)
       Ind.Decrement()
     elif contacts:
       for contact in contacts:
         fields = contactsManager.ContactToFields(contact)
         if not localContactSelects(contactsManager, contactQuery, fields):
           continue
-        if showContactGroups and CONTACT_GROUPS in fields and not contactGroupIDs:
-          contactGroupIDs, _ = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
         contactRow = {entityTypeName: user, CONTACT_ID: fields[CONTACT_ID]}
         for key in contactsManager.CONTACT_NAME_PROPERTY_PRINT_ORDER:
           if displayFieldsList and key not in displayFieldsList:
@@ -16222,46 +15888,24 @@ def _printShowContacts(users, entityType, contactFeed=True):
                 contactRow[fn+keymap['infoTitle']] = value
               else:
                 contactRow[fn+keymap['infoTitle']] = value
-        if showContactGroups and CONTACT_GROUPS in fields:
-          contactRow[f'{CONTACT_GROUPS}.0.count'] = len(fields[CONTACT_GROUPS])
-          j = 0
-          for group in fields[CONTACT_GROUPS]:
-            j += 1
-            fn = f'{CONTACT_GROUPS}.{j}.'
-            contactRow[fn+CONTACT_GROUP_ID] = f'id:{group}'
-            if group in contactGroupIDs:
-              contactRow[fn+CONTACT_GROUP_NAME] = contactGroupIDs[group]
         if not FJQC.formatJSON:
           csvPF.WriteRowTitles(contactRow)
         elif csvPF.CheckRowTitles(contactRow):
-          if showContactGroupNamesList and CONTACT_GROUPS in fields:
-            fields[CONTACT_GROUPS_LIST] = [contactGroupIDs[group] for group in fields[CONTACT_GROUPS] if group in contactGroupIDs]
           csvPF.WriteRowNoFilter({entityTypeName: user, CONTACT_ID: fields[CONTACT_ID],
                                   CONTACT_NAME: fields.get(CONTACT_NAME, ''),
                                   'JSON': json.dumps(cleanJSON(fields, timeObjects=CONTACT_TIME_OBJECTS),
                                                      ensure_ascii=False, sort_keys=True)})
-    elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and entityType == Ent.USER:
-      csvPF.WriteRowNoFilter({Ent.Singular(entityType): user})
   if csvPF:
-    csvPF.writeCSVfile('Contacts')
-
-# gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
-#	[basic|full|countsonly] [showgroups|showgroupnameslist] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-#	[fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show contacts <UserContactSelection>
-#	[basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-#	[fields <ContactFieldNameList>] [formatjson]
-def printShowUserContacts(users):
-  _printShowContacts(users, Ent.USER)
+    csvPF.writeCSVfile(CSVTitle)
 
 # gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
-#	[basic|full] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[basic|full|countsonly] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson [quotechar <Character>]]
 # gam show contacts <ContactSelection>
-#	[basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+#	[basic|full|countsonly] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doPrintShowDomainContacts():
-  _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
+  _printShowContacts(True)
 
 # gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
 #	[basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
@@ -16270,9 +15914,9 @@ def doPrintShowDomainContacts():
 #	[basic|full|countsonly] [orderby <ContactOrderByFieldName> [ascending|descending]]
 #	[fields <ContactFieldNameList>] [formatjson]
 def doPrintShowGAL():
-  _printShowContacts([GC.Values[GC.DOMAIN]], Ent.DOMAIN, False)
+  _printShowContacts(False)
 
-def _processContactPhotos(users, entityType, function):
+def _processContactPhotos(function):
   def _makeFilenameFromPattern():
     filename = filenamePattern[:]
     if subForContactId:
@@ -16286,8 +15930,10 @@ def _processContactPhotos(users, entityType, function):
         filename = filename.replace('#email#', contactId)
     return filename
 
+  entityType = Ent.DOMAIN
+  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
-  entityList, contactIdLists, contactQuery, queriedContacts = _getContactEntityList(entityType, 1, False)
+  entityList, contactQuery, queriedContacts = _getContactEntityList(1, False)
   if function in {'ChangePhoto', 'GetPhoto'}:
     targetFolder = os.getcwd()
     filenamePattern = '#contactid#.jpg'
@@ -16309,24 +15955,2024 @@ def _processContactPhotos(users, entityType, function):
       filename = filenamePattern
   else: #elif function == 'DeletePhoto':
     checkForExtraneousArguments()
+  contactsObject = getContactsObject(True)
+  if queriedContacts:
+    entityList = queryContacts(contactsObject, contactQuery)
+    if entityList is None:
+      return
+  j = 0
+  jcount = len(entityList)
+  entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, Ent.PHOTO)
+  if jcount == 0:
+    setSysExitRC(NO_ENTITIES_FOUND_RC)
+    return
+  Ind.Increment()
+  for contact in entityList:
+    j += 1
+    try:
+      if not queriedContacts:
+        contactId = normalizeContactId(contact)
+        contact = callGData(contactsObject, 'GetContact',
+                            throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                            retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
+                            uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
+        fields = contactsManager.ContactToFields(contact)
+      else:
+        contactId = contactsManager.GetContactShortId(contact)
+        fields = contactsManager.ContactToFields(contact)
+        if not localContactSelects(contactsManager, contactQuery, fields):
+          continue
+    except (GDATA.notFound, GDATA.badRequest) as e:
+      entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
+      break
+    except (GDATA.forbidden, GDATA.notImplemented):
+      entityServiceNotApplicableWarning(entityType, user)
+      break
+    except GDATA.serviceNotApplicable:
+      entityUnknownWarning(entityType, user)
+      break
+    try:
+      if function == 'ChangePhoto':
+        if subForContactId or subForEmail:
+          filename = _makeFilenameFromPattern()
+        callGData(contactsObject, function,
+                  throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                  retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
+                  media=filename, contact_entry_or_url=contact,
+                  content_type='image/*', content_length=os.path.getsize(filename), extra_headers={'If-Match': '*'})
+        entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename])
+      elif function == 'GetPhoto':
+        if subForContactId or subForEmail:
+          filename = _makeFilenameFromPattern()
+        filename = os.path.join(targetFolder, filename)
+        photo_data = callGData(contactsObject, function,
+                               throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                               retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
+                               contact_entry_or_url=contact)
+        if photo_data:
+          status, e = writeFileReturnError(filename, eval(photo_data), mode='wb') #pylint: disable=eval-used
+          if status:
+            entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename])
+          else:
+            entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e))
+        else:
+          entityDoesNotHaveItemWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, ''])
+      else: #elif function == 'DeletePhoto':
+        filename = ''
+        callGData(contactsObject, function,
+                  throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
+                  retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
+                  contact_entry_or_url=contact, extra_headers={'If-Match': '*'})
+        entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename])
+    except GDATA.notFound:
+      entityDoesNotHaveItemWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, ''])
+    except (GDATA.badRequest, OSError, IOError) as e:
+      entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e), j, jcount)
+    except (GDATA.forbidden, GDATA.notImplemented):
+      entityServiceNotApplicableWarning(entityType, user)
+      break
+  Ind.Decrement()
+
+# gam update contactphotos <ContactEntity>|<ContactSelection>
+#	[drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+def doUpdateDomainContactPhoto():
+  _processContactPhotos('ChangePhoto')
+
+# gam get contactphotos <ContactEntity>|<ContactSelection>
+#	[drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+def doGetDomainContactPhoto():
+  _processContactPhotos('GetPhoto')
+
+# gam delete contactphotos <ContactEntity>|<ContactSelection>
+def doDeleteDomainContactPhoto():
+  _processContactPhotos('DeletePhoto')
+
+# Prople commands utilities
+#
+def normalizePeopleResourceName(resourceName):
+  if resourceName.startswith('people/'):
+    return resourceName
+  return f'people/{resourceName}'
+
+def normalizeContactGroupResourceName(resourceName):
+  if resourceName.startswith('contactGroups/'):
+    return resourceName
+  return f'contactGroups/{resourceName}'
+
+def normalizeOtherContactsResourceName(resourceName):
+  if resourceName.startswith('otherContacts/'):
+    return resourceName
+  return f'otherContacts/{resourceName}'
+
+PEOPLE_JSON = 'JSON'
+
+PEOPLE_ADDRESSES = 'addresses'
+PEOPLE_BIOGRAPHIES = 'biographies'
+PEOPLE_BIRTHDAYS = 'birthdays'
+PEOPLE_CALENDAR_URLS = 'calendarUrls'
+PEOPLE_CLIENT_DATA = 'clientData'
+PEOPLE_COVER_PHOTOS = 'coverPhotos'
+PEOPLE_EMAIL_ADDRESSES = 'emailAddresses'
+PEOPLE_EVENTS = 'events'
+PEOPLE_EXTERNAL_IDS = 'externalIds'
+PEOPLE_FILE_ASES = 'fileAses'
+PEOPLE_GENDERS = 'genders'
+PEOPLE_IM_CLIENTS = 'imClients'
+PEOPLE_INTERESTS = 'interests'
+PEOPLE_LOCALES = 'locales'
+PEOPLE_LOCATIONS = 'locations'
+PEOPLE_MEMBERSHIPS = 'memberships'
+PEOPLE_METADATA = 'metadata'
+PEOPLE_MISC_KEYWORDS = 'miscKeywords'
+PEOPLE_MISC_KEYWORDS_BILLING_INFORMATION = PEOPLE_MISC_KEYWORDS+'.OUTLOOK_BILLING_INFORMATION'
+PEOPLE_MISC_KEYWORDS_DIRECTORY_SERVER = PEOPLE_MISC_KEYWORDS+'.OUTLOOK_DIRECTORY_SERVER'
+PEOPLE_MISC_KEYWORDS_JOT = PEOPLE_MISC_KEYWORDS+'.jot'
+PEOPLE_MISC_KEYWORDS_MILEAGE = PEOPLE_MISC_KEYWORDS+'.OUTLOOK_MILEAGE'
+PEOPLE_MISC_KEYWORDS_PRIORITY = PEOPLE_MISC_KEYWORDS+'.OUTLOOK_PRIORITY'
+PEOPLE_MISC_KEYWORDS_SENSITIVITY = PEOPLE_MISC_KEYWORDS+'.OUTLOOK_SENSITIVITY'
+PEOPLE_MISC_KEYWORDS_SUBJECT = PEOPLE_MISC_KEYWORDS+'.OUTLOOK_SUBJECT'
+PEOPLE_NAMES = 'names'
+PEOPLE_NAMES_FAMILY_NAME = PEOPLE_NAMES+'.familyName'
+PEOPLE_NAMES_GIVEN_NAME = PEOPLE_NAMES+'.givenName'
+PEOPLE_NAMES_HONORIFIC_PREFIX = PEOPLE_NAMES+'.honorificPrefix'
+PEOPLE_NAMES_HONORIFIC_SUFFIX = PEOPLE_NAMES+'.honorificSuffix'
+PEOPLE_NAMES_MIDDLE_NAME = PEOPLE_NAMES+'.middleName'
+PEOPLE_NAMES_PHONETIC_FAMILY_NAME = PEOPLE_NAMES+'.phoneticFamilyName'
+PEOPLE_NAMES_PHONETIC_GIVEN_NAME = PEOPLE_NAMES+'.phoneticGivenName'
+PEOPLE_NAMES_PHONETIC_HONORIFIC_PREFIX = PEOPLE_NAMES+'.phoneticHonorificPrefix'
+PEOPLE_NAMES_PHONETIC_HONORIFIC_SUFFIX = PEOPLE_NAMES+'.phoneticHonorificSuffix'
+PEOPLE_NAMES_PHONETIC_MIDDLE_NAME = PEOPLE_NAMES+'.phoneticMiddleName'
+PEOPLE_NAMES_UNSTRUCTURED_NAME = PEOPLE_NAMES+'.unstructuredName'
+PEOPLE_NICKNAMES = 'nicknames'
+PEOPLE_NICKNAMES_INITIALS = PEOPLE_NICKNAMES+'.INITIALS'
+PEOPLE_NICKNAMES_MAIDENNAME = PEOPLE_NICKNAMES+'.MAIDEN_NAME'
+PEOPLE_NICKNAMES_NICKNAME = PEOPLE_NICKNAMES+'.DEFAULT'
+PEOPLE_NICKNAMES_SHORTNAME = PEOPLE_NICKNAMES+'.SHORT_NAME'
+PEOPLE_OCCUPATIONS = 'occupations'
+PEOPLE_ORGANIZATIONS = 'organizations'
+PEOPLE_PHONE_NUMBERS = 'phoneNumbers'
+PEOPLE_PHOTOS = 'photos'
+PEOPLE_RELATIONS = 'relations'
+PEOPLE_SIP_ADDRESSES = 'sipAddresses'
+PEOPLE_SKILLS = 'skills'
+PEOPLE_UPDATE_TIME = 'updateTime'
+PEOPLE_URLS = 'urls'
+PEOPLE_USER_DEFINED = 'userDefined'
+
+PEOPLE_GROUPS = 'ContactGroups'
+PEOPLE_GROUPS_LIST = 'ContactGroupsList'
+PEOPLE_ADD_GROUPS = 'ContactAddGroups'
+PEOPLE_ADD_GROUPS_LIST = 'ContactAddGroupsList'
+PEOPLE_REMOVE_GROUPS = 'ContactRemoveGroups'
+PEOPLE_REMOVE_GROUPS_LIST = 'ContactRemoveGroupsList'
+
+PEOPLE_GROUP_NAME = 'name'
+PEOPLE_GROUP_CLIENT_DATA = 'clientData'
+#
+class PeopleManager():
+  PEOPLE_ARGUMENT_TO_PROPERTY_MAP = {
+    'json': PEOPLE_JSON,
+    'additionalname': PEOPLE_NAMES_MIDDLE_NAME,
+    'address': PEOPLE_ADDRESSES,
+    'addresses': PEOPLE_ADDRESSES,
+    'billinginfo': PEOPLE_MISC_KEYWORDS_BILLING_INFORMATION,
+    'biography': PEOPLE_BIOGRAPHIES,
+    'biographies': PEOPLE_BIOGRAPHIES,
+    'birthday': PEOPLE_BIRTHDAYS,
+    'birthdays': PEOPLE_BIRTHDAYS,
+    'calendar': PEOPLE_CALENDAR_URLS,
+    'calendars': PEOPLE_CALENDAR_URLS,
+    'clientdata': PEOPLE_CLIENT_DATA,
+#    'coverphoto': PEOPLE_COVER_PHOTOS,
+#    'coverphotos': PEOPLE_COVER_PHOTOS,
+    'directoryserver': PEOPLE_MISC_KEYWORDS_DIRECTORY_SERVER,
+    'email': PEOPLE_EMAIL_ADDRESSES,
+    'emails': PEOPLE_EMAIL_ADDRESSES,
+    'emailadresses': PEOPLE_EMAIL_ADDRESSES,
+    'event': PEOPLE_EVENTS,
+    'events': PEOPLE_EVENTS,
+    'externalid': PEOPLE_EXTERNAL_IDS,
+    'externalids': PEOPLE_EXTERNAL_IDS,
+    'familyname': PEOPLE_NAMES_FAMILY_NAME,
+    'fileas': PEOPLE_FILE_ASES,
+    'firstname': PEOPLE_NAMES_GIVEN_NAME,
+    'gender': PEOPLE_GENDERS,
+    'genders': PEOPLE_GENDERS,
+    'givenname': PEOPLE_NAMES_GIVEN_NAME,
+    'hobby': PEOPLE_INTERESTS,
+    'hobbies': PEOPLE_INTERESTS,
+    'im': PEOPLE_IM_CLIENTS,
+    'ims': PEOPLE_IM_CLIENTS,
+    'imclients': 'imClients',
+    'initials': PEOPLE_NICKNAMES_INITIALS,
+    'interests': PEOPLE_INTERESTS,
+    'jot': PEOPLE_MISC_KEYWORDS_JOT,
+    'jots': PEOPLE_MISC_KEYWORDS_JOT,
+    'language': PEOPLE_LOCALES,
+    'lastname': PEOPLE_NAMES_FAMILY_NAME,
+    'locale': PEOPLE_LOCALES,
+    'location': PEOPLE_LOCATIONS,
+    'locations': PEOPLE_LOCATIONS,
+    'maidenname': PEOPLE_NICKNAMES_MAIDENNAME,
+    'middlename': PEOPLE_NAMES_MIDDLE_NAME,
+    'mileage': PEOPLE_MISC_KEYWORDS_MILEAGE,
+    'misckeywords': PEOPLE_MISC_KEYWORDS,
+    'name': PEOPLE_NAMES_UNSTRUCTURED_NAME,
+    'names': PEOPLE_NAMES_UNSTRUCTURED_NAME,
+    'nickname': PEOPLE_NICKNAMES_NICKNAME,
+    'nicknames': PEOPLE_NICKNAMES_NICKNAME,
+    'note': PEOPLE_BIOGRAPHIES,
+    'notes': PEOPLE_BIOGRAPHIES,
+    'occupation': PEOPLE_OCCUPATIONS,
+    'occupations': PEOPLE_OCCUPATIONS,
+    'organization': PEOPLE_ORGANIZATIONS,
+    'organizations': PEOPLE_ORGANIZATIONS,
+    'phone': PEOPLE_PHONE_NUMBERS,
+    'phones': PEOPLE_PHONE_NUMBERS,
+    'phonenumbers': PEOPLE_PHONE_NUMBERS,
+#    'photo': PEOPLE_PHOTOS,
+#    'photos': PEOPLE_PHOTOS,
+    'prefix': PEOPLE_NAMES_HONORIFIC_PREFIX,
+    'priority': PEOPLE_MISC_KEYWORDS_PRIORITY,
+    'relation': PEOPLE_RELATIONS,
+    'relations': PEOPLE_RELATIONS,
+    'sensitivity': PEOPLE_MISC_KEYWORDS_SENSITIVITY,
+    'shortname': PEOPLE_NICKNAMES_SHORTNAME,
+    'sipaddress': PEOPLE_SIP_ADDRESSES,
+    'sipaddresses': PEOPLE_SIP_ADDRESSES,
+    'skills': PEOPLE_SKILLS,
+    'subject': PEOPLE_MISC_KEYWORDS_SUBJECT,
+    'suffix': PEOPLE_NAMES_HONORIFIC_SUFFIX,
+    'url': PEOPLE_URLS,
+    'urls': PEOPLE_URLS,
+    'userdefined': PEOPLE_USER_DEFINED,
+    'userdefinedfield': PEOPLE_USER_DEFINED,
+    'userdefinedfields': PEOPLE_USER_DEFINED,
+    'website': PEOPLE_URLS,
+    'websites': PEOPLE_URLS,
+    'contactgroup': PEOPLE_GROUPS,
+    'contactgroups': PEOPLE_GROUPS,
+    'addcontactgroup': PEOPLE_ADD_GROUPS,
+    'addcontactgroups': PEOPLE_ADD_GROUPS,
+    'removecontactgroup': PEOPLE_REMOVE_GROUPS,
+    'removecontactgroups': PEOPLE_REMOVE_GROUPS,
+    }
+
+  ADDRESS_ARGUMENT_TO_FIELD_MAP = {
+    'formatted': 'formattedValue',
+    'unstructured': 'formattedValue',
+    'pobox': 'poBox',
+    'street': 'streetAddress',
+    'streetaddress': 'streetAddress',
+    'extended': 'extendedAddress',
+    'neighborhood': 'extendedAddress',
+    'city': 'city',
+    'locality': 'city',
+    'region': 'region',
+    'postalcode': 'postalCode',
+    'country': 'country',
+    'countrycode': 'countryCode',
+    }
+
+  JOT_TYPE_MAP = {
+    'work': 'WORK',
+    'home': 'HOME',
+    'other': 'OTHER',
+    'keyword': 'KEYWORD',
+    'keywords': 'KEYWORD',
+    'user': 'USER',
+    }
+
+  IM_PROTOCOLS = {
+    'aim': 'aim',
+    'googletalk': 'googleTalk',
+    'gtalk': 'googleTalk',
+    'icq': 'icq',
+    'jabber': 'jabber',
+    'msn': 'msn',
+    'netmeeting': 'netMeeting',
+    'qq': 'qq',
+    'skype': 'skype',
+    'xmpp': 'jabber',
+    'yahoo': 'yahoo',
+    }
+
+  ORGANIZATION_ARGUMENT_TO_FIELD_MAP = {
+    'startdate': 'startDate',
+    'enddate': 'endDate',
+    'current': 'current',
+    'phoneticname': 'phoneticName',
+    'title': 'title',
+    'department': 'department',
+    'jobdescription': 'jobDescription',
+    'symbol': 'symbol',
+    'domain': 'domain',
+    'location': 'location',
+    }
+
+# Fields with a key and value
+  KEY_VALUE_FIELDS = {
+    PEOPLE_CLIENT_DATA,
+    PEOPLE_USER_DEFINED,
+    }
+
+# Fields with a type and value
+  TYPE_VALUE_FIELDS = {
+    PEOPLE_EVENTS: {
+      'anniversary': 'anniversary',
+      'other': 'other',
+      },
+    PEOPLE_EXTERNAL_IDS: {
+      'account': 'account',
+      'customer': 'customer',
+      'loginid': 'loginId',
+      'network': 'network',
+      'organization': 'organization',
+      },
+    PEOPLE_RELATIONS: {
+      'spouse' : 'spouse',
+      'child' : 'child',
+      'mother' : 'mother',
+      'father' : 'father',
+      'parent' : 'parent',
+      'brother' : 'brother',
+      'sister' : 'sister',
+      'friend' : 'friend',
+      'relative' : 'relative',
+      'domesticpartner' : 'domesticPartner',
+      'manager' : 'manager',
+      'assistant' : 'assistant',
+      'referredby' : 'referredBy',
+      'partner' : 'partner',
+      },
+    PEOPLE_SIP_ADDRESSES: {
+      'work': 'work',
+      'home': 'home',
+      'other': 'other',
+      'mobile': 'mobile',
+      },
+    }
+
+# Fields with a type, value and primary|notprimary; some fields may have additional arguments
+  TYPE_VALUE_PNP_FIELDS = {
+    PEOPLE_ADDRESSES: {
+      'work': 'work',
+      'home': 'home',
+      'other': 'other',
+      },
+    PEOPLE_CALENDAR_URLS: {
+      'work': 'work',
+      'home': 'home',
+      'freebusy': 'freeBusy',
+      },
+    PEOPLE_EMAIL_ADDRESSES: {
+      'work': 'work',
+      'home': 'home',
+      'other': 'other',
+      },
+    PEOPLE_IM_CLIENTS: {
+      'work': 'work',
+      'home': 'home',
+      'other': 'other',
+      },
+    PEOPLE_ORGANIZATIONS: {
+      'school': 'school',
+      'work': 'work',
+      'other': 'other',
+      },
+    PEOPLE_PHONE_NUMBERS: {
+      'work': 'work',
+      'home': 'home',
+      'other': 'other',
+      'googlevoice': 'googleVoice',
+      'fax': 'homeFax',
+      'homefax': 'homeFax',
+      'workfax': 'workFax',
+      'otherfax': 'otherFax',
+      'main': 'main',
+      'company_main': 'companyMain',
+      'assistant': 'assistant',
+      'mobile': 'mobile',
+      'workmobile': 'workMobile',
+      'pager': 'pager',
+      'workpager': 'workPager',
+      'car': 'car',
+      'radio': 'radio',
+      'callback': 'callback',
+      'isdn': 'isdn',
+      'telex': 'telex',
+      'ttytdd': 'TTY_TDD',
+      },
+    PEOPLE_SIP_ADDRESSES: {
+      'work': 'work',
+      'home': 'home',
+      'mobile': 'mobile',
+      'other': 'other',
+      },
+    PEOPLE_URLS: {
+      'appinstallpage': 'appInstallPage',
+      'blog': 'blog',
+      'ftp': 'ftp',
+      'home': 'homePage',
+      'homepage': 'homePage',
+      'other': 'other',
+      'profile': 'profile',
+      'reservations': 'reservations',
+      'resume': 'resume',
+      'work': 'work',
+      }
+    }
+
+# Fields with just a URL
+#  URL_FIELDS = {
+#    PEOPLE_COVER_PHOTOS,
+#    PEOPLE_PHOTOS,
+#    }
+
+# Fields with a single value
+  SINGLE_VALUE_FIELDS = {
+    PEOPLE_FILE_ASES,
+    }
+
+# Fields with multiple values
+  MULTI_VALUE_FIELDS = {
+    PEOPLE_INTERESTS,
+    PEOPLE_LOCALES,
+    PEOPLE_LOCATIONS,
+    PEOPLE_OCCUPATIONS,
+    PEOPLE_SKILLS,
+    }
+
+  @staticmethod
+  def GetPersonFields(entityType):
+    person = {}
+    contactGroupsLists = {
+      PEOPLE_GROUPS_LIST: [],
+      PEOPLE_ADD_GROUPS_LIST: [],
+      PEOPLE_REMOVE_GROUPS_LIST: []
+      }
+    locations = {'primary': None}
+
+    def CheckClearPersonField(fieldName):
+      if checkArgumentPresent(Cmd.CLEAR_NONE_ARGUMENT):
+        person.pop(fieldName, None)
+        person[fieldName] = []
+        return True
+      return False
+
+    def GetSingleFieldEntry(fieldName):
+      person.setdefault(fieldName, [])
+      if not person[fieldName]:
+        person[fieldName].append({})
+      return person[fieldName][0]
+
+    def InitArrayFieldEntry(choices):
+      entry = {'metadata': {'primary': False}}
+      if choices is not None:
+        ftype = getChoice(choices, mapChoice=True, defaultChoice=None)
+        if ftype:
+          entry['type'] = ftype
+        else:
+          entry['type'] = getString(Cmd.OB_STRING)
+      return entry
+
+    def GetMultiFieldEntry(fieldName):
+      person.setdefault(fieldName, [])
+      person[fieldName].append({})
+      return person[fieldName][-1]
+
+    def getDate(entry, fieldName):
+      event = getYYYYMMDD(minLen=0, returnDateTime=True)
+      entry[fieldName] = {'year': event.year, 'month': event.month, 'day': event.day}
+
+    def PrimaryNotPrimary(pnp, entry):
+      if pnp == 'notprimary':
+        entry['metadata']['primary'] = 'false'
+        return True
+      if pnp == 'primary':
+        entry['metadata']['primary'] = 'true'
+        locations['primary'] = Cmd.Location()
+        return True
+      return False
+
+    def GetPrimaryNotPrimaryChoice(entry):
+      pnp = getChoice({'primary': True, 'notprimary': False}, mapChoice=True)
+      entry['metadata']['primary'] = pnp
+      if pnp:
+        locations['primary'] = Cmd.Location()
+
+    def AppendArrayEntryToFields(fieldName, entry, checkBlankField=None):
+      person.setdefault(fieldName, [])
+      if checkBlankField is None or entry[checkBlankField]:
+        if entry.get('metadata', {}).get('primary', False):
+          for centry in person[fieldName][1:]:
+            if centry.get('metadata', {}).get('primary', False):
+              Cmd.SetLocation(locations['primary']-1)
+              usageErrorExit(Msg.MULTIPLE_ITEMS_MARKED_PRIMARY.format(fieldName))
+        person[fieldName].append(entry)
+
+    while Cmd.ArgumentsRemaining():
+      locations['fieldName'] = Cmd.Location()
+      fieldName = getChoice(PeopleManager.PEOPLE_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
+      if '.' in fieldName:
+        fieldName, subFieldName = fieldName.split('.')
+      if fieldName == PEOPLE_ADDRESSES:
+        if CheckClearPersonField(fieldName):
+          continue
+        entry = InitArrayFieldEntry(PeopleManager.TYPE_VALUE_PNP_FIELDS[fieldName])
+        while Cmd.ArgumentsRemaining():
+          argument = getArgument()
+          if argument in PeopleManager.ADDRESS_ARGUMENT_TO_FIELD_MAP:
+            subFieldName = PeopleManager.ADDRESS_ARGUMENT_TO_FIELD_MAP[argument]
+            value = getString(Cmd.OB_STRING, minLen=0)
+            if value: ### Delete?
+              entry[subFieldName] = value.replace('\\n', '\n')
+          elif PrimaryNotPrimary(argument, entry):
+            break
+          else:
+            unknownArgumentExit()
+        AppendArrayEntryToFields(fieldName, entry, None)
+      elif fieldName == PEOPLE_BIRTHDAYS:
+        entry = GetSingleFieldEntry(fieldName)
+        getDate(entry, 'date')
+      elif fieldName == PEOPLE_BIOGRAPHIES:
+        entry = GetSingleFieldEntry(fieldName)
+        text, _, html = getStringWithCRsNLsOrFile()
+        entry['value' ] = text
+        entry['contentType'] = ['TEXT_PLAIN', 'TEXT_HTML'][html]
+      elif fieldName == PEOPLE_GENDERS:
+        entry = GetSingleFieldEntry(fieldName)
+        entry['value'] = getString(Cmd.OB_STRING, minLen=0)
+      elif fieldName == PEOPLE_MISC_KEYWORDS:
+        entry = GetMultiFieldEntry(fieldName)
+        if subFieldName == 'jot':
+          subFieldName = getChoice(PeopleManager.JOT_TYPE_MAP, mapChoice=True)
+        entry['value'] = getString(Cmd.OB_STRING, minLen=0)
+        entry['type'] = subFieldName
+      elif fieldName == PEOPLE_NAMES:
+        entry = GetSingleFieldEntry(fieldName)
+        entry[subFieldName] = getString(Cmd.OB_STRING, minLen=0)
+      elif fieldName == PEOPLE_NICKNAMES:
+        entry = GetMultiFieldEntry(fieldName)
+        entry['value'] = getString(Cmd.OB_STRING, minLen=0)
+        entry['type'] = subFieldName
+      elif fieldName == PEOPLE_ORGANIZATIONS:
+        entry = InitArrayFieldEntry(PeopleManager.TYPE_VALUE_PNP_FIELDS[fieldName])
+        entry['name'] = getString(Cmd.OB_STRING, minLen=0)
+        while Cmd.ArgumentsRemaining():
+          argument = getArgument()
+          if argument in PeopleManager.ORGANIZATION_ARGUMENT_TO_FIELD_MAP:
+            subFieldName = PeopleManager.ORGANIZATION_ARGUMENT_TO_FIELD_MAP[argument]
+            if subFieldName == 'current':
+              entry[subFieldName] = getBoolean()
+            elif subFieldName in {'startDate', 'endDate'}:
+              getDate(entry, subFieldName)
+            else:
+              value = getString(Cmd.OB_STRING, minLen=0)
+              if value: ### Delete?
+                entry[subFieldName] = value
+          elif PrimaryNotPrimary(argument, entry):
+            break
+          else:
+            unknownArgumentExit()
+        AppendArrayEntryToFields(fieldName, entry, None)
+      elif fieldName in PeopleManager.KEY_VALUE_FIELDS:
+        if CheckClearPersonField(fieldName):
+          continue
+        entry = InitArrayFieldEntry(None)
+        entry['key'] = getString(Cmd.OB_STRING, minLen=1)
+        entry['value'] = getString(Cmd.OB_STRING, minLen=0)
+        AppendArrayEntryToFields(fieldName, entry, 'value')
+      elif fieldName in PeopleManager.TYPE_VALUE_FIELDS:
+        if CheckClearPersonField(fieldName):
+          continue
+        entry = InitArrayFieldEntry(PeopleManager.TYPE_VALUE_FIELDS[fieldName])
+        if fieldName == PEOPLE_EVENTS:
+          checkBlankField = 'date'
+          getDate(entry, checkBlankField)
+        elif fieldName == PEOPLE_RELATIONS:
+          checkBlankField = 'type'
+          entry[checkBlankField] = getString(Cmd.OB_STRING, minLen=0)
+        else:
+          checkBlankField = 'value'
+          entry[checkBlankField] = getString(Cmd.OB_STRING, minLen=0)
+        AppendArrayEntryToFields(fieldName, entry, checkBlankField)
+      elif fieldName in PeopleManager.TYPE_VALUE_PNP_FIELDS:
+        if CheckClearPersonField(fieldName):
+          continue
+        entry = InitArrayFieldEntry(PeopleManager.TYPE_VALUE_PNP_FIELDS[fieldName])
+        if fieldName == PEOPLE_IM_CLIENTS:
+          checkBlankField = None
+          entry['protocol'] = getChoice(PeopleManager.IM_PROTOCOLS, mapChoice=True)
+          entry['username'] = getString(Cmd.OB_STRING, minLen=0)
+        elif fieldName == PEOPLE_EMAIL_ADDRESSES:
+          checkBlankField = 'value'
+          entry[checkBlankField] = getString(Cmd.OB_STRING, minLen=0)
+          if checkArgumentPresent(['displayname']):
+            entry['displayName'] = getString(Cmd.OB_STRING, minLen=0)
+        elif fieldName == PEOPLE_CALENDAR_URLS:
+          checkBlankField = 'url'
+          entry[checkBlankField] = getString(Cmd.OB_STRING, minLen=0)
+        else:
+          checkBlankField = 'value'
+          entry[checkBlankField] = getString(Cmd.OB_STRING, minLen=0)
+        GetPrimaryNotPrimaryChoice(entry)
+        AppendArrayEntryToFields(fieldName, entry, checkBlankField)
+      elif fieldName in PeopleManager.SINGLE_VALUE_FIELDS:
+        entry = GetSingleFieldEntry(fieldName)
+        entry['value'] = getString(Cmd.OB_STRING, minLen=0)
+      elif fieldName in PeopleManager.MULTI_VALUE_FIELDS:
+        if CheckClearPersonField(fieldName):
+          continue
+        entry = InitArrayFieldEntry(None)
+        entry['value'] = getString(Cmd.OB_STRING, minLen=0)
+        AppendArrayEntryToFields(fieldName, entry, 'value')
+#      elif fieldName in PeopleManager.URL_FIELDS:
+#        if CheckClearPersonField(fieldName):
+#          continue
+#        entry = InitArrayFieldEntry(None)
+#        entry['url'] = getString(Cmd.OB_STRING, minLen=0)
+#        entry['default'] = False
+#        AppendArrayEntryToFields(fieldName, entry, 'url')
+      elif fieldName == PEOPLE_GROUPS:
+        if entityType != Ent.USER:
+          Cmd.Backup()
+          unknownArgumentExit()
+        contactGroupsLists[PEOPLE_GROUPS_LIST].append(getString(Cmd.OB_STRING))
+      elif fieldName == PEOPLE_ADD_GROUPS:
+        if entityType != Ent.USER:
+          Cmd.Backup()
+          unknownArgumentExit()
+        contactGroupsLists[PEOPLE_ADD_GROUPS_LIST].append(getString(Cmd.OB_STRING))
+      elif fieldName == PEOPLE_REMOVE_GROUPS:
+        if entityType != Ent.USER:
+          Cmd.Backup()
+          unknownArgumentExit()
+        contactGroupsLists[PEOPLE_REMOVE_GROUPS_LIST].append(getString(Cmd.OB_STRING))
+      elif fieldName == PEOPLE_JSON:
+        person.update(getJSON(['resourceName', 'etag', 'metadata', PEOPLE_COVER_PHOTOS, PEOPLE_PHOTOS]))
+    return (person, set(person.keys()), contactGroupsLists)
+
+  PEOPLE_GROUP_ARGUMENT_TO_PROPERTY_MAP = {
+    'json': PEOPLE_JSON,
+    'name': PEOPLE_GROUP_NAME,
+    'clientdata': PEOPLE_GROUP_CLIENT_DATA,
+    }
+
+  @staticmethod
+  def AddContactGroupsToContact(contactEntry, contactGroupsList):
+    contactEntry[PEOPLE_MEMBERSHIPS] = []
+    for groupId in contactGroupsList:
+      if groupId != 'clear':
+        contactEntry[PEOPLE_MEMBERSHIPS].append({'contactGroupMembership': {'contactGroupResourceName': groupId}})
+      else:
+        contactEntry[PEOPLE_MEMBERSHIPS] = []
+
+  @staticmethod
+  def AddFilteredContactGroupsToContact(contactEntry, contactGroupsList, contactRemoveGroupsList):
+    contactEntry[PEOPLE_MEMBERSHIPS] = []
+    for groupId in contactGroupsList:
+      if groupId not in contactRemoveGroupsList:
+        contactEntry[PEOPLE_MEMBERSHIPS].append({'contactGroupMembership': {'contactGroupResourceName': groupId}})
+
+  @staticmethod
+  def AddAdditionalContactGroupsToContact(contactEntry, contactGroupsList):
+    for groupId in contactGroupsList:
+      contactEntry[PEOPLE_MEMBERSHIPS].append({'contactGroupMembership': {'contactGroupResourceName': groupId}})
+
+  @staticmethod
+  def GetContactGroupFields():
+    contactGroup = {}
+    while Cmd.ArgumentsRemaining():
+      fieldName = getChoice(PeopleManager.PEOPLE_GROUP_ARGUMENT_TO_PROPERTY_MAP, mapChoice=True)
+      if fieldName == PEOPLE_GROUP_NAME:
+        contactGroup[PEOPLE_GROUP_NAME] = getString(Cmd.OB_STRING)
+      elif fieldName == PEOPLE_GROUP_CLIENT_DATA:
+        entry = {}
+        entry['key'] = getString(Cmd.OB_STRING, minLen=1)
+        entry['value'] = getString(Cmd.OB_STRING, minLen=0)
+        if entry['value']:
+          contactGroup.setdefault(fieldName, [])
+          contactGroup[fieldName].append(entry)
+      elif fieldName == PEOPLE_JSON:
+        contactGroup.update(getJSON(['resourceName', 'etag', 'metadata', 'groupType', 'formattedName', 'memberResourceNames',  'memberCount']))
+    return (contactGroup, ','.join(contactGroup.keys()))
+
+PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP = {
+  'contact': 'DIRECTORY_SOURCE_TYPE_DOMAIN_CONTACT',
+  'contacts': 'DIRECTORY_SOURCE_TYPE_DOMAIN_CONTACT',
+  'domaincontact': 'DIRECTORY_SOURCE_TYPE_DOMAIN_CONTACT',
+  'comaincontacts': 'DIRECTORY_SOURCE_TYPE_DOMAIN_CONTACT',
+  'profile': 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE',
+  'profiles': 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE'
+  }
+
+PEOPLE_READ_SOURCES_CHOICE_MAP = {
+  'contact': 'READ_SOURCE_TYPE_CONTACT',
+  'contacts': 'READ_SOURCE_TYPE_CONTACT',
+  'domaincontact': 'READ_SOURCE_TYPE_DOMAIN_CONTACT',
+  'domaincontacts': 'READ_SOURCE_TYPE_DOMAIN_CONTACT',
+  'profile': 'READ_SOURCE_TYPE_PROFILE',
+  'profiles': 'READ_SOURCE_TYPE_PROFILE'
+  }
+
+PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
+  'contact': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
+  'contacts': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
+  }
+
+def _initPeopleContactQueryAttributes():
+  return {'query': None, 'updateTime': None,
+          'contactGroup': None, 'group': None, 'otherContacts': False, 'emailMatchPattern': None, 'emailMatchType': None}
+
+def _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, allowOutputAttributes):
+  if myarg == 'query':
+    contactQuery['query'] = getString(Cmd.OB_QUERY)
+  elif myarg in {'contactgroup', 'selectcontactgroup'}:
+    if entityType == Ent.USER:
+      contactQuery['contactGroup'] = getString(Cmd.OB_CONTACT_GROUP_ITEM)
+      contactQuery['otherContacts'] = False
+    else:
+      unknownArgumentExit()
+  elif myarg == 'emailmatchpattern':
+    contactQuery['emailMatchPattern'] = getREPattern(re.IGNORECASE)
+  elif myarg == 'emailmatchtype':
+    contactQuery['emailMatchType'] = getString(Cmd.OB_CONTACT_EMAIL_TYPE)
+  elif myarg == 'updatedmin':
+    deprecatedArgument(myarg)
+    getYYYYMMDD()
+  elif myarg == 'endquery':
+    return False
+  elif not allowOutputAttributes:
+    if unknownAction < 0:
+      unknownArgumentExit()
+    if unknownAction > 0:
+      Cmd.Backup()
+    return False
+  elif myarg in {'othercontacts', 'selectothercontacts'}:
+    if entityType == Ent.USER:
+      contactQuery['otherContacts'] = True
+      contactQuery['contactGroup'] = None
+    else:
+      unknownArgumentExit()
+  elif myarg == 'orderby':
+    getOrderBySortOrder(CONTACTS_ORDERBY_CHOICE_MAP, 'ascending', False)
+    deprecatedArgument(myarg)
+  elif myarg in CONTACTS_PROJECTION_CHOICE_MAP:
+    deprecatedArgument(myarg)
+  elif myarg == 'showdeleted':
+    deprecatedArgument(myarg)
+  else:
+    if unknownAction < 0:
+      unknownArgumentExit()
+    if unknownAction > 0:
+      Cmd.Backup()
+    return False
+  return True
+
+PEOPLE_CONTACT_SELECT_ARGUMENTS = {
+  'query', 'contactgroup', 'selectcontactgroup',
+  'othercontacts', 'selectothercontacts',
+  'emailmatchpattern', 'emailmatchtype',
+  }
+PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS = {
+  'orderby', 'basic', 'thin', 'full', 'showdeleted',
+  }
+
+def _getPeopleContactEntityList(entityType, unknownAction):
+  contactQuery = _initPeopleContactQueryAttributes()
+  if Cmd.PeekArgumentPresent(PEOPLE_CONTACT_SELECT_ARGUMENTS.union(PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS)):
+    entityList = None
+    queriedContacts = True
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if not _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, False):
+        break
+  else:
+    entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
+    queriedContacts = False
+    if unknownAction < 0:
+      checkForExtraneousArguments()
+  return (entityList, entityList if isinstance(entityList, dict) else None, contactQuery, queriedContacts)
+
+def _initPeopleOtherContactQueryAttributes():
+  return {'query': None,
+          'otherContacts': True, 'emailMatchPattern': None, 'emailMatchType': None}
+
+def _getPeopleOtherContactQueryAttributes(contactQuery, myarg, unknownAction):
+  if myarg == 'query':
+    contactQuery['query'] = getString(Cmd.OB_QUERY)
+  elif myarg == 'emailmatchpattern':
+    contactQuery['emailMatchPattern'] = getREPattern(re.IGNORECASE)
+  elif myarg == 'emailmatchtype':
+    contactQuery['emailMatchType'] = getString(Cmd.OB_CONTACT_EMAIL_TYPE)
+  elif myarg == 'endquery':
+    return False
+  else:
+    if unknownAction < 0:
+      unknownArgumentExit()
+    if unknownAction > 0:
+      Cmd.Backup()
+    return False
+  return True
+
+PEOPLE_OTHERCONTACT_SELECT_ARGUMENTS = {'query', 'emailmatchpattern', 'emailmatchtype'}
+
+def _getPeopleOtherContactEntityList(unknownAction):
+  contactQuery = _initPeopleOtherContactQueryAttributes()
+  if Cmd.PeekArgumentPresent(PEOPLE_OTHERCONTACT_SELECT_ARGUMENTS):
+    entityList = None
+    queriedContacts = True
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if not _getPeopleOtherContactQueryAttributes(contactQuery, myarg, unknownAction):
+        break
+  else:
+    entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
+    queriedContacts = False
+    if unknownAction < 0:
+      checkForExtraneousArguments()
+  return (entityList, entityList if isinstance(entityList, dict) else None, contactQuery, queriedContacts)
+
+def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, user, i=0, count=0):
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['domaincontact' if entityType == Ent.DOMAIN else 'contact']]
+  try:
+# Not other contacts
+    if not contactQuery['otherContacts']:
+      printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=contactQuery['query'])
+      pageMessage = getPageMessage()
+      mfields = fields
+      stripMemberships = False
+      if contactQuery['contactGroup']:
+        if 'memberships' not in mfields:
+          stripMemberships = True
+          mfields += ',memberships'
+      if not contactQuery['query']:
+        entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
+                                   pageMessage=pageMessage,
+                                   throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                   resourceName='people/me', sources=sources, personFields=mfields,
+                                   sortOrder=sortOrder, fields='nextPageToken,connections')
+      else:
+        results = callGAPI(people.people(), 'searchContacts',
+                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                           sources=sources, readMask=mfields, query=contactQuery['query'])
+        entityList = [person['person'] for person in results.get('results', [])]
+        totalItems = len(entityList)
+        showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+        writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
+      if not contactQuery['contactGroup']:
+        return entityList
+      cgEntityList = []
+      for contact in entityList:
+        for membership in contact.get('memberships', []):
+          if membership.get('contactGroupMembership', {}).get('contactGroupResourceName', '') == contactQuery['group']:
+            if stripMemberships:
+              contact.pop('memberships')
+            cgEntityList.append(contact)
+            break
+      return cgEntityList
+# Other contacts
+    printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=contactQuery['query'])
+    pageMessage = getPageMessage()
+    if not contactQuery['query']:
+      entityList = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
+                                 pageMessage=pageMessage,
+                                 throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                 readMask=fields, fields='nextPageToken,otherContacts')
+    else:
+      results = callGAPI(people.otherContacts(), 'search',
+                         throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                         readMask=fields, query=contactQuery['query'])
+      entityList = [person['person'] for person in results.get('results', [])]
+      totalItems = len(entityList)
+      showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.OTHER_CONTACT, totalItems))))
+    return entityList
+  except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+    entityUnknownWarning(entityType, user, i, count)
+  return None
+
+def getPeopleContactGroupsInfo(people, entityType, entityName, i, count):
+  contactGroupIDs = {}
+  contactGroupNames = {}
+  try:
+    groups = callGAPIpages(people.contactGroups(), 'list', 'contactGroups',
+                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                           groupFields='name', fields='nextPageToken,contactGroups(resourceName,name,formattedName)')
+    if groups:
+      for group in groups:
+        contactGroupIDs[group['resourceName']] = group['formattedName']
+        contactGroupNames.setdefault(group['formattedName'], [])
+        contactGroupNames[group['formattedName']].append(group['resourceName'])
+        if group['formattedName'] != group['name']:
+          contactGroupNames.setdefault(group['name'], [])
+          contactGroupNames[group['name']].append(group['resourceName'])
+  except (GAPI.forbidden, GAPI.permissionDenied):
+    entityServiceNotApplicableWarning(entityType, entityName, i, count)
+    return (contactGroupIDs, False)
+  except GAPI.serviceNotAvailable:
+    entityUnknownWarning(entityType, entityName, i, count)
+    return (contactGroupIDs, False)
+  return (contactGroupIDs, contactGroupNames)
+
+def validatePeopleContactGroup(people, contactGroupName,
+                               contactGroupIDs, contactGroupNames, entityType, entityName, i, count):
+  if not contactGroupNames:
+    contactGroupIDs, contactGroupNames = getPeopleContactGroupsInfo(people, entityType, entityName, i, count)
+    if contactGroupNames is False:
+      return (None, contactGroupIDs, contactGroupNames)
+  if contactGroupName == 'clear':
+    return (contactGroupName, contactGroupIDs, contactGroupNames)
+  cg = UID_PATTERN.match(contactGroupName)
+  if cg:
+    contactGroupName = cg.group(1)
+    if contactGroupName in contactGroupIDs:
+      return (contactGroupName, contactGroupIDs, contactGroupNames)
+    normalizedContactGroupName = normalizeContactGroupResourceName(contactGroupName)
+    if normalizedContactGroupName in contactGroupIDs:
+      return (normalizedContactGroupName, contactGroupIDs, contactGroupNames)
+  else:
+    if contactGroupName in contactGroupIDs:
+      return (contactGroupName, contactGroupIDs, contactGroupNames)
+    if contactGroupName in contactGroupNames:
+      return (contactGroupNames[contactGroupName][0], contactGroupIDs, contactGroupNames)
+    normalizedContactGroupName = normalizeContactGroupResourceName(contactGroupName)
+    if normalizedContactGroupName != contactGroupName and normalizedContactGroupName in contactGroupIDs:
+      return (normalizedContactGroupName, contactGroupIDs, contactGroupNames)
+  return (None, contactGroupIDs, contactGroupNames)
+
+def validatePeopleContactGroupsList(people, contactId,
+                                    contactGroupsList, entityType, entityName, i, count):
+  result = True
+  contactGroupIDs = contactGroupNames = None
+  validatedContactGroupsList = []
+  for contactGroup in contactGroupsList:
+    groupId, contactGroupIDs, contactGroupNames = validatePeopleContactGroup(people, contactGroup,
+                                                                             contactGroupIDs, contactGroupNames, entityType, entityName, i, count)
+    if groupId:
+      validatedContactGroupsList.append(groupId)
+    else:
+      if contactGroupNames:
+        entityActionNotPerformedWarning([entityType, entityName, Ent.CONTACT, contactId],
+                                        Ent.TypeNameMessage(Ent.CONTACT_GROUP, contactGroup, Msg.DOES_NOT_EXIST))
+      result = False
+  return (result, validatedContactGroupsList)
+
+# gam <UserTypeEntity> create contact <PeopleContactAttribute>+
+#	(contactgroup <ContactGroupItem>)*
+def createUserPeopleContact(users):
+  entityType = Ent.USER
+  peopleManager = PeopleManager()
+  peopleEntityType = Ent.CONTACT
+  sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
+  body, personFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    if contactIdLists:
-      entityList = contactIdLists[user]
-    user, contactsObject = getContactsObject(entityType, user, i, count, contactFeed=True)
-    if not contactsObject:
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    if contactGroupsLists[PEOPLE_GROUPS_LIST]:
+      result, validatedContactGroupsList = validatePeopleContactGroupsList(people, '',
+                                                                           contactGroupsLists[PEOPLE_GROUPS_LIST], entityType, user, i, count)
+      if not result:
+        continue
+      peopleManager.AddContactGroupsToContact(body, validatedContactGroupsList)
+      personFields.add(PEOPLE_MEMBERSHIPS)
+    else:
+      personFields.discard(PEOPLE_MEMBERSHIPS)
+    try:
+      person = callGAPI(people.people(), 'createContact',
+                        throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS+[GAPI.INVALID_ARGUMENT],
+                        personFields=','.join(personFields), body=body, sources=sources)
+      entityActionPerformed([entityType, user, peopleEntityType, person['resourceName']], i, count)
+    except GAPI.invalidArgument as e:
+      entityActionFailedWarning([entityType, user, peopleEntityType, None], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      ClientAPIAccessDeniedExit()
+
+def localPeopleContactSelects(contactQuery, contact):
+  if contactQuery['emailMatchPattern']:
+    emailMatchType = contactQuery['emailMatchType']
+    for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
+      if contactQuery['emailMatchPattern'].match(item['value']):
+        if (not emailMatchType or emailMatchType == item.get('type', '')):
+          break
+    else:
+      return False
+  return True
+
+def countLocalPeopleContactSelects(contactQuery, contacts):
+  if contacts is not None and contactQuery['emailMatchPattern']:
+    jcount = 0
+    for contact in contacts:
+      if localPeopleContactSelects(contactQuery, contact):
+        jcount += 1
+  else:
+    jcount = len(contacts) if contacts is not None else 0
+  return jcount
+
+def _clearUpdatePeopleContacts(users, updateContacts):
+  action = Act.Get()
+  entityType = Ent.USER
+  peopleManager = PeopleManager()
+  peopleEntityType = Ent.PEOPLE_CONTACT
+  sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1)
+  if updateContacts:
+    body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
+  else:
+    contactClear = {'emailClearPattern': contactQuery['emailMatchPattern'], 'emailClearType': contactQuery['emailMatchType']}
+    deleteClearedContactsWithNoEmails = False
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == 'emailclearpattern':
+        contactClear['emailClearPattern'] = getREPattern(re.IGNORECASE)
+      elif myarg == 'emailcleartype':
+        contactClear['emailClearType'] = getString(Cmd.OB_CONTACT_EMAIL_TYPE)
+      elif myarg == 'deleteclearedcontactswithnoemails':
+        deleteClearedContactsWithNoEmails = True
+      else:
+        unknownArgumentExit()
+    if not contactClear['emailClearPattern']:
+      missingArgumentExit('emailclearpattern')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
       continue
     if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactQuery['contactGroup'],
-                                                           None, None, entityType, user, i, count)
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+                                                                 None, None, entityType, user, i, count)
       if not groupId:
         if contactGroupNames:
           entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
         continue
-      contactQuery['group'] = contactsObject.GetContactGroupFeedUri(contact_list=user, projection='base', groupId=groupId)
+      contactQuery['group'] = groupId
     if queriedContacts:
-      entityList = queryContacts(contactsObject, contactQuery, entityType, user, i, count)
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships', None, entityType, user, i, count)
+      if entityList is None:
+        continue
+    Act.Set(action)
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    validatedContactGroupsLists = {
+      PEOPLE_GROUPS_LIST: [],
+      PEOPLE_ADD_GROUPS_LIST: [],
+      PEOPLE_REMOVE_GROUPS_LIST: []
+      }
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      try:
+        if not queriedContacts:
+          resourceName = contact
+          contact = callGAPI(people.people(), 'get',
+                             bailOnInternalError=True,
+                             throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                             resourceName=contact, sources=sources, personFields='emailAddresses,memberships')
+        else:
+          if not localPeopleContactSelects(contactQuery, contact):
+            continue
+          resourceName = contact['resourceName']
+        if updateContacts:
+          body['etag'] = contact['etag']
+          existingContactGroupsList = []
+          for contactGroup in contact.get(PEOPLE_MEMBERSHIPS, []):
+            if 'contactGroupMembership' in contactGroup:
+              existingContactGroupsList.append(contactGroup['contactGroupMembership']['contactGroupResourceName'])
+          groupError = False
+          for field in [PEOPLE_GROUPS_LIST, PEOPLE_ADD_GROUPS_LIST, PEOPLE_REMOVE_GROUPS_LIST]:
+            if contactGroupsLists[field] and not validatedContactGroupsLists[field]:
+              status, validatedContactGroupsLists[field] = validatePeopleContactGroupsList(people, resourceName,
+                                                                                           contactGroupsLists[field], entityType, user, i, count)
+              if not status:
+                groupError = True
+          if groupError:
+            break
+          if validatedContactGroupsLists[PEOPLE_GROUPS_LIST]:
+            peopleManager.AddContactGroupsToContact(body, validatedContactGroupsLists[PEOPLE_GROUPS_LIST])
+            updatePersonFields.add(PEOPLE_MEMBERSHIPS)
+          elif validatedContactGroupsLists[PEOPLE_ADD_GROUPS_LIST] or validatedContactGroupsLists[PEOPLE_REMOVE_GROUPS_LIST]:
+            body[PEOPLE_MEMBERSHIPS] = []
+            if contact.get(PEOPLE_MEMBERSHIPS):
+              peopleManager.AddFilteredContactGroupsToContact(body, existingContactGroupsList,
+                                                              contactGroupsLists[PEOPLE_REMOVE_GROUPS_LIST])
+            if validatedContactGroupsLists[PEOPLE_ADD_GROUPS_LIST]:
+              peopleManager.AddAdditionalContactGroupsToContact(body, validatedContactGroupsLists[PEOPLE_ADD_GROUPS_LIST])
+            updatePersonFields.add(PEOPLE_MEMBERSHIPS)
+          elif existingContactGroupsList:
+            updatePersonFields.discard(PEOPLE_MEMBERSHIPS)
+        else:
+          if not clearPeopleEmailAddressMatches(contactClear, contact):
+            continue
+          if deleteClearedContactsWithNoEmails and not contact[PEOPLE_EMAIL_ADDRESSES]:
+            Act.Set(Act.DELETE)
+            callGAPI(people.people(), 'deleteContact',
+                     bailOnInternalError=True,
+                     throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                     resourceName=resourceName)
+            entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+            continue
+        person = callGAPI(people.people(), 'updateContact',
+                          throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                          resourceName=resourceName,
+                          updatePersonFields=','.join(updatePersonFields), body=body, sources=sources)
+        entityActionPerformed([entityType, user, peopleEntityType, person['resourceName']], j, jcount)
+      except GAPI.invalidArgument as e:
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
+        continue
+      except (GAPI.notFound, GAPI.internalError):
+        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+    Ind.Decrement()
+
+# gam <UserTypeEntity> clear contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+#	[emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+#	[deleteclearedcontactswithnoemails]
+def clearUserPeopleContacts(users):
+  _clearUpdatePeopleContacts(users, False)
+
+# gam <UserTypeEntity> update contacts <PeopleResourceNameEntity>|(<PeopleUserContactSelection> endquery) <PeopleContactAttribute>+
+#	(contactgroup <ContactGroupItem>)*|((addcontactgroup <ContactGroupItem>)* (removecontactgroup <ContactGroupItem>)*)
+# gam <UserTypeEntity> update contacts
+def updateUserPeopleContacts(users):
+  _clearUpdatePeopleContacts(users, True)
+
+def clearPeopleEmailAddressMatches(contactClear, contact):
+  savedAddresses = []
+  updateRequired = False
+  emailMatchType = contactClear['emailClearType']
+  for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
+    if (contactClear['emailClearPattern'].match(item['value']) and
+        (not emailMatchType or emailMatchType == item.get('type', ''))):
+      updateRequired = True
+    else:
+      savedAddresses.append(item)
+  if updateRequired:
+    contact[PEOPLE_EMAIL_ADDRESSES] = savedAddresses
+  return updateRequired
+
+def dedupPeopleEmailAddressMatches(emailMatchType, contact):
+  sai = -1
+  savedAddresses = []
+  matches = {}
+  updateRequired = False
+  for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
+    emailAddr = item['value']
+    emailType = item.get('type', '')
+    if (emailAddr in matches) and (not emailMatchType or emailType in matches[emailAddr]['types']):
+      if item['metadata'].get('primary', False):
+        savedAddresses[matches[emailAddr]['sai']]['metadata']['primary'] = True
+      updateRequired = True
+    else:
+      savedAddresses.append(item)
+      sai += 1
+      matches.setdefault(emailAddr, {'types': set(), 'sai': sai})
+      matches[emailAddr]['types'].add(emailType)
+  if updateRequired:
+    contact[PEOPLE_EMAIL_ADDRESSES] = savedAddresses
+  return updateRequired
+
+# gam <UserTypeEntity> dedup contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+#	[matchType [<Boolean>]]
+def dedupUserPeopleContacts(users):
+  entityType = Ent.USER
+  peopleEntityType = Ent.PEOPLE_CONTACT
+  sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1)
+  emailMatchType = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'matchtype':
+      emailMatchType = getBoolean()
+    else:
+      unknownArgumentExit()
+  if not contactQuery['otherContacts']:
+    APIpeople = API.PEOPLE
+  else:
+    APIpeople = API.PEOPLE_OTHERCONTACTS
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    user, people = buildGAPIServiceObject(APIpeople, user, i, count)
+    if not people:
+      continue
+    if contactQuery['contactGroup']:
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+                                                                 None, None, entityType, user, i, count)
+      if not groupId:
+        if contactGroupNames:
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+        continue
+      contactQuery['group'] = groupId
+    if queriedContacts:
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships', None, entityType, user, i, count)
+      if entityList is None:
+        continue
+    Act.Set(Act.DEDUP)
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Act.Set(Act.UPDATE)
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      try:
+        if not queriedContacts:
+          resourceName = contact
+          contact = callGAPI(people.people(), 'get',
+                             bailOnInternalError=True,
+                             throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                             resourceName=contact, sources=sources, personFields='emailAddresses,memberships')
+        else:
+          if not localPeopleContactSelects(contactQuery, contact):
+            continue
+          resourceName = contact['resourceName']
+        if not dedupPeopleEmailAddressMatches(emailMatchType, contact):
+          continue
+        Act.Set(Act.UPDATE)
+        callGAPI(people.people(), 'updateContact',
+                 throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 resourceName=resourceName,
+                 updatePersonFields='emailAddresses', body=contact)
+        entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+      except GAPI.invalidArgument as e:
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
+        continue
+      except (GAPI.notFound, GAPI.internalError):
+        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+    Ind.Decrement()
+
+# gam <UserTypeEntity> delete contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+def deleteUserPeopleContacts(users):
+  entityType = Ent.USER
+  peopleEntityType = Ent.PEOPLE_CONTACT
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, -1)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    if contactQuery['contactGroup']:
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+                                                                 None, None, entityType, user, i, count)
+      if not groupId:
+        if contactGroupNames:
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+        continue
+      contactQuery['group'] = groupId
+    if queriedContacts:
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships', None, entityType, user, i, count)
+      if entityList is None:
+        continue
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      if isinstance(contact, dict):
+        if not localPeopleContactSelects(contactQuery, contact):
+          continue
+        resourceName = contact['resourceName']
+      else:
+        resourceName = normalizePeopleResourceName(contact)
+      try:
+        callGAPI(people.people(), 'deleteContact',
+                 bailOnInternalError=True,
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 resourceName=resourceName)
+        entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+      except (GAPI.notFound, GAPI.internalError):
+        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+    Ind.Decrement()
+
+def _initPersonMetadataParameters():
+  return {'strip': True, 'mapUpdateTime': False}
+
+def _processPersonMetadata(person, parameters):
+  metadata = person.get(PEOPLE_METADATA, None)
+  if metadata is None:
+    return
+  if parameters['mapUpdateTime']:
+    sources = person[PEOPLE_METADATA].get('sources', [])
+    if sources and sources[0].get(PEOPLE_UPDATE_TIME, None) is not None:
+      person[PEOPLE_UPDATE_TIME] = formatLocalTime(sources[0][PEOPLE_UPDATE_TIME])
+  if parameters['strip']:
+    person.pop(PEOPLE_METADATA, None)
+    for _, v in iter(person.items()):
+      if isinstance(v, list):
+        for entry in v:
+          if isinstance(entry, dict):
+            entry.pop(PEOPLE_METADATA, None)
+
+def addContactGroupNamesToContacts(contacts, contactGroupIDs, showContactGroupNamesList):
+  for contact in contacts:
+    if showContactGroupNamesList:
+      contact[PEOPLE_GROUPS_LIST] = []
+    for membership in contact.get('memberships', []):
+      if 'contactGroupMembership' in membership:
+        membership['contactGroupMembership']['contactGroupName'] = contactGroupIDs.get(membership['contactGroupMembership']['contactGroupResourceName'], 'Unknown')
+        if showContactGroupNamesList:
+          contact[PEOPLE_GROUPS_LIST].append(membership['contactGroupMembership']['contactGroupName'])
+
+def _printPerson(entityTypeName, user, person, csvPF, FJQC, parameters):
+  _processPersonMetadata(person, parameters)
+  row = flattenJSON(person, flattened={entityTypeName: user})
+  if not FJQC.formatJSON:
+    csvPF.WriteRowTitles(row)
+  elif csvPF.CheckRowTitles(row):
+    csvPF.WriteRowNoFilter({entityTypeName: user, 'resourceName': person['resourceName'],
+                            'JSON': json.dumps(cleanJSON(person),
+                                               ensure_ascii=False, sort_keys=True)})
+
+def _showPerson(userEntityType, user, entityType, person, i, count, FJQC, parameters):
+  _processPersonMetadata(person, parameters)
+  if not FJQC.formatJSON:
+    printEntity([userEntityType, user, entityType, person['resourceName']], i, count)
+    Ind.Increment()
+#    showJSON(None, person, noIndents=True)
+    showJSON(None, person, noIndents=False)
+    Ind.Decrement()
+  else:
+    printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
+
+def _printPersonEntityList(entityType, entityList, userEntityType, user, i, count, csvPF, FJQC, parameters, contactQuery):
+  if not csvPF:
+    jcount = len(entityList)
+    if not FJQC.formatJSON:
+      entityPerformActionModifierNumItems([userEntityType, user], Msg.MAXIMUM_OF, jcount, entityType, i, count)
+    Ind.Increment()
+    j = 0
+    for person in entityList:
+      j += 1
+      if not contactQuery or localPeopleContactSelects(contactQuery, person):
+        _showPerson(userEntityType, user, entityType, person, j, jcount, FJQC, parameters)
+    Ind.Decrement()
+  else:
+    entityTypeName = Ent.Singular(userEntityType)
+    for person in entityList:
+      if not contactQuery or localPeopleContactSelects(contactQuery, person):
+        _printPerson(entityTypeName, user, person, csvPF, FJQC, parameters)
+
+PEOPLE_FIELDS_CHOICE_MAP = {
+  'additionalname': PEOPLE_NAMES,
+  'address': PEOPLE_ADDRESSES,
+  'addresses': PEOPLE_ADDRESSES,
+  'ageranges': 'ageRanges',
+  'billinginfo': PEOPLE_MISC_KEYWORDS,
+  'biography': PEOPLE_BIOGRAPHIES,
+  'biographies': PEOPLE_BIOGRAPHIES,
+  'birthday': PEOPLE_BIRTHDAYS,
+  'birthdays': PEOPLE_BIRTHDAYS,
+  'calendar': PEOPLE_CALENDAR_URLS,
+  'calendars': PEOPLE_CALENDAR_URLS,
+  'calendarurls': PEOPLE_CALENDAR_URLS,
+  'clientdata': PEOPLE_CLIENT_DATA,
+  'coverphotos': PEOPLE_COVER_PHOTOS,
+  'directoryserver': PEOPLE_MISC_KEYWORDS,
+  'email': PEOPLE_EMAIL_ADDRESSES,
+  'emails': PEOPLE_EMAIL_ADDRESSES,
+  'emailaddresses': PEOPLE_EMAIL_ADDRESSES,
+  'event': PEOPLE_EVENTS,
+  'events': PEOPLE_EVENTS,
+  'externalid': PEOPLE_EXTERNAL_IDS,
+  'externalids': PEOPLE_EXTERNAL_IDS,
+  'familyname': PEOPLE_NAMES,
+  'fileas': PEOPLE_FILE_ASES,
+  'firstname': PEOPLE_NAMES,
+  'gender': PEOPLE_GENDERS,
+  'genders': PEOPLE_GENDERS,
+  'givenname': PEOPLE_NAMES,
+  'hobby': PEOPLE_INTERESTS,
+  'hobbies': PEOPLE_INTERESTS,
+  'im': PEOPLE_IM_CLIENTS,
+  'ims': PEOPLE_IM_CLIENTS,
+  'imclients': PEOPLE_IM_CLIENTS,
+  'initials': PEOPLE_NICKNAMES,
+  'interests': PEOPLE_INTERESTS,
+  'jot': PEOPLE_MISC_KEYWORDS,
+  'jots': PEOPLE_MISC_KEYWORDS,
+  'language': PEOPLE_LOCALES,
+  'languages': PEOPLE_LOCALES,
+  'lastname': PEOPLE_NAMES,
+  'locales': PEOPLE_LOCALES,
+  'location': PEOPLE_LOCATIONS,
+  'locations': PEOPLE_LOCATIONS,
+  'maidenname': PEOPLE_NAMES,
+  'memberships': PEOPLE_MEMBERSHIPS,
+  'metadata': PEOPLE_METADATA,
+  'middlename': PEOPLE_NAMES,
+  'mileage': PEOPLE_MISC_KEYWORDS,
+  'misckeywords': PEOPLE_MISC_KEYWORDS,
+  'name': PEOPLE_NAMES,
+  'names': PEOPLE_NAMES,
+  'nickname': PEOPLE_NICKNAMES,
+  'nicknames': PEOPLE_NICKNAMES,
+  'note': PEOPLE_BIOGRAPHIES,
+  'notes': PEOPLE_BIOGRAPHIES,
+  'occupation': PEOPLE_OCCUPATIONS,
+  'occupations': PEOPLE_OCCUPATIONS,
+  'organization': PEOPLE_ORGANIZATIONS,
+  'organizations': PEOPLE_ORGANIZATIONS,
+  'phone': PEOPLE_PHONE_NUMBERS,
+  'phones': PEOPLE_PHONE_NUMBERS,
+  'phonenumbers': PEOPLE_PHONE_NUMBERS,
+  'photos': PEOPLE_PHOTOS,
+  'prefix': PEOPLE_NAMES,
+  'priority': PEOPLE_MISC_KEYWORDS,
+  'relation': PEOPLE_RELATIONS,
+  'relations': PEOPLE_RELATIONS,
+  'sensitivity': PEOPLE_MISC_KEYWORDS,
+  'shortname': PEOPLE_NICKNAMES,
+  'sipaddress': PEOPLE_SIP_ADDRESSES,
+  'sipaddresses': PEOPLE_SIP_ADDRESSES,
+  'skills': PEOPLE_SKILLS,
+  'subject': PEOPLE_MISC_KEYWORDS,
+  'suffix': PEOPLE_NAMES,
+  'updated': PEOPLE_UPDATE_TIME,
+  'updatetime': PEOPLE_UPDATE_TIME,
+  'urls': PEOPLE_URLS,
+  'userdefined': PEOPLE_USER_DEFINED,
+  'userdefinedfield': PEOPLE_USER_DEFINED,
+  'userdefinedfields': PEOPLE_USER_DEFINED,
+  'website': PEOPLE_URLS,
+  'websites': PEOPLE_URLS,
+  }
+
+PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP = {
+  'email': PEOPLE_EMAIL_ADDRESSES,
+  'emails': PEOPLE_EMAIL_ADDRESSES,
+  'emailaddresses': PEOPLE_EMAIL_ADDRESSES,
+  'metadata': PEOPLE_METADATA,
+  'names': PEOPLE_NAMES,
+  'phone': PEOPLE_PHONE_NUMBERS,
+  'phones': PEOPLE_PHONE_NUMBERS,
+  'phonenumbers': PEOPLE_PHONE_NUMBERS,
+  }
+
+PEOPLE_ORDERBY_CHOICE_MAP = {
+  'firstname': 'FIRST_NAME_ASCENDING',
+  'lastname': 'LAST_NAME_ASCENDING',
+  'lastmodified': 'LAST_MODIFIED_',
+  }
+
+def _getPersonFields(fieldsChoiceMap, fieldsList, parameters):
+  if not fieldsList:
+    for field in fieldsChoiceMap:
+      addFieldToFieldsList(field, fieldsChoiceMap, fieldsList)
+  fieldsList = list(set(fieldsList))
+  if PEOPLE_UPDATE_TIME in fieldsList:
+    parameters['mapUpdateTime'] = True
+    fieldsList.remove(PEOPLE_UPDATE_TIME)
+    fieldsList.append(PEOPLE_METADATA)
+  return ','.join(fieldsList)
+
+def _infoPeople(users, entityType, source):
+  if entityType == Ent.DOMAIN:
+    people = buildGAPIObject(API.PEOPLE)
+  peopleEntityType = Ent.DOMAIN_PROFILE if source == 'profile' else Ent.PEOPLE_CONTACT
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP[source]]
+  entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
+  resourceNameLists = entityList if isinstance(entityList, dict) else None
+  showContactGroups = False
+  FJQC = FormatJSONQuoteChar()
+  fieldsList = []
+  parameters = _initPersonMetadataParameters()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'allfields':
+      fieldsList = []
+    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'showgroups':
+      showContactGroups = True
+    elif myarg == 'showmetadata':
+      parameters['strip'] = False
+    else:
+      FJQC.GetFormatJSON(myarg)
+  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    contactGroupIDs = contactGroupNames = None
+    if entityType != Ent.DOMAIN:
+      user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+      if not people:
+        continue
+      if showContactGroups:
+        contactGroupIDs, contactGroupNames = getPeopleContactGroupsInfo(people, entityType, user, i, count)
+        if contactGroupNames is False:
+          continue
+    j = 0
+    jcount = len(entityList)
+    if not FJQC.formatJSON:
+      entityPerformActionNumItems([entityType, user], jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      if isinstance(contact, dict):
+        resourceName = contact['resourceName']
+      else:
+        resourceName = normalizePeopleResourceName(contact)
+      try:
+        result = callGAPI(people.people(), 'get',
+                          bailOnInternalError=True,
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                          resourceName=resourceName, sources=sources, personFields=fields)
+      except (GAPI.notFound, GAPI.internalError):
+        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+      if showContactGroups and contactGroupIDs:
+        addContactGroupNamesToContacts([result], contactGroupIDs, False)
+      _showPerson(entityType, user, peopleEntityType, result, j, jcount, FJQC, parameters)
+    Ind.Decrement()
+
+# gam <UserTypeEntity> info contacts <PeopleResourceNameEntity>
+#	[showgroups]
+#	[allFields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
+def infoUserPeopleContacts(users):
+  _infoPeople(users, Ent.USER, 'contact')
+
+# gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <PeoplePrintShowUserContactSelection>
+#	[showgroups|showgroupnameslist] [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
+#	[countsonly|allfields|fields <PeopleFieldNameList>] [showmetadata]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show contacts <PeoplePrintShowUserContactSelection>
+#	[showgroups] [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
+#	[countsonly|allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
+def printShowUserPeopleContacts(users):
+  entityType = Ent.USER
+  entityTypeName = Ent.Singular(entityType)
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  CSVTitle = 'People Contacts'
+  fieldsList = []
+  parameters = _initPersonMetadataParameters()
+  sortOrder = None
+  countsOnly = showContactGroups = showContactGroupNamesList = False
+  contactQuery = _initPeopleContactQueryAttributes()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'showgroups':
+      showContactGroups = True
+    elif myarg == 'showgroupnameslist':
+      showContactGroups = showContactGroupNamesList = True
+    elif myarg == 'allfields':
+      fieldsList = []
+    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'countsonly':
+      countsOnly = True
+      if csvPF:
+        csvPF.SetTitles([entityTypeName, CSVTitle])
+    elif myarg == 'showmetadata':
+      parameters['strip'] = False
+    elif myarg == 'orderby':
+      sortOrder = getChoice(PEOPLE_ORDERBY_CHOICE_MAP, mapChoice=True)
+      if sortOrder == 'LAST_MODIFIED_':
+        sortOrder += getChoice(SORTORDER_CHOICE_MAP, defaultChoice='DESCENDING', mapChoice=True)
+    elif _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, 0, True):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if countsOnly:
+    fieldsList = ['emailAddresses']
+  if not contactQuery['otherContacts']:
+    fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  if not contactQuery['contactGroup']:
+    if not fieldsList:
+      ofields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList, parameters)
+    else:
+      fieldsList = [PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP[field] for field in fieldsList if field in PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP]
+      ofields = ','.join(set(fieldsList))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    if not contactQuery['contactGroup']:
+      _, opeople = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
+      if not opeople:
+        continue
+    contactGroupIDs = contactGroupNames = None
+    if showContactGroups:
+      contactGroupIDs, contactGroupNames = getPeopleContactGroupsInfo(people, entityType, user, i, count)
+      if contactGroupNames is False:
+        continue
+    if contactQuery['contactGroup']:
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+                                                                 contactGroupIDs, contactGroupNames, entityType, user, i, count)
+      if not groupId:
+        if contactGroupNames:
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+        continue
+      contactQuery['group'] = groupId
+    if not contactQuery['otherContacts']:
+      contacts = queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, user, i, count)
+    else:
+      contacts = []
+    if not contactQuery['contactGroup']:
+      soc = contactQuery['otherContacts']
+      contactQuery['otherContacts'] = True
+      ocontacts = queryPeopleContacts(opeople, contactQuery, ofields, None, entityType, user, i, count)
+      contactQuery['otherContacts'] = soc
+    else:
+      ocontacts = []
+    if countsOnly:
+      jcount = countLocalPeopleContactSelects(contactQuery, contacts)+countLocalPeopleContactSelects(contactQuery, ocontacts)
+      if csvPF:
+        csvPF.WriteRowTitles({entityTypeName: user, CSVTitle: jcount})
+      else:
+        printEntityKVList([entityType, user], [CSVTitle, jcount], i, count)
+    elif contacts is not None or ocontacts is not None:
+      if not csvPF:
+        if contacts is not None:
+          if showContactGroups and contactGroupIDs:
+            addContactGroupNamesToContacts(contacts, contactGroupIDs, False)
+          _printPersonEntityList(Ent.PEOPLE_CONTACT, contacts, entityType, user, i, count, csvPF, FJQC, parameters, contactQuery)
+        if ocontacts is not None:
+          _printPersonEntityList(Ent.OTHER_CONTACT, ocontacts, entityType, user, i, count, csvPF, FJQC, parameters, contactQuery)
+      elif contacts or ocontacts:
+        if contacts:
+          if showContactGroups and contactGroupIDs:
+            addContactGroupNamesToContacts(contacts, contactGroupIDs, showContactGroupNamesList and FJQC.formatJSON)
+          _printPersonEntityList(Ent.PEOPLE_CONTACT, contacts, entityType, user, i, count, csvPF, FJQC, parameters, contactQuery)
+        if ocontacts:
+          _printPersonEntityList(Ent.OTHER_CONTACT, ocontacts, entityType, user, i, count, csvPF, FJQC, parameters, contactQuery)
+      elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
+        csvPF.WriteRowNoFilter({Ent.Singular(entityType): user})
+  if csvPF:
+    csvPF.writeCSVfile(CSVTitle)
+
+# gam <UserTypeEntity> copy othercontacts <PeopleResourceNameEntity>|<PeopleUserOtherContactSelection>
+def copyUserPeopleOtherContacts(users):
+  entityType = Ent.USER
+  peopleEntityType = Ent.OTHER_CONTACT
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
+  copyMask = ['emailAddresses', 'names', 'phoneNumbers']
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleOtherContactEntityList(-1)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
+    if not people:
+      continue
+    if queriedContacts:
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships', None, entityType, user, i, count)
+      if entityList is None:
+        continue
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      if isinstance(contact, dict):
+        if not localPeopleContactSelects(contactQuery, contact):
+          continue
+        resourceName = contact['resourceName']
+      else:
+        resourceName = normalizePeopleResourceName(contact)
+      try:
+        callGAPI(people.otherContacts(), 'copyOtherContactToMyContactsGroup',
+                 bailOnInternalError=True,
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 resourceName=resourceName, body={'copyMask': ','.join(copyMask), 'sources': sources})
+        entityModifierNewValueActionPerformed([entityType, user, peopleEntityType, resourceName], Act.MODIFIER_TO, 'My Contacts')
+      except (GAPI.notFound, GAPI.internalError):
+        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+    Ind.Decrement()
+
+# gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <PeopleUserOtherContactSelection>
+#	[countsonly|allfields|(fields <PeopleOtherContactFieldNameList>)] [showmetadata]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show othercontacts <PeopleUserOtherContactSelection>
+#	[countsonly|allfields|(fields <PeopleOtherContactFieldNameList>)] [showmetadata]
+#	[formatjson]
+def printShowUserPeopleOtherContacts(users):
+  entityType = Ent.USER
+  entityTypeName = Ent.Singular(entityType)
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  CSVTitle = 'Other Contacts'
+  fieldsList = []
+  parameters = _initPersonMetadataParameters()
+  countsOnly = False
+  contactQuery = _initPeopleOtherContactQueryAttributes()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'allfields':
+      fieldsList = []
+    elif getFieldsList(myarg, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'countsonly':
+      countsOnly = True
+      if csvPF:
+        csvPF.SetTitles([entityTypeName, CSVTitle])
+    elif myarg == 'showmetadata':
+      parameters['strip'] = False
+    elif _getPeopleOtherContactQueryAttributes(contactQuery, myarg, 0):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if countsOnly:
+    fieldsList = ['emailAddresses']
+  fields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
+    if not people:
+      continue
+    contacts = queryPeopleContacts(people, contactQuery, fields, None, entityType, user, i, count)
+    if countsOnly:
+      jcount = countLocalPeopleContactSelects(contactQuery, contacts)
+      if csvPF:
+        csvPF.WriteRowTitles({entityTypeName: user, CSVTitle: jcount})
+      else:
+        printEntityKVList([entityType, user], [CSVTitle, jcount], i, count)
+    elif contacts is not None:
+      if not csvPF:
+        _printPersonEntityList(Ent.OTHER_CONTACT, contacts, entityType, user, i, count, csvPF, FJQC, parameters, contactQuery)
+      elif contacts:
+        _printPersonEntityList(Ent.OTHER_CONTACT, contacts, entityType, user, i, count, csvPF, FJQC, parameters, contactQuery)
+      elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
+        csvPF.WriteRowNoFilter({Ent.Singular(entityType): user})
+  if csvPF:
+    csvPF.writeCSVfile(CSVTitle)
+
+def _printShowPeople(source):
+  people = buildGAPIObject(API.PEOPLE_DIRECTORY)
+  entityType = Ent.DOMAIN
+  entityTypeName = Ent.Singular(entityType)
+  sources = [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP[source]]
+  if sources[0] == 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE':
+    peopleEntityType = Ent.DOMAIN_PROFILE
+    CSVTitle = 'People Profiles'
+  else:
+    peopleEntityType = Ent.DOMAIN_PEOPLE_CONTACT
+    CSVTitle = 'People Contacts'
+  function = 'listDirectoryPeople'
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  parameters = _initPersonMetadataParameters()
+  mergeSources = []
+  fieldsList = []
+  parameters = _initPersonMetadataParameters()
+  countsOnly = False
+  kwargs = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif source is None and myarg in {'source', 'sources'}:
+      sources = [getChoice(PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, mapChoice=True)]
+    elif myarg in {'mergesource', 'mergesources'}:
+      mergeSources = [getChoice(PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP, mapChoice=True)]
+    elif myarg == 'showmetadata':
+      parameters['strip'] = False
+    elif myarg == 'allfields':
+      fieldsList = []
+    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'countsonly':
+      countsOnly = True
+      fieldsList = [PEOPLE_METADATA]
+      if csvPF:
+        csvPF.SetTitles([entityTypeName, CSVTitle])
+    elif myarg == 'query':
+      kwargs['query'] = getString(Cmd.OB_QUERY)
+      function = 'searchDirectoryPeople'
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  printGettingAllEntityItemsForWhom(peopleEntityType, GC.Values[GC.DOMAIN], query=kwargs.get('query'))
+  try:
+    entityList = callGAPIpages(people.people(), function, 'people',
+                               pageMessage=getPageMessage(),
+                               throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                               sources=sources, mergeSources=mergeSources,
+                               readMask=fields, fields='nextPageToken,people', **kwargs)
+  except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+    ClientAPIAccessDeniedExit()
+  if not countsOnly:
+    _printPersonEntityList(peopleEntityType, entityList, Ent.DOMAIN, GC.Values[GC.DOMAIN], 0, 0, csvPF, FJQC, parameters, None)
+  else:
+    jcount = len(entityList)
+    if csvPF:
+      csvPF.WriteRowTitles({entityTypeName: GC.Values[GC.DOMAIN], CSVTitle: jcount})
+    else:
+      printEntityKVList([entityType, GC.Values[GC.DOMAIN]], [CSVTitle, jcount])
+  if csvPF:
+    csvPF.writeCSVfile(CSVTitle)
+
+# gam info people <PeopleResourceNameEntity>
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
+def doInfoDomainPeopleProfile():
+  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'profile')
+
+# gam info peoplecontact <PeopleResourceNameEntity>
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
+def doInfoDomainPeopleContacts():
+  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'domaincontact')
+
+# gam print people [todrive <ToDriveAttribute>*]
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[countsonly]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson [quotechar <Character>]]
+# gam show people
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[countsonly]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
+# gam print peoplecontacts [todrive <ToDriveAttribute>*]
+#	[sources <PeopleSourceName>]
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[countsonly]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson [quotechar <Character>]]
+# gam show peoplecontacts
+#	[sources <PeopleSourceName>]
+#	[query <String>]
+#	[mergesources <PeopleMergeSourceName>]
+#	[countsonly]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
+def doPrintShowDomainPeopleProfiles():
+  _printShowPeople('profile')
+
+def doPrintShowDomainPeopleContacts():
+  _printShowPeople('domaincontact')
+
+# gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show peopleprofilec
+#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[formatjson]
+def printShowUserPeopleProfiles(users):
+  entityType = Ent.USER
+  entityTypeName = Ent.Singular(entityType)
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['profile']]
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  parameters = _initPersonMetadataParameters()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'allfields':
+      fieldsList = []
+    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'showmetadata':
+      parameters['strip'] = False
+    elif myarg == 'peoplelookupuser':
+      deprecatedArgument(myarg)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+#    user, people = buildGAPIServiceObject(API.PEOPLE_DIRECTORY, user, i, count)
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    if csvPF:
+      printGettingEntityItemForWhom(Ent.PEOPLE_PROFILE, user, i, count)
+    try:
+      result = callGAPI(people.people(), 'get',
+                        throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                        resourceName='people/me', sources=sources, personFields=fields)
+    except GAPI.notFound:
+      entityUnknownWarning(Ent.PEOPLE_PROFILE, user, i, count)
+      continue
+    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      ClientAPIAccessDeniedExit()
+    if not csvPF:
+      _showPerson(entityType, user, Ent.PEOPLE_PROFILE, result, i, count, FJQC, parameters)
+    else:
+      _printPerson(entityTypeName, user, result, csvPF, FJQC, parameters)
+  if csvPF:
+    csvPF.writeCSVfile('People Profiles')
+
+def _processPeopleContactPhotos(users, function):
+  def _makeFilenameFromPattern(resourceName):
+    filename = filenamePattern[:]
+    if subForContactId:
+      filename = filename.replace('#contactid#', resourceName.split('/')[1])
+    if subForEmail:
+      for email in result.get(PEOPLE_EMAIL_ADDRESSES, []):
+        if email.get(PEOPLE_METADATA, {}).get('primary', False):
+          filename = filename.replace('#email#', email['value'])
+          break
+      else:
+        filename = filename.replace('#email#', resourceName.split('/')[1])
+    return filename
+
+  entityType = Ent.USER
+  peopleEntityType = Ent.PEOPLE_CONTACT
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1)
+  if function in {'updateContactPhoto', 'getContactPhoto'}:
+    targetFolder = os.getcwd()
+    filenamePattern = '#contactid#.jpg'
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if myarg == 'drivedir':
+        targetFolder = GC.Values[GC.DRIVE_DIR]
+      elif myarg in {'sourcefolder', 'targetfolder'}:
+        targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+        if function == 'GetContactPhoto' and not os.path.isdir(targetFolder):
+          os.makedirs(targetFolder)
+      elif myarg == 'filename':
+        filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
+      else:
+        unknownArgumentExit()
+    subForContactId = filenamePattern.find('#contactid#') != -1
+    subForEmail = filenamePattern.find('#email#') != -1
+    if not subForContactId and not subForEmail:
+      filename = filenamePattern
+  else: #elif function == 'deleteContactPhoto':
+    checkForExtraneousArguments()
+    subForContactId = subForEmail = False
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    if contactQuery['contactGroup']:
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+                                                                 None, None, entityType, user, i, count)
+      if not groupId:
+        if contactGroupNames:
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+        continue
+      contactQuery['group'] = groupId
+    if queriedContacts:
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships,photos', None, entityType, user, i, count)
       if entityList is None:
         continue
     j = 0
@@ -16338,205 +17984,126 @@ def _processContactPhotos(users, entityType, function):
     Ind.Increment()
     for contact in entityList:
       j += 1
+      if isinstance(contact, dict):
+        if not localPeopleContactSelects(contactQuery, contact):
+          continue
+        resourceName = contact['resourceName']
+      else:
+        resourceName = normalizePeopleResourceName(contact)
       try:
-        if not queriedContacts:
-          contactId = normalizeContactId(contact)
-          contact = callGData(contactsObject, 'GetContact',
-                              throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
-                              retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                              uri=contactsObject.GetContactFeedUri(contact_list=user, contactId=contactId))
-          fields = contactsManager.ContactToFields(contact)
-        else:
-          contactId = contactsManager.GetContactShortId(contact)
-          fields = contactsManager.ContactToFields(contact)
-          if not localContactSelects(contactsManager, contactQuery, fields):
+        if subForEmail:
+          result = callGAPI(people.people(), 'get',
+                            bailOnInternalError=True,
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                            resourceName=resourceName, sources=sources, personFields='emailAddresses')
+        if function == 'updateContactPhoto':
+          if subForContactId or subForEmail:
+            filename = _makeFilenameFromPattern(resourceName)
+          with open(os.path.expanduser(filename), 'rb') as f:
+            image_data = f.read()
+          callGAPI(people.people(), function,
+                   throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                   resourceName=resourceName,
+                   body={'photoBytes': base64.urlsafe_b64encode(image_data).decode(UTF8)})
+          entityActionPerformed([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], j, jcount)
+        elif function == 'getContactPhoto':
+          if subForContactId or subForEmail:
+            filename = _makeFilenameFromPattern(resourceName)
+          result = callGAPI(people.people(), 'get',
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                            resourceName=resourceName, personFields='photos')
+          url = None
+          for photo in result.get('photos', []):
+            if photo['metadata']['source']['type'] == 'CONTACT':
+              url = photo['url']
+              break
+          if not url:
+            entityActionFailedWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, None], Msg.CONTACT_PHOTO_NOT_FOUND, j, jcount)
             continue
-      except (GDATA.notFound, GDATA.badRequest) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId], str(e), j, jcount)
-        break
-      except (GDATA.forbidden, GDATA.notImplemented):
-        entityServiceNotApplicableWarning(entityType, user, i, count)
-        break
-      except GDATA.serviceNotApplicable:
-        entityUnknownWarning(entityType, user, i, count)
-        break
-      try:
-        if function == 'ChangePhoto':
-          if subForContactId or subForEmail:
-            filename = _makeFilenameFromPattern()
-          callGData(contactsObject, function,
-                    throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
-                    retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                    media=filename, contact_entry_or_url=contact,
-                    content_type='image/*', content_length=os.path.getsize(filename), extra_headers={'If-Match': '*'})
-          entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], i, count)
-        elif function == 'GetPhoto':
-          if subForContactId or subForEmail:
-            filename = _makeFilenameFromPattern()
-          filename = os.path.join(targetFolder, filename)
-          photo_data = callGData(contactsObject, function,
-                                 throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
-                                 retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                                 contact_entry_or_url=contact)
-          if photo_data:
-            status, e = writeFileReturnError(filename, eval(photo_data), mode='wb') #pylint: disable=eval-used
-            if status:
-              entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], i, count)
-            else:
-              entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e), i, count)
+          try:
+            status, photo_data = getHttpObj().request(url, 'GET')
+            if status['status'] != '200':
+              entityActionFailedWarning([entityType, user, Ent.PHOTO, filename], Msg.NOT_ALLOWED, j, jcount)
+              continue
+          except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
+            entityActionFailedWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], str(e), j, jcount)
+            continue
+          status, e = writeFileReturnError(filename, photo_data, mode='wb')
+          if status:
+            entityActionPerformed([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], j, jcount)
           else:
-            entityDoesNotHaveItemWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, ''], i, count)
-        else: #elif function == 'DeletePhoto':
+            entityActionFailedWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], str(e), j, jcount)
+        else: #elif function == 'deleteContactPhoto':
           filename = ''
-          callGData(contactsObject, function,
-                    throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
-                    retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                    contact_entry_or_url=contact, extra_headers={'If-Match': '*'})
-          entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], i, count)
-      except GDATA.notFound:
-        entityDoesNotHaveItemWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, ''], i, count)
-      except (GDATA.badRequest, OSError, IOError) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e), j, jcount)
-      except (GDATA.forbidden, GDATA.notImplemented):
-        entityServiceNotApplicableWarning(entityType, user, i, count)
-        break
-      except GDATA.serviceNotApplicable:
-        entityUnknownWarning(entityType, user, i, count)
+          callGAPI(people.people(), function,
+                   throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.PHOTO_NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                   resourceName=resourceName)
+          entityActionPerformed([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], j, jcount)
+      except (GAPI.notFound, GAPI.internalError):
+        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        continue
+      except GAPI.photoNotFound:
+        entityDoesNotHaveItemWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, ''], j, jcount)
+      except (OSError, IOError) as e:
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> update contactphotos <ContactEntity>|<UserContactSelection>
+# gam <UserTypeEntity> update contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
 #	[drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
-def updateUserContactPhoto(users):
-  _processContactPhotos(users, Ent.USER, 'ChangePhoto')
+def updateUserPeopleContactPhoto(users):
+  _processPeopleContactPhotos(users, 'updateContactPhoto')
 
-# gam update contactphotos <ContactEntity>|<ContactSelection>
-#	[drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
-def doUpdateDomainContactPhoto():
-  _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'ChangePhoto')
-
-# gam <UserTypeEntity> get contactphotos <ContactEntity>|<UserContactSelection>
+# gam <UserTypeEntity> get contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
 #	[drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-def getUserContactPhoto(users):
-  _processContactPhotos(users, Ent.USER, 'GetPhoto')
+def getUserPeopleContactPhoto(users):
+  _processPeopleContactPhotos(users, 'getContactPhoto')
 
-# gam get contactphotos <ContactEntity>|<ContactSelection>
-#	[drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-def doGetDomainContactPhoto():
-  _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'GetPhoto')
-
-# gam <UserTypeEntity> delete contactphotos <ContactEntity>|<UserContactSelection>
-def deleteUserContactPhoto(users):
-  _processContactPhotos(users, Ent.USER, 'DeletePhoto')
-
-# gam delete contactphotos <ContactEntity>|<ContactSelection>
-def doDeleteDomainContactPhoto():
-  _processContactPhotos([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'DeletePhoto')
+# gam <UserTypeEntity> delete contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+def deleteUserPeopleContactPhoto(users):
+  _processPeopleContactPhotos(users, 'deleteContactPhoto')
 
 # gam <UserTypeEntity> create contactgroup <ContactGroupAttribute>+
-def createUserContactGroup(users):
-  contactsManager = ContactsManager()
+def createUserPeopleContactGroup(users):
+  peopleManager = PeopleManager()
   entityType = Ent.USER
-  fields = contactsManager.GetContactGroupFields()
-  contactGroup = contactsManager.FieldsToContactGroup(fields)
+  body, _ = peopleManager.GetContactGroupFields()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
       continue
-    _, contactGroupNames = getContactGroupsInfo(contactsManager, contactsObject, entityType, user, i, count)
+    _, contactGroupNames = getPeopleContactGroupsInfo(people, entityType, user, i, count)
     if contactGroupNames is False:
       continue
-    if fields[CONTACT_GROUP_NAME] in contactGroupNames:
-      entityActionFailedWarning([entityType, user], Ent.TypeNameMessage(Ent.CONTACT_GROUP_NAME, fields[CONTACT_GROUP_NAME], Msg.DUPLICATE), i, count)
+    contactGroup = body[PEOPLE_GROUP_NAME]
+    if contactGroup in contactGroupNames:
+      entityActionFailedWarning([entityType, user], Ent.TypeNameMessage(Ent.CONTACT_GROUP, contactGroup, Msg.DUPLICATE), i, count)
       continue
     try:
-      group = callGData(contactsObject, 'CreateGroup',
-                        throwErrors=[GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                        retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                        new_group=contactGroup, insert_uri=contactsObject.GetContactGroupFeedUri(contact_list=user))
-      entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactsManager.GetContactShortId(group)], i, count)
-    except GDATA.badRequest as e:
-      entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, ''], str(e), i, count)
-    except GDATA.forbidden:
+      result = callGAPI(people.contactGroups(), 'create',
+                        throwReasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                        body={'contactGroup': body}, fields='resourceName')
+      entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, result['resourceName']], i, count)
+    except GAPI.forbidden:
       entityServiceNotApplicableWarning(entityType, user, i, count)
-    except GDATA.serviceNotApplicable:
+    except GAPI.serviceNotAvailable:
       entityUnknownWarning(entityType, user, i, count)
 
 # gam <UserTypeEntity> update contactgroups <ContactGroupItem> <ContactAttribute>+
-def updateUserContactGroup(users):
-  contactsManager = ContactsManager()
+def updateUserPeopleContactGroup(users):
+  peopleManager = PeopleManager()
   entityType = Ent.USER
   entityList = getStringReturnInList(Cmd.OB_CONTACT_GROUP_ITEM)
-  update_fields = contactsManager.GetContactGroupFields()
+  body, fields = peopleManager.GetContactGroupFields()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
-      continue
-    contactGroupIDs = contactGroupNames = None
-    j = 0
-    jcount = len(entityList)
-    entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT_GROUP, i, count)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND_RC)
-      continue
-    Ind.Increment()
-    for contactGroup in entityList:
-      j += 1
-      groupId, contactGroupIDs, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactGroup,
-                                                                         contactGroupIDs, contactGroupNames, entityType, user, i, count)
-      if not groupId:
-        if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], Msg.DOES_NOT_EXIST, j, jcount)
-          continue
-        break
-      if update_fields[CONTACT_GROUP_NAME] in contactGroupNames and groupId not in contactGroupNames[update_fields[CONTACT_GROUP_NAME]]:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], Ent.TypeNameMessage(Ent.CONTACT_GROUP_NAME, update_fields[CONTACT_GROUP_NAME], Msg.DUPLICATE), i, count)
-        continue
-      contactGroup = contactGroupIDs.get(groupId, contactGroup)
-      try:
-        group = callGData(contactsObject, 'GetGroup',
-                          throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                          retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                          uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId))
-        fields = contactsManager.ContactGroupToFields(group)
-        for field in update_fields:
-          fields[field] = update_fields[field]
-        groupEntry = contactsManager.FieldsToContactGroup(fields)
-        groupEntry.category = group.category
-        groupEntry.link = group.link
-        groupEntry.etag = group.etag
-        groupEntry.id = group.id
-        callGData(contactsObject, 'UpdateGroup',
-                  throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                  edit_uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId), updated_group=groupEntry, extra_headers={'If-Match': group.etag})
-        entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactGroup], j, jcount)
-      except (GDATA.notFound, GDATA.badRequest) as e:
-        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
-      except GDATA.forbidden:
-        entityServiceNotApplicableWarning(entityType, user, i, count)
-        break
-      except GDATA.serviceNotApplicable:
-        entityUnknownWarning(entityType, user, i, count)
-        break
-    Ind.Decrement()
-
-# gam <UserTypeEntity> delete contactgroups <ContactGroupEntity>
-def deleteUserContactGroups(users):
-  contactsManager = ContactsManager()
-  entityType = Ent.USER
-  entityList = getEntityList(Cmd.OB_CONTACT_GROUP_ENTITY, shlexSplit=True)
-  contactGroupIdLists = entityList if isinstance(entityList, dict) else None
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if contactGroupIdLists:
-      entityList = contactGroupIdLists[user]
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
       continue
     contactGroupIDs = contactGroupNames = None
     j = 0
@@ -16549,60 +18116,148 @@ def deleteUserContactGroups(users):
     for contactGroup in entityList:
       j += 1
       try:
-        groupId, contactGroupIDs, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactGroup,
-                                                                           contactGroupIDs, contactGroupNames, entityType, user, i, count)
+        groupId, contactGroupIDs, contactGroupNames = validatePeopleContactGroup(people, contactGroup,
+                                                                                 contactGroupIDs, contactGroupNames, entityType, user, i, count)
         if not groupId:
           if contactGroupNames:
             entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], Msg.DOES_NOT_EXIST, j, jcount)
             continue
           break
-        contactGroup = contactGroupIDs.get(groupId, contactGroup)
-        group = callGData(contactsObject, 'GetGroup',
-                          throwErrors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                          retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                          uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId))
-        callGData(contactsObject, 'DeleteGroup',
-                  throwErrors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                  edit_uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId), extra_headers={'If-Match': group.etag})
+        result = callGAPI(people.contactGroups(), 'get',
+                          bailOnInternalError=True,
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                          resourceName=groupId)
+        body['etag'] = result['etag']
+        newContactGroup = body.get(PEOPLE_GROUP_NAME)
+        if newContactGroup:
+          if newContactGroup in contactGroupNames and groupId not in contactGroupNames[newContactGroup]:
+            entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup],
+                                      Ent.TypeNameMessage(Ent.CONTACT_GROUP, newContactGroup, Msg.DUPLICATE), i, count)
+            continue
+        callGAPI(people.contactGroups(), 'update',
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                 resourceName=groupId, body={'contactGroup': body, 'updateGroupFields': fields})
         entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactGroup], j, jcount)
-      except GDATA.notFound as e:
+      except GAPI.notFound as e:
         entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
-      except GDATA.forbidden:
+      except GAPI.forbidden:
         entityServiceNotApplicableWarning(entityType, user, i, count)
         break
-      except GDATA.serviceNotApplicable:
+      except GAPI.serviceNotAvailable:
         entityUnknownWarning(entityType, user, i, count)
         break
     Ind.Decrement()
 
-CONTACT_GROUP_TIME_OBJECTS = {CONTACT_GROUP_UPDATED}
-
-def _showContactGroup(contactsManager, group, j, jcount, FJQC):
-  fields = contactsManager.ContactGroupToFields(group)
-  if FJQC.formatJSON:
-    printLine(json.dumps(cleanJSON(fields, timeObjects=CONTACT_GROUP_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
-    return
-  printEntity([Ent.CONTACT_GROUP, fields[CONTACT_GROUP_NAME]], j, jcount)
-  Ind.Increment()
-  printKeyValueList(['updated', formatLocalTime(fields[CONTACT_GROUP_UPDATED])])
-  printKeyValueList(['id', fields[CONTACT_GROUP_ID]])
-  Ind.Decrement()
-
-# gam <UserTypeEntity> info contactgroups <ContactGroupEntity>
-#	[formatjson]
-def infoUserContactGroups(users):
-  contactsManager = ContactsManager()
+# gam <UserTypeEntity> delete contactgroups <ContactGroupEntity>
+def deleteUserPeopleContactGroups(users):
   entityType = Ent.USER
   entityList = getEntityList(Cmd.OB_CONTACT_GROUP_ENTITY, shlexSplit=True)
   contactGroupIdLists = entityList if isinstance(entityList, dict) else None
-  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     if contactGroupIdLists:
       entityList = contactGroupIdLists[user]
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
+      continue
+    contactGroupIDs = contactGroupNames = None
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionNumItems([entityType, user], jcount, Ent.CONTACT_GROUP, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Ind.Increment()
+    for contactGroup in entityList:
+      j += 1
+      try:
+        groupId, contactGroupIDs, contactGroupNames = validatePeopleContactGroup(people, contactGroup,
+                                                                                 contactGroupIDs, contactGroupNames, entityType, user, i, count)
+        if not groupId:
+          if contactGroupNames:
+            entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], Msg.DOES_NOT_EXIST, j, jcount)
+            continue
+          break
+        callGAPI(people.contactGroups(), 'delete',
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                 resourceName=groupId)
+        entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactGroup], j, jcount)
+      except GAPI.notFound as e:
+        entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
+      except GAPI.forbidden:
+        entityServiceNotApplicableWarning(entityType, user, i, count)
+        break
+      except GAPI.serviceNotAvailable:
+        entityUnknownWarning(entityType, user, i, count)
+        break
+    Ind.Decrement()
+
+PEOPLE_GROUP_TIME_OBJECTS = {'updateTime'}
+
+def _normalizeContactGroupMetadata(contactGroup):
+  normalizedContactGroup = contactGroup.copy()
+  for k, v in iter(normalizedContactGroup.pop('metadata', {}).items()):
+    normalizedContactGroup[k] = v
+  return normalizedContactGroup
+
+def _showContactGroup(userEntityType, user, entityType, contactGroup, i, count, FJQC):
+  if not FJQC.formatJSON:
+    normalizedContactGroup = _normalizeContactGroupMetadata(contactGroup)
+    printEntity([userEntityType, user, entityType, contactGroup['resourceName']], i, count)
+    Ind.Increment()
+    showJSON(None, normalizedContactGroup, timeObjects=PEOPLE_GROUP_TIME_OBJECTS, noIndents=True)
+    Ind.Decrement()
+  else:
+    printLine(json.dumps(cleanJSON(contactGroup, timeObjects=PEOPLE_GROUP_TIME_OBJECTS),
+                         ensure_ascii=False, sort_keys=True))
+
+def _printContactGroup(entityTypeName, user, contactGroup, csvPF, FJQC):
+  normalizedContactGroup = _normalizeContactGroupMetadata(contactGroup)
+  row = flattenJSON(normalizedContactGroup, flattened={entityTypeName: user}, timeObjects=PEOPLE_GROUP_TIME_OBJECTS)
+  if not FJQC.formatJSON:
+    csvPF.WriteRowTitles(row)
+  elif csvPF.CheckRowTitles(row):
+    csvPF.WriteRowNoFilter({entityTypeName: user, 'resourceName': contactGroup['resourceName'],
+                            'JSON': json.dumps(cleanJSON(contactGroup, timeObjects=PEOPLE_GROUP_TIME_OBJECTS),
+                                               ensure_ascii=False, sort_keys=True)})
+
+PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP = {
+  'clientdata': 'clientData',
+  'grouptype': 'groupType',
+  'membercount': 'memberCount',
+  'metadata': 'metadata',
+  'name': 'name',
+  }
+
+# gam <UserTypeEntity> info contactgroups <PeopleContactGroupEntity>
+#	[allfields|(fields <PeoplaContactGroupFieldList>)] [showmetadata]
+#	[formatjson]
+def infoUserPeopleContactGroups(users):
+  entityType = Ent.USER
+  entityList = getEntityList(Cmd.OB_CONTACT_GROUP_ENTITY, shlexSplit=True)
+  contactGroupIdLists = entityList if isinstance(entityList, dict) else None
+  FJQC = FormatJSONQuoteChar()
+  fieldsList = []
+  parameters = _initPersonMetadataParameters()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'allfields':
+      fieldsList = []
+    elif getFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'showmetadata':
+      parameters['strip'] = False
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = _getPersonFields(PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if contactGroupIdLists:
+      entityList = contactGroupIdLists[user]
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
       continue
     contactGroupIDs = contactGroupNames = None
     j = 0
@@ -16616,101 +18271,70 @@ def infoUserContactGroups(users):
     for contactGroup in entityList:
       j += 1
       try:
-        groupId, contactGroupIDs, contactGroupNames = validateContactGroup(contactsManager, contactsObject, contactGroup,
-                                                                           contactGroupIDs, contactGroupNames, entityType, user, i, count)
+        groupId, contactGroupIDs, contactGroupNames = validatePeopleContactGroup(people, contactGroup,
+                                                                                 contactGroupIDs, contactGroupNames, entityType, user, i, count)
         if not groupId:
           if contactGroupNames:
             entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], Msg.DOES_NOT_EXIST, j, jcount)
             continue
           break
-        contactGroup = contactGroupIDs.get(groupId, contactGroup)
-        group = callGData(contactsObject, 'GetGroup',
-                          throwErrors=[GDATA.NOT_FOUND, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                          retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                          uri=contactsObject.GetContactGroupFeedUri(contact_list=user, groupId=groupId))
-        _showContactGroup(contactsManager, group, j, jcount, FJQC)
-      except GDATA.notFound as e:
+        group = callGAPI(people.contactGroups(), 'get',
+                         throwReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                         resourceName=groupId, groupFields=fields)
+        _showContactGroup(entityType, user, Ent.CONTACT_GROUP, group, j, jcount, FJQC)
+      except GAPI.notFound as e:
         entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
-      except GDATA.forbidden:
+      except GAPI.forbidden:
         entityServiceNotApplicableWarning(entityType, user, i, count)
         break
-      except GDATA.serviceNotApplicable:
+      except GAPI.serviceNotAvailable:
         entityUnknownWarning(entityType, user, i, count)
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*] [updated_min <Date>]
-#	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+# gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*]
+#	[allfields|(fields <PeoplaContactGroupFieldList>)] [showmetadata]
 #	[formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show contactgroups [updated_min <Date>]
-#	[basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+# gam <UserTypeEntity> show contactgroups
+#	[allfields|(fields <PeoplaContactGroupFieldList>)] [showmetadata]
 #	[formatjson]
-def printShowUserContactGroups(users):
+def printShowUserPeopleContactGroups(users):
   entityType = Ent.USER
-  csvPF = CSVPrintFile([Ent.Singular(entityType), CONTACT_GROUP_ID, CONTACT_GROUP_NAME]) if Act.csvFormat() else None
+  entityTypeName = Ent.Singular(entityType)
+  csvPF = CSVPrintFile([entityTypeName, 'resourceName'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  projection = 'full'
-  url_params = {'max-results': str(GC.Values[GC.CONTACT_MAX_RESULTS])}
+  fieldsList = []
+  parameters = _initPersonMetadataParameters()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'orderby':
-      url_params['orderby'], url_params['sortorder'] = getOrderBySortOrder(CONTACTS_ORDERBY_CHOICE_MAP, 'ascending', False)
-    elif myarg in CONTACTS_PROJECTION_CHOICE_MAP:
-      projection = CONTACTS_PROJECTION_CHOICE_MAP[myarg]
-    elif myarg == 'showdeleted':
-      url_params['showdeleted'] = 'true'
-    elif myarg == 'updatedmin':
-      url_params['updated-min'] = getYYYYMMDD()
+    elif myarg == 'allfields':
+      fieldsList = []
+    elif getFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    elif myarg == 'showmetadata':
+      parameters['strip'] = False
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  contactsManager = ContactsManager()
+  fields = _getPersonFields(PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList, parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, contactsObject = getContactsObject(entityType, user, i, count)
-    if not contactsObject:
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not people:
       continue
-    printGettingAllEntityItemsForWhom(Ent.CONTACT_GROUP, user, i, count)
-    uri = contactsObject.GetContactGroupFeedUri(contact_list=user, projection=projection)
+    printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT_GROUP, user, i, count)
     try:
-      groups = callGDataPages(contactsObject, 'GetGroupsFeed',
-                              pageMessage=getPageMessage(),
-                              throwErrors=[GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
-                              retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
-                              uri=uri, url_params=url_params)
-      if not csvPF:
-        jcount = len(groups)
-        if not FJQC.formatJSON:
-          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.CONTACT_GROUP, i, count)
-        Ind.Increment()
-        j = 0
-        for group in groups:
-          j += 1
-          _showContactGroup(contactsManager, group, j, jcount, FJQC)
-        Ind.Decrement()
-      else:
-        if groups:
-          for group in groups:
-            fields = contactsManager.ContactGroupToFields(group)
-            contactRow = {Ent.Singular(entityType): user, CONTACT_GROUP_ID: f'id:{fields[CONTACT_GROUP_ID]}',
-                          CONTACT_GROUP_NAME: fields[CONTACT_GROUP_NAME], CONTACT_GROUP_UPDATED: formatLocalTime(fields[CONTACT_GROUP_UPDATED])}
-            if not FJQC.formatJSON:
-              csvPF.WriteRowTitles(contactRow)
-            elif csvPF.CheckRowTitles(contactRow):
-              csvPF.WriteRowNoFilter({Ent.Singular(entityType): user, CONTACT_GROUP_ID: f'id:{fields[CONTACT_GROUP_ID]}',
-                                      CONTACT_GROUP_NAME: fields[CONTACT_GROUP_NAME],
-                                      'JSON': json.dumps(cleanJSON(fields, timeObjects=CONTACT_GROUP_TIME_OBJECTS),
-                                                         ensure_ascii=False, sort_keys=True)})
-        elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and entityType == Ent.USER:
-          csvPF.WriteRowNoFilter({Ent.Singular(entityType): user})
-    except GDATA.forbidden:
-      entityServiceNotApplicableWarning(entityType, user, i, count)
-    except GDATA.serviceNotApplicable:
-      entityUnknownWarning(entityType, user, i, count)
+      entityList = callGAPIpages(people.contactGroups(), 'list', 'contactGroups',
+                                 pageMessage=getPageMessage(),
+                                 throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                 groupFields=fields, fields='nextPageToken,contactGroups')
+    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      ClientAPIAccessDeniedExit()
+    _printPersonEntityList(Ent.PEOPLE_CONTACT_GROUP, entityList, entityType, user, i, count, csvPF, FJQC, parameters, None)
   if csvPF:
-    csvPF.writeCSVfile('Contact Groups')
+    csvPF.writeCSVfile('People Contact Groups')
 
 # Delegate command utilities
 def _validateUserGetDelegateList(cd, user, i, count, entity):
@@ -34022,579 +35646,6 @@ def checkCIUserIsInvitable(users):
       return
   csvPF.writeCSVfile('Invitable Users')
 
-def _deletePeople(users, entityType):
-  if entityType == Ent.DOMAIN:
-    people = buildGAPIObject(API.PEOPLE_DIRECTORY)
-    peopleEntityType = Ent.DOMAIN_PROFILE
-  else:
-    peopleEntityType = Ent.PEOPLE_CONTACT
-  entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
-  resourceNameLists = entityList if isinstance(entityList, dict) else None
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if resourceNameLists:
-      entityList = resourceNameLists[user]
-    if entityType != Ent.DOMAIN:
-      user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
-      if not people:
-        continue
-    j = 0
-    jcount = len(entityList)
-    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND_RC)
-      continue
-    Ind.Increment()
-    for resourceName in entityList:
-      j += 1
-      try:
-        callGAPI(people.people(), 'deleteContact',
-                 bailOnInternalError=True,
-                 throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                 resourceName=resourceName)
-        entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
-      except (GAPI.notFound, GAPI.internalError):
-        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
-        continue
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
-        ClientAPIAccessDeniedExit()
-    Ind.Decrement()
-
-# gam delete domaincontacts <PeopleResourceNameEntity>
-def doDeletePeopleDomainContacts():
-  _deletePeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
-
-# gam <UserTypeEntity> delete peoplecontacts <PeopleResourceNameEntity>
-def deletePeopleContacts(users):
-  _deletePeople(users, Ent.USER)
-
-def _stripPersonMetadata(person):
-  metadata = person.pop('metadata', None)
-  if metadata is not None and 'primary' in metadata:
-    person['primary'] = metadata['primary']
-  for _, v in iter(person.items()):
-    if isinstance(v, list):
-      for entry in v:
-        metadata = entry.pop('metadata', None)
-        if metadata is not None and 'primary' in metadata:
-          entry['primary'] = metadata['primary']
-
-def _showPerson(userEntityType, user, entityType, person, i, count, FJQC, stripMetadata):
-  if stripMetadata:
-    _stripPersonMetadata(person)
-  if not FJQC.formatJSON:
-    printEntity([userEntityType, user, entityType, person['resourceName']], i, count)
-    Ind.Increment()
-    showJSON(None, person, noIndents=True)
-    Ind.Decrement()
-  else:
-    printLine(json.dumps(cleanJSON(person), ensure_ascii=False, sort_keys=True))
-
-def _printPerson(entityTypeName, user, person, csvPF, FJQC, stripMetadata):
-  if stripMetadata:
-    _stripPersonMetadata(person)
-  row = flattenJSON(person, flattened={entityTypeName: user})
-  if not FJQC.formatJSON:
-    csvPF.WriteRowTitles(row)
-  elif csvPF.CheckRowTitles(row):
-    csvPF.WriteRowNoFilter({entityTypeName: user, 'resourceName': person['resourceName'],
-                            'JSON': json.dumps(cleanJSON(person),
-                                               ensure_ascii=False, sort_keys=True)})
-
-def _printPersonEntityList(entityType, entityList, userEntityType, user, i, count, csvPF, FJQC, stripMetadata):
-  if not csvPF:
-    jcount = len(entityList)
-    if not FJQC.formatJSON:
-      entityPerformActionNumItems([userEntityType, user], jcount, entityType, i, count)
-    Ind.Increment()
-    j = 0
-    for person in entityList:
-      j += 1
-      _showPerson(userEntityType, user, entityType, person, j, jcount, FJQC, stripMetadata)
-    Ind.Decrement()
-  else:
-    entityTypeName = Ent.Singular(userEntityType)
-    for person in entityList:
-      _printPerson(entityTypeName, user, person, csvPF, FJQC, stripMetadata)
-
-PEOPLE_FIELDS_CHOICE_MAP = {
-  'addresses': 'addresses',
-  'ageranges': 'ageRanges',
-  'biography': 'biographies',
-  'biographies': 'biographies',
-  'birthday': 'birthdays',
-  'birthdays': 'birthdays',
-  'calendarurls': 'calendarUrls',
-  'clientdata': 'clientData',
-  'coverphotos': 'coverPhotos',
-  'emailaddresses': 'emailAddresses',
-  'events': 'events',
-  'externalids': 'externalIds',
-  'gender': 'genders',
-  'genders': 'genders',
-  'imclients': 'imClients',
-  'interests': 'interests',
-  'locales': 'locales',
-  'locations': 'locations',
-  'memberships': 'memberships',
-  'metadata': 'metadata',
-  'misckeywords': 'miscKeywords',
-  'name': 'names',
-  'names': 'names',
-  'nicknames': 'nicknames',
-  'occupations': 'occupations',
-  'organizations': 'organizations',
-  'phonenumbers': 'phoneNumbers',
-  'photos': 'photos',
-  'relations': 'relations',
-  'sipaddresses': 'sipAddresses',
-  'skills': 'skills',
-  'urls': 'urls',
-  'userdefined': 'userDefined',
-  }
-
-# gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show peopleprofile
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson]
-def printShowPeopleProfile(users):
-  entityType = Ent.USER
-  entityTypeName = Ent.Singular(entityType)
-  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
-  FJQC = FormatJSONQuoteChar(csvPF)
-  stripMetadata = True
-  fieldsList = []
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif myarg == 'allfields':
-      for field in PEOPLE_FIELDS_CHOICE_MAP:
-        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
-    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
-      pass
-    elif myarg == 'showmetadata':
-      stripMetadata = False
-    elif myarg == 'peoplelookupuser':
-      deprecatedArgument(myarg)
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  personFields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, people = buildGAPIServiceObject(API.PEOPLE_DIRECTORY, user, i, count)
-    if not people:
-      continue
-    if csvPF:
-      printGettingEntityItemForWhom(Ent.PEOPLE_PROFILE, user, i, count)
-    try:
-      result = callGAPI(people.people(), 'get',
-                        throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                        resourceName='people/me', personFields=personFields)
-    except GAPI.notFound:
-      entityUnknownWarning(Ent.PEOPLE_PROFILE, user, i, count)
-      continue
-    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
-      ClientAPIAccessDeniedExit()
-    if not csvPF:
-      _showPerson(entityType, user, Ent.PEOPLE_PROFILE, result, i, count, FJQC, stripMetadata)
-    else:
-      _printPerson(entityTypeName, user, result, csvPF, FJQC, stripMetadata)
-  if csvPF:
-    csvPF.writeCSVfile('People Profiles')
-
-PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP = {
-  'contact': 'DIRECTORY_SOURCE_TYPE_DOMAIN_CONTACT',
-  'contacts': 'DIRECTORY_SOURCE_TYPE_DOMAIN_CONTACT',
-  'profile': 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE',
-  'profiles': 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE'
-  }
-
-PEOPLE_READ_SOURCES_CHOICE_MAP = {
-  'contact': 'READ_SOURCE_TYPE_CONTACT',
-  'contacts': 'READ_SOURCE_TYPE_CONTACT',
-  'domaincontact': 'READ_SOURCE_TYPE_DOMAIN_CONTACT',
-  'domaincontacts': 'READ_SOURCE_TYPE_DOMAIN_CONTACT',
-  'profile': 'READ_SOURCE_TYPE_PROFILE',
-  'profiles': 'READ_SOURCE_TYPE_PROFILE'
-  }
-
-PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
-  'contact': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
-  'contacts': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
-  }
-
-def _infoPeople(users, entityType, source):
-  if entityType == Ent.DOMAIN:
-    people = buildGAPIObject(API.PEOPLE_DIRECTORY)
-    peopleEntityType = Ent.DOMAIN_PROFILE if source == 'profile' else Ent.DOMAIN_CONTACT
-  else:
-    peopleEntityType = Ent.PEOPLE_CONTACT
-  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP[source]]
-  entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
-  resourceNameLists = entityList if isinstance(entityList, dict) else None
-  FJQC = FormatJSONQuoteChar()
-  stripMetadata = True
-  fieldsList = []
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'allfields':
-      for field in PEOPLE_FIELDS_CHOICE_MAP:
-        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
-    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
-      pass
-    elif myarg == 'showmetadata':
-      stripMetadata = False
-    else:
-      FJQC.GetFormatJSON(myarg)
-  personFields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if resourceNameLists:
-      entityList = resourceNameLists[user]
-    if entityType != Ent.DOMAIN:
-      user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
-      if not people:
-        continue
-    j = 0
-    jcount = len(entityList)
-    if not FJQC.formatJSON:
-      entityPerformActionNumItems([entityType, user], jcount, peopleEntityType, i, count)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND_RC)
-      continue
-    Ind.Increment()
-    for resourceName in entityList:
-      j += 1
-      try:
-        result = callGAPI(people.people(), 'get',
-                          bailOnInternalError=True,
-                          throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                          resourceName=resourceName, sources=sources, personFields=personFields)
-      except (GAPI.notFound, GAPI.internalError):
-        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
-        continue
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
-        ClientAPIAccessDeniedExit()
-      _showPerson(entityType, user, peopleEntityType, result, j, jcount, FJQC, stripMetadata)
-    Ind.Decrement()
-
-# gam info domaincontacts <PeopleResourceNameEntity>
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson]
-def doInfoPeopleDomainContacts():
-  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'domaincontact')
-
-# gam info domainprofiles <PeopleResourceNameEntity>
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson]
-def doInfoPeopleDomainProfiles():
-  _infoPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'profile')
-
-# gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson]
-def infoPeopleContacts(users):
-  _infoPeople(users, Ent.USER, 'contact')
-
-# gam print domaincontacts [todrive <ToDriveAttribute>*]
-#	[query <String>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson [quotechar <Character>]]
-# gam show domaincontacts
-#	[query <String>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson]
-# gam print domainprofiles [todrive <ToDriveAttribute>*]
-#	[query <String>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson [quotechar <Character>]]
-# gam show domainprofiles
-#	[query <String>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson]
-# gam [<UserTypeEntity>] print people [todrive <ToDriveAttribute>*]
-#	[sources <PeopleSourceName>]
-#	[query <String>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	formatjson [quotechar <Character>]]
-# gam [<UserTypeEntity>] show people
-#	[sources <PeopleSourceName>]
-#	[query <String>]
-#	[mergesources <PeopleMergeSourceName>]
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson]
-def _printShowPeople(users, entityType, source):
-  if entityType == Ent.DOMAIN:
-    people = buildGAPIObject(API.PEOPLE_DIRECTORY)
-  entityTypeName = Ent.Singular(entityType)
-  function = 'listDirectoryPeople'
-  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
-  FJQC = FormatJSONQuoteChar(csvPF)
-  stripMetadata = True
-  sources = [] if source is None else [PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP[source]]
-  mergeSources = []
-  fieldsList = []
-  kwargs = {}
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif source is None and myarg in {'source', 'sources'}:
-      sources = [getChoice(PEOPLE_DIRECTORY_SOURCES_CHOICE_MAP, mapChoice=True)]
-    elif myarg in {'mergesource', 'mergesources'}:
-      mergeSources = [getChoice(PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP, mapChoice=True)]
-    elif myarg == 'showmetadata':
-      stripMetadata = False
-    elif myarg == 'allfields':
-      for field in PEOPLE_FIELDS_CHOICE_MAP:
-        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
-    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
-      pass
-    elif myarg == 'showmetadata':
-      stripMetadata = False
-    elif myarg == 'query':
-      kwargs['query'] = getString(Cmd.OB_QUERY)
-      function = 'searchDirectoryPeople'
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if not sources:
-    sources = ['DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE']
-  if sources[0] == 'DIRECTORY_SOURCE_TYPE_DOMAIN_PROFILE':
-    peopleEntityType = Ent.DOMAIN_PROFILE
-    CSVTitle = 'People Profiles'
-  else:
-    peopleEntityType = Ent.DOMAIN_CONTACT
-    CSVTitle = 'People Contacts'
-  fields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if entityType != Ent.DOMAIN:
-      user, people = buildGAPIServiceObject(API.PEOPLE_DIRECTORY, user, i, count)
-      if not people:
-        continue
-    printGettingAllEntityItemsForWhom(peopleEntityType, user, i, count, query=kwargs.get('query'))
-    try:
-      entityList = callGAPIpages(people.people(), function, 'people',
-                                 pageMessage=getPageMessage(),
-                                 throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                                 sources=sources, mergeSources=mergeSources,
-                                 readMask=fields, fields='nextPageToken,people', **kwargs)
-    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
-      ClientAPIAccessDeniedExit()
-    _printPersonEntityList(peopleEntityType, entityList, entityType, user, i, count, csvPF, FJQC, stripMetadata)
-  if csvPF:
-    csvPF.writeCSVfile(CSVTitle)
-
-def printShowPeople(users):
-  _printShowPeople(users, Ent.USER, None)
-
-def doPrintShowPeople():
-  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, None)
-
-def doPrintShowPeopleDomainContacts():
-  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'contact')
-
-def doPrintShowPeopleDomainProfiles():
-  _printShowPeople([GC.Values[GC.DOMAIN]], Ent.DOMAIN, 'profile')
-
-PEOPLE_CONTACT_ORDERBY_CHOICE_MAP = {
-  'firstname': 'FIRST_NAME_ASCENDING',
-  'lastname': 'LAST_NAME_ASCENDING',
-  'lastmodified': 'LAST_MODIFIED_',
-  }
-
-# gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
-#	[query <String>]
-#	[orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show peoplecontacts
-#	[query <String>]
-#	[orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
-#	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-#	[formatjson]
-def printShowUserPeopleContacts(users):
-  entityType = Ent.USER
-  entityTypeName = Ent.Singular(entityType)
-  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
-  FJQC = FormatJSONQuoteChar(csvPF)
-  stripMetadata = True
-  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
-  fieldsList = []
-  query = None
-  sortOrder = None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif myarg == 'allfields':
-      for field in PEOPLE_FIELDS_CHOICE_MAP:
-        addFieldToFieldsList(field, PEOPLE_FIELDS_CHOICE_MAP, fieldsList)
-    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
-      pass
-    elif myarg == 'showmetadata':
-      stripMetadata = False
-    elif myarg == 'query':
-      query = getString(Cmd.OB_QUERY)
-    elif myarg == 'orderby':
-      sortOrder = getChoice(PEOPLE_CONTACT_ORDERBY_CHOICE_MAP, mapChoice=True)
-      if sortOrder == 'LAST_MODIFIED_':
-        sortOrder += getChoice(SORTORDER_CHOICE_MAP, defaultChoice='DESCENDING', mapChoice=True)
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  fields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses'
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
-    if not people:
-      continue
-    printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=query)
-    try:
-      if not query:
-        entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
-                                   pageMessage=getPageMessage(),
-                                   throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                                   resourceName='people/me', sources=sources, personFields=fields,
-                                   sortOrder=sortOrder, fields='nextPageToken,connections')
-      else:
-        results = callGAPI(people.people(), 'searchContacts',
-                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                           sources=sources, readMask=fields, query=query)
-        entityList = results.get('results', [])
-    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
-      ClientAPIAccessDeniedExit()
-    _printPersonEntityList(Ent.PEOPLE_CONTACT, entityList, entityType, user, i, count, csvPF, FJQC, stripMetadata)
-  if csvPF:
-    csvPF.writeCSVfile('People Contacts')
-
-PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP = {
-  'emailaddresses': 'emailAddresses',
-  'names': 'names',
-  'phonenumbers': 'phoneNumbers',
-  }
-
-# gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
-#	[query <String>]
-#	[fields <OtherContactFieldNameList>] [showmetadata]
-#	[formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show othercontacts
-#	[query <String>]
-#	[fields <OtherContactFieldNameList>] [showmetadata]
-#	[formatjson]
-def printShowUserOtherContacts(users):
-  entityType = Ent.USER
-  entityTypeName = Ent.Singular(entityType)
-  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
-  FJQC = FormatJSONQuoteChar(csvPF)
-  stripMetadata = True
-  fieldsList = []
-  query = None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif myarg == 'allfields':
-      for field in PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP:
-        addFieldToFieldsList(field, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList)
-    elif getFieldsList(myarg, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList):
-      pass
-    elif myarg == 'showmetadata':
-      stripMetadata = False
-    elif myarg == 'query':
-      query = getString(Cmd.OB_QUERY)
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  fields = ','.join(set(fieldsList)) if fieldsList else 'names,emailAddresses,phoneNumbers'
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
-    if not people:
-      continue
-    printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=query)
-    try:
-      if not query:
-        entityList = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
-                                   pageMessage=getPageMessage(),
-                                   throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                                   readMask=fields, fields='nextPageToken,otherContacts')
-      else:
-        results = callGAPI(people.otherContacts(), 'search',
-                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                           readMask=fields, query=query)
-        entityList = results.get('results', [])
-    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
-      ClientAPIAccessDeniedExit()
-    _printPersonEntityList(Ent.OTHER_CONTACT, entityList, entityType, user, i, count, csvPF, FJQC, stripMetadata)
-  if csvPF:
-    csvPF.writeCSVfile('Other Contacts')
-
-PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP = {
-  'clientdata': 'clientData',
-  'grouptype': 'groupType',
-  'membercount': 'memberCount',
-  'metadata': 'metadata',
-  'name': 'name',
-  }
-
-# gam <UserTypeEntity> print peoplecontactgroups [todrive <ToDriveAttribute>*]
-#	[fields <PeoplaContactGroupFieldNameList>] [showmetadata]
-#	[formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show peoplacontactgroups
-#	[fields <PeoplaContactGroupFieldNameList>] [showmetadata]
-#	[formatjson]
-def printShowUserPeopleContactGroups(users):
-  entityType = Ent.USER
-  entityTypeName = Ent.Singular(entityType)
-  csvPF = CSVPrintFile([entityTypeName, 'resourceName']) if Act.csvFormat() else None
-  FJQC = FormatJSONQuoteChar(csvPF)
-  stripMetadata = True
-  fieldsList = []
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif myarg == 'allfields':
-      for field in PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP:
-        addFieldToFieldsList(field, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList)
-    elif getFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
-      pass
-    elif myarg == 'showmetadata':
-      stripMetadata = False
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  fields = ','.join(set(fieldsList)) if fieldsList else None
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
-    if not people:
-      continue
-    printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACTGROUP, user, i, count)
-    try:
-      entityList = callGAPIpages(people.contactGroups(), 'list', 'contactGroups',
-                                 pageMessage=getPageMessage(),
-                                 throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                                 groupFields=fields, fields='nextPageToken,contactGroups')
-    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
-      ClientAPIAccessDeniedExit()
-    _printPersonEntityList(Ent.PEOPLE_CONTACTGROUP, entityList, entityType, user, i, count, csvPF, FJQC, stripMetadata)
-  if csvPF:
-    csvPF.writeCSVfile('People Contact Groupss')
-
 SITEVERIFICATION_METHOD_CHOICE_MAP = {
   'cname': 'DNS_CNAME',
   'dnscname': 'DNS_CNAME',
@@ -38666,11 +39717,13 @@ CALENDAR_EXCLUDE_DOMAINS = {
   'nosystem': 'group.v.calendar.google.com',
   }
 
-# gam <UserTypeEntity> print calendars <UserCalendarEntity> [todrive <ToDriveAttribute>*] [permissions]
+# gam <UserTypeEntity> print calendars <UserCalendarEntity> [todrive <ToDriveAttribute>*]
 #	[primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
+#	[permissions]
 #	[formatjson [quotechar <Character>]] [delimiter <Character>]
-# gam <UserTypeEntity> show calendars <UserCalendarEntity> [permissions]
+# gam <UserTypeEntity> show calendars <UserCalendarEntity>
 #	[primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
+#	[permissions]
 #	[formatjson]
 def printShowCalendars(users):
 
@@ -55454,7 +56507,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSER:	doDeleteCIDeviceUser,
       Cmd.ARG_DOMAIN:		doDeleteDomain,
       Cmd.ARG_DOMAINALIAS:	doDeleteDomainAlias,
-      Cmd.ARG_DOMAINCONTACT:	doDeletePeopleDomainContacts,
+      Cmd.ARG_DOMAINCONTACT:	doDeleteDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doDeleteDriveFileACLs,
       Cmd.ARG_FEATURE:		doDeleteFeature,
       Cmd.ARG_GROUP:		doDeleteGroups,
@@ -55525,8 +56578,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSERSTATE:	doInfoCIDeviceUserState,
       Cmd.ARG_DOMAIN:		doInfoDomain,
       Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
-      Cmd.ARG_DOMAINCONTACT:	doInfoPeopleDomainContacts,
-      Cmd.ARG_DOMAINPROFILE:	doInfoPeopleDomainProfiles,
+      Cmd.ARG_DOMAINCONTACT:	doInfoDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
       Cmd.ARG_INSTANCE:		doInfoInstance,
       Cmd.ARG_GAL:		doInfoGAL,
@@ -55535,6 +56587,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MOBILE:		doInfoMobileDevices,
       Cmd.ARG_ORG:		doInfoOrg,
       Cmd.ARG_ORGS:		doInfoOrgs,
+      Cmd.ARG_PEOPLE:		doInfoDomainPeopleProfile,
+      Cmd.ARG_PEOPLECONTACT:	doInfoDomainPeopleContacts,
       Cmd.ARG_PRINTER:		doInfoPrinter,
       Cmd.ARG_RESOLDCUSTOMER:	doInfoResoldCustomer,
       Cmd.ARG_RESOLDSUBSCRIPTION:	doInfoResoldSubscription,
@@ -55601,8 +56655,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DEVICEUSER:	doPrintCIDeviceUsers,
       Cmd.ARG_DOMAIN:		doPrintShowDomains,
       Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
-      Cmd.ARG_DOMAINCONTACT:	doPrintShowPeopleDomainContacts,
-      Cmd.ARG_DOMAINPROFILE:	doPrintShowPeopleDomainProfiles,
+      Cmd.ARG_DOMAINCONTACT:	doPrintShowDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
@@ -55615,7 +56668,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ORG:		doPrintOrgs,
       Cmd.ARG_ORGS:		doPrintOrgs,
       Cmd.ARG_OWNERSHIP:	doPrintShowOwnership,
-      Cmd.ARG_PEOPLE:		doPrintShowPeople,
+      Cmd.ARG_PEOPLECONTACT:	doPrintShowDomainPeopleContacts,
+      Cmd.ARG_PEOPLEPROFILE:	doPrintShowDomainPeopleProfiles,
       Cmd.ARG_PRINTER:		doPrintShowPrinters,
       Cmd.ARG_PRINTERMODEL:	doPrintShowPrinterModels,
       Cmd.ARG_PRIVILEGES:	doPrintShowPrivileges,
@@ -55694,8 +56748,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
       Cmd.ARG_DOMAIN:		doPrintShowDomains,
       Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
-      Cmd.ARG_DOMAINCONTACT:	doPrintShowPeopleDomainContacts,
-      Cmd.ARG_DOMAINPROFILE:	doPrintShowPeopleDomainProfiles,
+      Cmd.ARG_DOMAINCONTACT:	doPrintShowDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
@@ -55705,7 +56758,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LICENSE:		doShowLicenses,
       Cmd.ARG_ORGTREE:		doShowOrgTree,
       Cmd.ARG_OWNERSHIP:	doPrintShowOwnership,
-      Cmd.ARG_PEOPLE:		doPrintShowPeople,
+      Cmd.ARG_PEOPLECONTACT:	doPrintShowDomainPeopleContacts,
+      Cmd.ARG_PEOPLEPROFILE:	doPrintShowDomainPeopleProfiles,
       Cmd.ARG_PRINTER:		doPrintShowPrinters,
       Cmd.ARG_PRINTERMODEL:	doPrintShowPrinterModels,
       Cmd.ARG_PRIVILEGES:	doPrintShowPrivileges,
@@ -55848,8 +56902,9 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_DEVICEUSERS:		Cmd.ARG_DEVICEUSER,
   Cmd.ARG_DOMAINS:		Cmd.ARG_DOMAIN,
   Cmd.ARG_DOMAINALIASES:	Cmd.ARG_DOMAINALIAS,
-  Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_DOMAINCONTACT,
-  Cmd.ARG_DOMAINPROFILES:	Cmd.ARG_DOMAINPROFILE,
+  Cmd.ARG_DOMAINCONTACT:	Cmd.ARG_PEOPLECONTACT,
+  Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_PEOPLECONTACT,
+  Cmd.ARG_DOMAINPROFILES:	Cmd.ARG_PEOPLEPROFILE,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
   Cmd.ARG_EXPORT:		Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_EXPORTS:		Cmd.ARG_VAULTEXPORT,
@@ -55876,6 +56931,9 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_OUS:			Cmd.ARG_ORGS,
   Cmd.ARG_OUTREE:		Cmd.ARG_ORGTREE,
   Cmd.ARG_PARTICIPANTS:		Cmd.ARG_COURSEPARTICIPANTS,
+  Cmd.ARG_PEOPLE:		Cmd.ARG_PEOPLEPROFILE,
+  Cmd.ARG_PEOPLECONTACTS:	Cmd.ARG_PEOPLECONTACT,
+  Cmd.ARG_PEOPLEPROFILES:	Cmd.ARG_PEOPLEPROFILE,
   Cmd.ARG_PERMISSIONS:		Cmd.ARG_PERMISSION,
   Cmd.ARG_PRINTERS:		Cmd.ARG_PRINTER,
   Cmd.ARG_PRINTERMODELS:	Cmd.ARG_PRINTERMODEL,
@@ -56215,9 +57273,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_GROUP:		addUserToGroups,
   Cmd.ARG_CALENDARACL:		createCalendarACLs,
   Cmd.ARG_CLASSROOMINVITATION:	createClassroomInvitations,
-  Cmd.ARG_CONTACT:		createUserContact,
   Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
-  Cmd.ARG_CONTACTGROUP:		createUserContactGroup,
   Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
   Cmd.ARG_DELEGATE:		processDelegates,
   Cmd.ARG_DRIVEFILE:		createDriveFile,
@@ -56232,6 +57288,8 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_LICENSE:		createLicense,
   Cmd.ARG_NOTE:			createNote,
   Cmd.ARG_NOTEACL:		createNotesACLs,
+  Cmd.ARG_PEOPLECONTACT:	createUserPeopleContact,
+  Cmd.ARG_PEOPLECONTACTGROUP:	createUserPeopleContactGroup,
   Cmd.ARG_PERMISSION:		createDriveFilePermissions,
   Cmd.ARG_SENDAS:		createUpdateSendAs,
   Cmd.ARG_SHEET:		createSheet,
@@ -56280,8 +57338,8 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   'clear':
     (Act.CLEAR,
-     {Cmd.ARG_CONTACT:		clearUserContacts,
-      Cmd.ARG_GUARDIAN:		clearGuardians,
+     {Cmd.ARG_GUARDIAN:		clearGuardians,
+      Cmd.ARG_PEOPLECONTACT:	clearUserPeopleContacts,
       Cmd.ARG_SHEETRANGE:	clearSheetRanges,
      }
     ),
@@ -56293,6 +57351,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'copy':
     (Act.COPY,
      {Cmd.ARG_DRIVEFILE:	copyDriveFile,
+      Cmd.ARG_OTHERCONTACT:	copyUserPeopleOtherContacts,
      }
     ),
   'create':
@@ -56301,7 +57360,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   'dedup':
     (Act.DEDUP,
-     {Cmd.ARG_CONTACT:		dedupUserContacts,
+     {Cmd.ARG_PEOPLECONTACT:	dedupUserPeopleContacts,
      }
     ),
   'delete':
@@ -56312,10 +57371,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDAR:		deleteCalendars,
       Cmd.ARG_CALENDARACL:	deleteCalendarACLs,
       Cmd.ARG_CLASSROOMINVITATION:	deleteClassroomInvitations,
-      Cmd.ARG_CONTACT:		deleteUserContacts,
       Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
-      Cmd.ARG_CONTACTGROUP:	deleteUserContactGroups,
-      Cmd.ARG_CONTACTPHOTO:	deleteUserContactPhoto,
       Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
       Cmd.ARG_DELEGATE:		processDelegates,
       Cmd.ARG_DRIVEFILE:	deleteDriveFile,
@@ -56332,7 +57388,9 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MESSAGE:		processMessages,
       Cmd.ARG_NOTE:		deleteInfoNotes,
       Cmd.ARG_NOTEACL:		deleteNotesACLs,
-      Cmd.ARG_PEOPLECONTACT:	deletePeopleContacts,
+      Cmd.ARG_PEOPLECONTACT:	deleteUserPeopleContacts,
+      Cmd.ARG_PEOPLECONTACTGROUP:	deleteUserPeopleContactGroups,
+      Cmd.ARG_PEOPLECONTACTPHOTO:	deleteUserPeopleContactPhoto,
       Cmd.ARG_PERMISSION:	deletePermissions,
       Cmd.ARG_PHOTO:		deletePhoto,
       Cmd.ARG_SENDAS:		deleteInfoSendAs,
@@ -56357,9 +57415,9 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   'get':
     (Act.DOWNLOAD,
-     {Cmd.ARG_CONTACTPHOTO:	getUserContactPhoto,
-      Cmd.ARG_DOCUMENT:		getGoogleDocument,
+     {Cmd.ARG_DOCUMENT:		getGoogleDocument,
       Cmd.ARG_DRIVEFILE:	getDriveFile,
+      Cmd.ARG_PEOPLECONTACTPHOTO:	getUserPeopleContactPhoto,
       Cmd.ARG_PHOTO:		getUserPhoto,
       Cmd.ARG_PROFILE_PHOTO:	getProfilePhoto,
      }
@@ -56380,9 +57438,6 @@ USER_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_CALENDAR:		infoCalendars,
       Cmd.ARG_CALENDARACL:	infoCalendarACLs,
       Cmd.ARG_CIGROUPMEMBERS:	infoCIGroupMembers,
-      Cmd.ARG_CONTACT:		infoUserContacts,
-      Cmd.ARG_CONTACTGROUP:	infoUserContactGroups,
-      Cmd.ARG_PEOPLECONTACT:	infoPeopleContacts,
       Cmd.ARG_DRIVEFILE:	showFileInfo,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,
       Cmd.ARG_EVENT:		infoCalendarEvents,
@@ -56390,6 +57445,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FORWARDINGADDRESS:	infoForwardingAddresses,
       Cmd.ARG_GROUPMEMBERS:	infoGroupMembers,
       Cmd.ARG_NOTE:		deleteInfoNotes,
+      Cmd.ARG_PEOPLECONTACT:	infoUserPeopleContacts,
+      Cmd.ARG_PEOPLECONTACTGROUP:	infoUserPeopleContactGroups,
       Cmd.ARG_SENDAS:		deleteInfoSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SITE:		infoUserSites,
@@ -56431,9 +57488,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
       Cmd.ARG_CLASSROOMPROFILE:	printShowClassroomProfile,
-      Cmd.ARG_CONTACT:		printShowUserContacts,
       Cmd.ARG_CONTACTDELEGATE:	printShowContactDelegates,
-      Cmd.ARG_CONTACTGROUP:	printShowUserContactGroups,
       Cmd.ARG_DATASTUDIOASSET:	printShowDataStudioAssets,
       Cmd.ARG_DATASTUDIOPERMISSION:	printShowDataStudioPermissions,
       Cmd.ARG_DELEGATE:		printShowDelegates,
@@ -56460,11 +57515,10 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LANGUAGE:		printShowLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
       Cmd.ARG_NOTE:		printShowNotes,
-      Cmd.ARG_OTHERCONTACT:	printShowUserOtherContacts,
-      Cmd.ARG_PEOPLE:		printShowPeople,
+      Cmd.ARG_OTHERCONTACT:	printShowUserPeopleOtherContacts,
       Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
       Cmd.ARG_PEOPLECONTACTGROUP:	printShowUserPeopleContactGroups,
-      Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
+      Cmd.ARG_PEOPLEPROFILE:	printShowUserPeopleProfiles,
       Cmd.ARG_POP:		printShowPop,
       Cmd.ARG_SENDAS:		printShowSendAs,
       Cmd.ARG_SHEET:		infoPrintShowSheets,
@@ -56496,9 +57550,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
       Cmd.ARG_CLASSROOMPROFILE:	printShowClassroomProfile,
-      Cmd.ARG_CONTACT:		printShowUserContacts,
       Cmd.ARG_CONTACTDELEGATE:	printShowContactDelegates,
-      Cmd.ARG_CONTACTGROUP:	printShowUserContactGroups,
       Cmd.ARG_DATASTUDIOASSET:	printShowDataStudioAssets,
       Cmd.ARG_DATASTUDIOPERMISSION:	printShowDataStudioPermissions,
       Cmd.ARG_DELEGATE:		printShowDelegates,
@@ -56523,11 +57575,10 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LANGUAGE:		printShowLanguage,
       Cmd.ARG_MESSAGE:		printShowMessages,
       Cmd.ARG_NOTE:		printShowNotes,
-      Cmd.ARG_OTHERCONTACT:	printShowUserOtherContacts,
-      Cmd.ARG_PEOPLE:		printShowPeople,
+      Cmd.ARG_OTHERCONTACT:	printShowUserPeopleOtherContacts,
       Cmd.ARG_PEOPLECONTACT:	printShowUserPeopleContacts,
       Cmd.ARG_PEOPLECONTACTGROUP:	printShowUserPeopleContactGroups,
-      Cmd.ARG_PEOPLEPROFILE:	printShowPeopleProfile,
+      Cmd.ARG_PEOPLEPROFILE:	printShowUserPeopleProfiles,
       Cmd.ARG_POP:		printShowPop,
       Cmd.ARG_PROFILE:		showProfile,
       Cmd.ARG_SENDAS:		printShowSendAs,
@@ -56606,9 +57657,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALATTENDEES:	updateCalendarAttendees,
       Cmd.ARG_CALENDAR:		updateCalendars,
       Cmd.ARG_CALENDARACL:	updateCalendarACLs,
-      Cmd.ARG_CONTACT:		updateUserContacts,
-      Cmd.ARG_CONTACTGROUP:	updateUserContactGroup,
-      Cmd.ARG_CONTACTPHOTO:	updateUserContactPhoto,
       Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
       Cmd.ARG_DELEGATE:		updateDelegates,
       Cmd.ARG_DRIVEFILE:	updateDriveFile,
@@ -56619,6 +57667,9 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		updateLabels,
       Cmd.ARG_LABELSETTINGS:	updateLabelSettings,
       Cmd.ARG_LICENSE:		updateLicense,
+      Cmd.ARG_PEOPLECONTACT:	updateUserPeopleContacts,
+      Cmd.ARG_PEOPLECONTACTGROUP:	updateUserPeopleContactGroup,
+      Cmd.ARG_PEOPLECONTACTPHOTO:	updateUserPeopleContactPhoto,
       Cmd.ARG_PHOTO:		updatePhoto,
       Cmd.ARG_SENDAS:		createUpdateSendAs,
       Cmd.ARG_SERVICEACCOUNT:	checkServiceAccount,
@@ -56667,14 +57718,18 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CLASSROOMINVITATIONS:	Cmd.ARG_CLASSROOMINVITATION,
   Cmd.ARG_CIMEMBER:		Cmd.ARG_CIGROUPMEMBERS,
   Cmd.ARG_CIMEMBERS:		Cmd.ARG_CIGROUPMEMBERS,
-  Cmd.ARG_CONTACTS:		Cmd.ARG_CONTACT,
+  Cmd.ARG_CONTACT:		Cmd.ARG_PEOPLECONTACT,
+  Cmd.ARG_CONTACTS:		Cmd.ARG_PEOPLECONTACT,
   Cmd.ARG_CONTACTDELEGATES:	Cmd.ARG_CONTACTDELEGATE,
-  Cmd.ARG_CONTACTGROUPS:	Cmd.ARG_CONTACTGROUP,
-  Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_CONTACTPHOTO,
+  Cmd.ARG_CONTACTGROUP:		Cmd.ARG_PEOPLECONTACTGROUP,
+  Cmd.ARG_CONTACTGROUPS:	Cmd.ARG_PEOPLECONTACTGROUP,
+  Cmd.ARG_CONTACTPHOTO:		Cmd.ARG_PEOPLECONTACTPHOTO,
+  Cmd.ARG_CONTACTPHOTOS:	Cmd.ARG_PEOPLECONTACTPHOTO,
   Cmd.ARG_DATASTUDIOASSETS:	Cmd.ARG_DATASTUDIOASSET,
   Cmd.ARG_DATASTUDIOPERMISSIONS:	Cmd.ARG_DATASTUDIOPERMISSION,
   Cmd.ARG_DELEGATES:		Cmd.ARG_DELEGATE,
-  Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_DOMAINCONTACT,
+  Cmd.ARG_DOMAINCONTACT:	Cmd.ARG_PEOPLECONTACT,
+  Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_PEOPLECONTACT,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
   Cmd.ARG_DRIVEFILESHORTCUTS:	Cmd.ARG_DRIVEFILESHORTCUT,
   Cmd.ARG_EVENTS:		Cmd.ARG_EVENT,
@@ -56707,6 +57762,8 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_OTHERCONTACTS:	Cmd.ARG_OTHERCONTACT,
   Cmd.ARG_PEOPLECONTACTS:	Cmd.ARG_PEOPLECONTACT,
   Cmd.ARG_PEOPLECONTACTGROUPS:	Cmd.ARG_PEOPLECONTACTGROUP,
+  Cmd.ARG_PEOPLECONTACTPHOTOS:	Cmd.ARG_PEOPLECONTACTPHOTO,
+  Cmd.ARG_PEOPLE:		Cmd.ARG_PEOPLEPROFILE,
   Cmd.ARG_PEOPLEPROFILES:	Cmd.ARG_PEOPLEPROFILE,
   Cmd.ARG_PERMISSIONS:		Cmd.ARG_PERMISSION,
   Cmd.ARG_POP3:			Cmd.ARG_POP,

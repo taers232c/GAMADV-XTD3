@@ -1949,186 +1949,8 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
         [start <Date>] [end <Date>]
         [formatjson [quotechar <Character>]]
 
-# Contacts
-
-<ContactAttribute> ::=
-        (additionalname|middlename <String>)|
-        (address clear|(work|home|other|<String> ((formatted|unstructured <String>)|(streetaddress <String>)|(pobox <String>)|
-            (neighborhood <String>)|(locality <String>)|(region <String>)|(postalcode <String>)|(country <String>))* notprimary|primary))|
-        (billinginfo <String>)|
-        (birthday <Date>)|
-        (calendar clear|(work|home|free-busy|<String> <URL> notprimary|primary))|
-        (directoryserver <String>)|
-        (email clear|(work|home|other|<String> <EmailAddress> notprimary|primary))|
-        (event clear|(anniversary|other|<String> <Date>))|
-        (externalid clear|(account|customer|network|organization|<String> <String>))|
-        (familyname|lastname <String>)|
-        (gender female|male)|
-        (givenname|firstname <String>)|
-        (hobby clear|(<String>))|
-        (im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
-        (initials <String>)|
-        (jot clear|(work|home|other|keywords|user> <String>))|
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
-        (language <Language>)|
-        (location <String>)|
-        (maidenname <String>)|
-        (mileage <String>)|
-        (name <String>)|
-        (nickname <String>)|
-        (note <String>|(file <FileName> [charset <Charset>])|(gdoc <UserGoogleDoc>))|
-        (occupation <String>)|
-        (organization clear|(work|other|<String> <String> ((location <String>)|(department <String>)|(title <String>)|(jobdescription <String>)|(symbol <String>))* notprimary|primary))|
-        (phone clear|(work|home|other|fax|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|<String> <String> notprimary|primary))|
-        (prefix <String>)|
-        (priority low|normal|high)
-        (relation clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|assistant|referred_by|partner|<String> <String>))|
-        (sensitivity confidential|normal|personal|private)
-        (shortname <String>)|
-        (subject <String>)|
-        (suffix <String>)|
-        (userdefinedfield clear|(<String> <String>))|
-        (website clear|(app_install_page|blog|ftp|home|home_page|other|profile|reservations|work|<String> <URL> notprimary|primary))
-
-<ContactGroupAttribute> ::=
-        (name <String>)
-
-<ContactSelection> ::=
-        [query <QueryContact>]
-        [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
-        [updated_min <Date>]
-
-gam create contact <ContactAttribute>+
-gam update contacts <ContactEntity>|<ContactSelection> <ContactAttribute>+
-gam clear contacts <ContactEntity>|<ContactSelection>
-        [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
-        [delete_cleared_contacts_with_no_emails]
-gam dedup contacts <ContactEntity>|<ContactSelection> [matchType [<Boolean>]]
-gam delete contacts <ContactEntity>|<ContactSelection>
-
-gam update contactphotos <ContactEntity>|<ContactSelection>
-        [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
-gam get contactphotos <ContactEntity>|<ContactSelection>
-        [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-gam delete contactphotos <ContactEntity>|<ContactSelection>
-
-<ContactFieldName> ::=
-        additionalname|middlename|
-        address|
-        billinginfo|
-        birthday|
-        calendar|
-        contactgroup|
-        directoryserver|
-        email|
-        event|
-        externalid|
-        familyname|lastname|
-        gender|
-        givenname|firstname|
-        hobby|
-        im|
-        initials|
-        jot|
-        language|
-        location|
-        maidenname|
-        mileage|
-        name|
-        nickname|
-        note|
-        occupation|
-        organization|
-        phone|
-        prefix|
-        priority|
-        relation|
-        sensitivity|
-        shortname|
-        subject|
-        suffix|
-        updated|
-        userdefinedfield|
-        website
-<ContactFieldNameList> ::= "<ContactFieldName>(,<ContactFieldName>)*"
-
-<ContactOrderByFieldName> ::=
-        lastmodified
-
-gam info contacts <ContactEntity>
-        [basic|full] [showgroups]
-        [fields <ContactFieldNameList>]
-        [formatjson]
-gam show contacts <ContactSelection>
-        [basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>]
-        [formatjson]
-gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
-        [basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>]
-        [formatjson [quotechar <Character>]]
-
-<UserContactSelection> ::=
-        [query <QueryContact>]
-        [(selectcontactgroup <ContactGroupItem>)|selectothercontacts]
-        [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
-        [updated_min <Date>]
-
-gam <UserTypeEntity> create contact <ContactAttribute>+
-        (contactgroup <ContactGroupItem>)*
-gam <UserTypeEntity> update contacts <ContactEntity>|(<UserContactSelection> endquery) <ContactAttribute>+
-        (contactgroup <ContactGroupItem>)*|((addcontactgroup <ContactGroupItem>)* (removecontactgroup <ContactGroupItem>)*)
-gam <UserTypeEntity> clear contacts <ContactEntity>|<UserContactSelection>
-        [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
-        [delete_cleared_contacts_with_no_emails]
-gam <UserTypeEntity> dedup contacts <ContactEntity>|<UserContactSelection> [matchType [<Boolean>]]
-gam <UserTypeEntity> delete contacts <ContactEntity>|<UserContactSelection>
-
-gam <UserTypeEntity> info contacts <ContactEntity>
-        [basic|full] [showgroups]
-        [fields <ContactFieldNameList>]
-        [formatjson]
-gam <UserTypeEntity> show contacts <UserContactSelection>
-        [basic|full|countsonly] [showgroups] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>]
-        [formatjson]
-gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <UserContactSelection>
-        [basic|full|countsonly] [showgroups|showgroupnameslist] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>]
-        [formatjson [quotechar <Character>]]
-
-gam <UserTypeEntity> update contactphotos <ContactEntity>|<UserContactSelection>
-        [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
-gam <UserTypeEntity> get contactphotos <ContactEntity>|<UserContactSelection>
-        [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-gam <UserTypeEntity> delete contactphotos <ContactEntity>|<UserContactSelection>
-
-gam <UserTypeEntity> create contactgroup <ContactGroupAttribute>+
-gam <UserTypeEntity> update contactgroup <ContactGroupItem> <ContactGroupAttribute>+
-gam <UserTypeEntity> delete contactgroups <ContactGroupEntity>
-
-gam <UserTypeEntity> info contactgroups <ContactGroupEntity>
-        [formatjson]
-gam <UserTypeEntity> show contactgroups [updated_min <Date>]
-        [basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*] [updated_min <Date>]
-        [basic|full] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [formatjson [quotechar <Character>]]
-
-gam info gal <ContactEntity>
-        [basic|full]
-        [fields <ContactFieldNameList>]
-        [formatjson]
-gam show gal <ContactSelection>
-        [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>]
-        [formatjson]
-gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
-        [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
-        [fields <ContactFieldNameList>]
-        [formatjson [quotechar <Character>]]
-
 # Contacts - Delegation
+
 gam <UserTypeEntity> create contactdelegate <UserEntity>
 gam <UserTypeEntity> delete contactdelegate <UserEntity>
 gam <UserTypeEntity> print contactdelegates [todrive <ToDriveAttribute>*] [shownames]
@@ -2523,6 +2345,209 @@ gam info domainalias|aliasdomain <DomainAlias> [formatjson]
 gam print domainaliases|aliasdomains [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
 gam show domainaliases|aliasdomains [formatjson]
+
+# Domain - Contacts and Global Address List
+
+<ContactAttribute> ::=
+        (additionalname|middlename <String>)|
+        (address clear|(work|home|other|<String> ((formatted|unstructured <String>)|(streetaddress <String>)|(pobox <String>)|
+            (neighborhood <String>)|(locality <String>)|(region <String>)|(postalcode <String>)|(country <String>))* notprimary|primary))|
+        (billinginfo <String>)|
+        (birthday <Date>)|
+        (calendar clear|(work|home|free-busy|<String> <URL> notprimary|primary))|
+        (directoryserver <String>)|
+        (email clear|(work|home|other|<String> <EmailAddress> notprimary|primary))|
+        (event clear|(anniversary|other|<String> <Date>))|
+        (externalid clear|(account|customer|network|organization|<String> <String>))|
+        (familyname|lastname <String>)|
+        (gender female|male)|
+        (givenname|firstname <String>)|
+        (hobby clear|(<String>))|
+        (im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
+        (initials <String>)|
+        (jot clear|(work|home|other|keywords|user> <String>))|
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
+        (language <Language>)|
+        (location <String>)|
+        (maidenname <String>)|
+        (mileage <String>)|
+        (name <String>)|
+        (nickname <String>)|
+        (note <String>|(file <FileName> [charset <Charset>])|(gdoc <UserGoogleDoc>))|
+        (occupation <String>)|
+        (organization clear|(work|other|<String> <String> ((location <String>)|(department <String>)|(title <String>)|(jobdescription <String>)|(symbol <String>))* notprimary|primary))|
+        (phone clear|(work|home|other|fax|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|<String> <String> notprimary|primary))|
+        (prefix <String>)|
+        (priority low|normal|high)
+        (relation clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|assistant|referred_by|partner|<String> <String>))|
+        (sensitivity confidential|normal|personal|private)
+        (shortname <String>)|
+        (subject <String>)|
+        (suffix <String>)|
+        (userdefinedfield clear|(<String> <String>))|
+        (website clear|(app_install_page|blog|ftp|home|home_page|other|profile|reservations|work|<String> <URL> notprimary|primary))
+
+<ContactSelection> ::=
+        [query <QueryContact>]
+        [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
+        [updated_min <Date>]
+
+gam create contact <ContactAttribute>+
+gam update contacts <ContactEntity>|<ContactSelection> <ContactAttribute>+
+gam clear contacts <ContactEntity>|<ContactSelection>
+        [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+        [delete_cleared_contacts_with_no_emails]
+gam dedup contacts <ContactEntity>|<ContactSelection> [matchType [<Boolean>]]
+gam delete contacts <ContactEntity>|<ContactSelection>
+
+gam update contactphotos <ContactEntity>|<ContactSelection>
+        [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam get contactphotos <ContactEntity>|<ContactSelection>
+        [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+gam delete contactphotos <ContactEntity>|<ContactSelection>
+
+<ContactFieldName> ::=
+        additionalname|middlename|
+        address|
+        billinginfo|
+        birthday|
+        calendar|
+        contactgroup|
+        directoryserver|
+        email|
+        event|
+        externalid|
+        familyname|lastname|
+        gender|
+        givenname|firstname|
+        hobby|
+        im|
+        initials|
+        jot|
+        language|
+        location|
+        maidenname|
+        mileage|
+        name|
+        nickname|
+        note|
+        occupation|
+        organization|
+        phone|
+        prefix|
+        priority|
+        relation|
+        sensitivity|
+        shortname|
+        subject|
+        suffix|
+        updated|
+        userdefinedfield|
+        website
+<ContactFieldNameList> ::= "<ContactFieldName>(,<ContactFieldName>)*"
+
+<ContactOrderByFieldName> ::=
+        lastmodified
+
+gam info contacts <ContactEntity>
+        [basic|full]
+        [fields <ContactFieldNameList>]
+        [formatjson]
+gam show contacts <ContactSelection>
+        [basic|full|countsonly] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>]
+        [formatjson]
+gam print contacts [todrive <ToDriveAttribute>*] <ContactSelection>
+        [basic|full|countsonly] [showdeleted] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>]
+        [formatjson [quotechar <Character>]]
+
+vgam info gal <ContactEntity>
+        [basic|full]
+        [fields <ContactFieldNameList>]
+        [formatjson]
+gam show gal <ContactSelection>
+        [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>]
+        [formatjson]
+gam print gal [todrive <ToDriveAttribute>*] <ContactSelection>
+        [basic|full] [orderby <ContactOrderByFieldName> [ascending|descending]]
+        [fields <ContactFieldNameList>]
+        [formatjson [quotechar <Character>]]
+
+# Domain - People Contacts and Profiles
+
+<PeopleSourceName> ::=
+        contact|contacts|
+        profile|profiles
+
+<PeopleMergeSourceName> ::=
+        contact|contacts
+
+<PeopleFieldName> ::=
+        addresses|
+        ageranges|
+        biographies|
+        birthdays|
+        calendarurls|
+        clientdata|
+        coverphotos|
+        emailaddresses|
+        events|
+        externalids|
+        genders|
+        imclients|
+        interests|
+        locales|
+        locations|
+        memberships|
+        metadata|
+        misckeywords|
+        names|
+        nicknames|
+        occupations|
+        organizations|
+        phonenumbers|
+        photos|
+        relations|
+        sipaddresses|
+        skills|
+        urls|
+        updated|updatetime|
+        userdefined
+<PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
+
+gam info peoplecontacts <PeopleResourceNameEntity>
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+        [formatjson]
+gam print peoplecontacts [todrive <ToDriveAttribute>*]
+        [sources <PeopleSourceName>]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [coountsonly]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+        [formatjson [quotechar <Character>]]
+gam show peoplecontacts
+        [sources <PeopleSourceName>]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [coountsonly]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+        [formatjson]
+
+gam info peopleprofile <PeopleResourceNameEntity>
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+        [formatjson]
+gam print peopleprofile [todrive <ToDriveAttribute>*]
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+        [formatjson [quotechar <Character>]]
+gam show peopleprofile
+        [query <String>]
+        [mergesources <PeopleMergeSourceName>]
+        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+        [formatjson]
 
 # Groups
 
@@ -3114,89 +3139,6 @@ gam print orgs|ous [todrive <ToDriveAttribute>*] [showparent] [toplevelonly] [fr
         [mincroscount <Number>] [maxcroscount <Number>]
         [minusercount <Number>] [maxusercount <Number>]
 gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
-
-# People
-
-<PeopleSourceName> ::=
-        contact|contacts|
-        profile|profiles
-
-<PeopleMergeSourceName> ::=
-        contact|contacts
-
-<PeopleFieldName> ::=
-        addresses|
-        ageranges|
-        biographies|
-        birthdays|
-        calendarurls|
-        clientdata|
-        coverphotos|
-        emailaddresses|
-        events|
-        externalids|
-        genders|
-        imclients|
-        interests|
-        locales|
-        locations|
-        memberships|
-        metadata|
-        misckeywords|
-        names|
-        nicknames|
-        occupations|
-        organizations|
-        phonenumbers|
-        photos|
-        relations|
-        sipaddresses|
-        skills|
-        urls|
-        userdefined
-<PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
-
-gam delete domaincontacts <PeopleResourceNameEntity>
-gam info domaincontacts <PeopleResourceNameEntity>
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson]
-gam print domaincontacts [todrive <ToDriveAttribute>*]
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson [quotechar <Character>]]
-gam show domaincontacts
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson]
-
-gam info domainprofiles <PeopleResourceNameEntity>
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson]
-gam print domainprofiles [todrive <ToDriveAttribute>*]
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson [quotechar <Character>]]
-gam show domainprofiles
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)]
-        [formatjson]
-
-gam print people [todrive <ToDriveAttribute>*]
-        [sources <PeopleSourceName>]
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson [quotechar <Character>]]
-gam show people
-        [sources <PeopleSourceName>]
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson]
 
 # Printers
 
@@ -5646,13 +5588,139 @@ gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [fro
 gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
 gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addonly|removeonly] [preview] [actioncsv]
 
-# Users - People - Contacts and Profile
+# Users - Contacts and Profiles
 
-<OtherContactFieldName> ::=
+<PeopleContactAttribute> ::=
+        (additionalname|middlename <String>)|
+        (address clear|(work|home|other|<String> ((formatted|unstructured <String>)|(streetaddress <String>)|(pobox <String>)|
+            (neighborhood <String>)|(locality <String>)|(region <String>)|(postalcode <String>)|(country <String>))* notprimary|primary))|
+        (billinginfo <String>)|
+        (biography|biographies <String>|(file <FileName> [charset <Charset>])|(gdoc <UserGoogleDoc>))|
+        (birthday <Date>)|
+        (calendar clear|(work|home|free-busy|<String> <URL> notprimary|primary))|
+        (clientdata <String> <String>)|
+        (directoryserver <String>)|
+        (email clear|(work|home|other|<String> <EmailAddress> notprimary|primary))|
+        (event clear|(anniversary|other|<String> <Date>))|
+        (externalid clear|(account|customer|network|organization|<String> <String>))|
+        (familyname|lastname <String>)|
+        (fileas <String>)|
+        (gender female|male)|
+        (givenname|firstname <String>)|
+        (im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
+        (interests clear|<String>)|
+        (initials <String>)|
+        (jot clear|(work|home|other|keywords|user> <String>))|
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
+        (language <Language>)|
+        (locale clear|<Language>)|
+        (location clear|<String>)|
+        (maidenname <String>)|
+        (mileage <String>)|
+        (name <String>)|
+        (nickname <String>)|
+        (note <String>|(file <FileName> [charset <Charset>])|(gdoc <UserGoogleDoc>))|
+        (occupation clear|<String>)|
+        (organization clear|(work|other|<String> <String> ((location <String>)|(department <String>)|(title <String>)|(jobdescription <String>)|(symbol <String>))* notprimary|primary))|
+        (phone clear|(work|home|other|fax|work_fax|home_fax|other_fax|main|company_main|assistant|mobile|work_mobile|pager|work_pager|car|radio|callback|isdn|telex|tty_tdd|<String> <String> notprimary|primary))|
+        (prefix <String>)|
+        (priority low|normal|high)
+        (relation clear|(spouse|child|mother|father|parent|brother|sister|friend|relative|domestic_partner|manager|assistant|referred_by|partner|<String> <String>))|
+        (sensitivity confidential|normal|personal|private)
+        (shortname <String>)|
+        (skills clear|<String>)|
+        (subject <String>)|
+        (suffix <String>)|
+        (userdefinedfield clear|(<String> <String>))|
+        (website clear|(app_install_page|blog|ftp|home|home_page|other|profile|reservations|work|<String> <URL> notprimary|primary))
+
+<PeopleUserContactSelection> ::=
+        [query <QueryContact>]
+        [selectcontactgroup <ContactGroupItem>]
+        [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
+
+gam <UserTypeEntity> create contact <PeopleContactAttribute>+
+        (contactgroup <ContactGroupItem>)*
+gam <UserTypeEntity> update contacts <PeopleResourceNameEntity>|(<PeopleUserContactSelection> endquery) <PeopleContactAttribute>+
+        (contactgroup <ContactGroupItem>)*|((addcontactgroup <ContactGroupItem>)* (removecontactgroup <ContactGroupItem>)*)
+gam <UserTypeEntity> delete contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+
+gam <UserTypeEntity> clear contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+        [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
+        [delete_cleared_contacts_with_no_emails]
+
+gam <UserTypeEntity> dedup contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection> [matchType [<Boolean>]]
+
+gam <UserTypeEntity> update contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+        [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> get contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+        [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> delete contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+
+gam <UserTypeEntity> info contacts <PeopleResourceNameEntity>
+        [allfields|(fields <PeopleFieldNameList>)] [showgroups] [showmetadata]
+        [formatjson]
+
+<PeoplePrintShowUserContactSelection> ::=
+        [query <QueryContact>]
+        [(selectcontactgroup <ContactGroupItem>)|selectothercontacts]
+        [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
+
+gam <UserTypeEntity> show contacts <PeoplePrintShowUserContactSelection>
+        [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
+        [countsonly|allfields|(fields <PeopleFieldNameList>)] [showgroups] [showmetadata]
+        [formatjson]
+gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <PeoplePrintShowUserContactSelection>
+        [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
+        [countsonly|allfields|(fields <PeopleFieldNameList>)] [[showgroups|showgroupnameslist] showmetadata]
+        [formatjson [quotechar <Character>]]
+
+<PeopleOtherContactFieldName> ::=
         emailaddresses|
         phonenumbers|
         names
-<OtherContactFieldNameList> ::= "<OtherContactFieldName>(,<OtherContactFieldName>)*"
+<PeopleOtherContactFieldNameList> ::= "<PeopleOtherContactFieldName>(,<PeopleOtherContactFieldName>)*"
+
+<PeopleUserOtherContactSelection> ::=
+        [query <QueryContact>]
+        [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
+
+gam <UserTypeEntity> show othercontacts <PeopleUserOtherContactSelection>
+        [countsonly|allfields|(fields <PeopleOtherContactFieldNameList>)] [showmetadata]
+        [formatjson]
+gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <PeopleUserOtherContactSelection>
+        [countsonly|allfields|(fields <PeopleOtherContactFieldNameList>)] [showmetadata]
+        [formatjson [quotechar <Character>]]
+
+gam <UserTypeEntity> copy othercontacts
+        <PeopleResourceNameEntity>|<PeopleUserOtherContactSelection>
+
+<PeopleContactGroupAttribute> ::=
+        (clientdata <String> <String>)|
+        (json [charset <Charset>] <JSONData>) | (json file <FileName> [charset <Charset>])|
+        name <String>
+
+<PeopleContactGroupField> ::=
+        clientdata|
+        grouptype|
+        membercount|
+        metadata|
+        name
+<PeopleContactGroupFieldList> ::= "<PeopleContactGroupField>(,<PeopleContactGroupField>)*"
+
+gam <UserTypeEntity> create contactgroup <PeopleContactGroupAttribute>+
+gam <UserTypeEntity> update contactgroup <PeopleContactGroupItem> <PeopleContactGroupAttribute>+
+gam <UserTypeEntity> delete contactgroups <PeopleContactGroupEntity>
+
+gam <UserTypeEntity> info contactgroups <PeopleContactGroupEntity>
+        [allfields|(fields <PeopleContactGroupFieldList>)] [showmetadata]
+        [formatjson]
+gam <UserTypeEntity> show contactgroups
+        [allfields|(fields <PeopleContactGroupFieldList>)] [showmetadata]
+        [formatjson]
+gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*]
+        [allfields|(fields <PeopleContactGroupFieldList>)] [showmetadata]
+        [formatjson [quotechar <Character>]]
 
 <PeopleFieldName> ::=
         addresses|
@@ -5683,67 +5751,16 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
         sipaddresses|
         skills|
         urls|
+        updated|updatetime|
         userdefined
 <PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
 
-gam <UserTypeEntity> show peopleprofiles
+gam <UserTypeEntity> show peopleprofile
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
-gam <UserTypeEntity> print peopleprofiles [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
-
-gam <UserTypeEntity> show othercontacts
-        [query <String>]
-        [allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
-        [formatjson]
-gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
-        [query <String>]
-        [allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
-        [formatjson [quotechar <Character>]]
-
-gam <UserTypeEntity> delete peoplecontacts <PeopleResourceNameEntity>
-gam <UserTypeEntity> info peoplecontacts <PeopleResourceNameEntity>
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson]
-gam <UserTypeEntity> show peoplecontacts
-        [query <String>]
-        [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
-        [allfields|(allfields|(fields <PeopleFieldNameList>))] [showmetadata]
-        [formatjson]
-gam <UserTypeEntity> print peoplecontacts [todrive <ToDriveAttribute>*]
-        [query <String>]
-        [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
-        [allfields|(allfields|(fields <PeopleFieldNameList>))] [showmetadata]
-        [formatjson [quotechar <Character>]]
-
-gam <UserTypeEntity> print people [todrive <ToDriveAttribute>*]
-        [sources <PeopleSourceName>]
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson [quotechar <Character>]]
-gam <UserTypeEntity> show people
-        [sources <PeopleSourceName>]
-        [query <String>]
-        [mergesources <PeopleMergeSourceName>]
-        [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-        [formatjson]
-
-<PeopleContactGroupFieldName> ::=
-        clientdata|
-        grouptype|
-        membercount|
-        metadata|
-        name
-<PeopleContactGroupFieldNameList> ::= "<PeopleContactGroupFieldName>(,<PeopleContactGroupFieldName>)*"
-
-gam <UserTypeEntity> print peoplecontactgroups [todrive <ToDriveAttribute>*]
-        [fields <PeoplaContactGroupFieldNameList>]
-        [formatjson [quotechar <Character>]]
-gam <UserTypeEntity> show peoplacontactgroups
-        [fields <PeoplaContactGroupFieldNameList>]
-        [formatjson]
 
 # Users - Photo
 
