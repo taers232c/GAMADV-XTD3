@@ -1,7 +1,6 @@
 6.08.01
 
-Updated `gam sync devices` to include the `assetTag` field as part of the device
-comparison key in addition to `serialNmmber` and `deviceType`.
+Fixed bug in `gam create device` that caused a trap.
 
 Updated `gam print|show chromeapps|chromedevices|chromeversions` to handle the following error.
 ```

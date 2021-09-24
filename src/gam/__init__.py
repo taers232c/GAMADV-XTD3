@@ -21491,7 +21491,7 @@ def doCreateCIDevice():
     result = callGAPI(ci.devices(), 'create',
                       throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
                       customer=customer, body=body)
-    if 'resoinse' in result:
+    if 'response' in result:
       entityActionPerformed([Ent.COMPANY_DEVICE, _makeDeviceId(f'{result["response"]["name"]}', body)])
     else:
       entityActionFailedWarning([Ent.COMPANY_DEVICE, _makeDeviceId('/devices/???', body)], result['error']['message'])
@@ -21622,7 +21622,6 @@ def doSyncCIDevices():
     sndt = f"{localDevice['serialNumber']}-{localDevice['deviceType']}"
     if assetTagColumn:
       localDevice['assetTag'] = row[assetTagColumn].strip()
-      sndt += f"-{localDevice['assetTag']}"
     localDevices[sndt] = localDevice
   closeFile(f)
   fields = f'nextPageToken,devices({",".join(fieldsList)})'
@@ -21646,8 +21645,6 @@ def doSyncCIDevices():
       last_sync = remoteDevice.pop('lastSyncTime', NEVER_TIME_NOMS)
       name = remoteDevice.pop('name')
       sndt = f"{remoteDevice['serialNumber']}-{remoteDevice['deviceType']}"
-      if assetTagColumn:
-        sndt += f"-{remoteDevice['assetTag']}"
       remoteDevices[sndt] = remoteDevice
       remoteDeviceMap[sndt] = {'name': name}
       if last_sync == NEVER_TIME_NOMS:
