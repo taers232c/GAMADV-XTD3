@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.01'
+__version__ = '6.08.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -21622,6 +21622,7 @@ def doSyncCIDevices():
     sndt = f"{localDevice['serialNumber']}-{localDevice['deviceType']}"
     if assetTagColumn:
       localDevice['assetTag'] = row[assetTagColumn].strip()
+      sndt += f"-{localDevice['assetTag']}"
     localDevices[sndt] = localDevice
   closeFile(f)
   fields = f'nextPageToken,devices({",".join(fieldsList)})'
@@ -21645,6 +21646,10 @@ def doSyncCIDevices():
       last_sync = remoteDevice.pop('lastSyncTime', NEVER_TIME_NOMS)
       name = remoteDevice.pop('name')
       sndt = f"{remoteDevice['serialNumber']}-{remoteDevice['deviceType']}"
+      if assetTagColumn:
+        if 'assetTag' not in remoteDevice:
+          remoteDevice['assetTag'] = ''
+        sndt += f"-{remoteDevice['assetTag']}"
       remoteDevices[sndt] = remoteDevice
       remoteDeviceMap[sndt] = {'name': name}
       if last_sync == NEVER_TIME_NOMS:
@@ -21685,6 +21690,8 @@ def doSyncCIDevices():
     i += 1
     sn = device['serialNumber']
     sndt = f"{sn}-{device['deviceType']}"
+    if assetTagColumn:
+      sndt += f"-{device['assetTag']}"
     name = remoteDeviceMap[sndt]['name']
     deviceId = _makeDeviceId(f'{name}', device)
     unassigned = remoteDeviceMap[sndt].get('unassigned')

@@ -1,3 +1,8 @@
+6.08.02
+
+Updated `gam sync devices` to include the `assetTag` field, if specified, as part of the device
+comparison key in addition to `serialNmmber` and `deviceType`.
+
 6.08.01
 
 Fixed bug in `gam create device` that caused a trap.
