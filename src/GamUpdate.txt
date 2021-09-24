@@ -1,3 +1,13 @@
+6.08.01
+
+Updated `gam sync devices` to include the `assetTag` field as part of the device
+comparison key in addition to `serialNmmber` and `deviceType`.
+
+Updated `gam print|show chromeapps|chromedevices|chromeversions` to handle the following error.
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
 6.08.00
 
 GAM now uses the People API to manage user contacts rather than the Contacts API.

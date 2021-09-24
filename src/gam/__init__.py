@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.00'
+__version__ = '6.08.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -21619,9 +21619,10 @@ def doSyncCIDevices():
     else:
       dt = row[deviceTypeColumn].strip()
       localDevice['deviceType'] = DEVICE_TYPE_MAP.get(dt.lower().replace('_', '').replace('-', ''), dt.upper())
+    sndt = f"{localDevice['serialNumber']}-{localDevice['deviceType']}"
     if assetTagColumn:
       localDevice['assetTag'] = row[assetTagColumn].strip()
-    sndt = f"{localDevice['serialNumber']}-{localDevice['deviceType']}"
+      sndt += f"-{localDevice['assetTag']}"
     localDevices[sndt] = localDevice
   closeFile(f)
   fields = f'nextPageToken,devices({",".join(fieldsList)})'
@@ -21645,6 +21646,8 @@ def doSyncCIDevices():
       last_sync = remoteDevice.pop('lastSyncTime', NEVER_TIME_NOMS)
       name = remoteDevice.pop('name')
       sndt = f"{remoteDevice['serialNumber']}-{remoteDevice['deviceType']}"
+      if assetTagColumn:
+        sndt += f"-{remoteDevice['assetTag']}"
       remoteDevices[sndt] = remoteDevice
       remoteDeviceMap[sndt] = {'name': name}
       if last_sync == NEVER_TIME_NOMS:
@@ -22681,10 +22684,11 @@ def doPrintShowChromeApps():
       pageMessage = getPageMessage()
       try:
         apps = callGAPIpages(cm.customers().reports(), 'countInstalledApps', 'installedApps',
-                             throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                             throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                              pageMessage=pageMessage,
                              customer=customerId, orgUnitId=orgUnitId, filter=pfilter, orderBy=orderBy)
-      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.CHROME_APP, None], str(e))
         return
       jcount = len(apps)
@@ -22834,11 +22838,12 @@ def doPrintShowChromeAppDevices():
       pageMessage = getPageMessage()
       try:
         devices = callGAPIpages(cm.customers().reports(), 'findInstalledAppDevices', 'devices',
-                                throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                                throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 pageMessage=pageMessage,
                                 appId=appId, appType=appType,
                                 customer=customerId, orgUnitId=orgUnitId, filter=pfilter, orderBy=orderBy)
-      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.CHROME_APP_DEVICE, None], str(e))
         return
       jcount = len(devices)
@@ -22966,10 +22971,11 @@ def doPrintShowChromeVersions():
       pageMessage = getPageMessage()
       try:
         versions = callGAPIpages(cm.customers().reports(), 'countChromeVersions', 'browserVersions',
-                                 throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                                 throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                  pageMessage=pageMessage,
                                  customer=customerId, orgUnitId=orgUnitId, filter=pfilter)
-      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.CHROME_VERSION, None], str(e))
         return
       jcount = len(versions)
