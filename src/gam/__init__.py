@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.02'
+__version__ = '6.08.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -92,7 +92,7 @@ from dateutil.relativedelta import relativedelta
 
 from filelock import FileLock
 
-#from pathvalidate import sanitize_filename
+from pathvalidate import sanitize_filename
 
 from gamlib import glaction
 from gamlib import glapi as API
@@ -2538,10 +2538,10 @@ def entityModifierNewValueKeyValueActionPerformed(entityValueList, modifier, new
                                  currentCountNL(i, count)))
 
 def cleanFilename(filename):
-  for ch in '\\/:*|~':
-    filename = filename.replace(ch, '_')
-  return filename
-#  return sanitize_filename(filename, '_')
+#  for ch in '\\/:*|~':
+#    filename = filename.replace(ch, '_')
+#  return filename
+  return sanitize_filename(filename, '_')
 
 def fileErrorMessage(filename, e, entityType=Ent.FILE):
   return f'{Ent.Singular(entityType)}: {filename}, {str(e)}'

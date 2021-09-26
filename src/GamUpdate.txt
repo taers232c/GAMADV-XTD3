@@ -1,3 +1,11 @@
+6.08.03
+
+Use Python library pathvalidate to clean up filenames in `gam get drivefile|document`.
+If you are using the source verson of GAMADV-XTD3, do the following command to update your Python libraries.
+```
+pip install --upgrade -r src/requirements.txt
+```
+
 6.08.02
 
 Updated `gam sync devices` to include the `assetTag` field, if specified, as part of the device
