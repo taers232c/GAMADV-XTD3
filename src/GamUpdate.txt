@@ -1,3 +1,12 @@
+6.08.04
+
+Handle the following error in `gam move drivefile`:
+```
+ERROR: 400: crossDomainMoveRestriction - Bad Request. User message: "crossDomainMoveRestriction"
+```
+
+Improved error messages when an unknown contact ID is used in a command.
+
 6.08.03
 
 Use Python library pathvalidate to clean up filenames in `gam get drivefile|document`.

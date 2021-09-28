@@ -51,6 +51,7 @@ CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS = 'cannotShareTeamDriveWithNonGoo
 CANNOT_UPDATE_PERMISSION = 'cannotUpdatePermission'
 CONDITION_NOT_MET = 'conditionNotMet'
 CONFLICT = 'conflict'
+CROSS_DOMAIN_MOVE_RESTRICTION = 'crossDomainMoveRestriction'
 CUSTOMER_NOT_FOUND = 'customerNotFound'
 CYCLIC_MEMBERSHIPS_NOT_ALLOWED = 'cyclicMembershipsNotAllowed'
 DAILY_LIMIT_EXCEEDED = 'dailyLimitExceeded'
@@ -346,6 +347,8 @@ class conditionNotMet(Exception):
   pass
 class conflict(Exception):
   pass
+class crossDomainMoveRestriction(Exception):
+  pass
 class customerNotFound(Exception):
   pass
 class cyclicMembershipsNotAllowed(Exception):
@@ -570,6 +573,7 @@ REASON_EXCEPTION_MAP = {
   CANNOT_UPDATE_PERMISSION: cannotUpdatePermission,
   CONDITION_NOT_MET: conditionNotMet,
   CONFLICT: conflict,
+  CROSS_DOMAIN_MOVE_RESTRICTION: crossDomainMoveRestriction,
   CUSTOMER_NOT_FOUND: customerNotFound,
   CYCLIC_MEMBERSHIPS_NOT_ALLOWED: cyclicMembershipsNotAllowed,
   DELETED: deleted,

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.03'
+__version__ = '6.08.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17091,7 +17091,7 @@ def _clearUpdatePeopleContacts(users, updateContacts):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
         continue
       except (GAPI.notFound, GAPI.internalError):
-        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
@@ -17216,7 +17216,7 @@ def dedupUserPeopleContacts(users):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
         continue
       except (GAPI.notFound, GAPI.internalError):
-        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
@@ -17269,7 +17269,7 @@ def deleteUserPeopleContacts(users):
                  resourceName=resourceName)
         entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
       except (GAPI.notFound, GAPI.internalError):
-        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
@@ -17514,7 +17514,7 @@ def _infoPeople(users, entityType, source):
                           throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                           resourceName=resourceName, sources=sources, personFields=fields)
       except (GAPI.notFound, GAPI.internalError):
-        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
@@ -17686,7 +17686,7 @@ def copyUserPeopleOtherContacts(users):
                  resourceName=resourceName, body={'copyMask': ','.join(copyMask), 'sources': sources})
         entityModifierNewValueActionPerformed([entityType, user, peopleEntityType, resourceName], Act.MODIFIER_TO, 'My Contacts')
       except (GAPI.notFound, GAPI.internalError):
-        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
@@ -18040,7 +18040,7 @@ def _processPeopleContactPhotos(users, function):
                    resourceName=resourceName)
           entityActionPerformed([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], j, jcount)
       except (GAPI.notFound, GAPI.internalError):
-        entityUnknownWarning(peopleEntityType, resourceName, j, jcount)
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
       except GAPI.photoNotFound:
         entityDoesNotHaveItemWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, ''], j, jcount)
@@ -45345,7 +45345,8 @@ def updateDriveFile(users):
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
                                                                             GAPI.FILE_NEVER_WRITABLE, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
-                                                                            GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
+                                                                            GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                            GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
                               fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                               ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -45366,7 +45367,8 @@ def updateDriveFile(users):
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
                 GAPI.unknownError, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
                 GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
-                GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed) as e:
+                GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed,
+                GAPI.crossDomainMoveRestriction) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -46142,7 +46144,8 @@ def moveDriveFile(users):
                                                                GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
                                                                GAPI.FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED,
                                                                GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE,
-                                                               GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE],
+                                                               GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE,
+                                                               GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
                  fileId=folderId,
                  addParents=newParentId, removeParents=removeParents,
                  body=body, fields='id', supportsAllDrives=True)
@@ -46153,7 +46156,8 @@ def moveDriveFile(users):
         return (None, False)
       except (GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
               GAPI.fileWriterTeamDriveMoveInDisabled,
-              GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive) as e:
+              GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive,
+              GAPI.crossDomainMoveRestriction) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, folderTitle], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -46259,7 +46263,8 @@ def moveDriveFile(users):
                                                                             GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
                                                                             GAPI.FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED,
                                                                             GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE,
-                                                                            GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE],
+                                                                            GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE,
+                                                                            GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
                               fileId=childId,
                               addParents=newFolderId, removeParents=removeParents,
                               body=body, fields='id,name', supportsAllDrives=True)
@@ -46270,7 +46275,8 @@ def moveDriveFile(users):
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                   GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
                   GAPI.fileWriterTeamDriveMoveInDisabled,
-                  GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive) as e:
+                  GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive,
+                  GAPI.crossDomainMoveRestriction) as e:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
             copyMoveOptions['retainSourceFolders'] = True
@@ -46408,7 +46414,8 @@ def moveDriveFile(users):
                                                                         GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
                                                                         GAPI.FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED,
                                                                         GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE,
-                                                                        GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE],
+                                                                        GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE,
+                                                                        GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
                           fileId=fileId,
                           addParents=newParentId, removeParents=removeParents,
                           body=body, fields='name', supportsAllDrives=True)
@@ -46419,7 +46426,8 @@ def moveDriveFile(users):
               GAPI.unknownError, GAPI.cannotCopyFile,
               GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
               GAPI.fileWriterTeamDriveMoveInDisabled,
-              GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive) as e:
+              GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive,
+              GAPI.crossDomainMoveRestriction) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         _incrStatistic(statistics, STAT_FILE_FAILED)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:

@@ -548,6 +548,7 @@
           "type": "string"
         },
 	"token_type": {
+          "id": "token_type",
           "annotations": {
             "required": [
               "cbcm.enrollmentTokens.create"
@@ -559,6 +560,8 @@
       }
     },
     "MoveChromeBrowsersRequest": {
+      "id": "MoveChromeBrowsersRequest",
+      "type": "object",
       "properties": {
         "org_unit_path": {
           "annotations": {
@@ -576,7 +579,10 @@
             ]
           },
           "description": "List of unique device IDs of Chrome Browser Devices to move. A maximum of 600 browsers may be moved per request.",
-          "type": "array"
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }
