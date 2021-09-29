@@ -951,7 +951,7 @@ The only <VariableName>s recognized in this <Section> are: csv_input_row_filter 
 ## Set variables in gam.cfg.
 
 <Config> ::=
-        config (<VariableName> [=] <Value)* [save] [verify]
+        config (<VariableName> [=] <Value>)* [save] [verify]
 <VariableName> [=] <Value>
     Set <VariableName> = <Value> in the current section
     All <VariableNames> except section are allowed.
@@ -4628,6 +4628,7 @@ gam <UserTypeEntity> create|add drivefile
         <DriveFileCreateAttribute>*
         [enforcesingleparent <Boolean>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
+        (addcsvdata <FieldName> <String>)*
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|

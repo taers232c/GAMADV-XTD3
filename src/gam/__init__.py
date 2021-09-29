@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.04'
+__version__ = '6.08.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -44826,11 +44826,13 @@ returnItemMap = {
 #	<DriveFileCreateAttribute>* [stripnameprefix <String>]
 #	[enforcesingleparent <Boolean>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
+#	(addcsvdata <FieldName> <String>)*
 def createDriveFile(users):
   csvPF = media_body = None
   returnIdLink = None
   showDetails = False
   body = {}
+  addCSVData = {}
   parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -44846,6 +44848,9 @@ def createDriveFile(users):
       csvPF = CSVPrintFile()
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     else:
       getDriveFileAttribute(myarg, body, parameters, False)
   if 'name' in body and parameters[DFA_STRIPNAMEPREFIX] and body['name'].startswith(parameters[DFA_STRIPNAMEPREFIX]):
@@ -44859,6 +44864,8 @@ def createDriveFile(users):
     csvPF.SetTitles(['User', fileNameTitle, 'id'])
     if showDetails:
       csvPF.AddTitles(['parentId', 'mimeType'])
+    if addCSVData:
+      csvPF.AddTitles(sorted(addCSVData.keys()))
   body.setdefault('name', 'Untitled')
   Act.Set(Act.CREATE)
   i, count, users = getEntityArgument(users)
@@ -44907,6 +44914,8 @@ def createDriveFile(users):
         row = {'User': user, fileNameTitle: result['name'], 'id': result['id']}
         if showDetails:
           row.update({'parentId': parentId, 'mimeType': result['mimeType']})
+        if addCSVData:
+          row.update(addCSVData)
         csvPF.WriteRow(row)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:

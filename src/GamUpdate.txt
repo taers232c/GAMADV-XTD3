@@ -1,3 +1,25 @@
+6.08.05
+
+Added option `addcsvdata <FieldName> <String>` to `gam create drivefile ... csv`. This adds
+additional columns of data to the CSV file output. For example, you are building student folders
+on a Shared Drive as an admin and want to add ACLs to the folders allowing the student write access
+and you want a shortcut on the student's My Drive pointing to the folder. By adding the student's
+primary email address to the CSV output, it can be used in subsequent commands.
+```
+Students.csv
+primaryEmail,Name
+bob@domain.com,Bob Jones
+mary@domain.com, Mary Smith
+...
+
+# Create the student folders on the Shared Drive
+gam redirect csv ./StudentFolders.csv multiprocess csv Students.csv gam user admin@domain.com create drivefile mimetype gfolder drivefilename "~~Name~~ Digital Portfolio" parentid <TeamDriveID> csv addcsvdata primaryEmail "~primaryEmail"
+# Add ACLs granting the students write access to their folders; ~User refers to admin@domain.com
+gam csv StudentFolders.csv gam user "~User" add drivefileacl "~id" user "~primaryEmail" role writer
+# Add a shortcut to the folder on the student's My Drive
+gam csv StudentFolders.csv gam user "~primaryEmail" create drivefileshortcut "~id" parentid root
+```
+
 6.08.04
 
 Handle the following error in `gam move drivefile`:
