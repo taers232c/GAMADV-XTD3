@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.05'
+__version__ = '6.08.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -12133,11 +12133,14 @@ def _getResoldSubscriptionAttr(customerId):
 SUBSCRIPTION_SKIP_OBJECTS = {'customerId', 'skuId', 'subscriptionId'}
 SUBSCRIPTION_TIME_OBJECTS = {'creationTime', 'startTime', 'endTime', 'trialEndTime', 'transferabilityExpirationTime'}
 
-def _showSubscription(subscription):
-  Ind.Increment()
-  printEntity([Ent.SUBSCRIPTION, subscription['subscriptionId']])
-  showJSON(None, subscription, SUBSCRIPTION_SKIP_OBJECTS, SUBSCRIPTION_TIME_OBJECTS)
-  Ind.Decrement()
+def _showSubscription(subscription, FJQC=None):
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(subscription, timeObjects=SUBSCRIPTION_TIME_OBJECTS), ensure_ascii=False, sort_keys=False))
+  else:
+    Ind.Increment()
+    printEntity([Ent.SUBSCRIPTION, subscription['subscriptionId']])
+    showJSON(None, subscription, SUBSCRIPTION_SKIP_OBJECTS, SUBSCRIPTION_TIME_OBJECTS)
+    Ind.Decrement()
 
 # gam create resoldsubscription <CustomerID> (sku <SKUID>)
 #	 (plan annual_monthly_pay|annual_yearly_pay|flexible|trial) (seats <NumberOfSeats> <MaximumNumberOfSeats>)
@@ -12241,13 +12244,16 @@ def doDeleteResoldSubscription():
 def doInfoResoldSubscription():
   res = buildGAPIObject(API.RESELLER)
   customerId, skuId, subscriptionId = getCustomerSubscription(res)
-  checkForExtraneousArguments()
+  FJQC = FormatJSONQuoteChar()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    FJQC.GetFormatJSON(myarg)
   try:
     subscription = callGAPI(res.subscriptions(), 'get',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerId=customerId, subscriptionId=subscriptionId)
     printEntity([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId])
-    _showSubscription(subscription)
+    _showSubscription(subscription, FJQC)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId], str(e))
 
@@ -12256,13 +12262,16 @@ PRINT_RESOLD_SUBSCRIPTIONS_TITLES = ['customerId', 'skuId', 'subscriptionId']
 # gam print resoldsubscriptions [todrive <ToDriveAttribute>*]
 #	[customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
 #	[maxresults <Number>]
+#	[formatjson [quotechar <Character>]]
 # gam show resoldsubscriptions
 #	[customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
 #	[maxresults <Number>]
+#	[formatjson]
 def doPrintShowResoldSubscriptions():
   res = buildGAPIObject(API.RESELLER)
   kwargs = {'maxResults': 100}
   csvPF = CSVPrintFile(PRINT_RESOLD_SUBSCRIPTIONS_TITLES, 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -12276,7 +12285,7 @@ def doPrintShowResoldSubscriptions():
     elif myarg == 'maxresults':
       kwargs['maxResults'] = getInteger(minVal=1, maxVal=100)
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
   try:
     subscriptions = callGAPIpages(res.subscriptions(), 'list', 'subscriptions',
                                   throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
@@ -12292,11 +12301,18 @@ def doPrintShowResoldSubscriptions():
     for subscription in subscriptions:
       j += 1
       printEntity([Ent.CUSTOMER_ID, subscription['customerId'], Ent.SKU, subscription['skuId']], j, jcount)
-      _showSubscription(subscription)
+      _showSubscription(subscription, FJQC)
     Ind.Decrement()
   else:
     for subscription in subscriptions:
-      csvPF.WriteRowTitles(flattenJSON(subscription, timeObjects=SUBSCRIPTION_TIME_OBJECTS))
+      row = flattenJSON(subscription, timeObjects=SUBSCRIPTION_TIME_OBJECTS)
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(row)
+      elif csvPF.CheckRowTitles(row):
+        csvPF.WriteRowNoFilter({'customerId': subscription['customerId'],
+                                'skuId': subscription['skuId'],
+                                'subscriptionId': subscription['subscriptionId'],
+                                'JSON': json.dumps(cleanJSON(subscription, timeObjects=SUBSCRIPTION_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
     csvPF.writeCSVfile('Resold Subscriptions')
 
 # gam create domainalias|aliasdomain <DomainAlias> <DomainName>
@@ -16945,6 +16961,7 @@ def createUserPeopleContact(users):
     try:
       person = callGAPI(people.people(), 'createContact',
                         throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS+[GAPI.INVALID_ARGUMENT],
+                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                         personFields=','.join(personFields), body=body, sources=sources)
       entityActionPerformed([entityType, user, peopleEntityType, person['resourceName']], i, count)
     except GAPI.invalidArgument as e:
@@ -17038,6 +17055,7 @@ def _clearUpdatePeopleContacts(users, updateContacts):
           contact = callGAPI(people.people(), 'get',
                              bailOnInternalError=True,
                              throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                              resourceName=contact, sources=sources, personFields='emailAddresses,memberships')
         else:
           if not localPeopleContactSelects(contactQuery, contact):
@@ -17084,6 +17102,7 @@ def _clearUpdatePeopleContacts(users, updateContacts):
             continue
         person = callGAPI(people.people(), 'updateContact',
                           throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                           resourceName=resourceName,
                           updatePersonFields=','.join(updatePersonFields), body=body, sources=sources)
         entityActionPerformed([entityType, user, peopleEntityType, person['resourceName']], j, jcount)
@@ -17199,6 +17218,7 @@ def dedupUserPeopleContacts(users):
           contact = callGAPI(people.people(), 'get',
                              bailOnInternalError=True,
                              throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                              resourceName=contact, sources=sources, personFields='emailAddresses,memberships')
         else:
           if not localPeopleContactSelects(contactQuery, contact):
@@ -17209,6 +17229,7 @@ def dedupUserPeopleContacts(users):
         Act.Set(Act.UPDATE)
         callGAPI(people.people(), 'updateContact',
                  throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  resourceName=resourceName,
                  updatePersonFields='emailAddresses', body=contact)
         entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
@@ -17266,6 +17287,7 @@ def deleteUserPeopleContacts(users):
         callGAPI(people.people(), 'deleteContact',
                  bailOnInternalError=True,
                  throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  resourceName=resourceName)
         entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
       except (GAPI.notFound, GAPI.internalError):

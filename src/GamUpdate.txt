@@ -1,3 +1,13 @@
+6.08.06
+
+Added `formatjson` to `gam info|show resoldsubscriptions` and `formatjson [quotechar <Character>]`
+to `gam print resoldsubscriptions`.
+
+Handle the following error as retryable when managing user's contacts:
+```
+ERROR: API access Denied
+```
+
 6.08.05
 
 Added option `addcsvdata <FieldName> <String>` to `gam create drivefile ... csv`. This adds
