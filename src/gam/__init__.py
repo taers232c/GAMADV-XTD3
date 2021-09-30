@@ -12252,7 +12252,8 @@ def doInfoResoldSubscription():
     subscription = callGAPI(res.subscriptions(), 'get',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerId=customerId, subscriptionId=subscriptionId)
-    printEntity([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId])
+    if not FJQC.formatJSON:
+      printEntity([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId])
     _showSubscription(subscription, FJQC)
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId], str(e))
@@ -12295,12 +12296,14 @@ def doPrintShowResoldSubscriptions():
     return
   jcount = len(subscriptions)
   if not csvPF:
-    performActionNumItems(jcount, Ent.SUBSCRIPTION)
+    if not FJQC.formatJSON:
+      performActionNumItems(jcount, Ent.SUBSCRIPTION)
     Ind.Increment()
     j = 0
     for subscription in subscriptions:
       j += 1
-      printEntity([Ent.CUSTOMER_ID, subscription['customerId'], Ent.SKU, subscription['skuId']], j, jcount)
+      if not FJQC.formatJSON:
+        printEntity([Ent.CUSTOMER_ID, subscription['customerId'], Ent.SKU, subscription['skuId']], j, jcount)
       _showSubscription(subscription, FJQC)
     Ind.Decrement()
   else:
