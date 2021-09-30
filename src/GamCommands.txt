@@ -4629,8 +4629,8 @@ gam <UserTypeEntity> create|add drivefile
         [localfile <FileName>|-] [drivefilename <DriveFileName>] [stripnameprefix <String>]
         <DriveFileCreateAttribute>*
         [enforcesingleparent <Boolean>]
-        [csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*]
-        [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
+        [csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
+        (addcsvdata <FieldName> <String>)*
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|
