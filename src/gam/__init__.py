@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.06'
+__version__ = '6.08.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6525,6 +6525,7 @@ class CSVPrintFile():
     if titles is not None:
       self.SetTitles(titles)
       self.SetJSONTitles(titles)
+    self.addCSVData = {}
     if GM.Globals.get(GM.CSV_OUTPUT_COLUMN_DELIMITER) is None:
       GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = GC.Values.get(GC.CSV_OUTPUT_COLUMN_DELIMITER, ',')
     self.SetColumnDelimiter(GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER])
@@ -6547,6 +6548,10 @@ class CSVPrintFile():
     self.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
     self.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER])
     self.SetZeroBlankMimeTypeCounts(False)
+
+  def GetAddCSVData(self):
+    k = getString(Cmd.OB_STRING)
+    self.addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
 
   def AddTitle(self, title):
     self.titlesSet.add(title)
@@ -7002,31 +7007,36 @@ class CSVPrintFile():
   def SetRowDropFilter(self, rowDropFilter):
     self.rowDropFilter = rowDropFilter
 
-  def WriteRowNoFilter(self, row):
+  def AppendRow(self, row):
+    if self.addCSVData:
+      row.update(self.addCSVData)
     self.rows.append(row)
+
+  def WriteRowNoFilter(self, row):
+    self.AppendRow(row)
 
   def WriteRow(self, row):
     if RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowDropFilter):
-      self.rows.append(row)
+      self.AppendRow(row)
 
   def WriteRowTitles(self, row):
     for title in row:
       if title not in self.titlesSet:
         self.AddTitle(title)
     if RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowDropFilter):
-      self.rows.append(row)
+      self.AppendRow(row)
 
   def WriteRowTitlesNoFilter(self, row):
     for title in row:
       if title not in self.titlesSet:
         self.AddTitle(title)
-    self.rows.append(row)
+    self.AppendRow(row)
 
   def WriteRowTitlesJSONNoFilter(self, row):
     for title in row:
       if title not in self.JSONtitlesSet:
         self.AddJSONTitle(title)
-    self.rows.append(row)
+    self.AppendRow(row)
 
   def CheckRowTitles(self, row):
     if not self.rowFilter and not self.rowDropFilter:
@@ -7390,8 +7400,12 @@ class CSVPrintFile():
         self.FixPathsTitles(self.titlesList)
       if self.showPermissionsLast:
         self.MovePermsToEnd()
+      if self.addCSVData:
+        self.AddTitles(sorted(self.addCSVData.keys()))
       titlesList = self.titlesList
     else:
+      if self.addCSVData:
+        self.AddTitles(sorted(self.addCSVData.keys()))
       titlesList = self.JSONtitlesList
     if (not self.todrive) or self.todrive['localcopy']:
       if GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] == '-':
@@ -16629,7 +16643,7 @@ class PeopleManager():
           unknownArgumentExit()
         contactGroupsLists[PEOPLE_REMOVE_GROUPS_LIST].append(getString(Cmd.OB_STRING))
       elif fieldName == PEOPLE_JSON:
-        person.update(getJSON(['resourceName', 'etag', 'metadata', PEOPLE_COVER_PHOTOS, PEOPLE_PHOTOS]))
+        person.update(getJSON(['resourceName', 'etag', 'metadata', PEOPLE_COVER_PHOTOS, PEOPLE_PHOTOS, PEOPLE_UPDATE_TIME]))
     return (person, set(person.keys()), contactGroupsLists)
 
   PEOPLE_GROUP_ARGUMENT_TO_PROPERTY_MAP = {
@@ -44850,14 +44864,14 @@ returnItemMap = {
 # gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
 #	<DriveFileCreateAttribute>* [stripnameprefix <String>]
 #	[enforcesingleparent <Boolean>]
-#	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
-#	(addcsvdata <FieldName> <String>)*
+#	[csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*]
+#	[returnidonly|returnlinkonly|returneditlinkonly|showdetails]
+#	
 def createDriveFile(users):
   csvPF = media_body = None
   returnIdLink = None
   showDetails = False
   body = {}
-  addCSVData = {}
   parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -44873,9 +44887,8 @@ def createDriveFile(users):
       csvPF = CSVPrintFile()
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'addcsvdata':
-      k = getString(Cmd.OB_STRING)
-      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
+    elif csvPF and myarg == 'addcsvdata':
+      csvPF.GetAddCSVData()
     else:
       getDriveFileAttribute(myarg, body, parameters, False)
   if 'name' in body and parameters[DFA_STRIPNAMEPREFIX] and body['name'].startswith(parameters[DFA_STRIPNAMEPREFIX]):
@@ -44889,8 +44902,6 @@ def createDriveFile(users):
     csvPF.SetTitles(['User', fileNameTitle, 'id'])
     if showDetails:
       csvPF.AddTitles(['parentId', 'mimeType'])
-    if addCSVData:
-      csvPF.AddTitles(sorted(addCSVData.keys()))
   body.setdefault('name', 'Untitled')
   Act.Set(Act.CREATE)
   i, count, users = getEntityArgument(users)
@@ -44939,8 +44950,6 @@ def createDriveFile(users):
         row = {'User': user, fileNameTitle: result['name'], 'id': result['id']}
         if showDetails:
           row.update({'parentId': parentId, 'mimeType': result['mimeType']})
-        if addCSVData:
-          row.update(addCSVData)
         csvPF.WriteRow(row)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
