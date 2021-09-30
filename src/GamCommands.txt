@@ -983,6 +983,7 @@ For redirect csv, the optional arguments must appear in the order shown.
 <Redirect> ::=
         redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>]
                      [columndelimiter <Character>] [quotechar <Character>]
+                     [timestampcolumn <String>]
                      [todrive <ToDriveAttribute>*] |
         redirect stdout <FileName> [multiprocess] [append] |
         redirect stdout null [multiprocess] |
@@ -4629,8 +4630,8 @@ gam <UserTypeEntity> create|add drivefile
         [localfile <FileName>|-] [drivefilename <DriveFileName>] [stripnameprefix <String>]
         <DriveFileCreateAttribute>*
         [enforcesingleparent <Boolean>]
-        [csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
-        (addcsvdata <FieldName> <String>)*
+        [csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> currenttime|<String>)*]
+        [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|

@@ -1,3 +1,28 @@
+6.08.07
+
+Fixed bug in `gam <UserTypeEntity> create|update contact json <JSONData>` that failed to delete
+the read-only field `updateTime` field which caused the command to fail.
+
+Added the following keyword to `gam.cfg` that causes GAM to add a timestamp column
+to the CSV output file; the value in each row is time at which the command started.
+```
+csv_output_timestamp_column
+        Name of column in the CSV output file to contain a timestamp
+        Default: ''
+```
+
+Added option `timestampcolumn` to `<Redirect>` that causes GAM to add a timestamp column labeled `<String>`
+to the output CSV file; the value in each row is time at which the command started.
+This overrides the `csv_output_timestamp_column` value in `gam.cfg`.
+
+```
+<Redirect> ::=
+        redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>]
+                     [columndelimiter <Character>] [quotechar <Character>]
+                     [timestampcolumn <String>]
+                     [todrive <ToDriveAttribute>*] |
+```
+
 6.08.06
 
 Added `formatjson` to `gam info|show resoldsubscriptions` and `formatjson [quotechar <Character>]`

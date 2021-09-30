@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.06'
+__version__ = '6.08.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3583,6 +3583,7 @@ def SetGlobalVariables():
     _setMultiprocessExit()
 # redirect csv <FileName> [multiprocess] [append] [noheader] [charset <CharSet>]
 #	       [columndelimiter <Character>] [quotechar <Character>]]
+#	       [timestampcolumn <String>]
 #	       [todrive <ToDriveAttribute>*]
 # redirect stdout <FileName> [multiprocess] [append]
 # redirect stdout null
@@ -3601,6 +3602,8 @@ def SetGlobalVariables():
         GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER] = getCharacter()
       if checkArgumentPresent('quotechar'):
         GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR] = getCharacter()
+      if checkArgumentPresent('timestampcolumn'):
+        GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN] = getString(Cmd.OB_STRING, minLen=0)
       _setCSVFile(filename, mode, encoding, writeHeader, multi)
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE_CSVPF] = CSVPrintFile()
       if checkArgumentPresent('todrive'):
@@ -6531,6 +6534,9 @@ class CSVPrintFile():
     if GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR) is None:
       GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')
     self.SetQuoteChar(GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR])
+    if GM.Globals.get(GM.CSV_OUTPUT_TIMESTAMP_COLUMN) is None:
+      GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = GC.Values.get(GC.CSV_OUTPUT_TIMESTAMP_COLUMN, '')
+    self.SetTimestampColumn(GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN])
     self.SetFormatJSON(False)
     self.SetFixPaths(False)
     self.SetShowPermissionsLast(False)
@@ -6950,6 +6956,10 @@ class CSVPrintFile():
   def SetQuoteChar(self, quoteChar):
     self.quoteChar = quoteChar
 
+  def SetTimestampColumn(self, timestampColumn):
+    self.timestampColumn = timestampColumn
+    self.todaysTime = ISOformatTimeStamp(todaysTime())
+
   def SetFormatJSON(self, formatJSON):
     self.formatJSON = formatJSON
 
@@ -7002,31 +7012,36 @@ class CSVPrintFile():
   def SetRowDropFilter(self, rowDropFilter):
     self.rowDropFilter = rowDropFilter
 
-  def WriteRowNoFilter(self, row):
+  def AppendRow(self, row):
+    if self.timestampColumn:
+      row[self.timestampColumn] = self.todaysTime
     self.rows.append(row)
+
+  def WriteRowNoFilter(self, row):
+    self.AppendRow(row)
 
   def WriteRow(self, row):
     if RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowDropFilter):
-      self.rows.append(row)
+      self.AppendRow(row)
 
   def WriteRowTitles(self, row):
     for title in row:
       if title not in self.titlesSet:
         self.AddTitle(title)
     if RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowDropFilter):
-      self.rows.append(row)
+      self.AppendRow(row)
 
   def WriteRowTitlesNoFilter(self, row):
     for title in row:
       if title not in self.titlesSet:
         self.AddTitle(title)
-    self.rows.append(row)
+    self.AppendRow(row)
 
   def WriteRowTitlesJSONNoFilter(self, row):
     for title in row:
       if title not in self.JSONtitlesSet:
         self.AddJSONTitle(title)
-    self.rows.append(row)
+    self.AppendRow(row)
 
   def CheckRowTitles(self, row):
     if not self.rowFilter and not self.rowDropFilter:
@@ -7367,6 +7382,7 @@ class CSVPrintFile():
                                                      (self.titlesList, self.sortTitlesList, self.indexedTitles,
                                                       self.formatJSON, self.JSONtitlesList,
                                                       self.columnDelimiter, self.quoteChar,
+                                                      self.timestampColumn,
                                                       self.fixPaths, self.showPermissionsLast,
                                                       self.zeroBlankMimeTypeCounts)))
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE].put((GM.REDIRECT_QUEUE_DATA, self.rows))
@@ -7390,8 +7406,12 @@ class CSVPrintFile():
         self.FixPathsTitles(self.titlesList)
       if self.showPermissionsLast:
         self.MovePermsToEnd()
+      if self.timestampColumn:
+        self.AddTitle(self.timestampColumn)
       titlesList = self.titlesList
     else:
+      if self.timestampColumn:
+        self.AddTitle(self.timestampColumn)
       titlesList = self.JSONtitlesList
     if (not self.todrive) or self.todrive['localcopy']:
       if GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] == '-':
@@ -7852,6 +7872,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
   else:
     csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
     csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
+    csvPF.SetTimestampColumn(GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN])
     csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
     csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
     csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
@@ -7871,9 +7892,10 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
       csvPF.AddJSONTitles(dataItem[4])
       csvPF.SetColumnDelimiter(dataItem[5])
       csvPF.SetQuoteChar(dataItem[6])
-      csvPF.SetFixPaths(dataItem[7])
-      csvPF.SetShowPermissionsLast(dataItem[8])
-      csvPF.SetZeroBlankMimeTypeCounts(dataItem[9])
+      csvPF.SetTimestampColumn(dataItem[7])
+      csvPF.SetFixPaths(dataItem[8])
+      csvPF.SetShowPermissionsLast(dataItem[9])
+      csvPF.SetZeroBlankMimeTypeCounts(dataItem[10])
     elif dataType == GM.REDIRECT_QUEUE_DATA:
       csvPF.rows.extend(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_ARGS:
@@ -7887,6 +7909,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
       GC.Values = dataItem
       csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
       csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
+      csvPF.SetTimestampColumn(GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN])
       csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
       csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
       csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
@@ -8007,6 +8030,7 @@ def batchWriteStderr(data):
 def ProcessGAMCommandMulti(pid, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                            debugLevel, todrive,
                            csvColumnDelimiter, csvQuoteChar,
+                           csvTimestampColumn,
                            csvHeaderFilter, csvHeaderDropFilter,
                            csvRowFilter, csvRowDropFilter,
                            args):
@@ -8025,6 +8049,7 @@ def ProcessGAMCommandMulti(pid, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueSt
   GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
   GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = csvColumnDelimiter
   GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = csvQuoteChar
+  GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = csvTimestampColumn
   GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
   GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
   GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
@@ -8171,6 +8196,7 @@ def MultiprocessGAMCommands(items, showCmds):
                        [pid, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                         GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
                         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
+                        GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
                         GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER],
                         item],
@@ -16629,7 +16655,7 @@ class PeopleManager():
           unknownArgumentExit()
         contactGroupsLists[PEOPLE_REMOVE_GROUPS_LIST].append(getString(Cmd.OB_STRING))
       elif fieldName == PEOPLE_JSON:
-        person.update(getJSON(['resourceName', 'etag', 'metadata', PEOPLE_COVER_PHOTOS, PEOPLE_PHOTOS]))
+        person.update(getJSON(['resourceName', 'etag', 'metadata', PEOPLE_COVER_PHOTOS, PEOPLE_PHOTOS, PEOPLE_UPDATE_TIME]))
     return (person, set(person.keys()), contactGroupsLists)
 
   PEOPLE_GROUP_ARGUMENT_TO_PROPERTY_MAP = {

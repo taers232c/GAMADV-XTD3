@@ -107,6 +107,8 @@ CSV_OUTPUT_QUOTE_CHAR = 'csv_output_quote_char'
 CSV_OUTPUT_ROW_FILTER = 'csv_output_row_filter'
 # Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'csv_output_row_drop_filter'
+# Add timestamp column to CSV output file
+CSV_OUTPUT_TIMESTAMP_COLUMN = 'csv_output_timestamp_column'
 # Output rows for users even if they do not have the print object (delegate, filters, ...)
 CSV_OUTPUT_USERS_AUDIT = 'csv_output_users_audit'
 # custmerId from gam.cfg or retrieved from Google
@@ -260,6 +262,7 @@ Defaults = {
   CSV_OUTPUT_QUOTE_CHAR: '\'"\'',
   CSV_OUTPUT_ROW_FILTER: '',
   CSV_OUTPUT_ROW_DROP_FILTER: '',
+  CSV_OUTPUT_TIMESTAMP_COLUMN: '',
   CSV_OUTPUT_USERS_AUDIT: FALSE,
   CUSTOMER_ID: MY_CUSTOMER,
   DEBUG_LEVEL: '0',
@@ -381,6 +384,7 @@ VAR_INFO = {
   CSV_OUTPUT_QUOTE_CHAR: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_ROW_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
   CSV_OUTPUT_ROW_DROP_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
+  CSV_OUTPUT_TIMESTAMP_COLUMN: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   CSV_OUTPUT_USERS_AUDIT: {VAR_TYPE: TYPE_BOOLEAN},
   CUSTOMER_ID: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'CUSTOMER_ID', VAR_LIMITS: (0, None)},
   DEBUG_LEVEL: {VAR_TYPE: TYPE_INTEGER, VAR_SIGFILE: 'debug.gam', VAR_LIMITS: (0, None), VAR_SFFT: ('0', '4')},

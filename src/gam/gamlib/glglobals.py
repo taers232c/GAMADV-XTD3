@@ -64,6 +64,8 @@ CSV_OUTPUT_HEADER_DROP_FILTER = 'cohd'
 CSV_OUTPUT_ROW_FILTER = 'corf'
 # Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'cord'
+# Add timestamp column to CSV output file
+CSV_OUTPUT_TIMESTAMP_COLUMN = 'csv_output_timestamp_column'
 # Current API services
 CURRENT_API_SERVICES = 'caps'
 # Current Client API
@@ -199,6 +201,7 @@ Globals = {
   CSV_OUTPUT_HEADER_DROP_FILTER: [],
   CSV_OUTPUT_ROW_FILTER: [],
   CSV_OUTPUT_ROW_DROP_FILTER: [],
+  CSV_OUTPUT_TIMESTAMP_COLUMN: None,
   CURRENT_API_SERVICES: {},
   CURRENT_CLIENT_API: None,
   CURRENT_CLIENT_API_SCOPES: set(),
