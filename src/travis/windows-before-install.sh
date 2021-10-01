@@ -54,8 +54,10 @@ echo "Installing OpenSSL..."
 #  wget https://slproweb.com/download/$exefile
 #fi
 #until powershell ".\\${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"; do echo "trying openssl again..."; done
-export exefile=${mypath}/winssl/Win${BITS}OpenSSL_Light-${WINDOWS_BUILD_OPENSSL_VERSION//./_}.exe
-until powershell "${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"; do echo "trying openssl again..."; done
+export exefile=Win${BITS}OpenSSL_Light-${WINDOWS_BUILD_OPENSSL_VERSION//./_}.exe
+ls -l ${mypath}/winssl
+cp ${mypath}/winssl/${exefile} .
+until powershell ".\\${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"; do echo "trying openssl again..."; sleep 3; done
 until cp -v /c/ssl/libcrypto-1_1${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libcrypto copy again..."; sleep 3; done
 until cp -v /c/ssl/libssl-1_1${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libssl copy again..."; done
 if [[ "$PLATFORM" == "x86_64" ]]; then
