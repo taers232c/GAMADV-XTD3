@@ -12,18 +12,15 @@ fi
 echo "This is a ${BITS}-bit build for ${PLATFORM}"
 
 export mypath=$(pwd)
-echo "mypath=${mypath}"
 cd ~
-export home=$(pwd)
-echo "home=${home}"
 
 # .NET Core
 echo "Installing Net-Framework-Core..."
 until powershell Install-WindowsFeature Net-Framework-Core; do echo "Trying .NET install again..."; done
 
 # Chocolatey
-#echo "Upgrading Chocolatey.."
-#until choco upgrade chocolatey -y; do echo "Trying Chocolatey upgrade again..."; done
+echo "Upgrading Chocolatey.."
+until choco upgrade chocolatey -y; do echo "Trying Chocolatey upgrade again..."; done
 
 # VS 2015
 #echo "Upgrading Visual Studio 2015.."

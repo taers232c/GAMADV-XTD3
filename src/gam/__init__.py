@@ -21566,7 +21566,7 @@ def _performCIDeviceAction(action):
     try:
       result = callGAPI(ci.devices(), action,
                         bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
                         name=name, **kwargs)
       if result['done']:
         if 'error' not in result:
@@ -21577,7 +21577,7 @@ def _performCIDeviceAction(action):
         entityActionPerformedMessage([Ent.DEVICE, name], Msg.ACTION_IN_PROGRESS.format(action), i, count)
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE, f'{name}', i, count)
-    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.DEVICE, f'{name}'], str(e), i, count)
 
 # gam delete device <DeviceEntity> [doit]
@@ -21761,7 +21761,7 @@ def doSyncCIDevices():
       if not preview:
         result = callGAPI(ci.devices(), action,
                           bailOnInternalError=True,
-                          throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
                           name=name, **kwargs)
       else:
         result = {'done': True}
@@ -21774,7 +21774,7 @@ def doSyncCIDevices():
         entityActionPerformedMessage([Ent.COMPANY_DEVICE, deviceId], Msg.ACTION_IN_PROGRESS.format(action), i, count)
     except GAPI.notFound:
       entityUnknownWarning(Ent.COMPANY_DEVICE, deviceId, i, count)
-    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e), i, count)
 
 DEVICE_FIELDS_CHOICE_MAP = {
@@ -21850,7 +21850,7 @@ def doInfoCIDevice():
     name = device['name']
     try:
       device = callGAPI(ci.devices(), 'get',
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                         name=name, customer=customer, fields=fields)
       if getDeviceUsers:
         device_users = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
@@ -21858,7 +21858,7 @@ def doInfoCIDevice():
                                      parent=name, customer=customer, fields=userFields)
         for device_user in device_users:
           device_user['client_states'] = callGAPIpages(ci.devices().deviceUsers().clientStates(), 'list', 'clientStates',
-                                                       throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                                       throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                                                        parent=device_user['name'], customer=customer)
       else:
         device_users = []
@@ -21881,7 +21881,7 @@ def doInfoCIDevice():
           Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE, f'{name}')
-    except (GAPI.invalid, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.DEVICE, f'{name}'], str(e))
 
 DEVICE_VIEW_CHOICE_MAP = {
@@ -21966,7 +21966,7 @@ def doPrintCIDevices():
       pageMessage = getPageMessage()
       try:
         deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
-                                    throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                    throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                                     pageMessage=pageMessage,
                                     customer=customer, filter=query, parent=parent,
                                     fields=userFields, pageSize=20)
@@ -21977,7 +21977,7 @@ def doPrintCIDevices():
             if deviceName in deviceDict:
               deviceDict[deviceName].setdefault('users', [])
               deviceDict[deviceName]['users'].append(deviceUser)
-      except (GAPI.invalid, GAPI.permissionDenied) as e:
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
         entityActionFailedWarning([entityType, None], str(e))
     for device in devices:
       row = flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS)
@@ -22006,7 +22006,7 @@ def _performCIDeviceUserAction(action):
     try:
       result = callGAPI(ci.devices().deviceUsers(), action,
                         bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
                         name=name, **kwargs)
       if result['done']:
         if 'error' not in result:
@@ -22020,7 +22020,7 @@ def _performCIDeviceUserAction(action):
       Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE_USER, f'{name}', i, count)
-    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, f'{name}'], str(e), i, count)
 
 # gam approve deviceuser <DeviceUserEntity> [doit]
@@ -22068,7 +22068,7 @@ def doInfoCIDeviceUser():
     name = deviceUser['name']
     try:
       deviceUser = callGAPI(ci.devices().deviceUsers(), 'get',
-                            throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                             name=name, customer=customer, fields=userFields)
       if FJQC.formatJSON:
         printLine(json.dumps(cleanJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
@@ -22079,7 +22079,7 @@ def doInfoCIDeviceUser():
         Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE_USER, f'{name}', i, count)
-    except (GAPI.invalid, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, f'{name}'], str(e), i, count)
 
 # gam print deviceusers [todrive <ToDriveAttribute>*]
@@ -22179,7 +22179,7 @@ def doInfoCIDeviceUserState():
     try:
       result = callGAPI(ci.devices().deviceUsers().clientStates(), 'get',
                         bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
                         name=name, customer=customer)
       printEntity([Ent.DEVICE_USER_CLIENT_STATE, name], i, count)
       Ind.Increment()
@@ -22188,7 +22188,7 @@ def doInfoCIDeviceUserState():
       Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE_USER, deviceUser, i, count)
-    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, deviceUser], str(e), i, count)
 
 # gam update deviceuserstate <DeviceUserEntity> [clientid <String>]
@@ -22245,7 +22245,7 @@ def doUpdateCIDeviceUserState():
     try:
       result = callGAPI(ci.devices().deviceUsers().clientStates(), 'patch',
                         bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
                         name=name, customer=customer, updateMask=','.join(body.keys()), body=body)
       if result['done']:
         if 'error' not in result:
@@ -22261,7 +22261,7 @@ def doUpdateCIDeviceUserState():
       Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE_USER, deviceUser)
-    except (GAPI.invalid, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, deviceUser], str(e))
 
 def isolatePrinterID(name):
