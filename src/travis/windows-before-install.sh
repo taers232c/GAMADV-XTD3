@@ -46,11 +46,12 @@ export PATH=$PATH:/c/python/scripts
 # OpenSSL
 echo "Installing OpenSSL..."
 export exefile=Win${BITS}OpenSSL_Light-${WINDOWS_BUILD_OPENSSL_VERSION//./_}.exe
-if [ ! -e $exefile ]; then
-  echo "Downloading $exefile..."
-  wget --quiet https://slproweb.com/download/$exefile
-fi
-until powershell ".\\${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"; do echo "trying openssl again..."; done
+#if [ ! -e $exefile ]; then
+#  echo "Downloading $exefile..."
+#  wget https://slproweb.com/download/$exefile
+#fi
+#until powershell ".\\${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"; do echo "trying openssl again..."; done
+powershell "$mypath\winssl\${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"
 until cp -v /c/ssl/libcrypto-1_1${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libcrypto copy again..."; sleep 3; done
 until cp -v /c/ssl/libssl-1_1${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libssl copy again..."; done
 if [[ "$PLATFORM" == "x86_64" ]]; then
