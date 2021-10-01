@@ -12,7 +12,10 @@ fi
 echo "This is a ${BITS}-bit build for ${PLATFORM}"
 
 export mypath=$(pwd)
+echo "mypath=${mypath}"
 cd ~
+export home=$(pwd)
+echo "home=${home}"
 
 # .NET Core
 echo "Installing Net-Framework-Core..."
@@ -45,13 +48,14 @@ export PATH=$PATH:/c/python/scripts
 
 # OpenSSL
 echo "Installing OpenSSL..."
-export exefile=Win${BITS}OpenSSL_Light-${WINDOWS_BUILD_OPENSSL_VERSION//./_}.exe
+#export exefile=Win${BITS}OpenSSL_Light-${WINDOWS_BUILD_OPENSSL_VERSION//./_}.exe
 #if [ ! -e $exefile ]; then
 #  echo "Downloading $exefile..."
 #  wget https://slproweb.com/download/$exefile
 #fi
 #until powershell ".\\${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"; do echo "trying openssl again..."; done
-powershell "$mypath\winssl\${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"
+export exefile=${mypath}/winssl/Win${BITS}OpenSSL_Light-${WINDOWS_BUILD_OPENSSL_VERSION//./_}.exe
+until powershell "${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"; done
 until cp -v /c/ssl/libcrypto-1_1${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libcrypto copy again..."; sleep 3; done
 until cp -v /c/ssl/libssl-1_1${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libssl copy again..."; done
 if [[ "$PLATFORM" == "x86_64" ]]; then
