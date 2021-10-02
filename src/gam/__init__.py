@@ -5148,7 +5148,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
                              pageMessage=getPageMessageForWhom(),
                              throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                              parent=groupName, view='FULL',
-                             fields='nextPageToken,memberships(name,memberKey(id),roles(name),type)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+                             fields='nextPageToken,memberships(name,preferredMemberKey(id),roles(name),type)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
             GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
             GAPI.systemError, GAPI.permissionDenied):
@@ -5314,7 +5314,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
                                  pageMessage=getPageMessageForWhom(),
                                  throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                  parent=name, view='FULL',
-                                 fields='nextPageToken,memberships(memberKey(id),roles(name),type)',
+                                 fields='nextPageToken,memberships(preferredMemberKey(id),roles(name),type)',
                                  pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
         except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
                 GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
@@ -26970,7 +26970,7 @@ def doUpdateCIGroups():
                                pageMessage=getPageMessageForWhom(),
                                throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                parent=parent, view='FULL',
-                               fields='nextPageToken,memberships(name,memberKey(id),roles(name),type)',
+                               fields='nextPageToken,memberships(name,preferredMemberKey(id),roles(name),type)',
                                pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, group)
@@ -27139,7 +27139,7 @@ def doUpdateCIGroups():
                                pageMessage=getPageMessageForWhom(),
                                throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                parent=parent, view='FULL',
-                               fields='nextPageToken,memberships(name,memberKey(id),roles(name),type)',
+                               fields='nextPageToken,memberships(name,preferredMemberKey(id),roles(name),type)',
                                pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(entityType, group, i, count)
