@@ -1,7 +1,12 @@
+6.08.08
+
+Updated all commands that reference Cloud Identity Group members to use the field `preferredMemberKey`
+rather than the deprecated field `memberKey` which would cause traps.
+
 6.08.07
 
 Fixed bug in `gam <UserTypeEntity> create|update contact json <JSONData>` that failed to delete
-the read-only field `updateTime` field which caused the command to fail.
+the read-only field `updateTime` which caused the command to fail.
 
 Added the following keyword to `gam.cfg` that causes GAM to add a timestamp column
 to the CSV output file; the value in each row is time at which the command started.

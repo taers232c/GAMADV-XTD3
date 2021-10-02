@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.07'
+__version__ = '6.08.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5158,7 +5158,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
     for member in result:
       getCIGroupMemberRole(member)
       if member['type'] == Ent.TYPE_USER:
-        email = member.get('memberKey', {}).get('id', '')
+        email = member.get('preferredMemberKey', {}).get('id', '')
         if (email and _checkMemberRole(member, validRoles) and email not in entitySet):
           entitySet.add(email)
           entityList.append(email)
@@ -5324,7 +5324,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
           continue
         for member in result:
           getCIGroupMemberRole(member)
-          email = member.get('memberKey', {}).get('id', '')
+          email = member.get('preferredMemberKey', {}).get('id', '')
           if (email and (groupMemberType in ('ALL', member['type'])) and
               _checkMemberRole(member, validRoles) and email not in entitySet):
             entitySet.add(email)
@@ -24312,7 +24312,7 @@ def doUpdateGroups():
         _removeMember(group, i, count, role, member, j, jcount)
       Ind.Decrement()
       return
-    svcargs = dict([('groupKey', group), ('memberKey', None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    svcargs = dict([('groupKey', group), ('preferredMemberKey', None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), 'delete')
     dbatch = cd.new_batch_http_request(callback=_callbackRemoveGroupMembers)
     bcount = 0
@@ -24321,8 +24321,8 @@ def doUpdateGroups():
     for member in removeMembers:
       j += 1
       svcparms = svcargs.copy()
-      svcparms['memberKey'] = member
-      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms['memberKey'], role))
+      svcparms['preferredMemberKey'] = member
+      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms['preferredMemberKey'], role))
       bcount += 1
       if bcount >= remBatchParms['size']:
         remBatchParms['adjust'] = True
@@ -24403,7 +24403,7 @@ def doUpdateGroups():
       Ind.Decrement()
       return
     body, role = _getUpdateBody(role, delivery_settings)
-    svcargs = dict([('groupKey', group), ('memberKey', None), ('body', body), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    svcargs = dict([('groupKey', group), ('preferredMemberKey', None), ('body', body), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), 'patch')
     dbatch = cd.new_batch_http_request(callback=_callbackUpdateGroupMembers)
     bcount = 0
@@ -24412,8 +24412,8 @@ def doUpdateGroups():
     for member in updateMembers:
       j += 1
       svcparms = svcargs.copy()
-      svcparms['memberKey'] = member
-      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms['memberKey'], role, delivery_settings))
+      svcparms['preferredMemberKey'] = member
+      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms['preferredMemberKey'], role, delivery_settings))
       bcount += 1
       if bcount >= updBatchParms['size']:
         updBatchParms['adjust'] = True
@@ -24932,7 +24932,7 @@ def checkMemberMatch(member, memberOptions):
 def checkCIMemberMatch(member, memberOptions):
   if not memberOptions[MEMBEROPTION_MATCHPATTERN]:
     return True
-  if memberOptions[MEMBEROPTION_MATCHPATTERN].match(member.get('memberKey', {}).get('id', '')):
+  if memberOptions[MEMBEROPTION_MATCHPATTERN].match(member.get('preferredMemberKey', {}).get('id', '')):
     return memberOptions[MEMBEROPTION_DISPLAYMATCH]
   return not memberOptions[MEMBEROPTION_DISPLAYMATCH]
 
@@ -25438,7 +25438,7 @@ def addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplay
     if not ciGroupsAPI:
       member_email = member.get('email', member.get('id', None))
     else:
-      member_email = member.get('memberKey', {}).get('id', member['name'])
+      member_email = member.get('preferredMemberKey', {}).get('id', member['name'])
     if not member_email:
       writeStderr(f' Not sure what to do with: {member}\n')
       continue
@@ -25953,9 +25953,9 @@ def doPrintGroups():
   csvPF.writeCSVfile('Groups')
 
 def mapCIGroupMemberFieldNames(member):
-  member['email'] = member['memberKey'].pop('id')
-  if not member['memberKey']:
-    member.pop('memberKey')
+  member['email'] = member['preferredMemberKey'].pop('id')
+  if not member['preferredMemberKey']:
+    member.pop('preferredMemberKey')
   if 'name' in member:
     member['id'] = member.pop('name')
 
@@ -26605,7 +26605,7 @@ def doUpdateCIGroups():
   def _getMemberEmail(member):
     if member['type'] == Ent.TYPE_CUSTOMER:
       return member['id']
-    return member.get('memberKey', {}).get('id', '')
+    return member.get('preferredMemberKey', {}).get('id', '')
 
   def checkDynamicGroup(ci, group, i, count):
     try:
@@ -26674,7 +26674,7 @@ def doUpdateCIGroups():
     j = 0
     for member in addMembers:
       j += 1
-      body = {'memberKey': {'id': member}, 'roles': [{'name': Ent.ROLE_MEMBER}]}
+      body = {'preferredMemberKey': {'id': member}, 'roles': [{'name': Ent.ROLE_MEMBER}]}
       if role != Ent.ROLE_MEMBER:
         body['roles'].append({'name': role})
       elif expireTime not in {None, NEVER_TIME}:
@@ -26982,7 +26982,7 @@ def doUpdateCIGroups():
       for member in result:
         getCIGroupMemberRole(member)
         role = member['role']
-        email = member.get('memberKey', {}).get('id', '')
+        email = member.get('preferredMemberKey', {}).get('id', '')
         if groupMemberType in ('ALL', member['type']) and role in rolesSet:
           cleanAddress = _cleanConsumerAddress(email, currentMembersMaps[role])
           currentMembersSets[role].add(cleanAddress)
@@ -27215,7 +27215,7 @@ def doInfoCIGroups():
     for member in cachedGroupMembers[group_id]:
       member_id = member.get('name', '')
       member_id = member_id.split('/')[-1]
-      member_email = member.get('memberKey', {}).get('id')
+      member_email = member.get('preferredMemberKey', {}).get('id')
       member_type = member.get('type', 'USER').lower()
       if showRole:
         getCIGroupMemberRole(member)
@@ -27323,7 +27323,7 @@ def doInfoCIGroups():
         printEntitiesCount(entityType, members)
         Ind.Increment()
         for member in members:
-          memberEmail = member.get('memberKey', {}).get('id', member['name'])
+          memberEmail = member.get('preferredMemberKey', {}).get('id', member['name'])
           getCIGroupMemberRole(member)
           kvList = [member['role'].lower(), f'{memberEmail} ({member["type"].lower()})']
           if showJoinDate:
@@ -27354,7 +27354,7 @@ def doInfoCIGroups():
 
 def checkCIGroupShowOwnedBy(showOwnedBy, members):
   for member in members:
-    if member['memberKey']['id'] == showOwnedBy:
+    if member['preferredMemberKey']['id'] == showOwnedBy:
       if member['role'] == Ent.ROLE_OWNER:
         return True
   return False
@@ -27573,7 +27573,7 @@ def doPrintCIGroups():
       try:
         groupMembers = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
                                      throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
-                                     pageMessage=getPageMessage(), messageAttribute=['memberKey', 'id'],
+                                     pageMessage=getPageMessage(), messageAttribute=['preferredMemberKey', 'id'],
                                      parent=groupEntity['name'], view='FULL', fields='*', pageSize=pageSize)
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
@@ -27698,20 +27698,20 @@ CIGROUPMEMBERS_FIELDS_CHOICE_MAP = {
   'createtime': 'createTime',
   'expiretime': 'expireTime',
   'id': 'name',
-  'memberkey': 'memberKey',
+  'memberkey': 'preferredMemberKey',
   'name': 'name',
   'preferredmemberkey': 'preferredMemberKey',
   'role': 'roles',
   'roles': 'roles',
   'type': 'type',
   'updatetime': 'updateTime',
-  'useremail': 'memberKey)',
+  'useremail': 'preferredMemberKey)',
   }
 CIGROUPMEMBERS_DEFAULT_FIELDS = [
   'type', 'roles', 'name', 'memberkey', 'preferredmemberkey', 'createtime', 'updatetime', 'expiretime']
 CIGROUPMEMBERS_SORT_FIELDS = [
   'type', 'role', 'id', 'email',
-  'memberKey.namespace', 'name', 'preferredMemberKey.id', 'preferredMemberKey.namespace',
+  'name', 'preferredMemberKey.id', 'preferredMemberKey.namespace',
   'createTime', 'updateTime', 'expireTime'
   ]
 CIGROUPMEMBERS_TIME_OBJECTS = {'createTime', 'updateTime', 'expireTime'}
@@ -27889,7 +27889,7 @@ def doShowCIGroupMembers():
         printKeyValueList([memberDetails])
       if (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
         _, gname = member['name'].rsplit('/', 1)
-        _showGroup(f'groups/{gname}', member['memberKey']['id'], depth+1)
+        _showGroup(f'groups/{gname}', member['preferredMemberKey']['id'], depth+1)
     if depth == 0 or Ent.TYPE_GROUP in typesSet:
       Ind.Decrement()
 
@@ -35047,7 +35047,7 @@ def infoUsers(entityList):
             group_email = group_name_mapping[group_name]
             for edge in adj.get('edges', []):
               seen_group_count[group_email] = seen_group_count.get(group_email, 0) + 1
-              member_email = edge.get('memberKey', {}).get('id')
+              member_email = edge.get('preferredMemberKey', {}).get('id')
               edges.append((member_email, group_email))
           printUserCIGroupMap(user['primaryEmail'], group_displayname_mapping, seen_group_count, edges, 'direct')
           if max(seen_group_count.values()) > 1:
