@@ -68,7 +68,7 @@ _SKUS = {
   '1010370001': {
     'product': '101037', 'aliases': ['gwetlu', 'workspaceeducationupgrade'], 'displayName': 'Google Workspace for Education: Teaching and Learning Upgrade'},
   'Google-Apps': {
-    'product': 'Google-Apps', 'aliases': ['standard', 'free'], 'displayName': 'Google Workspace Free/Standard'},
+    'product': 'Google-Apps', 'aliases': ['standard', 'free'], 'displayName': 'G Suite Legacy'},
   'Google-Apps-For-Business': {
     'product': 'Google-Apps', 'aliases': ['gafb', 'gafw', 'basic', 'gsuitebasic'], 'displayName': 'G Suite Basic'},
   'Google-Apps-For-Government': {

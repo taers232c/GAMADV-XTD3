@@ -1,3 +1,8 @@
+6.08.09
+
+Changed license SKU `Google-Apps` name `Google Workspace Free/Standard` to `G Suite Legacy` to be
+consistent with Google.
+
 6.08.08
 
 Updated all commands that reference Cloud Identity Group members to use the field `preferredMemberKey`
