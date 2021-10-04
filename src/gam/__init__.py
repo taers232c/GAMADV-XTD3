@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.09'
+__version__ = '6.08.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17019,6 +17019,20 @@ def countLocalPeopleContactSelects(contactQuery, contacts):
     jcount = len(contacts) if contacts is not None else 0
   return jcount
 
+def clearPeopleEmailAddressMatches(contactClear, contact):
+  savedAddresses = []
+  updateRequired = False
+  emailMatchType = contactClear['emailClearType']
+  for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
+    if (contactClear['emailClearPattern'].match(item['value']) and
+        (not emailMatchType or emailMatchType == item.get('type', ''))):
+      updateRequired = True
+    else:
+      savedAddresses.append(item)
+  if updateRequired:
+    contact[PEOPLE_EMAIL_ADDRESSES] = savedAddresses
+  return updateRequired
+
 def _clearUpdatePeopleContacts(users, updateContacts):
   action = Act.Get()
   entityType = Ent.USER
@@ -17129,6 +17143,8 @@ def _clearUpdatePeopleContacts(users, updateContacts):
                      resourceName=resourceName)
             entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
             continue
+          body = contact
+          updatePersonFields = [PEOPLE_EMAIL_ADDRESSES]
         person = callGAPI(people.people(), 'updateContact',
                           throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                           retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
@@ -17156,20 +17172,6 @@ def clearUserPeopleContacts(users):
 # gam <UserTypeEntity> update contacts
 def updateUserPeopleContacts(users):
   _clearUpdatePeopleContacts(users, True)
-
-def clearPeopleEmailAddressMatches(contactClear, contact):
-  savedAddresses = []
-  updateRequired = False
-  emailMatchType = contactClear['emailClearType']
-  for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
-    if (contactClear['emailClearPattern'].match(item['value']) and
-        (not emailMatchType or emailMatchType == item.get('type', ''))):
-      updateRequired = True
-    else:
-      savedAddresses.append(item)
-  if updateRequired:
-    contact[PEOPLE_EMAIL_ADDRESSES] = savedAddresses
-  return updateRequired
 
 def dedupPeopleEmailAddressMatches(emailMatchType, contact):
   sai = -1

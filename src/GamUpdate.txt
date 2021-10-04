@@ -1,3 +1,7 @@
+6.08.10
+
+Fixed bug in `gam <UserTypeEntity> clear contacts` that caused a trap.
+
 6.08.09
 
 Changed license SKU `Google-Apps` name `Google Workspace Free/Standard` to `G Suite Legacy` to be
@@ -60,7 +64,7 @@ mary@domain.com, Mary Smith
 # Create the student folders on the Shared Drive
 gam redirect csv ./StudentFolders.csv multiprocess csv Students.csv gam user admin@domain.com create drivefile mimetype gfolder drivefilename "~~Name~~ Digital Portfolio" parentid <TeamDriveID> csv addcsvdata primaryEmail "~primaryEmail"
 # Add ACLs granting the students write access to their folders; ~User refers to admin@domain.com
-gam csv StudentFolders.csv gam user "~User" add drivefileacl "~id" user "~primaryEmail" role writer
+gam csv StudentFolders.csv gam user "~User" add drivefileacl "~id" user "~primaryEmail" role fileorganizer
 # Add a shortcut to the folder on the student's My Drive
 gam csv StudentFolders.csv gam user "~primaryEmail" create drivefileshortcut "~id" parentid root
 ```
