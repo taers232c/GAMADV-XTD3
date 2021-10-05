@@ -3146,9 +3146,9 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 <PrinterAttribute> ::=
         (description <String>)|
         (displayname <String>)|
+        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         (makeandmodel <String>)|
         (ou|org|orgunit <OrgUnitItem>)|
-        (ownerid <EmailAddress>)|
         (uri <String>)|
         (driverless [<Boolean>])
 

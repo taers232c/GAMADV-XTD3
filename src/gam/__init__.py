@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.11'
+__version__ = '6.08.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -22298,7 +22298,10 @@ def _getPrinterEntity():
       printerIds[i] = mg.group(1)
     return (customer, printerIds, cd)
 
-def _getPrinterAttributes(cd=None):
+CREATE_PRINTER_JSON_SKIP_FIELDS = ['id', 'name', 'createTime', 'orgUnitPath', 'auxiliaryMessages']
+UPDATE_PRINTER_JSON_SKIP_FIELDS = ['id', 'name', 'createTime', 'orgUnitId', 'orgUnitPath', 'auxiliaryMessages']
+
+def _getPrinterAttributes(cd, jsonDeleteFields):
   '''get printer attributes for create/update commands'''
   body = {}
   showDetails = True
@@ -22319,6 +22322,8 @@ def _getPrinterAttributes(cd=None):
       body['useDriverlessConfig'] = getBoolean()
     elif myarg == 'nodetails':
       showDetails = False
+    elif myarg == 'json':
+      body.update(getJSON(jsonDeleteFields))
     else:
       unknownArgumentExit()
   if body.get('makeAndModel'):
@@ -22373,7 +22378,7 @@ def _showPrinter(cd, printer, FJQC, orgUnitId=None, showInherited=False, i=0, co
 def doCreatePrinter():
   cd = buildGAPIObject(API.DIRECTORY)
   parent = _getCustomersCustomerIdWithC()
-  body, showDetails = _getPrinterAttributes(cd)
+  body, showDetails = _getPrinterAttributes(cd, CREATE_PRINTER_JSON_SKIP_FIELDS)
   if not body.get('orgUnitId'):
     missingArgumentExit('orgunit')
   try:
@@ -22389,17 +22394,17 @@ def doCreatePrinter():
 # gam update printer <PrinterID> <PrinterAttribute>+ [nodetails]
 def doUpdatePrinter():
   name, printerId, cd = _getPrinterID()
-  body, showDetails = _getPrinterAttributes(cd)
-  updateMask = ','.join(body)
+  body, showDetails = _getPrinterAttributes(cd, UPDATE_PRINTER_JSON_SKIP_FIELDS)
+  updateMask = ','.join(list(body.keys()))
   # note clearMask seems unnecessary. Updating field to '' clears it.
   try:
     printer = callGAPI(cd.customers().chrome().printers(), 'patch',
-                       throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                       throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                        name=name, updateMask=updateMask, body=body)
     entityActionPerformed([Ent.PRINTER, printerId])
     if showDetails:
       _showPrinter(cd, printer, None)
-  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
+  except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.PRINTER, printerId], str(e))
 
 # gam delete printer
