@@ -1,3 +1,13 @@
+6.08.11
+
+Added option `copysheetprotectedranges [<Boolean>]` to `gam <UserTypeEntity> copy drivefile` that causes
+GAM to copy the Google Sheet permissions and protected ranges from the source file to the target file.
+
+Updated `gam update cigroups <GroupEntity> update [<GroupRole>] expires <Time> <UserTypeEntity>`
+to handle the following error:
+```
+ERROR: 403: permissionDenied - Error(3005): Non-premium customers do not have access to certain premium features.
+
 6.08.10
 
 Fixed bug in `gam <UserTypeEntity> clear contacts` that caused a trap.

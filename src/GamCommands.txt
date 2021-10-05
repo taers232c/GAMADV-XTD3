@@ -4679,6 +4679,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [copysubfileparents none] [copysubfolderparents none]
         [copyfilepermissions [<Boolean>]]
         [copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
+        [copysheetprotectedranges [<Boolean>]]
 
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
         [summary [<Boolean>]]

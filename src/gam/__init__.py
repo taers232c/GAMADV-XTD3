@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.10'
+__version__ = '6.08.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27091,9 +27091,11 @@ def doUpdateCIGroups():
           for body in bodys:
             try:
               callGAPI(ci.groups().memberships(), 'modifyMembershipRoles',
-                       throwReasons=[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT],
+                       throwReasons=[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.FAILED_PRECONDITION,
+                                     GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                        name=memberName, body=body)
-            except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.failedPrecondition, GAPI.invalidArgument) as e:
+            except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.failedPrecondition,
+                    GAPI.invalidArgument, GAPI.permissionDenied) as e:
               _showFailure(group, memberEmail, role, str(e), j, jcount)
               errors = True
               break
@@ -45476,7 +45478,8 @@ STAT_FILE_DUPLICATE = 9
 STAT_FILE_FAILED = 10
 STAT_FILE_NOT_COPYABLE_MOVABLE = 11
 STAT_FILE_PERMISSIONS_FAILED = 12
-STAT_LENGTH = 13
+STAT_FILE_PROTECTEDRANGES_FAILED = 13
+STAT_LENGTH = 14
 
 FOLDER_SUBTOTAL_STATS = [STAT_FOLDER_COPIED_MOVED, STAT_FOLDER_DUPLICATE, STAT_FOLDER_MERGED, STAT_FOLDER_FAILED, STAT_FOLDER_NOT_WRITABLE]
 FILE_SUBTOTAL_STATS = [STAT_FILE_COPIED_MOVED, STAT_FILE_DUPLICATE, STAT_FILE_FAILED, STAT_FILE_NOT_COPYABLE_MOVABLE]
@@ -45523,7 +45526,8 @@ def _printStatistics(user, statistics, i, count, copy):
                                                          statistics[STAT_FILE_DUPLICATE],
                                                          statistics[STAT_FILE_FAILED],
                                                          statistics[STAT_FILE_NOT_COPYABLE_MOVABLE],
-                                                         statistics[STAT_FILE_PERMISSIONS_FAILED])],
+                                                         statistics[STAT_FILE_PERMISSIONS_FAILED],
+                                                         statistics[STAT_FILE_PROTECTEDRANGES_FAILED])],
                         i, count)
     else:
       printEntityKVList([Ent.USER, user],
@@ -45568,6 +45572,7 @@ def initCopyMoveOptions(move):
     'copyFilePermissions': False,
     'copyTopFolderPermissions': True,
     'copySubFolderPermissions': True,
+    'copySheetProtectedRanges': False,
     }
 
 DUPLICATE_FILE_CHOICES = {
@@ -45631,6 +45636,8 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
         copyMoveOptions['copyTopFolderPermissions'] = getBoolean()
       elif myarg == 'copysubfolderpermissions':
         copyMoveOptions['copySubFolderPermissions'] = getBoolean()
+      elif myarg == 'copysheetprotectedranges':
+        copyMoveOptions['copySheetProtectedRanges'] = getBoolean()
       else:
         return False
   return True
@@ -45729,6 +45736,39 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     _incrStatistic(statistics, stat)
 
+def _getSheetProtectedRanges(sheet, user, i, count, j, jcount, fileId, fileTitle,
+                             statistics, stat):
+  sheetProtectedRanges = []
+  try:
+    result = callGAPI(sheet.spreadsheets(), 'get',
+                      throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                      spreadsheetId=fileId, fields='sheets')
+    for rsheet in result.get('sheets', []):
+      for protectedRange in rsheet.get('protectedRanges', []):
+        sheetProtectedRanges.append({'updateProtectedRange': {'protectedRange': protectedRange, 'fields': 'editors'}})
+  except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileTitle], str(e), j, jcount)
+    _incrStatistic(statistics, stat)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+    _incrStatistic(statistics, stat)
+  return sheetProtectedRanges
+
+def _updateSheetProtectedRanges(sheet, user, i, count, j, jcount, newFileId, newFileTitle, sheetProtectedRanges,
+                                statistics, stat):
+  try:
+    callGAPI(sheet.spreadsheets(), 'batchUpdate',
+             throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+             spreadsheetId=newFileId, body={'requests': sheetProtectedRanges})
+  except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, newFileTitle], str(e), j, jcount)
+    _incrStatistic(statistics, stat)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+    _incrStatistic(statistics, stat)
+
 def _identicalSourceTarget(fileId, targetChildren):
   for target in targetChildren:
     if fileId == target['id']:
@@ -45813,6 +45853,7 @@ def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilenam
 #	[copysubfileparents none] [copysubfolderparents none]
 #	[copyfilepermissions [<Boolean>]]
 #	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
+#	[copysheetprotectedranges [<Boolean>]]
 def copyDriveFile(users):
   def _cloneFolderCopy(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren,
                        atTop, newParentId, copyMoveOptions, statistics):
@@ -45966,9 +46007,15 @@ def copyDriveFile(users):
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], k, kcount)
             _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
             copiedFiles[result['id']] = 1
-            if copyMoveOptions['copyFilePermissions']:
+            if copyMoveOptions['copyFilePermissions'] or (copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET):
+              if copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET:
+                protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, k, kcount, childId, childTitle,
+                                                                statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
               _copyPermissions(drive, user, i, count, k, kcount, Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
+              if copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET and protectedSheetRanges:
+                _updateSheetProtectedRanges(sheet, user, i, count, k, kcount, result['id'], result['name'], protectedSheetRanges,
+                                            statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                   GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
                   GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
@@ -46018,6 +46065,10 @@ def copyDriveFile(users):
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, parentBody, parentParms):
       continue
+    if copyMoveOptions['copySheetProtectedRanges']:
+      _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
+      if not sheet:
+        continue
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity['list']:
@@ -46130,9 +46181,15 @@ def copyDriveFile(users):
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename],
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
           _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
-          if copyMoveOptions['copyFilePermissions']:
+          if copyMoveOptions['copyFilePermissions'] or (copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET):
+            if copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET:
+              protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, j, jcount, sourceId, sourceFilename,
+                                                              statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
             _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
                              statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
+            if copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET and protectedSheetRanges:
+              _updateSheetProtectedRanges(sheet, user, i, count, j, jcount, result['id'], result['name'], protectedSheetRanges,
+                                          statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
               GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
@@ -51513,7 +51570,7 @@ def _validateUserGetSpreadsheetIDs(user, i, count, fileIdEntity, showEntityType)
     return (user, None, 0)
   return (user, sheet, jcount)
 
-# gam <UserTypeEntity> update sheet
+# gam <UserTypeEntity> update sheet <DriveFileEntity>
 #	((json [charset <Charset>] <SpreadsheetJSONUpdateRequest>) |
 #	 (json file <FileName> [charset <Charset>]))
 #	[formatjson]
