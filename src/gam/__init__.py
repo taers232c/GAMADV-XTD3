@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.12'
+__version__ = '6.08.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17731,7 +17731,7 @@ def copyUserPeopleOtherContacts(users):
           continue
         resourceName = contact['resourceName']
       else:
-        resourceName = normalizePeopleResourceName(contact)
+        resourceName = normalizeOtherContactsResourceName(contact)
       try:
         callGAPI(people.otherContacts(), 'copyOtherContactToMyContactsGroup',
                  bailOnInternalError=True,
@@ -24971,8 +24971,12 @@ CIGROUP_FIELDS_CHOICE_MAP = {
   }
 CIGROUP_FULL_FIELDS = {'additionalGroupKeys', 'createTime', 'dynamicGroupMetadata', 'parent', 'updateTime'}
 CIGROUP_FIELDS_WITH_CRS_NLS = {'description'}
-CIGROUP_INFO_PRINT_ORDER = ['id', 'name', 'description', 'createTime', 'updateTime',
-                            'groupKey', 'additionalGroupKeys', 'labels', 'parent', 'dynamicGroupMetadata']
+CIGROUP_INFO_ORDER = ['id', 'name', 'description', 'createTime', 'updateTime',
+                      'groupKey', 'additionalGroupKeys', 'labels', 'parent', 'dynamicGroupMetadata',
+                      'SecuritySettings']
+CIGROUP_PRINT_ORDER = ['id', 'name', 'description', 'createTime', 'updateTime',
+                       'groupKey', 'additionalGroupKeys', 'parent', 'dynamicGroupMetadata',
+                       'memberRestrictionQuery', 'memberRestrictionEvaluation']
 CIGROUP_TIME_OBJECTS = {'createTime', 'updateTime', 'statusTime'}
 
 def mapCIGroupFieldNames(group):
@@ -24989,7 +24993,7 @@ def _showCIGroup(group, groupEmail, i=0, count=0):
   printEntity([Ent.CLOUD_IDENTITY_GROUP, groupEmail], i, count)
   mapCIGroupFieldNames(group)
   Ind.Increment()
-  for key in CIGROUP_INFO_PRINT_ORDER:
+  for key in CIGROUP_INFO_ORDER:
     if key not in group:
       continue
     value = group[key]
@@ -26558,6 +26562,7 @@ def doCreateCIGroup():
 # gam update cigroups <GroupEntity> [email <EmailAddress>]
 #	[copyfrom <GroupItem>] <GroupAttribute>*
 #	[security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
+#	[memberrestrictions <QueryMemberRestrictions>]
 # gam update cigroups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly]
 #	[notsuspended|suspended] [notarchived|archived]
@@ -26728,7 +26733,7 @@ def doUpdateCIGroups():
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
-  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS_BETA)
   entityType = Ent.CLOUD_IDENTITY_GROUP
   csvPF = None
   getBeforeUpdate = preview = False
@@ -26737,6 +26742,7 @@ def doUpdateCIGroups():
   if not CL_subCommand:
     gs_body = {}
     ci_body = {}
+    se_body = {}
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'email':
@@ -26750,11 +26756,16 @@ def doUpdateCIGroups():
       elif myarg in {'security', 'makesecuritygroup'}:
         ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
                              'cloudidentity.googleapis.com/groups.security': ''}
+      elif myarg in ['memberrestriction', 'memberrestrictions']:
+        query = getString(Cmd.OB_QUERY, minLen=0)
+        member_types = {'USER': '1', 'SERVICE_ACCOUNT': '2', 'GROUP': '3',}
+        for key, val in member_types.items():
+          query = query.replace(key, val)
+        se_body['memberRestriction'] = {'query': query}
       elif myarg == 'json':
         gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
       else:
         getGroupAttrValue(myarg, gs_body)
-    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
     if gs_body:
       gs = buildGAPIObject(API.GROUPSSETTINGS)
       gs_body = getSettingsFromGroup(cd, ','.join(entityList), gs, gs_body)
@@ -26766,7 +26777,7 @@ def doUpdateCIGroups():
           settings = gs_body
       elif not ci_body:
         return
-    elif not ci_body:
+    elif not ci_body and not se_body:
       return
     Act.Set(Act.UPDATE)
     i = 0
@@ -26811,18 +26822,30 @@ def doUpdateCIGroups():
         except GAPI.required:
           entityActionFailedWarning([entityType, group], Msg.INVALID_JSON_SETTING, i, count)
           continue
-      if ci_body:
+      if ci_body or se_body:
         _, name, _ = convertGroupEmailToCloudID(ci, group, i, count)
         if not name:
           continue
-        try:
-          callGAPI(ci.groups(), 'patch',
-                   throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
-                   name=name, body=ci_body, updateMask=','.join(list(ci_body.keys())))
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
-                GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
-          entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
-          continue
+        if ci_body:
+          try:
+            callGAPI(ci.groups(), 'patch',
+                     throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
+                     name=name, body=ci_body, updateMask=','.join(list(ci_body.keys())))
+          except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
+                  GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
+            entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
+            continue
+        if se_body:
+          # It seems like a bug that API requires /securitySettings appended to name.
+          # We'll see if Google servers change this at some point.
+          try:
+            callGAPI(ci.groups(), 'updateSecuritySettings',
+                     throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
+                     name=f'{name}/securitySettings', updateMask='member_restriction.query', body=se_body)
+          except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
+                  GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
+            entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
+            continue
       entityActionPerformed([entityType, group], i, count)
   elif CL_subCommand in {'create', 'add'}:
     baseRole, groupMemberType = _getRoleGroupMemberType()
@@ -27203,6 +27226,7 @@ def getCIGroupTypes(myarg, typesSet):
 
 # gam info cigroups <GroupEntity>
 #	[nousers|membertree] [quick] [noaliases] [nojoindate] [showupdatedate]
+#	[nosecurity|nosecuritysettings]
 #	[allfields|<CIGroupFieldName>*|(fields <CIGroupFieldNameList>)]
 #	[roles <GroupRoleList>] [members] [managers] [owners]
 #	[types <CIGroupTypeList>]
@@ -27240,9 +27264,9 @@ def doInfoCIGroups():
     if not groupFieldsLists['ci']:
       groupFieldsLists['ci'] = ['groupKey']
 
-  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS_BETA)
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
-  getAliases = getUsers = True
+  getAliases = getSecuritySettings = getUsers = True
   showJoinDate = True
   showMemberTree = showUpdateDate = False
   FJQC = FormatJSONQuoteChar()
@@ -27287,6 +27311,8 @@ def doInfoCIGroups():
       showJoinDate = False
     elif myarg == 'showupdatedate':
       showUpdateDate = True
+    elif myarg in ['nosecurity', 'nosecuritysettings']:
+      getSecuritySettings = False
     else:
       FJQC.GetFormatJSON(myarg)
   if not typesSet:
@@ -27321,6 +27347,10 @@ def doInfoCIGroups():
           getCIGroupMemberRole(member)
           if (member['type'] in typesSet and _checkMemberRole(member, rolesSet) and checkCIMemberMatch(member, memberOptions)):
             members.append(member)
+      if getSecuritySettings:
+        cigInfo['SecuritySettings'] = callGAPI(ci.groups(), 'getSecuritySettings',
+                                               throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                                               name=f'{name}/securitySettings', readMask='*')
       if FJQC.formatJSON:
         if getUsers and not showMemberTree:
           cigInfo['members'] = members
@@ -27384,7 +27414,7 @@ PRINT_CIGROUPS_JSON_TITLES = ['email', 'JSON']
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
 #	[allfields|(<CIGroupFieldName>* [fields <CIGroupFieldNameList>])]
-#	[roles <GroupRoleList>]
+#	[roles <GroupRoleList>] [memberrestrictions]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]
 #	[types <CIGroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
@@ -27420,10 +27450,10 @@ def doPrintCIGroups():
                          False, False, True)
     csvPF.WriteRow(row)
 
-  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS_BETA)
   setTrueCustomerId()
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  sortHeaders = False
+  memberRestrictions = sortHeaders = False
   memberDisplayOptions = initGroupMemberDisplayOptions()
   pageSize = 500
   groupFieldsLists = {'ci': ['groupKey']}
@@ -27474,6 +27504,8 @@ def doPrintCIGroups():
       pass
     elif getMemberMatchOptions(myarg, memberOptions):
       pass
+    elif myarg == 'memberrestrictions':
+      memberRestrictions = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if not typesSet:
@@ -27586,9 +27618,22 @@ def doPrintCIGroups():
                                      parent=groupEntity['name'], view='FULL', fields='*', pageSize=pageSize)
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
+    if memberRestrictions:
+      printGettingEntityItemForWhom(Ent.MEMBER_RESTRICTION, groupEmail, i, count)
+      try:
+        secInfo = callGAPI(ci.groups(), 'getSecuritySettings',
+                           throwReasons=GAPI.CIGROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                           name=f"{groupEntity['name']}/securitySettings", readMask='*')
+        if 'memberRestriction' in secInfo:
+          groupEntity['memberRestrictionQuery'] = secInfo['memberRestriction'].get('query', '')
+          groupEntity['memberRestrictionEvaluation'] = secInfo['memberRestriction'].get('evaluation', {}).get('state', '')
+      except (GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+              GAPI.systemError, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, groupEmail], str(e), i, count)
     _printGroupRow(groupEntity, groupMembers)
   if sortHeaders:
-    sortTitles = ['email']+CIGROUP_INFO_PRINT_ORDER
+    sortTitles = ['email']+CIGROUP_PRINT_ORDER
     if rolesSet:
       setMemberDisplaySortTitles(memberDisplayOptions, sortTitles)
     csvPF.SetSortTitles(sortTitles)

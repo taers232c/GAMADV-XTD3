@@ -206,6 +206,7 @@ class GamEntity():
   MEMBER_SUSPENDED = 'mesu'
   MEMBER_NOT_SUSPENDED_NOT_ARCHIVED = 'nsna'
   MEMBER_SUSPENDED_ARCHIVED = 'suar'
+  MEMBER_RESTRICTION = 'memr'
   MEMBERSHIP_TREE = 'metr'
   MESSAGE = 'mesg'
   MIMETYPE = 'mime'
@@ -481,6 +482,7 @@ class GamEntity():
     MEMBER_SUSPENDED: ['Members (Suspended)', 'Member (Suspended)'],
     MEMBER_NOT_SUSPENDED_NOT_ARCHIVED: ['Members (Not Suspended & Not Archived)', 'Member (Not Suspended & Not Archived)'],
     MEMBER_SUSPENDED_ARCHIVED: ['Members (Suspended & Archived)', 'Member (Suspended & Archived)'],
+    MEMBER_RESTRICTION: ['Member Restrictions', 'Member Restriction'],
     MEMBERSHIP_TREE: ['Membership Trees', 'Membership Tree'],
     MESSAGE: ['Messages', 'Message'],
     MIMETYPE: ['MIME Types', 'MIME Type'],

@@ -30,6 +30,7 @@ CHROMEVERSIONHISTORY = 'versionhistory'
 CLASSROOM = 'classroom'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
 CLOUDIDENTITY_GROUPS = 'cloudidentitygroups'
+CLOUDIDENTITY_GROUPS_BETA = 'cloudidentitygroupsbeta'
 CLOUDIDENTITY_USERINVITATIONS = 'cloudidentityuserinvitations'
 CLOUDRESOURCEMANAGER = 'cloudresourcemanager'
 CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
@@ -153,6 +154,7 @@ _INFO = {
   CHROMEVERSIONHISTORY: {'name': 'Chrome Version History API', 'version': 'v1', 'v2discovery': True, 'localjson': True, 'noauthentication': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
+  CLOUDIDENTITY_GROUPS_BETA: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_USERINVITATIONS: {'name': 'Cloud Identity User Invitations API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDRESOURCEMANAGER: {'name': 'Cloud Resource Manager API v3', 'version': 'v3', 'v2discovery': True},
   CONTACTS: {'name': 'Contacts API', 'version': 'v3', 'v2discovery': False},

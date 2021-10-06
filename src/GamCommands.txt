@@ -2838,6 +2838,7 @@ gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
         [makeowner] [alias|aliases <CIGroupAliasList>] [dynamic <QueryDynamicGroup>]
 gam update cigroup <GroupEntity> [copyfrom <GroupItem>] <GroupAttribute>
         [security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
+        [memberrestrictions <QueryMemberRestrictions>]
 gam update cigroups <GroupEntity> create|add [<GroupRole>]
         [usersonly|groupsonly]
         [notsuspended|suspended] [notarchived|archived]
@@ -2866,6 +2867,7 @@ gam delete cigroups <GroupEntity>
 
 gam info cigroups <GroupEntity>
         [nousers|membertree] [quick] [noaliases] [nojoindate] [showupdatedate]
+        [nosecurity|nosecuritysettings]
         [allfields|<CIGroupFieldName>*|(fields <CIGroupFieldNameList>)]
         [roles <GroupRoleList>] [members] [managers] [owners]
         [types <CIGroupTypeList>]
@@ -2877,7 +2879,7 @@ gam print cigroups [todrive <ToDriveAttribute>*]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]
         [allfields|(<CIGroupFieldName>* [fields <CIGroupFieldNameList>])]
-        [roles <GroupRoleList>]
+        [roles <GroupRoleList>] [memberrestrictions]
         [members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]
         [types <CIGroupTypeList>]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]

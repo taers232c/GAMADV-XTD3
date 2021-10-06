@@ -1,3 +1,22 @@
+6.08.13
+
+Fixed bug in `gam <UserTypeEntity> copy othercontacts` that rendered it unusable; sigh.
+
+Following Jay's lead, added support for newly announced group member restrictions.
+You can update groups to restrict membership to only include users, groups or service accounts as well as internal users and groups.
+* See: https://workspaceupdates.googleblog.com/2021/10/membership-restrictions-google-groups-.html
+In the API, these member restrictions fall with a category called `SecuritySettings`.
+
+Added option `nosecuritysettings` to `gam info cigroups <GroupEntity>`. By default, GAM
+makes an additional API call to get the `SecuritySettings`; this option suppresses that call.
+
+Added option `memberrestrictions <QueryMemberRestrictions>` to `gam update cigroups <GroupEntity>`
+to define member restrictions.
+* See: https://cloud.google.com/identity/docs/reference/rest/v1beta1/SecuritySettings#MemberRestriction
+
+Added option `memberrestrictions` to `gam print cigroups` that causes GAM to make an
+additional API call to get the member restrictions from the `SecuritySettings`.
+
 6.08.12
 
 Added `(json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])` to `<PrinterAttribute>`
