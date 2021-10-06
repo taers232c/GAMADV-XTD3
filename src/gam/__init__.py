@@ -26840,10 +26840,10 @@ def doUpdateCIGroups():
           # We'll see if Google servers change this at some point.
           try:
             callGAPI(ci.groups(), 'updateSecuritySettings',
-                     throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
+                     throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS+[GAPI.INVALID_ARGUMENT],
                      name=f'{name}/securitySettings', updateMask='member_restriction.query', body=se_body)
           except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
-                  GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
+                  GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.invalidArgument) as e:
             entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
             continue
       entityActionPerformed([entityType, group], i, count)
