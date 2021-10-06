@@ -1,6 +1,6 @@
 6.08.13
 
-Fixed bug in `gam <UserTypeEntity> copy othercontacts` that rendered it unusable; sigh.
+Fixed bugs in `gam <UserTypeEntity> copy othercontacts` that rendered it unusable; sigh.
 
 Following Jay's lead, added support for newly announced group member restrictions.
 You can update groups to restrict membership to only include users, groups or service accounts as well as internal users and groups.

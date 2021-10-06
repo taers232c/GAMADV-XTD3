@@ -17714,7 +17714,7 @@ def copyUserPeopleOtherContacts(users):
     if not people:
       continue
     if queriedContacts:
-      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships', None, entityType, user, i, count)
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
       if entityList is None:
         continue
     j = 0
