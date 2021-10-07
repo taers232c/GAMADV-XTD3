@@ -1,3 +1,13 @@
+6.08.15
+
+In 6.07.24, `delivery_settings` was added to the default list of fields in `gam print group-members`.
+Unfortunately, it is still the case that an additional API call per member is required to get this setting;
+this makes getting group members very slow for large groups.
+
+`delivery_settings` has been removed from the default list of fields and the option `showdeliverysettings`
+adds this field to the default list of fields. You can always specify a specific list of fields that includes
+`delivery_settings`.
+
 6.08.14
 
 Fixed bug in `gam redirect csv ... multiprocess ...` that caused a trap when running on Windows.

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.14'
+__version__ = '6.08.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -26175,20 +26175,21 @@ GROUPMEMBERS_FIELDS_CHOICE_MAP = {
   'useremail': 'email',
   }
 
-GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email', 'delivery_settings']
+GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 
 # gam print group-members [todrive <ToDriveAttribute>*]
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
 #	 (select <GroupEntity>)]
-#	[notsuspended|suspended] [notarchived|archived]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
 #	[showownedby <UserItem>]
 #	[roles <GroupRoleList>] [members] [managers] [owners]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
-#	[membernames] <MembersFieldName>* [fields <MembersFieldNameList>]
+#	[membernames] [showdeliverysettings]
+#	<MembersFieldName>* [fields <MembersFieldNameList>]
 #	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
 #	[includederivedmembership]
@@ -26223,6 +26224,7 @@ def doPrintGroupMembers():
   rolesSet = set()
   typesSet = set()
   matchPatterns = {}
+  showDeliverySettings = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -26256,6 +26258,8 @@ def doPrintGroupMembers():
       pass
     elif myarg == 'membernames':
       memberOptions[MEMBEROPTION_MEMBERNAMES] = True
+    elif myarg == 'showdeliverysettings':
+      showDeliverySettings = True
     elif myarg == 'userfields':
       for field in _getFieldsList():
         if field in USER_FIELDS_CHOICE_MAP:
@@ -26283,6 +26287,9 @@ def doPrintGroupMembers():
   entityList = getGroupMembersEntityList(cd, entityList, matchPatterns, cdfieldsList, kwargs)
   if not fieldsList:
     for field in GROUPMEMBERS_DEFAULT_FIELDS:
+      csvPF.AddField(field, {field: field}, fieldsList)
+    if showDeliverySettings:
+      field = 'delivery_settings'
       csvPF.AddField(field, {field: field}, fieldsList)
   elif 'name'in fieldsList:
     memberOptions[MEMBEROPTION_MEMBERNAMES] = True
@@ -26395,11 +26402,11 @@ def doPrintGroupMembers():
 #	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
 #	 (select <GroupEntity>)]
-#	[notsuspended|suspended] [notarchived|archived]
 #	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
+#	[notsuspended|suspended] [notarchived|archived]
 #	[types <GroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[includederivedmembership]
