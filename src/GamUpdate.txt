@@ -1,3 +1,7 @@
+6.08.14
+
+Fixed bug in `gam redirect csv ... multiprocess ...` that caused a trap when running on Windows.
+
 6.08.13
 
 Fixed bugs in `gam <UserTypeEntity> copy othercontacts` that rendered it unusable; sigh.

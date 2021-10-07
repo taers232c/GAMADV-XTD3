@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.13'
+__version__ = '6.08.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4462,6 +4462,9 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
     elif http_status == 409:
       if status == 'ALREADY_EXISTS' or 'requested entity already exists' in lmessage:
         error = makeErrorDict(http_status, GAPI.ALREADY_EXISTS, message)
+    elif http_status == 412:
+      if 'insufficient archived user licenses' in lmessage:
+        error = makeErrorDict(http_status, GAPI.INSUFFICIENT_ARCHIVED_USER_LICENSES, message)
     elif http_status == 429:
       if status == 'RESOURCE_EXHAUSTED' or 'quota exceeded' in lmessage:
         error = makeErrorDict(http_status, GAPI.QUOTA_EXCEEDED, message)
@@ -7847,7 +7850,7 @@ def restoreNonPickleableValues(savedValues):
   GM.Globals[GM.CMDLOG_HANDLER] = savedValues[GM.CMDLOG_HANDLER]
   GM.Globals[GM.CMDLOG_LOGGER] = savedValues[GM.CMDLOG_LOGGER]
 
-def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
+def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNow):
   global Cmd
 
   def reopenSTDFile(stdtype):
@@ -7865,6 +7868,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
     else:
       GM.Globals[stdtype][GM.REDIRECT_MULTI_FD] = GM.Globals[stdtype][GM.REDIRECT_FD] if not GM.Globals[stdtype][GM.REDIRECT_MULTIPROCESS] else StringIOobject()
 
+  GM.Globals[GM.DATETIME_NOW] = datetimeNow
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
   if GM.Globals[GM.WINDOWS]:
@@ -7928,7 +7932,9 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF):
 
 def initializeCSVFileQueueHandler(mpQueueStdout, mpQueueStderr):
   mpQueue = multiprocessing.Manager().Queue()
-  mpQueueHandler = multiprocessing.Process(target=CSVFileQueueHandler, args=(mpQueue, mpQueueStdout, mpQueueStderr, GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE_CSVPF]))
+  mpQueueHandler = multiprocessing.Process(target=CSVFileQueueHandler,
+                                           args=(mpQueue, mpQueueStdout, mpQueueStderr,
+                                                 GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE_CSVPF], GM.Globals[GM.DATETIME_NOW]))
   mpQueueHandler.start()
   return (mpQueue, mpQueueHandler)
 

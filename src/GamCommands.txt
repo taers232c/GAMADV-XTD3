@@ -439,6 +439,8 @@ If an item contains spaces, it should be surrounded by ".
         See: https://support.google.com/mail/answer/7190
 <QueryGroup> ::= <String>
         See: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups
+<QueryMemberRestrictions> ::= <String>
+        See: https://cloud.google.com/identity/docs/reference/rest/v1beta1/SecuritySettings#MemberRestriction
 <QueryMobile> ::= <String>
         See: https://support.google.com/a/answer/7549103
 <QueryTeamDrive> ::= <String>
