@@ -16,7 +16,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 GAMADV-XTD3 is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
 
@@ -7851,7 +7850,7 @@ def restoreNonPickleableValues(savedValues):
   GM.Globals[GM.CMDLOG_HANDLER] = savedValues[GM.CMDLOG_HANDLER]
   GM.Globals[GM.CMDLOG_LOGGER] = savedValues[GM.CMDLOG_LOGGER]
 
-def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNow):
+def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNow, tzinfo):
   global Cmd
 
   def reopenSTDFile(stdtype):
@@ -7870,6 +7869,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
       GM.Globals[stdtype][GM.REDIRECT_MULTI_FD] = GM.Globals[stdtype][GM.REDIRECT_FD] if not GM.Globals[stdtype][GM.REDIRECT_MULTIPROCESS] else StringIOobject()
 
   GM.Globals[GM.DATETIME_NOW] = datetimeNow
+  GC.Values[GC.TIMEZONE] = tzinfo
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
   if GM.Globals[GM.WINDOWS]:
@@ -7935,7 +7935,8 @@ def initializeCSVFileQueueHandler(mpQueueStdout, mpQueueStderr):
   mpQueue = multiprocessing.Manager().Queue()
   mpQueueHandler = multiprocessing.Process(target=CSVFileQueueHandler,
                                            args=(mpQueue, mpQueueStdout, mpQueueStderr,
-                                                 GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE_CSVPF], GM.Globals[GM.DATETIME_NOW]))
+                                                 GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE_CSVPF],
+                                                 GM.Globals[GM.DATETIME_NOW], GC.Values[GC.TIMEZONE]))
   mpQueueHandler.start()
   return (mpQueue, mpQueueHandler)
 
