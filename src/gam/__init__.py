@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.15'
+__version__ = '6.08.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -8126,8 +8126,8 @@ def MultiprocessGAMCommands(items, showCmds):
       batchWriteStderr(f'{currentISOformatTimeStamp()},{result[0]}/{numItems},End,{result[1]},{result[2]}\n')
     if GM.Globals[GM.CMDLOG_LOGGER]:
       GM.Globals[GM.CMDLOG_LOGGER].info(f'{currentISOformatTimeStamp()},{result[1]},{result[2]}')
-    if GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] is not None:
-      GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING] = checkChildProcessRC(result[1])
+    if GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] is not None and checkChildProcessRC(result[1]):
+      GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING] = True
 
   if not items:
     return
@@ -8242,8 +8242,8 @@ def threadBatchWorker(showCmds=False, numItems=0):
                               stderr=GM.Globals[GM.STDERR].get(GM.REDIRECT_MULTI_FD, sys.stderr))
       if showCmds:
         batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},End,{sysRC},{logCmd}\n')
-      if GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] is not None:
-        GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING] = checkChildProcessRC(sysRC)
+      if GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] is not None and checkChildProcessRC(sysRC):
+        GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING] = True
     except Exception as e:
       batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Error,{str(e)},{logCmd}\n')
     GM.Globals[GM.TBATCH_QUEUE].task_done()

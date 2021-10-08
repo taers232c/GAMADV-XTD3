@@ -1,3 +1,8 @@
+6.08.16
+
+Fixed bug in metacommand `multiprocessexit` where GAM would not terminate when the condition was met
+by one process while multiple other processes termintated simultaneously with the condition not met.
+
 6.08.15
 
 In 6.07.24, `delivery_settings` was added to the default list of fields in `gam print group-members`.
