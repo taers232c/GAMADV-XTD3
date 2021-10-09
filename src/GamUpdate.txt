@@ -1,3 +1,10 @@
+6.08.17
+
+* Upgraded to Python 3.10.0
+
+Fixed bug in `gam show cigroup-members` where the deprecated field `memberKey` was still being used;
+it was replaced with `preferredMemberKey`.
+
 6.08.16
 
 Fixed bug in metacommand `multiprocessexit` where GAM would not terminate when the condition was met

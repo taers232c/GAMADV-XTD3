@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.16'
+__version__ = '6.08.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -27951,7 +27951,7 @@ def doShowCIGroupMembers():
       Ind.Increment()
     for member in sorted(membersList, key=lambda k: (_roleOrder(k.get('role', Ent.ROLE_MEMBER)), _typeOrder(k['type']))):
       if (member['type'] in typesSet and _checkMemberRole(member, rolesSet) and checkCIMemberMatch(member, memberOptions)):
-        memberDetails = f'{member.get("role", Ent.ROLE_MEMBER)}, {member["type"]}, {member["memberKey"]["id"]}'
+        memberDetails = f'{member.get("role", Ent.ROLE_MEMBER)}, {member["type"]}, {member["preferredMemberKey"]["id"]}'
         for field in ['createTime', 'updateTime', 'expireTime']:
           if field in member:
             memberDetails += f', {formatLocalTime(member[field])}'
