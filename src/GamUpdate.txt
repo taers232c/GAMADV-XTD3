@@ -1,6 +1,9 @@
-6.08.17
+6.08.18
 
-* Upgraded to Python 3.10.0
+Updated code to work around issue in Cloud Identity Groups API where a group member of
+type `CUSTOMER` is not properly marked as that type; this caused a trap.
+
+6.08.17
 
 Fixed bug in `gam show cigroup-members` where the deprecated field `memberKey` was still being used;
 it was replaced with `preferredMemberKey`.

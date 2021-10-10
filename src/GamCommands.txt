@@ -291,7 +291,7 @@ If an item contains spaces, it should be surrounded by ".
 <CalendarItem> ::= <EmailAddress>|<String>
 <GIGroupAlias> ::= <EmailAddress>|<String>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
-<CIGroupType> ::= customer|group|serviceaccount|user
+<CIGroupType> ::= customer|group|other|serviceaccount|user
 <ChatMember> ::= spaces/<String>/members/<String>
 <ChatMessage> ::= spaces/<String>/messages/<String>
 <ChatSpace> ::= spaces/<String> | <String>

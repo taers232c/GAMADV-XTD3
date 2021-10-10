@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.17'
+__version__ = '6.08.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4995,8 +4995,13 @@ def _checkMemberRole(member, validRoles):
 def _checkMemberRoleIsSuspendedIsArchived(member, validRoles, isSuspended, isArchived):
   return _checkMemberRole(member, validRoles) and _checkMemberIsSuspendedIsArchived(member, isSuspended, isArchived)
 
-def getCIGroupMemberRole(member):
-  ''' returns the highest role of member '''
+def getCIGroupMemberRoleFixType(member):
+  ''' fixes missing type and returns the highest role of member '''
+  if 'type' not in member:
+    if member['preferredMemberKey']['id'] == GC.Values[GC.CUSTOMER_ID]:
+      member['type'] = Ent.TYPE_CUSTOMER
+    else:
+      member['type'] = Ent.TYPE_OTHER
   roles = {}
   memberRoles = member.get('roles', [{'name': Ent.MEMBER}])
   for role in memberRoles:
@@ -5159,7 +5164,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
       _incrEntityDoesNotExist(Ent.CLOUD_IDENTITY_GROUP)
       return
     for member in result:
-      getCIGroupMemberRole(member)
+      getCIGroupMemberRoleFixType(member)
       if member['type'] == Ent.TYPE_USER:
         email = member.get('preferredMemberKey', {}).get('id', '')
         if (email and _checkMemberRole(member, validRoles) and email not in entitySet):
@@ -5326,7 +5331,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
           _incrEntityDoesNotExist(Ent.CLOUD_IDENTITY_GROUP)
           continue
         for member in result:
-          getCIGroupMemberRole(member)
+          getCIGroupMemberRoleFixType(member)
           email = member.get('preferredMemberKey', {}).get('id', '')
           if (email and (groupMemberType in ('ALL', member['type'])) and
               _checkMemberRole(member, validRoles) and email not in entitySet):
@@ -26033,7 +26038,7 @@ def infoGroupMembers(entityList, ciGroupsAPI=False):
                             name=memberName)
           printEntity([entityType, group], j, jcount)
           Ind.Increment()
-          getCIGroupMemberRole(result)
+          getCIGroupMemberRoleFixType(result)
           kvList = ['role', result['role']]
           if 'expireTime' in result:
             kvList.extend(['expireTime', formatLocalTime(result['expireTime'])])
@@ -27025,7 +27030,7 @@ def doUpdateCIGroups():
         currentMembersSets[role] = set()
         currentMembersMaps[role] = {}
       for member in result:
-        getCIGroupMemberRole(member)
+        getCIGroupMemberRoleFixType(member)
         role = member['role']
         email = member.get('preferredMemberKey', {}).get('id', '')
         if groupMemberType in ('ALL', member['type']) and role in rolesSet:
@@ -27101,7 +27106,7 @@ def doUpdateCIGroups():
           postUpdateRoles = []
           memberRoles = callGAPI(ci.groups().memberships(), 'get',
                                  name=memberName, fields='roles')
-          getCIGroupMemberRole(memberRoles)
+          getCIGroupMemberRoleFixType(memberRoles)
           current_roles = [crole['name'] for crole in memberRoles['roles']]
           # When upgrading role, strip any expiryDetail from member before role changes
           if role != Ent.ROLE_MEMBER:
@@ -27195,7 +27200,7 @@ def doUpdateCIGroups():
       for role in rolesSet:
         removeMembers[role] = []
       for member in result:
-        getCIGroupMemberRole(member)
+        getCIGroupMemberRoleFixType(member)
         memberName = member['name']
         memberEmail = _getMemberEmail(member)
         role = member['role']
@@ -27221,12 +27226,13 @@ def doDeleteCIGroups():
   doDeleteGroups(ciGroupsAPI=True)
 
 CIGROUP_TYPES_MAP = {
+  'customer': Ent.TYPE_CUSTOMER,
   'group': Ent.TYPE_GROUP,
   'other': Ent.TYPE_OTHER,
   'serviceaccount': Ent.TYPE_SERVICE_ACCOUNT,
   'user': Ent.TYPE_USER,
   }
-ALL_CIGROUP_TYPES = {Ent.TYPE_GROUP, Ent.TYPE_OTHER, Ent.TYPE_SERVICE_ACCOUNT, Ent.TYPE_USER}
+ALL_CIGROUP_TYPES = {Ent.TYPE_CUSTOMER, Ent.TYPE_GROUP, Ent.TYPE_OTHER, Ent.TYPE_SERVICE_ACCOUNT, Ent.TYPE_USER}
 
 def getCIGroupTypes(myarg, typesSet):
   if myarg in {'type', 'types'}:
@@ -27266,7 +27272,7 @@ def doInfoCIGroups():
       member_email = member.get('preferredMemberKey', {}).get('id')
       member_type = member.get('type', 'USER').lower()
       if showRole:
-        getCIGroupMemberRole(member)
+        getCIGroupMemberRoleFixType(member)
         printKeyValueList([member['role'].lower(), f'{member_email} ({member_type})'])
       else:
         writeStdout(f'{Ind.Spaces()}{member_email} ({member_type})\n')
@@ -27359,7 +27365,7 @@ def doInfoCIGroups():
                                parent=name, view=view, fields='*', pageSize=pageSize)
         members = []
         for member in result:
-          getCIGroupMemberRole(member)
+          getCIGroupMemberRoleFixType(member)
           if (member['type'] in typesSet and _checkMemberRole(member, rolesSet) and checkCIMemberMatch(member, memberOptions)):
             members.append(member)
       if getSecuritySettings:
@@ -27378,7 +27384,7 @@ def doInfoCIGroups():
         Ind.Increment()
         for member in members:
           memberEmail = member.get('preferredMemberKey', {}).get('id', member['name'])
-          getCIGroupMemberRole(member)
+          getCIGroupMemberRoleFixType(member)
           kvList = [member['role'].lower(), f'{memberEmail} ({member["type"].lower()})']
           if showJoinDate:
             kvList.extend(['joined', formatLocalTime(member['createTime']) if 'createTime' in member else 'Unknown'])
@@ -27438,7 +27444,7 @@ PRINT_CIGROUPS_JSON_TITLES = ['email', 'JSON']
 def doPrintCIGroups():
   def _printGroupRow(groupEntity, groupMembers):
     for member in groupMembers:
-      getCIGroupMemberRole(member)
+      getCIGroupMemberRoleFixType(member)
     if showOwnedBy and not checkCIGroupShowOwnedBy(showOwnedBy, groupMembers):
       return
     if not keepName:
@@ -27712,21 +27718,21 @@ def getCIGroupMembers(ci, groupName, memberRoles, membersList, membersSet, i, co
   if not memberOptions[MEMBEROPTION_RECURSIVE]:
     if memberOptions[MEMBEROPTION_NODUPLICATES]:
       for member in groupMembers:
-        getCIGroupMemberRole(member)
+        getCIGroupMemberRoleFixType(member)
         if _checkMemberRole(member, validRoles) and member['name'] not in membersSet:
           membersSet.add(member['name'])
           if member['type'] in typesSet and checkCIMemberMatch(member, memberOptions):
             membersList.append(member)
     else:
       for member in groupMembers:
-        getCIGroupMemberRole(member)
+        getCIGroupMemberRoleFixType(member)
         if _checkMemberRole(member, validRoles):
           if member['type'] in typesSet and checkCIMemberMatch(member, memberOptions):
             membersList.append(member)
   elif memberOptions[MEMBEROPTION_NODUPLICATES]:
     groupMemberList = []
     for member in groupMembers:
-      getCIGroupMemberRole(member)
+      getCIGroupMemberRoleFixType(member)
       if member['type'] == Ent.TYPE_USER:
         if (member['type'] in typesSet and checkCIMemberMatch(member, memberOptions) and
             _checkMemberRole(member, validRoles) and
@@ -27748,7 +27754,7 @@ def getCIGroupMembers(ci, groupName, memberRoles, membersList, membersSet, i, co
       getCIGroupMembers(ci, member, memberRoles, membersList, membersSet, i, count, memberOptions, level+1, typesSet)
   else:
     for member in groupMembers:
-      getCIGroupMemberRole(member)
+      getCIGroupMemberRoleFixType(member)
       if member['type'] == Ent.TYPE_USER:
         if (member['type'] in typesSet and checkCIMemberMatch(member, memberOptions) and
             _checkMemberRole(member, validRoles)):
@@ -27936,7 +27942,7 @@ def doShowCIGroupMembers():
                                   parent=groupName, view='FULL',
                                   fields='nextPageToken,memberships(*)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
       for member in membersList:
-        getCIGroupMemberRole(member)
+        getCIGroupMemberRoleFixType(member)
       if showOwnedBy and not checkCIGroupShowOwnedBy(showOwnedBy, membersList):
         return
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
