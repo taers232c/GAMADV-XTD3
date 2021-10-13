@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.18'
+__version__ = '6.08.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -24332,7 +24332,7 @@ def doUpdateGroups():
         _removeMember(group, i, count, role, member, j, jcount)
       Ind.Decrement()
       return
-    svcargs = dict([('groupKey', group), ('preferredMemberKey', None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    svcargs = dict([('groupKey', group), ('memberKey', None)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), 'delete')
     dbatch = cd.new_batch_http_request(callback=_callbackRemoveGroupMembers)
     bcount = 0
@@ -24341,8 +24341,8 @@ def doUpdateGroups():
     for member in removeMembers:
       j += 1
       svcparms = svcargs.copy()
-      svcparms['preferredMemberKey'] = member
-      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms['preferredMemberKey'], role))
+      svcparms['memberKey'] = member
+      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms['memberKey'], role))
       bcount += 1
       if bcount >= remBatchParms['size']:
         remBatchParms['adjust'] = True
@@ -24423,7 +24423,7 @@ def doUpdateGroups():
       Ind.Decrement()
       return
     body, role = _getUpdateBody(role, delivery_settings)
-    svcargs = dict([('groupKey', group), ('preferredMemberKey', None), ('body', body), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    svcargs = dict([('groupKey', group), ('memberKey', None), ('body', body), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.members(), 'patch')
     dbatch = cd.new_batch_http_request(callback=_callbackUpdateGroupMembers)
     bcount = 0
@@ -24432,8 +24432,8 @@ def doUpdateGroups():
     for member in updateMembers:
       j += 1
       svcparms = svcargs.copy()
-      svcparms['preferredMemberKey'] = member
-      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms['preferredMemberKey'], role, delivery_settings))
+      svcparms['memberKey'] = member
+      dbatch.add(method(**svcparms), request_id=batchRequestID(group, i, count, j, jcount, svcparms['memberKey'], role, delivery_settings))
       bcount += 1
       if bcount >= updBatchParms['size']:
         updBatchParms['adjust'] = True
