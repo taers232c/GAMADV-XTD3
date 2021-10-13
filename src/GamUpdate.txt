@@ -1,3 +1,9 @@
+6.08.20
+
+Updated `gam print|show ownership` to display the event name of the most recent
+primary event. If the event name is `delete`, then you'll know who the owner was
+but won't be able to do much with the file.
+
 6.08.19
 
 Fixed bug in `gam update group` where field `memberKey` was mistakenly converted to `preferredMemberKey`;

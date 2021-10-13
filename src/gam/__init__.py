@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.19'
+__version__ = '6.08.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -49565,14 +49565,14 @@ def doPrintShowOwnership():
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if csvPF and not FJQC.formatJSON:
-    csvPF.AddTitles(['id', fileNameTitle, 'type', 'ownerIsTeamDrive', 'driveId'])
+    csvPF.AddTitles(['id', fileNameTitle, 'type', 'ownerIsSharedDrive', 'driveId', 'event'])
     csvPF.SetSortAllTitles()
   foundIds = {}
   try:
     feed = callGAPIpages(rep.activities(), 'list', 'items',
                          throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.AUTH_ERROR],
                          applicationName='drive', userKey='all', customerId=customerId,
-                         filters=filters, fields='nextPageToken,items(events(parameters))')
+                         filters=filters, fields='nextPageToken,items(events(name,parameters))')
   except GAPI.badRequest:
     systemErrorExit(BAD_REQUEST_RC, Msg.BAD_REQUEST)
   except GAPI.invalid as e:
@@ -49582,7 +49582,7 @@ def doPrintShowOwnership():
   for activity in feed:
     events = activity.pop('events')
     for event in events:
-      fileInfo = {}
+      fileInfo = {'event': event['name']}
       for item in event.get('parameters', []):
         if item['name'] == 'primary_event':
           if not item['boolValue']:
@@ -49608,7 +49608,10 @@ def doPrintShowOwnership():
             if not FJQC.formatJSON:
               printEntityKVList([Ent.OWNER, fileInfo['Owner']],
                                 ['id', fileInfo['id'], fileNameTitle, fileInfo.get(fileNameTitle, ''),
-                                 'type', fileInfo.get('type', ''), 'ownerIsSharedDrive', fileInfo.get('ownerIsSharedDrive', False), 'driveId', fileInfo.get('driveId', '')])
+                                 'type', fileInfo.get('type', ''),
+                                 'ownerIsSharedDrive', fileInfo.get('ownerIsSharedDrive', False),
+                                 'driveId', fileInfo.get('driveId', ''),
+                                 'event', fileInfo['event']])
             else:
               printLine(json.dumps(cleanJSON(fileInfo), ensure_ascii=False, sort_keys=True))
           else:

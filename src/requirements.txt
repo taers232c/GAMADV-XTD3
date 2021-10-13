@@ -1,12 +1,12 @@
 lxml
 cryptography
 distro; sys_platform == 'linux'
-filelock>=3.0.12
-google-api-python-client>=2.21.0
+filelock>=3.3.0
+google-api-python-client>=2.26.1
 google-auth-httplib2>=0.1.0
 google-auth-oauthlib>=0.4.6
-google-auth>=2.1.0
-httplib2>=0.19.1
+google-auth>=2.3.0
+httplib2>=0.20.1
 importlib.metadata; python_version < '3.8'
 passlib>=1.7.4
 python-dateutil>=2.8.2
