@@ -1,3 +1,8 @@
+6.08.22
+
+Fixed bug in `gam create|clear|dedup|delete|info|print|show|update contacts` where
+the command would fail if the domain was not defined in gam.cfg
+
 6.08.21
 
 Fixed bug `gam <UserTypeEntity> print contactdelegates` that caused a trap.

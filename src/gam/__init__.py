@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.21'
+__version__ = '6.08.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4765,8 +4765,9 @@ def getGDataUserCredentials(api, user, i, count):
     return (userEmail, None)
 
 def getContactsObject(contactFeed):
-  return initGDataObject(gdata.apps.contacts.service.ContactsService(contactFeed=contactFeed),
-                         API.CONTACTS)
+  contactsObject = initGDataObject(gdata.apps.contacts.service.ContactsService(contactFeed=contactFeed),
+                                   API.CONTACTS)
+  return (GC.Values[GC.DOMAIN], contactsObject)
 
 def getContactsQuery(**kwargs):
   if GC.Values[GC.NO_VERIFY_SSL]:
@@ -15500,11 +15501,10 @@ def dedupEmailAddressMatches(contactsManager, emailMatchType, fields):
 
 def _createContact():
   entityType = Ent.DOMAIN
-  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   fields = contactsManager.GetContactFields(entityType)
   contactEntry = contactsManager.FieldsToContact(fields)
-  contactsObject = getContactsObject(True)
+  user, contactsObject = getContactsObject(True)
   try:
     contact = callGData(contactsObject, 'CreateContact',
                         throwErrors=[GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN],
@@ -15524,7 +15524,6 @@ def doCreateDomainContact():
 
 def _clearUpdateContacts(updateContacts):
   entityType = Ent.DOMAIN
-  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   entityList, contactQuery, queriedContacts = _getContactEntityList(1, False)
   if updateContacts:
@@ -15544,7 +15543,7 @@ def _clearUpdateContacts(updateContacts):
         unknownArgumentExit()
     if not contactClear['emailClearPattern']:
       missingArgumentExit('emailclearpattern')
-  contactsObject = getContactsObject(True)
+  user, contactsObject = getContactsObject(True)
   if queriedContacts:
     entityList = queryContacts(contactsObject, contactQuery)
     if entityList is None:
@@ -15617,7 +15616,6 @@ def doUpdateDomainContacts():
 
 def _dedupContacts():
   entityType = Ent.DOMAIN
-  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   contactQuery = _initContactQueryAttributes()
   emailMatchType = False
@@ -15627,7 +15625,7 @@ def _dedupContacts():
       emailMatchType = getBoolean()
     else:
       _getContactQueryAttributes(contactQuery, myarg, -1, False)
-  contactsObject = getContactsObject(True)
+  user, contactsObject = getContactsObject(True)
   contacts = queryContacts(contactsObject, contactQuery)
   if contacts is None:
     return
@@ -15673,10 +15671,9 @@ def doDedupDomainContacts():
 
 def _deleteContacts():
   entityType = Ent.DOMAIN
-  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   entityList, contactQuery, queriedContacts = _getContactEntityList(-1, False)
-  contactsObject = getContactsObject(True)
+  user, contactsObject = getContactsObject(True)
   if queriedContacts:
     entityList = queryContacts(contactsObject, contactQuery)
     if entityList is None:
@@ -15789,7 +15786,6 @@ def _getContactFieldsList(contactsManager, displayFieldsList):
 
 def _infoContacts(contactFeed):
   entityType = Ent.DOMAIN
-  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
   contactQuery = _initContactQueryAttributes()
@@ -15803,7 +15799,7 @@ def _infoContacts(contactFeed):
       _getContactFieldsList(contactsManager, displayFieldsList)
     else:
       FJQC.GetFormatJSON(myarg)
-  contactsObject = getContactsObject(contactFeed)
+  user, contactsObject = getContactsObject(contactFeed)
   j = 0
   jcount = len(entityList)
   if not FJQC.formatJSON:
@@ -15845,7 +15841,6 @@ def doInfoGAL():
 
 def _printShowContacts(contactFeed):
   entityType = Ent.DOMAIN
-  user = GC.Values[GC.DOMAIN]
   entityTypeName = Ent.Singular(entityType)
   contactsManager = ContactsManager()
   csvPF = CSVPrintFile([entityTypeName, CONTACT_ID, CONTACT_NAME], 'sortall',
@@ -15870,7 +15865,7 @@ def _printShowContacts(contactFeed):
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  contactsObject = getContactsObject(contactFeed)
+  user, contactsObject = getContactsObject(contactFeed)
   contacts = queryContacts(contactsObject, contactQuery)
   if countsOnly:
     jcount = countLocalContactSelects(contactsManager, contacts, contactQuery)
@@ -15989,7 +15984,6 @@ def _processContactPhotos(function):
     return filename
 
   entityType = Ent.DOMAIN
-  user = GC.Values[GC.DOMAIN]
   contactsManager = ContactsManager()
   entityList, contactQuery, queriedContacts = _getContactEntityList(1, False)
   if function in {'ChangePhoto', 'GetPhoto'}:
@@ -16013,7 +16007,7 @@ def _processContactPhotos(function):
       filename = filenamePattern
   else: #elif function == 'DeletePhoto':
     checkForExtraneousArguments()
-  contactsObject = getContactsObject(True)
+  user, contactsObject = getContactsObject(True)
   if queriedContacts:
     entityList = queryContacts(contactsObject, contactQuery)
     if entityList is None:
