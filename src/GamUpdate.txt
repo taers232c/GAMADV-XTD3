@@ -1,3 +1,7 @@
+6.08.21
+
+Fixed bug `gam <UserTypeEntity> print contactdelegates` that caused a trap.
+
 6.08.20
 
 Updated `gam print|show ownership` to display the event name of the most recent

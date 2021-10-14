@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.20'
+__version__ = '6.08.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18408,7 +18408,7 @@ def _validateUserGetDelegateList(cd, user, i, count, entity):
     entityList = entity['dict'][user]
   else:
     entityList = entity['list']
-  user = checkUserExists(cd, user, i, count)
+  user = checkUserExists(cd, user, Ent.USER, i, count)
   if not user:
     return (user, None, 0)
   jcount = len(entityList)
@@ -18461,7 +18461,7 @@ def processContactDelegates(users):
                    throwReasons=GAPI.CONTACT_DELEGATE_THROW_REASONS,
                    user=user, delegate=delegateEmail)
         entityActionPerformed([Ent.USER, user, Ent.CONTACT_DELEGATE, delegateEmail], j, jcount)
-      except (GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+      except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.CONTACT_DELEGATE, delegateEmail], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -18492,7 +18492,7 @@ def printShowContactDelegates(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user = checkUserExists(cd, user, i, count)
+    user = checkUserExists(cd, user, Ent.USER, i, count)
     if not user:
       continue
     if csvPF:
@@ -18501,7 +18501,7 @@ def printShowContactDelegates(users):
       delegates = callGAPIpages(condel.delegates(), 'list', 'delegates',
                                 throwReasons=GAPI.CONTACT_DELEGATE_THROW_REASONS,
                                 user=user)
-    except (GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.CONTACT_DELEGATE, None], str(e), i, count)
       continue
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
