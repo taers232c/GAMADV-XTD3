@@ -128,8 +128,6 @@ def parse_timezone_str(tzstring):
   groups = m.groupdict()
   return parse_timezone(groups)
 
-ONE_SECOND = timedelta(seconds=1)
-
 def parse_date(datestring):
   """Parses ISO 8601 dates into datetime objects
 
@@ -150,14 +148,13 @@ def parse_date(datestring):
   groups = m.groupdict()
   tz = parse_timezone(groups)
   try:
-    timestamp = datetime(year=int(groups['year']),
-                         month=int(groups['month']),
-                         day=int(groups['day']),
-                         hour=int(groups['hour']),
-                         minute=int(groups['minute']),
-                         second=int(groups['second']))
-    if groups['second_fraction'] is not None and groups['second_fraction'] and groups['second_fraction'][0] >= '5':
-      timestamp += ONE_SECOND
-    return (timestamp, tz)
+    return (datetime(year=int(groups['year']),
+                     month=int(groups['month']),
+                     day=int(groups['day']),
+                     hour=int(groups['hour']),
+                     minute=int(groups['minute']),
+                     second=int(groups['second']),
+                     tzinfo=tz),
+            tz)
   except Exception as e:
     raise ParseError(e)
