@@ -1,3 +1,9 @@
+6.08.23
+
+Updated code to handle Google timestamps with fractional seconds, e.g., `2021-10-13T13:35:42.590124Z`.
+The fraction is removed and if it is .5 or greater, the seconds are incremented. This timestamp format
+is not common, but it is used with Cloud Identity group members.
+
 6.08.22
 
 Fixed bug in `gam create|clear|dedup|delete|info|print|show|update contacts` where

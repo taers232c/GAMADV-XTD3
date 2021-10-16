@@ -69,9 +69,9 @@ class FixedOffset(tzinfo):
 
 STDOFFSET = timedelta(seconds = -_time.timezone)
 if _time.daylight:
-    DSTOFFSET = timedelta(seconds = -_time.altzone)
+  DSTOFFSET = timedelta(seconds = -_time.altzone)
 else:
-    DSTOFFSET = STDOFFSET
+  DSTOFFSET = STDOFFSET
 
 DSTDIFF = DSTOFFSET - STDOFFSET
 
@@ -127,7 +127,9 @@ def parse_timezone_str(tzstring):
     raise ParseError("Unable to parse timezone string %r" % tzstring)
   groups = m.groupdict()
   return parse_timezone(groups)
-   
+
+ONE_SECOND = timedelta(seconds=1)
+
 def parse_date(datestring):
   """Parses ISO 8601 dates into datetime objects
 
@@ -148,13 +150,14 @@ def parse_date(datestring):
   groups = m.groupdict()
   tz = parse_timezone(groups)
   try:
-    return (datetime(year=int(groups['year']),
-                     month=int(groups['month']),
-                     day=int(groups['day']),
-                     hour=int(groups['hour']),
-                     minute=int(groups['minute']),
-                     second=int(groups['second']),
-                     tzinfo=tz),
-            tz)
+    timestamp = datetime(year=int(groups['year']),
+                         month=int(groups['month']),
+                         day=int(groups['day']),
+                         hour=int(groups['hour']),
+                         minute=int(groups['minute']),
+                         second=int(groups['second']))
+    if groups['second_fraction'] is not None and int(groups['second_fraction']) >= 500000:
+      timestamp += ONE_SECOND
+    return (timestamp, tz)
   except Exception as e:
     raise ParseError(e)

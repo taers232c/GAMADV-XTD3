@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.22'
+__version__ = '6.08.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -2079,11 +2079,11 @@ def formatFileSize(fileSize):
 def formatLocalTime(dateTimeStr):
   if dateTimeStr in {NEVER_TIME, NEVER_TIME_NOMS}:
     return GC.Values[GC.NEVER_TIME]
-  if not GM.Globals[GM.CONVERT_TO_LOCAL_TIME] or not dateTimeStr.endswith('Z'):
-    return dateTimeStr
   try:
     timestamp, _ = iso8601.parse_date(dateTimeStr)
-    return ISOformatTimeStamp(timestamp.astimezone(GC.Values[GC.TIMEZONE]))
+    if GM.Globals[GM.CONVERT_TO_LOCAL_TIME]:
+      return ISOformatTimeStamp(timestamp.astimezone(GC.Values[GC.TIMEZONE]))
+    return timestamp.strftime(YYYYMMDDTHHMMSSZ_FORMAT)
   except (iso8601.ParseError, OverflowError):
     return dateTimeStr
 
@@ -3901,7 +3901,12 @@ def _getValueFromOAuth(field, credentials=None):
       credentials = getClientCredentials(refreshOnly=True)
     elif credentials.expired:
       credentials.refresh(request)
-    GM.Globals[GM.DECODED_ID_TOKEN] = google.oauth2.id_token.verify_oauth2_token(credentials.id_token, request)
+    try:
+      GM.Globals[GM.DECODED_ID_TOKEN] = google.oauth2.id_token.verify_oauth2_token(credentials.id_token, request)
+    except ValueError as e:
+      if 'Token used too early' in str(e):
+        stderrErrorMsg(Msg.PLEASE_CORRECT_YOUR_SYSTEM_TIME)
+      systemErrorExit(SYSTEM_ERROR_RC, str(e))
   return GM.Globals[GM.DECODED_ID_TOKEN].get(field, 'Unknown')
 
 def _getAdminEmail():
