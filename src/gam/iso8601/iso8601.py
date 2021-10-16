@@ -156,7 +156,7 @@ def parse_date(datestring):
                          hour=int(groups['hour']),
                          minute=int(groups['minute']),
                          second=int(groups['second']))
-    if groups['second_fraction'] is not None and int(groups['second_fraction']) >= 500000:
+    if groups['second_fraction'] is not None and groups['second_fraction'] and groups['second_fraction'][0] >= '5':
       timestamp += ONE_SECOND
     return (timestamp, tz)
   except Exception as e:
