@@ -3,6 +3,11 @@
 Fixed bug in `gam <UserTypeEntity> print|show contacts fields ...` that caused an error
 when retrieving other contacts.
 
+Revert Google Auth library to version 2.0.2 to avoid the following error:
+```
+ERROR: Token used too early, 1634572527 < 1634572532. Check that your computer's clock is set correctly.
+```
+
 6.08.23
 
 Updated code to format Google timestamps with fractional seconds, e.g., `2021-10-13T13:35:42.590124Z`
