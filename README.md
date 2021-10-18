@@ -12,7 +12,7 @@ GAMADV-XTD3 is a rewrite/extension of Jay Lee's [GAM], without his efforts, this
 GAMADV-XTD3 is backwards compatible with [GAM], meaning that if your command works with regular GAM, it will also work with GAMADV-XTD3. There may be differences in output, but the syntax is compatible.
 
 # Documentation
-Basic GAM documentation is hosted in the [GitHub Wiki]. Documentation specifically for GAMADV-XTD3 is hosted in the [GitHub GAMADV-XTD3 Wiki] and in Gam*.txt files.
+Documentation for GAMADV-XTD3 is hosted in the [GitHub GAMADV-XTD3 Wiki] and in Gam*.txt files.
 
 # Mailing List / Discussion group
 The GAM mailing list / discussion group is hosted on [Google Groups].  You can join the list and interact via email, or just post from the web itself.
@@ -56,8 +56,7 @@ You can install multiple versions of GAM and GAMADV-XTD3 in different parallel d
 [GAM]: https://github.com/jay0lee/GAM
 [GitHub Releases]: https://github.com/taers232c/GAMADV-XTD3/releases
 [GitHub]: https://github.com/taers232c/GAMADV-XTD3/tree/master
-[GitHub Wiki]: https://github.com/jay0lee/GAM/wiki/
-[GitHub GAMADV-XTD3 Wiki]: https://github.com/taers232c/GAMADV-XTD3/wiki/
+[GitHub GAMADV-XTD3 Wiki]: https://github.com/taers232c/GAMADV-XTD3/wiki
 [Google Groups]: https://groups.google.com/group/google-apps-manager
 [Downloads]: https://github.com/taers232c/GAMADV-XTD3/wiki/Downloads
 [Configuration]: https://github.com/taers232c/GAMADV-XTD3/wiki/gam.cfg
