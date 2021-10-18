@@ -5688,8 +5688,10 @@ gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <PeoplePrintSh
 
 <PeopleOtherContactFieldName> ::=
         emailaddresses|
+        metadata|
+        names|
         phonenumbers|
-        names
+        photos
 <PeopleOtherContactFieldNameList> ::= "<PeopleOtherContactFieldName>(,<PeopleOtherContactFieldName>)*"
 
 <PeopleUserOtherContactSelection> ::=

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.23'
+__version__ = '6.08.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17471,6 +17471,7 @@ PEOPLE_FIELDS_CHOICE_MAP = {
   'phone': PEOPLE_PHONE_NUMBERS,
   'phones': PEOPLE_PHONE_NUMBERS,
   'phonenumbers': PEOPLE_PHONE_NUMBERS,
+  'photo': PEOPLE_PHOTOS,
   'photos': PEOPLE_PHOTOS,
   'prefix': PEOPLE_NAMES,
   'priority': PEOPLE_MISC_KEYWORDS,
@@ -17502,6 +17503,8 @@ PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP = {
   'phone': PEOPLE_PHONE_NUMBERS,
   'phones': PEOPLE_PHONE_NUMBERS,
   'phonenumbers': PEOPLE_PHONE_NUMBERS,
+  'photo': PEOPLE_PHOTOS,
+  'photos': PEOPLE_PHOTOS,
   }
 
 PEOPLE_ORDERBY_CHOICE_MAP = {
@@ -17648,7 +17651,7 @@ def printShowUserPeopleContacts(users):
     if not fieldsList:
       ofields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList, parameters)
     else:
-      fieldsList = [PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP[field] for field in fieldsList if field in PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP]
+      fieldsList = [PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP[field.lower()] for field in fieldsList if field.lower() in PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP]
       ofields = ','.join(set(fieldsList))
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -17677,7 +17680,7 @@ def printShowUserPeopleContacts(users):
       contacts = queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, user, i, count)
     else:
       contacts = []
-    if not contactQuery['contactGroup']:
+    if not contactQuery['contactGroup'] and ofields:
       soc = contactQuery['otherContacts']
       contactQuery['otherContacts'] = True
       ocontacts = queryPeopleContacts(opeople, contactQuery, ofields, None, entityType, user, i, count)

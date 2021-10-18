@@ -1,3 +1,8 @@
+6.08.24
+
+Fixed bug in `gam <UserTypeEntity> print|show contacts fields ...` that caused an error
+when retrieving other contacts.
+
 6.08.23
 
 Updated code to format Google timestamps with fractional seconds, e.g., `2021-10-13T13:35:42.590124Z`
