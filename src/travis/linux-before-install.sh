@@ -19,7 +19,7 @@ else
   PYRESULT=$?
   sudo apt-get -qq --yes install libxml2-dev > /dev/null
   sudo apt-get -qq --yes install libxslt-dev > /dev/null
-  if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $LINUX_BUILD_PYTHON_VERSION"* ]]; then
+  if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
     echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
     if [ $SSLRESULT -ne 0 ]; then
       echo "sslresult -ne 0"
@@ -125,5 +125,7 @@ else
 fi
 
 echo "Upgrading pip packages..."
+$pip install --upgrade pip
+$pip install --upgrade packaging
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirements.txt
