@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.24'
+__version__ = '6.08.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4438,6 +4438,8 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
         error = makeErrorDict(http_status, GAPI.OPERATION_NOT_SUPPORTED, message)
       elif 'failed status in update settings response' in lmessage:
         error = makeErrorDict(http_status, GAPI.INVALID_INPUT, message)
+      elif status == 'INTERNAL':
+        error = makeErrorDict(http_status, GAPI.INTERNAL_ERROR, message)
     elif http_status == 502:
       if 'bad gateway' in lmessage:
         error = makeErrorDict(http_status, GAPI.BAD_GATEWAY, message)
@@ -9092,7 +9094,8 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
       while True:
         try:
           callGAPI(serveu.services(), 'enable',
-                   throwReasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                   throwReasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                   retryReasons=[GAPI.INTERNAL_ERROR],
                    name=serviceName)
           entityActionPerformed([Ent.API, api], j, jcount)
           break
@@ -9100,7 +9103,7 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
           entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
           writeStderr(Msg.PLEASE_RESOLVE_ERROR)
           readStdin(Msg.PRESS_ENTER_ONCE_ERROR_RESOLVED)
-        except (GAPI.forbidden, GAPI.permissionDenied) as e:
+        except (GAPI.forbidden, GAPI.permissionDenied, GAPI.internalError) as e:
           entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
           status = False
           break

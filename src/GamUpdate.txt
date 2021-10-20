@@ -1,3 +1,10 @@
+6.08.25
+
+Updated `gam create|use project` to handle the following spurious Google error:
+```
+ERROR: 500: Failed to convert server response to JSON - 500
+```
+
 6.08.24
 
 Fixed bug in `gam <UserTypeEntity> print|show contacts fields ...` that caused an error
