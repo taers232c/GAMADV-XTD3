@@ -7152,12 +7152,26 @@ class CSVPrintFile():
         stderrErrorMsg(e)
         return False
 
+    def setDialect(lineterminator):
+      writerDialect = {
+        'delimiter': self.columnDelimiter,
+        'doublequote': True,
+        'lineterminator': lineterminator,
+        'quotechar': self.quoteChar,
+        'quoting': csv.QUOTE_MINIMAL,
+        'skipinitialspace': False,
+        'strict': False}
+# fix issue with Python 3.10.0 and no escape char
+# 3.10.1+ may fix this within Python so hopefully
+# this is short-lived.
+      if sys.version_info.minor >= 10:
+        writerDialect['escapechar'] = self.escapeChar
+      return writerDialect
+
     def writeCSVToStdout():
       csvFile = StringIOobject()
-      writer = csv.DictWriter(csvFile, titlesList,
-                              extrasaction=extrasaction, quoting=csv.QUOTE_MINIMAL, quotechar=self.quoteChar,
-                              escapechar=self.escapeChar,
-                              delimiter=self.columnDelimiter, lineterminator='\n')
+      writerDialect = setDialect('\n')
+      writer = csv.DictWriter(csvFile, titlesList, extrasaction=extrasaction, **writerDialect)
       if writeCSVData(writer):
         try:
           GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].write(csvFile.getvalue())
@@ -7171,10 +7185,8 @@ class CSVPrintFile():
                          encoding=GM.Globals[GM.CSVFILE][GM.REDIRECT_ENCODING], errors='backslashreplace',
                          continueOnError=True)
       if csvFile:
-        writer = csv.DictWriter(csvFile, titlesList,
-                                extrasaction=extrasaction, quoting=csv.QUOTE_MINIMAL, quotechar=self.quoteChar,
-                                escapechar=self.escapeChar,
-                                delimiter=self.columnDelimiter, lineterminator=str(GC.Values[GC.CSV_OUTPUT_LINE_TERMINATOR]))
+        writerDialect = setDialect(str(GC.Values[GC.CSV_OUTPUT_LINE_TERMINATOR]))
+        writer = csv.DictWriter(csvFile, titlesList, extrasaction=extrasaction, **writerDialect)
         writeCSVData(writer)
         closeFile(csvFile)
 
@@ -7188,10 +7200,8 @@ class CSVPrintFile():
         csvFile = TemporaryFile(mode='w+', encoding=UTF8)
       else:
         csvFile = StringIOobject()
-      writer = csv.DictWriter(csvFile, titlesList,
-                              extrasaction=extrasaction, quoting=csv.QUOTE_MINIMAL, quotechar=self.quoteChar,
-                              escapechar=self.escapeChar,
-                              delimiter=self.columnDelimiter, lineterminator='\n')
+      writerDialect = setDialect('\n')
+      writer = csv.DictWriter(csvFile, titlesList, extrasaction=extrasaction, **writerDialect)
       if writeCSVData(writer):
         if self.todrive['title'] is None or (not self.todrive['title'] and not self.todrive['timestamp']):
           title = f'{GC.Values[GC.DOMAIN]} - {list_type}'
