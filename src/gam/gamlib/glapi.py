@@ -90,7 +90,7 @@ REQUIRED_SCOPES_SET = set(REQUIRED_SCOPES)
 #
 REFRESH_PERM_ERRORS = [
   'invalid_grant: reauth related error (rapt_required)', # no way to reauth today
-  'invalid_grant: Token has been expired or revoked.',
+  'invalid_grant: Token has been expired or revoked',
   ]
 
 OAUTH2_TOKEN_ERRORS = [
@@ -107,6 +107,8 @@ OAUTH2_TOKEN_ERRORS = [
   'invalid_grant: The account has been deleted',
   'invalid_request: Invalid impersonation prn email address',
   'invalid_request: Invalid impersonation &quot;sub&quot; field',
+  ]
+OAUTH2_UNAUTHORIZED_ERRORS = [
   'unauthorized_client: Client is unauthorized to retrieve access tokens using this method',
   'unauthorized_client: Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested',
   'unauthorized_client: Unauthorized client or scope in request',

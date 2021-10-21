@@ -1,3 +1,8 @@
+6.08.26
+
+Improved error message when a Service Account scope is not authorized so it
+can be distinguished from a user with the service disabled.
+
 6.08.25
 
 Updated `gam create|use project` to handle the following spurious Google error:

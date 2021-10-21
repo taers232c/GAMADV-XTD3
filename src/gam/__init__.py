@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.25'
+__version__ = '6.08.26'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -523,7 +523,9 @@ def ClientAPIAccessDeniedExit():
   systemErrorExit(API_ACCESS_DENIED_RC, None)
 
 def SvcAcctAPIAccessDeniedExit():
-  if GM.Globals[GM.CURRENT_SVCACCT_API] == API.GMAIL and GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES][0] == API.GMAIL_SEND_SCOPE:
+  if (GM.Globals[GM.CURRENT_SVCACCT_API] == API.GMAIL and
+      GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] and
+      GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES][0] == API.GMAIL_SEND_SCOPE):
     systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
   stderrErrorMsg(Msg.API_ACCESS_DENIED)
   apiOrScopes = API.getAPIName(GM.Globals[GM.CURRENT_SVCACCT_API]) if GM.Globals[GM.CURRENT_SVCACCT_API] else ','.join(sorted(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]))
@@ -3801,18 +3803,22 @@ def doGAMCheckForUpdates(forceCheck):
       handleServerError(e)
 
 def handleOAuthTokenError(e, softErrors):
-  errMsg = str(e)
-  if errMsg in API.REFRESH_PERM_ERRORS:
-    if softErrors:
-      return None
-    if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
-      expiredRevokedOauth2TxtExit()
-  if errMsg.replace('.', '') in API.OAUTH2_TOKEN_ERRORS or errMsg.startswith('Invalid response'):
+  errMsg = str(e).replace('.', '')
+  if errMsg in API.OAUTH2_TOKEN_ERRORS or errMsg.startswith('Invalid response'):
     if softErrors:
       return None
     if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
       ClientAPIAccessDeniedExit()
     systemErrorExit(SERVICE_NOT_APPLICABLE_RC, Msg.SERVICE_NOT_APPLICABLE_THIS_ADDRESS.format(GM.Globals[GM.CURRENT_SVCACCT_USER]))
+  if errMsg in API.OAUTH2_UNAUTHORIZED_ERRORS:
+    if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
+      ClientAPIAccessDeniedExit()
+    SvcAcctAPIAccessDeniedExit()
+  if errMsg in API.REFRESH_PERM_ERRORS:
+    if softErrors:
+      return None
+    if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
+      expiredRevokedOauth2TxtExit()
   stderrErrorMsg(f'Authentication Token Error - {errMsg}')
   APIAccessDeniedExit()
 
@@ -4097,7 +4103,7 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
     else:
       GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = API.JWT_APIS[scopesOrAPI]
     if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:
-      systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
+      SvcAcctAPIAccessDeniedExit()
     if scopesOrAPI in {API.PEOPLE, API.PEOPLE_DIRECTORY, API.PEOPLE_OTHERCONTACTS}:
       GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES].append(API.USERINFO_PROFILE_SCOPE)
       if scopesOrAPI in {API.PEOPLE_OTHERCONTACTS}:
@@ -6549,6 +6555,7 @@ class CSVPrintFile():
     self.SetColumnDelimiter(GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER])
     if GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR) is None:
       GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')
+    self.SetEscapeChar('\\')
     self.SetQuoteChar(GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR])
     if GM.Globals.get(GM.CSV_OUTPUT_TIMESTAMP_COLUMN) is None:
       GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = GC.Values.get(GC.CSV_OUTPUT_TIMESTAMP_COLUMN, '')
@@ -6969,6 +6976,9 @@ class CSVPrintFile():
   def SetColumnDelimiter(self, columnDelimiter):
     self.columnDelimiter = columnDelimiter
 
+  def SetEscapeChar(self, escapeChar):
+    self.escapeChar = escapeChar
+
   def SetQuoteChar(self, quoteChar):
     self.quoteChar = quoteChar
 
@@ -7146,6 +7156,7 @@ class CSVPrintFile():
       csvFile = StringIOobject()
       writer = csv.DictWriter(csvFile, titlesList,
                               extrasaction=extrasaction, quoting=csv.QUOTE_MINIMAL, quotechar=self.quoteChar,
+                              escapechar=self.escapeChar,
                               delimiter=self.columnDelimiter, lineterminator='\n')
       if writeCSVData(writer):
         try:
@@ -7162,6 +7173,7 @@ class CSVPrintFile():
       if csvFile:
         writer = csv.DictWriter(csvFile, titlesList,
                                 extrasaction=extrasaction, quoting=csv.QUOTE_MINIMAL, quotechar=self.quoteChar,
+                                escapechar=self.escapeChar,
                                 delimiter=self.columnDelimiter, lineterminator=str(GC.Values[GC.CSV_OUTPUT_LINE_TERMINATOR]))
         writeCSVData(writer)
         closeFile(csvFile)
@@ -7178,6 +7190,7 @@ class CSVPrintFile():
         csvFile = StringIOobject()
       writer = csv.DictWriter(csvFile, titlesList,
                               extrasaction=extrasaction, quoting=csv.QUOTE_MINIMAL, quotechar=self.quoteChar,
+                              escapechar=self.escapeChar,
                               delimiter=self.columnDelimiter, lineterminator='\n')
       if writeCSVData(writer):
         if self.todrive['title'] is None or (not self.todrive['title'] and not self.todrive['timestamp']):
