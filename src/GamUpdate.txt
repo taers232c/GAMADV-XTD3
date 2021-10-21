@@ -1,3 +1,8 @@
+6.08.27
+
+Update 6.08.26 broke `gam transfer drive` where trying to access files owned by a user outside of your domain
+gave a Service Account scope is not authorized error rather than skipping the file.
+
 6.08.26
 
 Improved the error message displayed when a Service Account scope is not authorized so it
