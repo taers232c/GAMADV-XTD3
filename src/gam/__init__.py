@@ -3802,7 +3802,7 @@ def doGAMCheckForUpdates(forceCheck):
     if forceCheck:
       handleServerError(e)
 
-def handleOAuthTokenError(e, softErrors, softErrorsUnauthorized=False):
+def handleOAuthTokenError(e, softErrors):
   errMsg = str(e).replace('.', '')
   if errMsg in API.OAUTH2_TOKEN_ERRORS or errMsg.startswith('Invalid response'):
     if softErrors:
@@ -3811,7 +3811,7 @@ def handleOAuthTokenError(e, softErrors, softErrorsUnauthorized=False):
       ClientAPIAccessDeniedExit()
     systemErrorExit(SERVICE_NOT_APPLICABLE_RC, Msg.SERVICE_NOT_APPLICABLE_THIS_ADDRESS.format(GM.Globals[GM.CURRENT_SVCACCT_USER]))
   if errMsg in API.OAUTH2_UNAUTHORIZED_ERRORS:
-    if softErrorsUnauthorized:
+    if softErrors:
       return None
     if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
       ClientAPIAccessDeniedExit()
@@ -4721,7 +4721,7 @@ def getSaUser(user):
   GM.Globals[GM.CURRENT_CLIENT_API_SCOPES] = currentClientAPIScopes
   return userEmail
 
-def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True, softErrorsUnauthorized=False):
+def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
   userEmail = getSaUser(user)
   httpObj = getHttpObj(cache=GM.Globals[GM.CACHE_DIR])
   service = getService(api, httpObj)
@@ -4742,7 +4742,7 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True, softError
     except google.auth.exceptions.RefreshError as e:
       if isinstance(e.args, tuple):
         e = e.args[0]
-      handleOAuthTokenError(e, True, softErrorsUnauthorized)
+      handleOAuthTokenError(e, True)
       if displayError:
         entityServiceNotApplicableWarning(Ent.USER, userEmail, i, count)
       return (userEmail, None)
@@ -47281,7 +47281,7 @@ def transferDrive(users):
       return ('Unknown', None)
     ownerUser = childEntryInfo['owners'][0]['emailAddress']
     if ownerUser not in thirdPartyOwners:
-      _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser, displayError=False, softErrorsUnauthorized=True)
+      _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser, displayError=False)
       thirdPartyOwners[ownerUser] = ownerDrive
     else:
       ownerDrive = thirdPartyOwners[ownerUser]
@@ -50264,7 +50264,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       continue
     feed = None
     if permtype == 'user':
-      _, userdrive = buildGAPIServiceObject(API.DRIVE3, emailAddress, displayError=False, softErrorsUnauthorized=True)
+      _, userdrive = buildGAPIServiceObject(API.DRIVE3, emailAddress, displayError=False)
       if userdrive is not None:
         try:
           feed = callGAPIpages(userdrive.drives(), 'list', 'drives',
