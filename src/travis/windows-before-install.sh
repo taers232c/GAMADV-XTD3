@@ -35,9 +35,9 @@ export python_file=python-${BUILD_PYTHON_VERSION}${PYTHONFILE_BITS}.exe
 echo "Installing Python $python_file..."
 #if [ ! -e $python_file ]; then
 #  echo "Downloading $python_file..."
-#  wget --quiet https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$python_file
+#  wget --quiet --no-check-certificate https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$python_file
 #fi
-wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$python_file
+wget --no-check-certificate https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$python_file
 until powershell ".\\${python_file} /quiet InstallAllUsers=1 TargetDir=c:\\python include_lib=1 include_pip=1"; do echo "trying python again..."; done
 export python=/c/python/python.exe
 export pip=/c/python/scripts/pip.exe
