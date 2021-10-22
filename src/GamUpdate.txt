@@ -1,3 +1,7 @@
+6.09.00
+
+Updated to Python 3.10.0
+
 6.08.27
 
 Reverted update 6.08.26 as it couldn't accurately distinguish between the following cases in all instances:
