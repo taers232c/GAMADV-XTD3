@@ -1,3 +1,7 @@
+6.08.28
+
+Updated Google API libraries.
+
 6.08.27
 
 Reverted update 6.08.26 as it couldn't accurately distinguish between the following cases in all instances:

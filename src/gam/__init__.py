@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.27'
+__version__ = '6.08.28'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3910,7 +3910,7 @@ def _getValueFromOAuth(field, credentials=None):
     elif credentials.expired:
       credentials.refresh(request)
     try:
-      GM.Globals[GM.DECODED_ID_TOKEN] = google.oauth2.id_token.verify_oauth2_token(credentials.id_token, request)
+      GM.Globals[GM.DECODED_ID_TOKEN] = google.oauth2.id_token.verify_oauth2_token(credentials.id_token, request, clock_skew_in_seconds=10)
     except ValueError as e:
       if 'Token used too early' in str(e):
         stderrErrorMsg(Msg.PLEASE_CORRECT_YOUR_SYSTEM_TIME)
@@ -3938,7 +3938,7 @@ def writeClientCredentials(creds, filename):
     systemErrorExit(OAUTH2_TXT_REQUIRED_RC, f'Wrong OAuth 2.0 credentials issuer. Got {_getValueFromOAuth("iss", creds)} expected one of {", ".join(expected_iss)}')
   request = transportCreateRequest()
   try:
-    creds_data['decoded_id_token'] = google.oauth2.id_token.verify_oauth2_token(creds.id_token, request)
+    creds_data['decoded_id_token'] = google.oauth2.id_token.verify_oauth2_token(creds.id_token, request, clock_skew_in_seconds=10)
   except ValueError as e:
     if 'Token used too early' in str(e):
       stderrErrorMsg(Msg.PLEASE_CORRECT_YOUR_SYSTEM_TIME)
@@ -7761,6 +7761,7 @@ MACOS_CODENAMES = {
     16: 'Big Sur'
     },
   11: 'Big Sur',
+  12: 'Monterey',
   }
 
 def getOSPlatform():
@@ -10223,6 +10224,7 @@ def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, priv
     'client_email': clientEmail,
     'client_id': clientId,
     'client_x509_cert_url': f'https://www.googleapis.com/robot/v1/metadata/x509/{quotedEmail}',
+    'key_type': 'default',
     'private_key': private_key,
     'private_key_id': private_key_id,
     'project_id': projectId,

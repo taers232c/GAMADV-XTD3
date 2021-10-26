@@ -25,7 +25,7 @@ echo "Installing Python $BUILD_PYTHON_VERSION..."
 sudo installer -pkg ./$pyfile -target /
 
 # This fixes https://github.com/pyinstaller/pyinstaller/issues/5062
-codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
+#codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
 
 cd ~
 
