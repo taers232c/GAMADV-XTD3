@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.28'
+__version__ = '6.08.29'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13306,8 +13306,12 @@ DATA_TRANSFER_STATUS_MAP = {
 DATA_TRANSFER_SORT_TITLES = ['id', 'requestTime', 'oldOwnerUserEmail', 'newOwnerUserEmail',
                              'overallTransferStatusCode', 'application', 'applicationId', 'status']
 
-# gam print datatransfers|transfers [todrive <ToDriveAttribute>*] [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]]
-# gam show datatransfers|transfers [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>] [status <String>] [delimiter <Character>]]
+# gam print datatransfers|transfers [todrive <ToDriveAttribute>*]
+#	[olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
+#	[status <String>] [delimiter <Character>]]
+# gam show datatransfers|transfers
+#	[olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
+#	[status <String>] [delimiter <Character>]]
 def doPrintShowDataTransfers():
   dt = buildGAPIObject(API.DATATRANSFER)
   apps = getTransferApplications(dt)
@@ -14310,6 +14314,40 @@ def doDeleteAliases():
       continue
     entityUnknownWarning(Ent.ALIAS, aliasEmail, i, count)
 
+# gam remove aliases|nicknames <EmailAddress> user|group <EmailAddressEntity>
+def doRemoveAliases():
+  cd = buildGAPIObject(API.DIRECTORY)
+  targetEmail = getEmailAddress()
+  targetType = getChoice(['user', 'group'])
+  entityList = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
+  checkForExtraneousArguments()
+  count = len(entityList)
+  i = 0
+  if targetType == 'user':
+    try:
+      for aliasEmail in entityList:
+        i += 1
+        aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True)
+        callGAPI(cd.users().aliases(), 'delete',
+                 throwReasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                               GAPI.CONDITION_NOT_MET],
+                 userKey=targetEmail, alias=aliasEmail)
+        entityActionPerformed([Ent.USER, targetEmail, Ent.USER_ALIAS, aliasEmail], i, count)
+    except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource, GAPI.conditionNotMet) as e:
+      entityActionFailedWarning([Ent.USER, targetEmail, Ent.USER_ALIAS, aliasEmail], str(e), i, count)
+  else:
+    try:
+      for aliasEmail in entityList:
+        i += 1
+        aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True)
+        callGAPI(cd.groups().aliases(), 'delete',
+                 throwReasons=[GAPI.GROUP_NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                               GAPI.CONDITION_NOT_MET],
+                 groupKey=targetEmail, alias=aliasEmail)
+        entityActionPerformed([Ent.GROUP, targetEmail, Ent.GROUP_ALIAS, aliasEmail], i, count)
+    except (GAPI.groupNotFound, GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource, GAPI.conditionNotMet) as e:
+      entityActionFailedWarning([Ent.GROUP, targetEmail, Ent.GROUP_ALIAS, aliasEmail], str(e), i, count)
+
 def infoAliases(entityList):
 
   def _showAliasInfo(uid, email, aliasEmail, entityType, aliasEntityType, i, count):
@@ -14371,13 +14409,36 @@ def doInfoAliases():
 #	[(query <QueryUser>)|(queries <QueryUserList>)]
 #	[aliasmatchpattern <RegularExpression>]
 #	[shownoneditable] [nogroups] [nousers]
+#	[onerowpertarget] [suppressnoaliasrows]
 def doPrintAliases():
+  def writeAliases(target, targetEmail, targetType):
+    if not oneRowPerTarget:
+      for alias in target.get('aliases', []):
+        if aliasMatchPattern.match(alias):
+          csvPF.WriteRow({'Alias': alias, 'Target': targetEmail, 'TargetType': targetType})
+      if showNonEditable:
+        for alias in target.get('nonEditableAliases', []):
+          if aliasMatchPattern.match(alias):
+            csvPF.WriteRow({'NonEditableAlias': alias, 'Target': targetEmail, 'TargetType': targetType})
+    else:
+      aliases = [alias for alias in target.get('aliases', []) if aliasMatchPattern.match(alias)]
+      if showNonEditable:
+        nealiases = [alias for alias in target.get('nonEditableAliases', []) if aliasMatchPattern.match(alias)]
+      else:
+        nealiases = []
+      if suppressNoAliasRows and not aliases and not nealiases:
+        return
+      row = {'Target': targetEmail, 'TargetType': targetType, 'Aliases': ' '.join(aliases)}
+      if showNonEditable:
+        row['NonEditableAliases'] = ' '.join(nealiases)
+      csvPF.WriteRow(row)
+
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile()
-  titlesList = ['Alias', 'Target', 'TargetType']
   userFields = ['primaryEmail', 'aliases']
   groupFields = ['email', 'aliases']
   getGroups = getUsers = True
+  oneRowPerTarget = showNonEditable = suppressNoAliasRows = False
   queries = [None]
   aliasMatchPattern = re.compile(r'^.*$')
   while Cmd.ArgumentsRemaining():
@@ -14385,7 +14446,7 @@ def doPrintAliases():
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'shownoneditable':
-      titlesList.insert(1, 'NonEditableAlias')
+      showNonEditable= True
       userFields.append('nonEditableAliases')
       groupFields.append('nonEditableAliases')
     elif myarg == 'nogroups':
@@ -14398,8 +14459,20 @@ def doPrintAliases():
       getUsers = True
     elif myarg == 'aliasmatchpattern':
       aliasMatchPattern = getREPattern(re.IGNORECASE)
+    elif myarg == 'onerowpertarget':
+      oneRowPerTarget = True
+    elif myarg == 'suppressnoaliasrows':
+      suppressNoAliasRows = True
     else:
       unknownArgumentExit()
+  if not oneRowPerTarget:
+    titlesList = ['Alias', 'Target', 'TargetType']
+    if showNonEditable:
+      titlesList.insert(1, 'NonEditableAlias')
+  else:
+    titlesList = ['Target', 'TargetType', 'Aliases']
+    if showNonEditable:
+      titlesList.append('NonEditableAliases')
   csvPF.SetTitles(titlesList)
   if getUsers:
     for query in queries:
@@ -14412,18 +14485,13 @@ def doPrintAliases():
                                    customer=GC.Values[GC.CUSTOMER_ID], query=query, orderBy='email',
                                    fields=f'nextPageToken,users({",".join(userFields)})',
                                    maxResults=GC.Values[GC.USER_MAX_RESULTS])
+        for user in entityList:
+          writeAliases(user, user['primaryEmail'], 'User')
       except (GAPI.invalidOrgunit, GAPI.invalidInput):
         entityActionFailedWarning([Ent.ALIAS, None], invalidQuery(query))
         return
       except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
         accessErrorExit(cd)
-      for user in entityList:
-        for alias in user.get('aliases', []):
-          if aliasMatchPattern.match(alias):
-            csvPF.WriteRow({'Alias': alias, 'Target': user['primaryEmail'], 'TargetType': 'User'})
-        for alias in user.get('nonEditableAliases', []):
-          if aliasMatchPattern.match(alias):
-            csvPF.WriteRow({'NonEditableAlias': alias, 'Target': user['primaryEmail'], 'TargetType': 'User'})
   if getGroups:
     printGettingAllAccountEntities(Ent.GROUP)
     try:
@@ -14432,15 +14500,10 @@ def doPrintAliases():
                                  throwReasons=GAPI.GROUP_LIST_THROW_REASONS,
                                  customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
                                  fields=f'nextPageToken,groups({",".join(groupFields)})')
+      for group in entityList:
+        writeAliases(group, group['email'], 'Group')
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
       accessErrorExit(cd)
-    for group in entityList:
-      for alias in group.get('aliases', []):
-        if aliasMatchPattern.match(alias):
-          csvPF.WriteRow({'Alias': alias, 'Target': group['email'], 'TargetType': 'Group'})
-      for alias in group.get('nonEditableAliases', []):
-        if aliasMatchPattern.match(alias):
-          csvPF.WriteRow({'NonEditableAlias': alias, 'Target': group['email'], 'TargetType': 'Group'})
   csvPF.writeCSVfile('Aliases')
 
 # gam print addresses [todrive <ToDriveAttribute>*]
@@ -52409,7 +52472,7 @@ def watchGmail(users):
              userId='me', body={'topicName': topic})
     gmails[user]['seen_historyId'] = callGAPI(gmails[user]['g'].users(), 'getProfile',
                                               userId='me', fields='historyId')['historyId']
-  entityPerformActionNumItems([Ent.EVENT, u'gmail'], count, Ent.USER)
+  entityPerformActionNumItems([Ent.EVENT, 'gmail'], count, Ent.USER)
   while True:
     results = callGAPI(pubsub.projects().subscriptions(), 'pull',
                        subscription=subscription, body={'maxMessages': maxMessages})
@@ -53678,7 +53741,7 @@ def _draftImportInsertMessage(users, operation):
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 def draftMessage(users):
-  _draftImportInsertMessage(users, u'draft')
+  _draftImportInsertMessage(users, 'draft')
 
 # gam <UserTypeEntity> import message
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
@@ -53688,7 +53751,7 @@ def draftMessage(users):
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 #	[deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 def importMessage(users):
-  _draftImportInsertMessage(users, u'import')
+  _draftImportInsertMessage(users, 'import')
 
 # gam <UserTypeEntity> insert message
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
@@ -53698,7 +53761,7 @@ def importMessage(users):
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
 #	[deleted [<Boolean>]]
 def insertMessage(users):
-  _draftImportInsertMessage(users, u'insert')
+  _draftImportInsertMessage(users, 'insert')
 
 def printShowMessagesThreads(users, entityType):
 
@@ -53973,7 +54036,7 @@ def printShowMessagesThreads(users, entityType):
     elif not labelMatchPattern:
       labelsMap['*None*']['count'] += 1
 
-  def _countMessages(user, result):
+  def _countMessages(_, result):
     if senderMatchPattern and not _checkSenderMatchCount(result):
       return
     messageThreadCounts['messages'] += 1
@@ -56936,6 +56999,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTEXPORT:	doPrintShowVaultExports,
       Cmd.ARG_VAULTHOLD:	doPrintShowVaultHolds,
       Cmd.ARG_VAULTMATTER:	doPrintShowVaultMatters,
+     }
+    ),
+  'remove':
+    (Act.REMOVE,
+     {Cmd.ARG_ALIAS:		doRemoveAliases,
      }
     ),
   'reopen':

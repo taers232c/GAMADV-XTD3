@@ -1,3 +1,23 @@
+6.08.29
+
+Added options `onerowpertarget` and `suppressnoaliasrows` to `gam print aliases`.
+
+By default, the CSV output has three columns: `Alias,Target,TargetType`; if a target
+has multiple aliases, there will be multiple rows, one per alias. Specifying `onerowpertarget` changes
+the three columns to: `Target,TargetType,Aliases`; all aliases for the target are space-separated in the
+`Aliases` column.
+
+Specifying both `onerowpertarget` and `suppressnoaliasrows` causes GAM to not display any targets that have no aliases.
+
+Added command `gam remove aliases|nicknames <EmailAddress> user|group <EmailAddressEntity>` to more efficiently
+delete the aliases in `<EmailAddressEntity>` from the `user|group` `<EmailAddress>`.
+
+You can combine these two changes as follows:
+```
+gam redirect csv ./OldDomainAliases.csv print aliases aliasmatchpattern ".*@olddomain.com" onerowpertarget suppressnoaliasrows
+gam csv ./OldDomainAliases.csv gam remove aliases "~Target" "~TargetType" "~Aliases"
+```
+
 6.08.28
 
 Updated Google API libraries.

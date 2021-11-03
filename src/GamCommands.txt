@@ -1130,12 +1130,14 @@ gam create|add alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<
 gam update alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
         [verifynotinvitable]
 gam delete alias|aliases [user|group|target] <EmailAddressEntity>
+gam remove aliases|nicknames <EmailAddress> user|group <EmailAddressEntity>
 gam info alias|aliases <EmailAddressEntity>
 
 gam print alias|aliases [todrive <ToDriveAttribute>*]
         [(query <QueryUser>)|(queries <QueryUserList>)]
         [aliasmatchpattern <RegularExpression>]
         [shownoneditable] [nogroups] [nousers]
+        [onerowpertarget] [suppressnoaliasrows]
 
 gam whatis <EmailItem> [noinfo]
 
