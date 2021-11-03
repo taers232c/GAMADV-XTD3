@@ -18,6 +18,11 @@ gam redirect csv ./OldDomainAliases.csv print aliases aliasmatchpattern ".*@oldd
 gam csv ./OldDomainAliases.csv gam remove aliases "~Target" "~TargetType" "~Aliases"
 ```
 
+Fixed bug in `gam user user@domain.com sendemail ... ghtml ...` that caused an inappropriate error.
+```
+ERROR: User: user@domain.com, Drive File: Email Doc, Data Not Retrieved: Invalid mimeType application/vnd.google-apps.document, must be text/html
+```
+
 6.08.28
 
 Updated Google API libraries.

@@ -2703,7 +2703,7 @@ def getGDocData(mimeType):
                       supportsAllDrives=True)
 # Google Doc
     if 'exportLinks' in result:
-      if mimeType != MIMETYPE_TEXT_PLAIN or mimeType not in result['exportLinks']:
+      if mimeType not in result['exportLinks']:
         getGDocSheetDataFailedExit([Ent.USER, user, Ent.DRIVE_FILE, result['name']],
                                    Msg.INVALID_MIMETYPE.format(result['mimeType'], mimeType))
       f = TemporaryFile(mode='w+', encoding=UTF8)
