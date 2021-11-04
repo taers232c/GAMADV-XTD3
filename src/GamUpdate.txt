@@ -1,3 +1,8 @@
+6.08.30
+
+Added option `showsize` to `gam <UserTypeEntity> print filelist countsonly` that adds an additional
+column `Size` that indicates the total size (in bytes) of the files represented on the row.
+
 6.08.29
 
 Added options `onerowpertarget` and `suppressnoaliasrows` to `gam print aliases`.
