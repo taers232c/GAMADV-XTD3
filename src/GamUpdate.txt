@@ -1,3 +1,7 @@
+6.10.00
+
+* Upgraded to OpenSSL 3.0.0
+
 6.08.31
 
 Updated `<UserBasicAttribute>` so that an OU ID can be specified in addition to an OU path.
