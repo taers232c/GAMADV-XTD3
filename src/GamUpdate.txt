@@ -1,3 +1,13 @@
+6.08.31
+
+Updated `<UserBasicAttribute>` so that an OU ID can be specified in addition to an OU path.
+```
+<UserBasicAttribute> ::=
+        org|ou|orgunitpath <OrgUnitPath>|<OrgUnitID>
+```
+This is applicable to `gam create|update user`; n.b., the API requires a path so an additional API call
+must be made to convert the ID to a path.
+
 6.08.30
 
 Added option `showsize` to `gam <UserTypeEntity> print filelist countsonly` that adds an additional

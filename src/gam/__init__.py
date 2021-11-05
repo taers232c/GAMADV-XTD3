@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.30'
+__version__ = '6.08.31'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1383,11 +1383,23 @@ def encodeOrgUnitPath(path):
       encpath += c
   return encpath
 
-def getOrgUnitItem(pathOnly=False, absolutePath=True):
+def getOrgUnitItem(pathOnly=False, absolutePath=True, cd=None):
   if Cmd.ArgumentsRemaining():
     path = Cmd.Current().strip()
     if path:
-      if pathOnly and (path.startswith('id:') or path.startswith('uid:')):
+      if pathOnly and (path.startswith('id:') or path.startswith('uid:')) and cd is not None:
+        try:
+          result = callGAPI(cd.orgunits(), 'get',
+                            throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                            customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=path,
+                            fields='orgUnitPath')
+          Cmd.Advance()
+          if absolutePath:
+            return makeOrgUnitPathAbsolute(result['orgUnitPath'])
+          return makeOrgUnitPathRelative(result['orgUnitPath'])
+        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError,
+                GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+          checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, path)
         invalidArgumentExit(Cmd.OB_ORGUNIT_PATH)
       Cmd.Advance()
       if absolutePath:
@@ -33947,7 +33959,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       elif up == 'customerId':
         body[up] = getString(Cmd.OB_STRING)
       elif up == 'orgUnitPath':
-        body[up] = getOrgUnitItem(pathOnly=True)
+        body[up] = getOrgUnitItem(pathOnly=True, cd=cd)
       elif up == 'languages':
         if checkClearBodyList(body, up):
           continue
@@ -35426,7 +35438,7 @@ def doPrintUsers(entityList=None):
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif entityList is None and myarg == 'limittoou':
-      orgUnitPath = getOrgUnitItem(pathOnly=True)
+      orgUnitPath = getOrgUnitItem(pathOnly=True, cd=cd)
       orgUnitPathLower = orgUnitPath.lower()
     elif myarg == 'domain':
       domain = getString(Cmd.OB_DOMAIN_NAME).lower()
