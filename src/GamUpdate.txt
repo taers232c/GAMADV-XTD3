@@ -1,6 +1,5 @@
 6.10.00
 
-* Upgraded to Python 3.10.0
 * Upgraded to OpenSSL 3.0.0
 
 6.08.31
