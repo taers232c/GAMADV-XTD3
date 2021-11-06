@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.10.00'
+__version__ = '6.08.31'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -40804,8 +40804,7 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
   try:
     files = callGAPIpages(drive.files(), 'list', 'files',
                           pageMessage=getPageMessageForWhom(),
-                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND, GAPI.NOT_FOUND,
-                                                                      GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND, GAPI.NOT_FOUND],
                           retryReasons=[GAPI.UNKNOWN_ERROR],
                           q=query, orderBy=orderBy, fields='nextPageToken,files(id,driveId)', pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **kwargs)
     if files or not parentQuery:
@@ -40820,7 +40819,7 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
     printGotEntityItemsForWhom(0)
     if emptyQueryOK:
       return []
-  except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+  except GAPI.notFound as e:
     entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, kwargs['driveId']], str(e), i, count)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
