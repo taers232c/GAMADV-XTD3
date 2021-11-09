@@ -107,6 +107,8 @@ CSV_OUTPUT_QUOTE_CHAR = 'csv_output_quote_char'
 CSV_OUTPUT_ROW_FILTER = 'csv_output_row_filter'
 # Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'csv_output_row_drop_filter'
+# Column header subfield name delimiter in CSV output file
+CSV_OUTPUT_SUBFIELD_DELIMITER = 'csv_output_subfield_delimiter'
 # Add timestamp column to CSV output file
 CSV_OUTPUT_TIMESTAMP_COLUMN = 'csv_output_timestamp_column'
 # Output rows for users even if they do not have the print object (delegate, filters, ...)
@@ -164,6 +166,8 @@ NUM_THREADS = 'num_threads'
 OAUTH2_TXT = 'oauth2_txt'
 # Path to oauth2service.json
 OAUTH2SERVICE_JSON = 'oauth2service_json'
+# When retrieving lists of people from API, how many should be retrieved in each chunk
+PEOPLE_MAX_RESULTS = 'people_max_results'
 # Quick info user: nogroups nolicenses noschemas
 QUICK_INFO_USER = 'quick_info_user'
 # Default section to use for processing
@@ -262,6 +266,7 @@ Defaults = {
   CSV_OUTPUT_QUOTE_CHAR: '\'"\'',
   CSV_OUTPUT_ROW_FILTER: '',
   CSV_OUTPUT_ROW_DROP_FILTER: '',
+  CSV_OUTPUT_SUBFIELD_DELIMITER: '.',
   CSV_OUTPUT_TIMESTAMP_COLUMN: '',
   CSV_OUTPUT_USERS_AUDIT: FALSE,
   CUSTOMER_ID: MY_CUSTOMER,
@@ -290,6 +295,7 @@ Defaults = {
   NUM_THREADS: '5',
   OAUTH2_TXT: FN_OAUTH2_TXT,
   OAUTH2SERVICE_JSON: FN_OAUTH2SERVICE_JSON,
+  PEOPLE_MAX_RESULTS: '100',
   QUICK_INFO_USER: FALSE,
   SECTION: '',
   SHOW_API_CALLS_RETRY_DATA: FALSE,
@@ -384,6 +390,7 @@ VAR_INFO = {
   CSV_OUTPUT_QUOTE_CHAR: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_ROW_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
   CSV_OUTPUT_ROW_DROP_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
+  CSV_OUTPUT_SUBFIELD_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_TIMESTAMP_COLUMN: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   CSV_OUTPUT_USERS_AUDIT: {VAR_TYPE: TYPE_BOOLEAN},
   CUSTOMER_ID: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'CUSTOMER_ID', VAR_LIMITS: (0, None)},
@@ -412,6 +419,7 @@ VAR_INFO = {
   NUM_THREADS: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: 'GAM_THREADS', VAR_LIMITS: (1, 1000)},
   OAUTH2_TXT: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: 'OAUTHFILE', VAR_ACCESS: os.R_OK | os.W_OK},
   OAUTH2SERVICE_JSON: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: 'OAUTHSERVICEFILE', VAR_ACCESS: os.R_OK | os.W_OK},
+  PEOPLE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, 1000)},
   QUICK_INFO_USER: {VAR_TYPE: TYPE_BOOLEAN},
   SECTION: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   SHOW_API_CALLS_RETRY_DATA: {VAR_TYPE: TYPE_BOOLEAN},

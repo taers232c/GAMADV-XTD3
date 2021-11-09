@@ -1,3 +1,22 @@
+6.10.00
+
+Added `csv_output_subfield_delimiter` to `gam.cfg`.
+```
+csv_output_subfield_delimiter
+    Character used to delimit fields and subfields in headers when writing CSV files;
+    this must be a single character
+    Default: '.'
+```
+
+Added `people_max_results` variable to `gam.cfg`.
+```
+people_max_results
+    When retrieving lists of People from API,
+    how many should be retrieved in each API call
+    Default: 100
+    Range: 0 - 1000
+```
+
 6.08.31
 
 Updated `<UserBasicAttribute>` so that an OU ID can be specified in addition to an OU path.

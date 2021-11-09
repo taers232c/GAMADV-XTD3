@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.08.31'
+__version__ = '6.10.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -6684,10 +6684,10 @@ class CSVPrintFile():
       for field in fields:
         if field not in fieldsList:
           fieldsList.append(field)
-          self.AddTitles(field)
+          self.AddTitles(field.replace('.', GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]))
     elif fields not in fieldsList:
       fieldsList.append(fields)
-      self.AddTitles(fields)
+      self.AddTitles(fields.replace('.', GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]))
 
   def GetFieldsListTitles(self, fieldName, fieldsChoiceMap, fieldsList, initialField=None):
     if fieldName in fieldsChoiceMap:
@@ -6955,7 +6955,7 @@ class CSVPrintFile():
 
   def SortIndexedTitles(self, titlesList):
     for field in self.indexedTitles:
-      fieldDotN = re.compile(fr'({field})\.(\d+)(.*)')
+      fieldDotN = re.compile(fr'({field}){GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}(\d+)(.*)')
       indexes = []
       subtitles = []
       for i, v in enumerate(titlesList):
@@ -6964,13 +6964,13 @@ class CSVPrintFile():
           indexes.append(i)
           subtitles.append(mg.groups(''))
       for i, ii in enumerate(indexes):
-        titlesList[ii] = [f'{subtitle[0]}.{subtitle[1]}{subtitle[2]}' for subtitle in sorted(subtitles, key=lambda k: (int(k[1]), k[2]))][i]
+        titlesList[ii] = [f'{subtitle[0]}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subtitle[1]}{subtitle[2]}' for subtitle in sorted(subtitles, key=lambda k: (int(k[1]), k[2]))][i]
 
   @staticmethod
   def FixPathsTitles(titlesList):
 # Put paths before path.0
     try:
-      index = titlesList.index('path.0')
+      index = titlesList.index(f'path{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}0')
       titlesList.remove('paths')
       titlesList.insert(index, 'paths')
     except ValueError:
@@ -7557,12 +7557,12 @@ def flattenJSON(topStructure, flattened=None,
         if key not in noLenObjects:
           flattened[path] = listLen
         for i in range(listLen):
-          _flatten(structure[i], '', f'{path}.{i}')
+          _flatten(structure[i], '', f'{path}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{i}')
     else:
       if structure:
         for k, v in sorted(iter(structure.items())):
           if k not in DEFAULT_SKIP_OBJECTS:
-            _flatten(v, k, f'{path}.{k}')
+            _flatten(v, k, f'{path}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}')
       else:
         flattened[path] = ''
 
@@ -9784,21 +9784,21 @@ def doPrintShowProjects():
       if not policy:
         csvPF.WriteRowTitles(row)
         continue
-      row['policy.version'] = policy['version']
+      row[f'policy{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}version'] = policy['version']
       for binding in policy.get('bindings', []):
         prow = row.copy()
-        prow['policy.role'] = binding['role']
+        prow[f'policy{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}role'] = binding['role']
         if 'condition' in binding:
           for k, v in iter(binding['condition'].items()):
-            prow[f'policy.condition.{k}'] = v
+            prow[f'policy{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}condition{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'] = v
         members = binding.get('members', [])
         if not oneMemberPerRow:
-          prow['policy.members'] = delimiter.join(members)
+          prow[f'policy{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}members'] = delimiter.join(members)
           csvPF.WriteRowTitles(prow)
         else:
           for member in members:
             mrow = prow.copy()
-            mrow['policy.member'] = member
+            mrow[f'policy{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}member'] = member
             csvPF.WriteRowTitles(mrow)
     csvPF.writeCSVfile('Projects')
 
@@ -10802,7 +10802,7 @@ def doReportUsage():
               for version in item['msgValue']:
                 versions[version['version_number']] = version['num_devices']
               for k, v in sorted(iter(versions.items()), reverse=True):
-                title = f'cros:num_devices_chrome_.{k}'
+                title = f'cros:num_devices_chrome_{k}'
                 row[title] = v
             else:
               for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
@@ -11030,7 +11030,7 @@ def doReport():
             for app in item['msgValue']:
               appName = f'App: {escapeCRsNLs(app["client_name"])}'
               for key in ['num_users', 'client_id']:
-                title = f'{appName}.{key}'
+                title = f'{appName}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'
                 csvPF.AddTitles(title)
                 row[title] = app[key]
           elif name == 'cros:device_version_distribution':
@@ -11038,7 +11038,7 @@ def doReport():
             for version in item['msgValue']:
               versions[version['version_number']] = version['num_devices']
             for k, v in sorted(iter(versions.items()), reverse=True):
-              title = f'cros:device_version.{k}'
+              title = f'cros:device_version{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'
               csvPF.AddTitles(title)
               row[title] = v
           else:
@@ -14112,16 +14112,16 @@ def doPrintOrgs():
       if showCrOSCounts:
         total = 0
         for k, v in sorted(iter(crosCounts[orgUnitPath].items())):
-          row[f'CrOS.{k}'] = v
+          row[f'CrOS{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'] = v
           total += v
-        row['CrOS.Total'] = total
+        row['CrOS{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}Total'] = total
         if ((minCrOSCounts != -1 and total < minCrOSCounts) or
             (maxCrOSCounts != -1 and total > maxCrOSCounts)):
           continue
       if showUserCounts:
-        row['Users.NotSuspended'] = userCounts[orgUnitPath][0]
-        row['Users.Suspended'] = userCounts[orgUnitPath][1]
-        row['Users.Total'] = total = userCounts[orgUnitPath][0]+userCounts[orgUnitPath][1]
+        row[f'Users{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}NotSuspended'] = userCounts[orgUnitPath][0]
+        row[f'Users{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}Suspended'] = userCounts[orgUnitPath][1]
+        row[f'Users{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}Total'] = total = userCounts[orgUnitPath][0]+userCounts[orgUnitPath][1]
         if ((minUserCounts != -1 and total < minUserCounts) or
             (maxUserCounts != -1 and total > maxUserCounts)):
           continue
@@ -16018,11 +16018,11 @@ def _printShowContacts(contactFeed):
             continue
           if key in fields:
             keymap = contactsManager.CONTACT_ARRAY_PROPERTIES[key]
-            contactRow[f'{key}.0.count'] = len(fields[key])
             j = 0
+            contactRow[f'{key}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}count'] = len(fields[key])
             for item in fields[key]:
               j += 1
-              fn = f'{key}.{j}.'
+              fn = f'{key}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}'
               fnt = item.get('label')
               if fnt:
                 contactRow[fn+'type'] = fnt
@@ -16973,6 +16973,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
         entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
                                    pageMessage=pageMessage,
                                    throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                   pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                    resourceName='people/me', sources=sources, personFields=mfields,
                                    sortOrder=sortOrder, fields='nextPageToken,connections')
       else:
@@ -17001,6 +17002,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
       entityList = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
                                  pageMessage=pageMessage,
                                  throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                 pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                  readMask=fields, fields='nextPageToken,otherContacts')
     else:
       results = callGAPI(people.otherContacts(), 'search',
@@ -17021,6 +17023,7 @@ def getPeopleContactGroupsInfo(people, entityType, entityName, i, count):
   try:
     groups = callGAPIpages(people.contactGroups(), 'list', 'contactGroups',
                            throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                           pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                            groupFields='name', fields='nextPageToken,contactGroups(resourceName,name,formattedName)')
     if groups:
       for group in groups:
@@ -17975,6 +17978,7 @@ def _printShowPeople(source):
     entityList = callGAPIpages(people.people(), function, 'people',
                                pageMessage=getPageMessage(),
                                throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                               pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                sources=sources, mergeSources=mergeSources,
                                readMask=fields, fields='nextPageToken,people', **kwargs)
   except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
@@ -18502,6 +18506,7 @@ def printShowUserPeopleContactGroups(users):
       entityList = callGAPIpages(people.contactGroups(), 'list', 'contactGroups',
                                  pageMessage=getPageMessage(),
                                  throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                 pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                  groupFields=fields, fields='nextPageToken,contactGroups')
     except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
       ClientAPIAccessDeniedExit()
@@ -19540,7 +19545,7 @@ def doPrintCrOSDevices(entityList=None):
     attrib = 'tpmVersionInfo'
     if attrib in cros:
       for key, value in sorted(iter(cros[attrib].items())):
-        attribKey = f'{attrib}.{key}'
+        attribKey = f'{attrib}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'
         cros[attribKey] = value
       cros.pop(attrib)
     activeTimeRanges = _filterActiveTimeRanges(cros, selectedLists.get('activeTimeRanges', False), listLimit, startDate, endDate, activeTimeRangesOrder)
@@ -19577,32 +19582,32 @@ def doPrintCrOSDevices(entityList=None):
       new_row = row.copy()
       if i < lenATR:
         for key in ['date', 'activeTime', 'duration', 'minutes']:
-          new_row[f'activeTimeRanges.{key}'] = activeTimeRanges[i][key]
+          new_row[f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = activeTimeRanges[i][key]
       if i < lenRU:
         for key in ['email', 'type']:
-          new_row[f'recentUsers.{key}'] = recentUsers[i][key]
+          new_row[f'recentUsers{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = recentUsers[i][key]
       if i < lenDF:
         for key in ['type', 'createTime']:
-          new_row[f'deviceFiles.{key}'] = deviceFiles[i][key]
+          new_row[f'deviceFiles{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = deviceFiles[i][key]
       if i < lenCSR:
-        new_row['cpuStatusReports.reportTime'] = cpuStatusReports[i]['reportTime']
+        new_row[f'cpuStatusReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}reportTime'] = cpuStatusReports[i]['reportTime']
         for tempInfo in cpuStatusReports[i].get('cpuTemperatureInfo', []):
-          new_row[f'cpuStatusReports.cpuTemperatureInfo.{tempInfo["label"]}'] = tempInfo['temperature']
+          new_row[f'cpuStatusReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}cpuTemperatureInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{tempInfo["label"]}'] = tempInfo['temperature']
         if 'cpuUtilizationPercentageInfo' in cpuStatusReports[i]:
-          new_row['cpuStatusReports.cpuUtilizationPercentageInfo'] = cpuStatusReports[i]['cpuUtilizationPercentageInfo']
+          new_row[f'cpuStatusReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}cpuUtilizationPercentageInfo'] = cpuStatusReports[i]['cpuUtilizationPercentageInfo']
       if i < lenDVR:
         j = 0
         for volume in diskVolumeReports[i]['volumeInfo']:
-          new_row[f'diskVolumeReports.volumeInfo.{j}.volumeId'] = volume['volumeId']
-          new_row[f'diskVolumeReports.volumeInfo.{j}.storageFree'] = volume['storageFree']
-          new_row[f'diskVolumeReports.volumeInfo.{j}.storageTotal'] = volume['storageTotal']
+          new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeId'] = volume['volumeId']
+          new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageFree'] = volume['storageFree']
+          new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageTotal'] = volume['storageTotal']
           j += 1
       if i < lenLKN:
         for key in ['ipAddress', 'wanIpAddress']:
-          new_row[f'lastKnownNetwork.{key}'] = lastKnownNetworks[i][key]
+          new_row[f'lastKnownNetwork{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = lastKnownNetworks[i][key]
       if i < lenSRFR:
         for key in ['reportTime', 'systemRamFreeInfo']:
-          new_row[f'systemRamFreeReports.{key}'] = systemRamFreeReports[i][key]
+          new_row[f'systemRamFreeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = systemRamFreeReports[i][key]
       csvPF.WriteRowTitles(new_row)
 
   def _callbackPrintCrOS(request_id, response, exception):
@@ -19842,23 +19847,23 @@ def doPrintCrOSActivity(entityList=None):
     for activeTimeRange in _filterActiveTimeRanges(cros, selectActiveTimeRanges, listLimit, startDate, endDate, activeTimeRangesOrder):
       new_row = row.copy()
       for key in ['date', 'duration', 'minutes']:
-        new_row[f'activeTimeRanges.{key}'] = activeTimeRange[key]
+        new_row[f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = activeTimeRange[key]
       csvPF.WriteRow(new_row)
     recentUsers = _filterRecentUsers(cros, selectRecentUsers, listLimit)
     if recentUsers:
       if not oneUserPerRow:
         new_row = row.copy()
-        new_row['recentUsers.email'] = delimiter.join([recentUser['email'] for recentUser in recentUsers])
+        new_row[f'recentUsers{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}email'] = delimiter.join([recentUser['email'] for recentUser in recentUsers])
         csvPF.WriteRow(new_row)
       else:
         for recentUser in recentUsers:
           new_row = row.copy()
-          new_row['recentUsers.email'] = recentUser['email']
+          new_row['recentUsers{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}email'] = recentUser['email']
           csvPF.WriteRow(new_row)
     for deviceFile in _filterDeviceFiles(cros, selectDeviceFiles, listLimit, startTime, endTime):
       new_row = row.copy()
       for key in ['type', 'createTime']:
-        new_row[f'deviceFiles.{key}'] = deviceFile[key]
+        new_row[f'deviceFiles{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = deviceFile[key]
       csvPF.WriteRow(new_row)
 
   def _callbackPrintCrOS(request_id, response, exception):
@@ -19939,13 +19944,16 @@ def doPrintCrOSActivity(entityList=None):
     selectActiveTimeRanges = selectRecentUsers = True
   if selectRecentUsers:
     fieldsList.append('recentUsers')
-    csvPF.AddTitles('recentUsers.email')
+    csvPF.AddTitles(f'recentUsers{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}email')
   if selectActiveTimeRanges:
     fieldsList.append('activeTimeRanges')
-    csvPF.AddTitles(['activeTimeRanges.date', 'activeTimeRanges.duration', 'activeTimeRanges.minutes'])
+    csvPF.AddTitles([f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}date',
+                     f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}duration',
+                     f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}minutes'])
   if selectDeviceFiles:
     fieldsList.append('deviceFiles')
-    csvPF.AddTitles(['deviceFiles.type', 'deviceFiles.createTime'])
+    csvPF.AddTitles([f'deviceFiles{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}type',
+                     f'deviceFiles{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}createTime'])
   _, _, entityList = getEntityArgument(entityList)
   if FJQC.formatJSON:
     csvPF.SetJSONTitles(['deviceId', 'JSON'])
@@ -25690,9 +25698,9 @@ def doPrintGroups():
     if groupCloudEntity:
       for k, v in iter(groupCloudEntity.pop('labels', {}).items()):
         if v == '':
-          groupCloudEntity[f'labels.{k}'] = True
+          groupCloudEntity[f'labels{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'] = True
         else:
-          groupCloudEntity[f'labels.{k}'] = v
+          groupCloudEntity[f'labels{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'] = v
       for key, value in sorted(iter(flattenJSON({'cloudIdentity': groupCloudEntity}, flattened={}, timeObjects=CIGROUP_TIME_OBJECTS).items())):
         csvPF.AddTitles(key)
         row[key] = value
@@ -26417,7 +26425,7 @@ def doPrintGroupMembers():
     if 'name.fullName' not in userFieldsList:
       userFieldsList.append('name.fullName')
     csvPF.AddTitles('name')
-    csvPF.RemoveTitles(['name.fullName'])
+    csvPF.RemoveTitles([f'name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}fullName'])
   memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS] = 'delivery_settings' in fieldsList
   userFields = getFieldsFromFieldsList(userFieldsList)
   if not rolesSet:
@@ -27567,9 +27575,9 @@ def doPrintCIGroups():
     mapCIGroupFieldNames(groupEntity)
     for k, v in iter(groupEntity.pop('labels', {}).items()):
       if v == '':
-        groupEntity[f'labels.{k}'] = True
+        groupEntity[f'labels{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'] = True
       else:
-        groupEntity[f'labels.{k}'] = v
+        groupEntity[f'labels{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'] = v
     for key, value in sorted(iter(flattenJSON(groupEntity, flattened={}, timeObjects=CIGROUP_TIME_OBJECTS).items())):
       csvPF.AddTitles(key)
       row[key] = value
@@ -35346,7 +35354,7 @@ def doPrintUsers(entityList=None):
               printOptions['maxGroups'] = numGroups
             userEntity['Groups'] = numGroups
             for j, group in enumerate(groups):
-              userEntity[f'Groups.{j}'] = group['email']
+              userEntity[f'Groups{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}'] = group['email']
         except (GAPI.invalidMember, GAPI.invalidInput):
           badRequestWarning(Ent.GROUP, Ent.MEMBER, userEmail)
         except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
@@ -35649,7 +35657,7 @@ def doPrintUsers(entityList=None):
     if printOptions['sortHeaders']:
       sortTitles = ['primaryEmail']
       if printOptions['scalarsFirst']:
-        sortTitles.extend([f'name.{field}' for field in USER_NAME_PROPERTY_PRINT_ORDER]+sorted(USER_LANGUAGE_PROPERTY_PRINT_ORDER+USER_SCALAR_PROPERTY_PRINT_ORDER))
+        sortTitles.extend([f'name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{field}' for field in USER_NAME_PROPERTY_PRINT_ORDER]+sorted(USER_LANGUAGE_PROPERTY_PRINT_ORDER+USER_SCALAR_PROPERTY_PRINT_ORDER))
       csvPF.SetSortTitles(sortTitles)
       csvPF.SortTitles()
       csvPF.SetSortTitles([])
@@ -35660,7 +35668,7 @@ def doPrintUsers(entityList=None):
       if not printOptions['groupsInColumns']:
         csvPF.MoveTitlesToEnd(['GroupsCount', 'Groups'])
       else:
-        csvPF.MoveTitlesToEnd(['Groups']+[f'Groups.{j}' for j in range(printOptions['maxGroups'])])
+        csvPF.MoveTitlesToEnd(['Groups']+[f'Groups{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}' for j in range(printOptions['maxGroups'])])
     if printOptions['getLicenseFeed']:
       csvPF.MoveTitlesToEnd(['LicensesCount', 'Licenses', 'LicensesDisplay'])
   elif not FJQC.formatJSON:
@@ -37165,7 +37173,7 @@ def doPrintCourses():
     j = 0
     for member in participants:
       memberTitles = []
-      prefix = f'{role}.{j}.'
+      prefix = f'{role}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}.'
       profile = member['profile']
       emailAddress = profile.get('emailAddress')
       if emailAddress:
@@ -37769,9 +37777,6 @@ COURSE_SUBMISSION_FIELDS_CHOICE_MAP = {
   'worktype': 'courseWorkType',
   }
 COURSE_SUBMISSION_TIME_OBJECTS = {'creationTime', 'updateTime', 'gradeTimestamp', 'stateTimestamp'}
-COURSE_SUBMISSION_SORT_TITLES = ['courseId', 'courseName', 'courseWorkId', 'id', 'userId',
-                                 'profile.emailAddress', 'profile.name.givenName', 'profile.name.familyName', 'profile.name.fullName', 'state']
-COURSE_SUBISSION_INDEXED_TITLES = ['submissionHistory']
 
 def _gettingCourseSubmissionQuery(courseSubmissionStates, late, userId):
   query = ''
@@ -37818,7 +37823,14 @@ def doPrintCourseSubmissions():
                                                  ensure_ascii=False, sort_keys=True)})
 
   croom = buildGAPIObject(API.CLASSROOM)
-  csvPF = CSVPrintFile(['courseId', 'courseName'], COURSE_SUBMISSION_SORT_TITLES, COURSE_SUBISSION_INDEXED_TITLES)
+  csvPF = CSVPrintFile(['courseId', 'courseName'],
+                       ['courseId', 'courseName', 'courseWorkId', 'id', 'userId',
+                        f'profile{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}emailAddress',
+                        f'profile{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}givenName',
+                        f'profile{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}familyName',
+                        f'profile{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}fullName',
+                        'state'],
+                       ['submissionHistory'])
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   courseSelectionParameters = _initCourseSelectionParameters()
@@ -39306,7 +39318,11 @@ def doPrintShowClassroomInvitations():
 # gam <UserTypeEntity> show classroomprofile
 def printShowClassroomProfile(users):
   croom = buildGAPIObject(API.CLASSROOM)
-  csvPF = CSVPrintFile(['emailAddress', 'id', 'name.givenName', 'name.familyName', 'name.fullName', 'photoUrl'], indexedTitles=['permissions']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['emailAddress', 'id',
+                        f'name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}givenName',
+                        f'name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}familyName',
+                        f'name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}fullName',
+                        'photoUrl'], indexedTitles=['permissions']) if Act.csvFormat() else None
   getTodriveOnly(csvPF)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -40804,7 +40820,8 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
   try:
     files = callGAPIpages(drive.files(), 'list', 'files',
                           pageMessage=getPageMessageForWhom(),
-                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND, GAPI.NOT_FOUND],
+                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND, GAPI.NOT_FOUND,
+                                                                      GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           retryReasons=[GAPI.UNKNOWN_ERROR],
                           q=query, orderBy=orderBy, fields='nextPageToken,files(id,driveId)', pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **kwargs)
     if files or not parentQuery:
@@ -40819,7 +40836,7 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
     printGotEntityItemsForWhom(0)
     if emptyQueryOK:
       return []
-  except GAPI.notFound as e:
+  except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, kwargs['driveId']], str(e), i, count)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -41726,7 +41743,6 @@ def getMediaBody(parameters):
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
 
-DRIVE_ACTIVITY_TITLES = ['user.name', 'user.emailAddress', 'target.id', 'target.name', 'target.mimeType', 'eventTime']
 DRIVE_ACTIVITY_ACTION_MAP = {
   'comment': 'COMMENT',
   'create': 'CREATE',
@@ -41795,7 +41811,13 @@ def printDriveActivity(users):
   strategy = 'none'
   negativeAction = False
   checkArgumentPresent(['v2'])
-  csvPF = CSVPrintFile(DRIVE_ACTIVITY_TITLES, 'sortall')
+  csvPF = CSVPrintFile([f'user{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name',
+                        f'user{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}emailAddress',
+                        f'target{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}id',
+                        f'target{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name',
+                        f'target{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}mimeType',
+                        'eventTime'],
+                       'sortall')
   FJQC = FormatJSONQuoteChar(csvPF)
   userInfo = {}
   while Cmd.ArgumentsRemaining():
@@ -41920,20 +41942,20 @@ def printDriveActivity(users):
                 userId = actors[0].get('impersonation', {}).get('impersonatedUser', {}).get('knownUser', {}).get('personName', '')
               if userId:
                 entry = _getUserInfo(userId)
-                eventRow['user.name'] = entry[1]
-                eventRow['user.emailAddress'] = entry[0]
+                eventRow[f'user{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name'] = entry[1]
+                eventRow[f'user{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}emailAddress'] = entry[0]
             targets = activityEvent.get('targets', [])
             if targets:
               driveItem = targets[0].get('driveItem')
               if driveItem:
-                eventRow['target.id'] = driveItem['name'][6:]
-                eventRow['target.name'] = driveItem['title']
-                eventRow['target.mimeType'] = driveItem['mimeType']
+                eventRow[f'target{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}id'] = driveItem['name'][6:]
+                eventRow[f'target{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name'] = driveItem['title']
+                eventRow[f'target{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}mimeType'] = driveItem['mimeType']
               else:
                 teamDrive = targets[0].get('teamDrive')
                 if teamDrive:
-                  eventRow['target.id'] = teamDrive['name'][11:]
-                  eventRow['target.name'] = teamDrive['title']
+                  eventRow[f'target{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}id'] = teamDrive['name'][11:]
+                  eventRow[f'target{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name'] = teamDrive['title']
             if 'timestamp' in activityEvent:
               eventRow['eventTime'] = formatLocalTime(activityEvent['timestamp'])
             elif 'timeRange' in activityEvent:
@@ -42023,7 +42045,7 @@ def printShowDriveSettings(users):
       row[title] = jcount
       j = 0
       for item, value in sorted(iter(feed[title].items())):
-        row[f'{title}.{j:02d}.{item}'] = delimiter.join(value)
+        row[f'{title}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j:02d}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{item}'] = delimiter.join(value)
         j += 1
 
   def _addSetting(row, title):
@@ -42110,16 +42132,16 @@ def printShowDriveSettings(users):
           row['maxImportSizes'] = jcount
           j = 0
           for setting, value in iter(feed['maxImportSizes'].items()):
-            row[f'maxImportSizes.{j}.{setting}'] = formatFileSize(int(value))
+            row[f'maxImportSizes{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{setting}'] = formatFileSize(int(value))
             j += 1
         if 'driveThemes' in fieldsList and 'driveThemes' in feed:
           jcount = len(feed['driveThemes'])
           row['driveThemes'] = jcount
           j = 0
           for setting in feed['driveThemes']:
-            row[f'driveThemes.{j:02d}.id'] = setting['id']
-            row[f'driveThemes.{j:02d}.backgroundImageLink'] = setting['backgroundImageLink']
-            row[f'driveThemes.{j:02d}.colorRgb'] = setting['colorRgb']
+            row[f'driveThemes{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j:02d}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}id'] = setting['id']
+            row[f'driveThemes{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j:02d}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}backgroundImageLink'] = setting['backgroundImageLink']
+            row[f'driveThemes{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j:02d}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}colorRgb'] = setting['colorRgb']
             j += 1
         csvPF.WriteRowTitles(row)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -43466,7 +43488,7 @@ def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row, 
   row['paths'] = kcount
   k = 0
   for path in sorted(paths):
-    key = f'path.{k}'
+    key = f'path{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'
     csvPF.AddTitles(key)
     if GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL] and (path.find('\n') >= 0 or path.find('\r') >= 0):
       row[key] = escapeCRsNLs(path)
@@ -44451,29 +44473,29 @@ def printFileList(users):
             field, subFields = field.split('(', 1)
             if field in DRIVE_LIST_FIELDS:
               titles.append(field)
-              titles.extend([f'{field}.0.{subField}' for subField in subFields[:-1].split(',') if subField])
+              titles.extend([f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}0{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}' for subField in subFields[:-1].split(',') if subField])
             else:
-              titles.extend([f'{field}.{subField}' for subField in subFields[:-1].split(',') if subField])
+              titles.extend([f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}' for subField in subFields[:-1].split(',') if subField])
           elif field.find('.') != -1:
             field, subField = field.split('.', 1)
             if field in DRIVE_LIST_FIELDS:
-              titles.append(f'{field}.0.{subField}')
+              titles.append(f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}0{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}')
             else:
-              titles.append(f'{field}.{subField}')
+              titles.append(f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}')
           elif field.lower() in DRIVE_SUBFIELDS_CHOICE_MAP:
             if field in DRIVE_LIST_FIELDS:
               titles.append(field)
               for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
                 if not isinstance(subField, list):
-                  titles.append(f'{field}.0.{subField}')
+                  titles.append(f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}0{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}')
                 else:
-                  titles.extend([f'{field}.0.{subSubField}' for subSubField in subField])
+                  titles.extend([f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}0{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subSubField}' for subSubField in subField])
             else:
               for subField in iter(DRIVE_SUBFIELDS_CHOICE_MAP[field.lower()].values()):
                 if not isinstance(subField, list):
-                  titles.append(f'{field}.{subField}')
+                  titles.append(f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}')
                 else:
-                  titles.extend([f'{field}.{subSubField}' for subSubField in subField])
+                  titles.extend([f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subSubField}' for subSubField in subField])
           else:
             titles.append(field)
         csvPF.SetTitles(titles)
@@ -45387,8 +45409,8 @@ def checkDriveFileShortcut(users):
           continue
         row['owner'] = scresult['owners'][0]['emailAddress']
         row['parentId'] = scresult['parents'][0]
-        row['shortcutDetails.targetId'] = scresult['shortcutDetails']['targetId']
-        row['shortcutDetails.targetMimeType'] = scresult['shortcutDetails']['targetMimeType']
+        row['shortcutDetails{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}targetId'] = scresult['shortcutDetails']['targetId']
+        row['shortcutDetails{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}targetMimeType'] = scresult['shortcutDetails']['targetMimeType']
         trfileId = scresult['shortcutDetails']['targetId']
         try:
           trresult = callGAPI(drive.files(), 'get',
@@ -54050,8 +54072,8 @@ def printShowMessagesThreads(users, entityType):
       _getAttachments(result['id'], result['payload'], attachmentNamePattern, attachments)
       row['Attachments'] = len(attachments)
       for i, attachment in enumerate(attachments):
-        row[f'Attachments.{i}.name'] = attachment[0]
-        row[f'Attachments.{i}.mimeType'] = attachment[1]
+        row[f'Attachments{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{i}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name'] = attachment[0]
+        row[f'Attachments{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{i}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}mimeType'] = attachment[1]
     csvPF.WriteRowTitles(row)
     parameters['messagesProcessed'] += 1
 
@@ -55669,7 +55691,7 @@ def printShowSendAs(users):
                 else:
                   for field in SMTPMSA_DISPLAY_FIELDS:
                     if field in sendas[item]:
-                      row[f'smtpMsa.{field}'] = sendas[item][field]
+                      row[f'smtpMsa{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{field}'] = sendas[item][field]
               csvPF.WriteRowTitles(row)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
           csvPF.WriteRowNoFilter({'User': user})
@@ -55741,7 +55763,7 @@ def printShowSignature(users):
           else:
             for field in SMTPMSA_DISPLAY_FIELDS:
               if field in sendas[item]:
-                row[f'smtpMsa.{field}'] = sendas[item][field]
+                row[f'smtpMsa{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{field}'] = sendas[item][field]
         csvPF.WriteRowTitles(row)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
