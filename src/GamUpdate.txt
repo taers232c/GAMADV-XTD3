@@ -1,3 +1,8 @@
+6.10.01
+
+Updated to Python 3.10.0.
+
+
 6.10.00
 
 Added `csv_output_subfield_delimiter` and `people_max_results` variables to `gam.cfg`.
