@@ -13,6 +13,7 @@ else
   sudo cp /tmp/resolv.conf /etc
   sudo apt-get -qq --yes update > /dev/null
   sudo apt-get -qq --yes install xz-utils > /dev/null
+  sudo apt-get -qq --yes install libwww-curl-perl > /dev/null
   SSLVER=$(~/ssl/bin/openssl version)
   SSLRESULT=$?
   PYVER=$(~/python/bin/python3 -V)
