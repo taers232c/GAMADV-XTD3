@@ -1,8 +1,6 @@
 if: tag IS blank
 os: linux
 language: python
-python:
-    - "3.10"
 dist: focal
 
 env:
