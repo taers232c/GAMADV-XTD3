@@ -4,7 +4,7 @@ if [[ "$TRAVIS_JOB_NAME" == *"Testing" ]]; then
   echo "Travis setup Python $TRAVIS_PYTHON_VERSION"
   echo "running tests with this version"
 else
-  export whereibelong=$(pwd)
+  export mypath=$(pwd)
   echo "We are running on Ubuntu $TRAVIS_DIST $PLATFORM"
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
   cpucount=$(nproc --all)
@@ -58,7 +58,9 @@ else
     sudo apt-get -qq --yes build-dep python3 > /dev/null
 
     # Compile latest OpenSSL
-    wget --quiet https://www.openssl.org/source/openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
+#    wget --quiet https://www.openssl.org/source/openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
+    ls -l ${mypath}/sslinstalls
+    cp ${mypath}/sslinstalls/openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz .
     echo "Extracting OpenSSL..."
     tar xf openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
     cd openssl-$LINUX_BUILD_OPENSSL_VERSION
@@ -122,7 +124,7 @@ else
 
   $pip install --upgrade git+git://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
 
-  cd $whereibelong
+  cd $mypath
 fi
 
 echo "Upgrading pip packages..."
