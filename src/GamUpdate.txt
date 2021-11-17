@@ -1,3 +1,8 @@
+6.10.01
+
+Updated `gam create domainalias|aliasdomain <DomainAlias> <DomainName>` to handle error when
+an invalid `<DomainAlias>` is specified.
+
 6.10.00
 
 Added `csv_output_subfield_delimiter` and `people_max_results` variables to `gam.cfg`.

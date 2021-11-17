@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.10.00'
+__version__ = '6.10.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -12413,13 +12413,15 @@ def doCreateDomainAlias():
   checkForExtraneousArguments()
   try:
     callGAPI(cd.domainAliases(), 'insert',
-             throwReasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+             throwReasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.DUPLICATE, GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
              customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='')
     entityActionPerformed([Ent.DOMAIN, body['parentDomainName'], Ent.DOMAIN_ALIAS, body['domainAliasName']])
   except GAPI.domainNotFound:
     entityActionFailedWarning([Ent.DOMAIN, body['parentDomainName']], Msg.DOES_NOT_EXIST)
   except GAPI.duplicate:
     entityActionFailedWarning([Ent.DOMAIN, body['parentDomainName'], Ent.DOMAIN_ALIAS, body['domainAliasName']], Msg.DUPLICATE)
+  except GAPI.invalid as e:
+    entityActionFailedWarning([Ent.DOMAIN, body['parentDomainName'], Ent.DOMAIN_ALIAS, body['domainAliasName']], str(e))
   except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
     accessErrorExit(cd)
 
