@@ -1,5 +1,4 @@
-mypath=$HOME
-whereibelong=$(pwd)
+mypath=$(pwd)
 cpucount=$(sysctl -n hw.ncpu)
 echo "This device has $cpucount CPUs for compiling..."
 
@@ -27,6 +26,8 @@ sudo installer -pkg ./$pyfile -target /
 # This fixes https://github.com/pyinstaller/pyinstaller/issues/5062
 #codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
 
+brew install openssl@3
+
 cd ~
 
 export python=/usr/local/bin/python3
@@ -38,7 +39,7 @@ PYRESULT=$?
 
 $python -V
 
-cd $whereibelong
+cd $mypath
 
 #export PATH=/usr/local/opt/python/libexec/bin:$PATH
 $pip install --upgrade pip

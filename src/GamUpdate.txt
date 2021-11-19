@@ -1,3 +1,7 @@
+6.10.02
+
+Upgraded to OpenSSL 3.0.0
+
 6.10.01
 
 Updated `gam create domainalias|aliasdomain <DomainAlias> <DomainName>` to handle error when
