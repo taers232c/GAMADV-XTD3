@@ -1,3 +1,5 @@
+echo "RUNNING: apt update..."
+sudo apt-get -qq --yes update > /dev/null
 if [[ "$TRAVIS_JOB_NAME" == *"Testing" ]]; then
   export python="python"
   export pip="pip"
@@ -9,9 +11,6 @@ else
   export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
   cpucount=$(nproc --all)
   echo "This device has $cpucount CPUs for compiling..."
-  echo -e "nameserver 8.8.8.8\nnameserver 8.8.4.4" > /tmp/resolv.conf
-  sudo cp /tmp/resolv.conf /etc
-  sudo apt-get -qq --yes update > /dev/null
   sudo apt-get -qq --yes install xz-utils > /dev/null
   sudo apt-get -qq --yes install libwww-curl-perl > /dev/null
   SSLVER=$(~/ssl/bin/openssl version)
@@ -39,8 +38,6 @@ else
     rm -rf python
     mkdir ssl
     mkdir python
-    echo "RUNNING: apt update..."
-    sudo apt-get -qq --yes update > /dev/null
     echo "RUNNING: apt upgrade..."
     sudo apt-mark hold openssh-server
     if [[ "$DIST_UPGRADE" == "true" ]]; then
@@ -65,7 +62,8 @@ else
     tar xf openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
     cd openssl-$LINUX_BUILD_OPENSSL_VERSION
     echo "Compiling OpenSSL $LINUX_BUILD_OPENSSL_VERSION..."
-    ./config shared --prefix=$HOME/ssl
+#    ./config shared --prefix=$HOME/ssl
+    ./Configure --libdir=lib --prefix=$HOME/ssl
     echo "Running make for OpenSSL..."
     make -j$cpucount -s
     echo "Running make install for OpenSSL..."
@@ -80,7 +78,7 @@ else
     cd Python-$BUILD_PYTHON_VERSION
     echo "Compiling Python $BUILD_PYTHON_VERSION..."
     safe_flags="--with-openssl=$HOME/ssl --enable-shared --prefix=$HOME/python --with-ensurepip=upgrade"
-    unsafe_flags="--enable-optimizations --with-lto"
+    unsafe_flags="--enable-optimizations --with-lto --with-openssl=~/ssl --with-openssl-rpath=~~/ssl/lib"
     if [ ! -e Makefile ]; then
       echo "running configure with safe and unsafe"
       ./configure $safe_flags $unsafe_flags > /dev/null

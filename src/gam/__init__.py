@@ -10208,10 +10208,16 @@ def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size):
   builder = x509.CertificateBuilder()
   builder = builder.subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
   builder = builder.issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
-  not_valid_before = datetime.datetime.today() - datetime.timedelta(days=1)
-  not_valid_after = datetime.datetime.today() + datetime.timedelta(days=365*10-1)
-  builder = builder.not_valid_before(not_valid_before)
-  builder = builder.not_valid_after(not_valid_after)
+# 2001/11/22 - From Jay
+#  not_valid_before = datetime.datetime.today() - datetime.timedelta(days=1)
+#  not_valid_after = datetime.datetime.today() + datetime.timedelta(days=365*10-1)
+#  builder = builder.not_valid_before(not_valid_before)
+#  builder = builder.not_valid_after(not_valid_after)
+  # Gooogle seems to enforce the not before date strictly. Set the not before
+  # date to be UTC one hour ago should cover any clock skew.
+  builder = builder.not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(hours=1))
+  # Google uses 12/31/9999 date for end time
+  builder = builder.not_valid_after(datetime.datetime(9999, 12, 31, 23, 59))
   builder = builder.serial_number(x509.random_serial_number())
   builder = builder.public_key(public_key)
   builder = builder.add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
