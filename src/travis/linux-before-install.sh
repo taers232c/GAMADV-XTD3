@@ -77,7 +77,7 @@ else
     cd Python-$BUILD_PYTHON_VERSION
     echo "Compiling Python $BUILD_PYTHON_VERSION..."
     safe_flags="--with-openssl=$HOME/ssl --enable-shared --prefix=$HOME/python --with-ensurepip=upgrade"
-    unsafe_flags="--enable-optimizations --with-lto --with-openssl=~/ssl --with-openssl-rpath=~~/ssl/lib"
+    unsafe_flags="--enable-optimizations --with-lto --with-openssl=~/ssl"
     if [ ! -e Makefile ]; then
       echo "running configure with safe and unsafe"
       ./configure $safe_flags $unsafe_flags > /dev/null
