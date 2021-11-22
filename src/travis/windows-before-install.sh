@@ -56,11 +56,11 @@ export exefile=Win${BITS}OpenSSL_Light-${WINDOWS_BUILD_OPENSSL_VERSION//./_}.exe
 ls -l ${mypath}/sslinstalls
 cp ${mypath}/sslinstalls/${exefile} .
 until powershell ".\\${exefile} /silent /sp- /suppressmsgboxes /DIR=C:\\ssl"; do echo "trying openssl again..."; sleep 3; done
-until cp -v /c/ssl/libcrypto-1_1${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libcrypto copy again..."; sleep 3; done
-until cp -v /c/ssl/libssl-1_1${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libssl copy again..."; done
+until cp -v /c/ssl/libcrypto-${WINDOWS_LIB_SSL_VERSION}${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libcrypto copy again..."; sleep 3; done
+until cp -v /c/ssl/libssl-${WINDOWS_LIB_SSL_VERSION}${OPENSSL_BITS}.dll /c/python/DLLs/; do echo "trying libssl copy again..."; done
 if [[ "$PLATFORM" == "x86_64" ]]; then
-  cp -v /c/python/DLLs/libssl-1_1-x64.dll /c/python/DLLs/libssl-1_1.dll
-  cp -v /c/python/DLLs/libcrypto-1_1-x64.dll /c/python/DLLs/libcrypto-1_1.dll
+  cp -v /c/python/DLLs/libssl-${WINDOWS_LIB_SSL_VERSION}-x64.dll /c/python/DLLs/libssl-${WINDOWS_LIB_SSL_VERSION}.dll
+  cp -v /c/python/DLLs/libcrypto-${WINDOWS_LIB_SSL_VERSION}-x64.dll /c/python/DLLs/libcrypto-${WINDOWS_LIB_SSL_VERSION}.dll
 fi
 
 cd $mypath
