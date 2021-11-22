@@ -62,8 +62,7 @@ else
     tar xf openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
     cd openssl-$LINUX_BUILD_OPENSSL_VERSION
     echo "Compiling OpenSSL $LINUX_BUILD_OPENSSL_VERSION..."
-#    ./config shared --prefix=$HOME/ssl
-    ./Configure --libdir=lib --prefix=$HOME/ssl
+    ./config shared --prefix=$HOME/ssl
     echo "Running make for OpenSSL..."
     make -j$cpucount -s
     echo "Running make install for OpenSSL..."
