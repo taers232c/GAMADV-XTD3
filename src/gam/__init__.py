@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.10.02'
+__version__ = '6.10.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -29797,12 +29797,16 @@ CALENDAR_EVENT_MAX_COLOR_INDEX = 11
 CALENDAR_ATTENDEE_OPTIONAL_CHOICE_MAP = {
   'optional': True,
   'required': False,
+  'true': True,
+  'false': False,
+  '': None,
   }
 CALENDAR_ATTENDEE_STATUS_CHOICE_MAP = {
   'accepted': 'accepted',
   'declined': 'declined',
   'needsaction': 'needsAction',
   'tentative': 'tentative',
+  '': None,
   }
 CALENDAR_EVENT_STATUS_CHOICES = ['confirmed', 'tentative', 'cancelled']
 CALENDAR_EVENT_TRANSPARENCY_CHOICES = ['opaque', 'transparent']
@@ -39032,7 +39036,7 @@ CLASSROOM_ROLE_ENTITY_MAP = {
   }
 
 # gam <UserTypeEntity> create classroominvitation courses <CourseEntity> [role owner|student|teacher]
-#	[adminaccess|asadmin] [csvformat] [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
+#	[adminaccess|asadmin] [csv|csvformat] [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 def createClassroomInvitations(users):
   croom = buildGAPIObject(API.CLASSROOM)
   classroomEmails = {}
@@ -39041,14 +39045,14 @@ def createClassroomInvitations(users):
   role = CLASSROOM_ROLE_STUDENT
   useAdminAccess = False
   csvPF = None
-  FJQC = FormatJSONQuoteChar()
+  FJQC = FormatJSONQuoteChar(csvPF)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'course', 'courses', 'class', 'classes'}:
       courseIds = getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True)
     elif myarg == 'role':
       role = getChoice(CLASSROOM_CREATE_ROLE_MAP, mapChoice=True)
-    elif myarg == 'csvformat':
+    elif myarg in {'csv',  'csvformat'}:
       csvPF = CSVPrintFile()
       FJQC.SetCsvPF(csvPF)
     elif csvPF and myarg == 'todrive':
@@ -42538,11 +42542,13 @@ DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP = {
   'expirationtime': 'expirationTime',
   'id': 'id',
   'name': 'displayName',
+  'pendingowner': 'pendingOwner',
   'permissiondetails': 'permissionDetails',
   'photolink': 'photoLink',
   'role': 'role',
-  'teamdrivepermissiondetails': 'teamDrivePermissionDetails',
+  'teamdrivepermissiondetails': 'permissionDetails',
   'type': 'type',
+  'view': 'view',
   'withlink': 'allowFileDiscovery',
   }
 
@@ -45713,7 +45719,8 @@ STAT_FILE_FAILED = 10
 STAT_FILE_NOT_COPYABLE_MOVABLE = 11
 STAT_FILE_PERMISSIONS_FAILED = 12
 STAT_FILE_PROTECTEDRANGES_FAILED = 13
-STAT_LENGTH = 14
+STAT_USER_NOT_ORGANIZER = 14
+STAT_LENGTH = 15
 
 FOLDER_SUBTOTAL_STATS = [STAT_FOLDER_COPIED_MOVED, STAT_FOLDER_DUPLICATE, STAT_FOLDER_MERGED, STAT_FOLDER_FAILED, STAT_FOLDER_NOT_WRITABLE]
 FILE_SUBTOTAL_STATS = [STAT_FILE_COPIED_MOVED, STAT_FILE_DUPLICATE, STAT_FILE_FAILED, STAT_FILE_NOT_COPYABLE_MOVABLE]
@@ -45772,6 +45779,11 @@ def _printStatistics(user, statistics, i, count, copy):
                                                          statistics[STAT_FILE_FAILED],
                                                          statistics[STAT_FILE_NOT_COPYABLE_MOVABLE])],
                         i, count)
+  if statistics[STAT_USER_NOT_ORGANIZER]:
+    printEntityKVList([Ent.USER, user],
+                      [Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER),
+                       Msg.STATISTICS_USER_NOT_ORGANIZER.format(statistics[STAT_USER_NOT_ORGANIZER])],
+                      i, count)
 
 DUPLICATE_FILE_OVERWRITE_OLDER = 0
 DUPLICATE_FILE_OVERWRITE_ALL = 1
@@ -46076,6 +46088,26 @@ def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilenam
   _incrStatistic(statistics, STAT_FILE_FAILED)
   return None
 
+def _verifyUserIsOrganizer(drive, user, i, count, fileId):
+  role = 'Unknown'
+  try:
+    permissionId = getPermissionIdForEmail(user, i, count, user)
+    role = callGAPI(drive.permissions(), 'get',
+                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
+                    useDomainAdminAccess=False,
+                    fileId=fileId, permissionId=permissionId, fields='role', supportsAllDrives=True)['role']
+    if role == 'organizer':
+      return True
+    entityActionNotPerformedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileId, Ent.ROLE, role], Msg.ROLE_MUST_BE_ORGANIZER, i, count)
+  except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+          GAPI.badRequest, GAPI.insufficientAdministratorPrivileges) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileId], str(e), i, count)
+  except GAPI.permissionNotFound:
+    entityDoesNotHaveItemWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileId, Ent.PERMISSION_ID, permissionId], i, count)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+    entityActionNotPerformedWarning([Ent.USER, user], Msg.UNABLE_TO_GET_PERMISSION_ID.format(user), i, count)
+  return False
+
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity>
 #	[newfilename <DriveFileName>] [stripnameprefix <String>]
 #	[summary [<Boolean>]] [excludetrashed] [returnidonly|returnlinkonly]
@@ -46267,7 +46299,6 @@ def copyDriveFile(users):
   returnIdLink = None
   maxdepth = -1
   copiedFiles = {}
-  statistics = _initStatistics()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if getCopyMoveOptions(myarg, copyMoveOptions, True):
@@ -46303,6 +46334,7 @@ def copyDriveFile(users):
       _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
       if not sheet:
         continue
+    statistics = _initStatistics()
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity['list']:
@@ -46322,6 +46354,10 @@ def copyDriveFile(users):
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
         if copyMoveOptions['sourceDriveId']:
+# If copying from a Shared Drive, user has to be an organizer
+          if not _verifyUserIsOrganizer(drive, user, i, count, copyMoveOptions['sourceDriveId']):
+            _incrStatistic(statistics, STAT_USER_NOT_ORGANIZER)
+            continue
           sourceSearchArgs = {'driveId': copyMoveOptions['sourceDriveId'], 'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
         else:
           sourceSearchArgs = {}
@@ -46342,9 +46378,14 @@ def copyDriveFile(users):
         if dest is None:
           continue
         copyMoveOptions['destDriveId'] = dest.get('driveId')
-        if copyMoveOptions['destDriveId'] and not parentParms[DFA_SEARCHARGS]:
-          parentParms[DFA_SEARCHARGS] = {'driveId': copyMoveOptions['destDriveId'], 'corpora': 'drive',
-                                         'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
+        if copyMoveOptions['destDriveId']:
+# If copying to a Shared Drive, user has to be an organizer
+          if not _verifyUserIsOrganizer(drive, user, i, count, copyMoveOptions['destDriveId']):
+            _incrStatistic(statistics, STAT_USER_NOT_ORGANIZER)
+            continue
+          if not parentParms[DFA_SEARCHARGS]:
+            parentParms[DFA_SEARCHARGS] = {'driveId': copyMoveOptions['destDriveId'], 'corpora': 'drive',
+                                           'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
         if copyMoveOptions['newFilename']:
           destFilename = copyMoveOptions['newFilename']
         elif copyMoveOptions['mergeWithParent']:
@@ -46658,7 +46699,6 @@ def moveDriveFile(users):
   copyMoveOptions = initCopyMoveOptions(True)
   newParentsSpecified = False
   movedFiles = {}
-  statistics = _initStatistics()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if getCopyMoveOptions(myarg, copyMoveOptions, False):
@@ -46675,6 +46715,7 @@ def moveDriveFile(users):
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, parentBody, parentParms):
       continue
+    statistics = _initStatistics()
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity['list']:
@@ -46689,6 +46730,10 @@ def moveDriveFile(users):
         sourceFilename = source['name']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
         if copyMoveOptions['sourceDriveId']:
+# If moving from a Shared Drive, user has to be an organizer
+          if not _verifyUserIsOrganizer(drive, user, i, count, copyMoveOptions['sourceDriveId']):
+            _incrStatistic(statistics, STAT_USER_NOT_ORGANIZER)
+            continue
           if source['trashed']:
             entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename],
                                             Msg.NOT_MOVABLE_IN_TRASH, j, jcount)
@@ -46726,9 +46771,14 @@ def moveDriveFile(users):
         targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
-# If copying from My Drive to a Shared Drive, parents have to be recreated.
-        if copyMoveOptions['destDriveId'] and not copyMoveOptions['sourceDriveId']:
-          copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
+        if copyMoveOptions['destDriveId']:
+# If moving to a Shared Drive, user has to be an organizer
+          if not _verifyUserIsOrganizer(drive, user, i, count, copyMoveOptions['destDriveId']):
+            _incrStatistic(statistics, STAT_USER_NOT_ORGANIZER)
+            continue
+# If moving from My Drive to a Shared Drive, parents have to be recreated.
+          if not copyMoveOptions['sourceDriveId']:
+            copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
 #        copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
@@ -48794,7 +48844,9 @@ def emptyDriveTrash(users):
       Ind.Decrement()
 
 def _getDriveFileACLPrintKeysTimeObjects():
-  printKeys = ['id', 'type', 'emailAddress', 'domain', 'role', 'permissionDetails', 'expirationTime', 'photoLink', 'allowFileDiscovery', 'deleted']
+  printKeys = ['id', 'type', 'emailAddress', 'domain', 'role', 'permissionDetails',
+               'expirationTime', 'photoLink', 'allowFileDiscovery', 'deleted',
+               'pendingOwner', 'view']
   timeObjects = ['expirationTime']
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     _mapDrive3TitlesToDrive2(printKeys, API.DRIVE3_TO_DRIVE2_FILES_FIELDS_MAP)
@@ -48870,13 +48922,17 @@ def _showDriveFilePermissions(entityType, fileName, permissions, printKeys, time
 #	anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 #	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
 #	[enforcesingleparent <Boolean>] [moveToNewOwnersRoot [<Boolean>]]
-#	[expiration <Time>] [sendemail] [emailmessage <String>] [showtitles] [nodetails]
+#	[expiration <Time>] [sendemail] [emailmessage <String>]
+#	[showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 def createDriveFileACL(users, useDomainAdminAccess=False):
   enforceSingleParent = moveToNewOwnersRoot = False
   sendNotificationEmail = showTitles = _transferOwnership = False
   roleLocation = withLinkLocation = expirationLocation = None
-  showDetails = True
   emailMessage = None
+  showDetails = True
+  csvPF = None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   fileIdEntity = getDriveFileEntity()
   body = {}
   ubody = {}
@@ -48918,20 +48974,32 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
       showTitles = True
     elif myarg == 'nodetails':
       showDetails = False
+    elif myarg == 'csv':
+      csvPF = CSVPrintFile(['Owner', 'id'], 'sortall')
+      FJQC.SetCsvPF(csvPF)
+    elif csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg)
   if 'role' not in body:
     missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
   _validatePermissionOwnerType(roleLocation, body)
   _validatePermissionAttributes('allowfilediscovery/withlink', withLinkLocation, body, 'allowFileDiscovery', ['anyone', 'domain'])
   _validatePermissionAttributes('expiration', expirationLocation, body, 'expirationTime', ['user', 'group'])
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
+  if csvPF and showTitles:
+    csvPF.AddTitles(fileNameTitle)
+    csvPF.SetSortAllTitles()
+    if FJQC.formatJSON:
+      csvPF.SetJSONTitles(csvPF.titlesList+['JSON'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL, useDomainAdminAccess=useDomainAdminAccess)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
+                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL if not csvPF else None,
+                                                  useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     Ind.Increment()
@@ -48942,7 +49010,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
         if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId)
+          fileName, entityType = _getDriveFileNameFromId(drive, fileId, combineTitleId=not csvPF)
         permission = callGAPI(drive.permissions(), 'create',
                               bailOnInternalError=True,
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
@@ -48957,9 +49025,24 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
                                 useDomainAdminAccess=useDomainAdminAccess,
                                 fileId=fileId, permissionId=permission['id'], removeExpiration=False,
                                 body=ubody, fields='*', supportsAllDrives=True)
-        entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
-        if showDetails:
-          _showDriveFilePermission(permission, printKeys, timeObjects)
+        if csvPF:
+          baserow = {'Owner': user, 'id': fileId}
+          if showTitles:
+            baserow[fileNameTitle] = fileName
+          row = baserow.copy()
+          _mapDrivePermissionNames(permission)
+          flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(row)
+          elif csvPF.CheckRowTitles(row):
+            row = baserow.copy()
+            row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
+                                     ensure_ascii=False, sort_keys=True)
+            csvPF.WriteRowNoFilter(row)
+        else:
+          entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
+          if showDetails:
+            _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
@@ -48977,18 +49060,24 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Drive File ACLs')
 
 def doCreateDriveFileACL():
   createDriveFileACL([_getAdminEmail()], True)
 
 # gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
-#	(role <DriveFileACLRole>) [expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails]
+#	(role <DriveFileACLRole>) [expiration <Time>] [removeexpiration [<Boolean>]]
+#	[showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 def updateDriveFileACLs(users, useDomainAdminAccess=False):
-  fileIdEntity = getDriveFileEntity()
-  body = {}
   isEmail, permissionId = getPermissionId()
   removeExpiration = showTitles = False
   showDetails = True
+  csvPF = None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
+  fileIdEntity = getDriveFileEntity()
+  body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'role':
@@ -49001,20 +49090,32 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
       showTitles = True
     elif myarg == 'nodetails':
       showDetails = False
+    elif myarg == 'csv':
+      csvPF = CSVPrintFile(['Owner', 'id'], 'sortall')
+      FJQC.SetCsvPF(csvPF)
+    elif csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
     elif myarg == 'transferownership':
       deprecatedArgument(myarg)
       getBoolean()
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg)
   if 'role' not in body:
     missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
+  if csvPF and showTitles:
+    csvPF.AddTitles(fileNameTitle)
+    csvPF.SetSortAllTitles()
+    if FJQC.formatJSON:
+      csvPF.SetJSONTitles(csvPF.titlesList+['JSON'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL, useDomainAdminAccess=useDomainAdminAccess)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
+                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER_ACL if not csvPF else None,
+                                                  useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
     if isEmail:
@@ -49030,16 +49131,31 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
         if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId)
-        result = callGAPI(drive.permissions(), 'update',
-                          bailOnInternalError=True,
-                          throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
-                          useDomainAdminAccess=useDomainAdminAccess,
-                          fileId=fileId, permissionId=permissionId, removeExpiration=removeExpiration,
-                          transferOwnership=body.get('role', '') == 'owner', body=body, fields='*', supportsAllDrives=True)
-        entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
-        if showDetails:
-          _showDriveFilePermission(result, printKeys, timeObjects)
+          fileName, entityType = _getDriveFileNameFromId(drive, fileId, combineTitleId=not csvPF)
+        permission = callGAPI(drive.permissions(), 'update',
+                              bailOnInternalError=True,
+                              throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
+                              useDomainAdminAccess=useDomainAdminAccess,
+                              fileId=fileId, permissionId=permissionId, removeExpiration=removeExpiration,
+                              transferOwnership=body.get('role', '') == 'owner', body=body, fields='*', supportsAllDrives=True)
+        if csvPF:
+          baserow = {'Owner': user, 'id': fileId}
+          if showTitles:
+            baserow[fileNameTitle] = fileName
+          row = baserow.copy()
+          _mapDrivePermissionNames(permission)
+          flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(row)
+          elif csvPF.CheckRowTitles(row):
+            row = baserow.copy()
+            row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
+                                     ensure_ascii=False, sort_keys=True)
+            csvPF.WriteRowNoFilter(row)
+        else:
+          entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
+          if showDetails:
+            _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
               GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.sharingRateLimitExceeded,
@@ -49058,6 +49174,8 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Drive File ACLs')
 
 def doUpdateDriveFileACLs():
   updateDriveFileACLs([_getAdminEmail()], True)
@@ -49280,7 +49398,8 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
 def doCreatePermissions():
   createDriveFilePermissions([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin] [showtitles]
+# gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+#	[showtitles]
 def deleteDriveFileACLs(users, useDomainAdminAccess=False):
   fileIdEntity = getDriveFileEntity()
   isEmail, permissionId = getPermissionId()

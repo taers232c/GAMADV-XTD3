@@ -1,3 +1,13 @@
+6.10.03
+
+Updated `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity> <DriveFileParentAttribute>`
+to enforce the requirement that the specified user be a Shared Drive organizer
+if either `<DriveFileEntity>` or `<DriveFileParentAttribute>` specifies a Shared Drive.
+
+Added options `csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]` to
+`gam <UserTypeEntity> create|update drivefileacl <DriveFileEntity>` that causes GAM to
+output the new ACL details in CSV form rather than indented keywords and values.
+
 6.10.02
 
 Following Jay's lead, fixed obscure problem when creating a project in timezones ahead of GMT.
