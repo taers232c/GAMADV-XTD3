@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.10.03'
+__version__ = '6.10.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4108,7 +4108,7 @@ def _getSvcAcctData():
       GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = True
       GM.Globals[GM.SVCACCT_SCOPES] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].pop(API.OAUTH2SA_SCOPES)
 
-def getSvcAcctCredentials(scopesOrAPI, userEmail):
+def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False):
   _getSvcAcctData()
   if isinstance(scopesOrAPI, str):
     GM.Globals[GM.CURRENT_SVCACCT_API] = scopesOrAPI
@@ -4117,6 +4117,8 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
     else:
       GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = API.JWT_APIS[scopesOrAPI]
     if not GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES]:
+      if softErrors:
+        return None
       SvcAcctAPIAccessDeniedExit()
     if scopesOrAPI in {API.PEOPLE, API.PEOPLE_DIRECTORY, API.PEOPLE_OTHERCONTACTS}:
       GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES].append(API.USERINFO_PROFILE_SCOPE)
@@ -4129,6 +4131,8 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
     try:
       credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
     except (ValueError, IndexError, KeyError) as e:
+      if softErrors:
+        return None
       invalidOauth2serviceJsonExit(str(e))
     credentials = credentials.with_scopes(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES])
   else:
@@ -4137,6 +4141,8 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail):
                                                              audience=f'https://{scopesOrAPI}.googleapis.com/')
       credentials.project_id = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
     except (ValueError, IndexError, KeyError) as e:
+      if softErrors:
+        return None
       invalidOauth2serviceJsonExit(str(e))
   GM.Globals[GM.CURRENT_SVCACCT_USER] = userEmail
   if userEmail:
@@ -10521,7 +10527,10 @@ def doWhatIs():
     entityUnknownWarning(Ent.EMAIL, email)
     setSysExitRC(ENTITY_IS_UKNOWN_RC)
     return
-  isInvitableUser, ci = _getIsInvitableUser(None, email)
+  if not getSvcAcctCredentials(API.CLOUDIDENTITY_USERINVITATIONS, _getAdminEmail(), softErrors=True):
+    isInvitableUser = False
+  else:
+    isInvitableUser, ci = _getIsInvitableUser(None, email)
   if isInvitableUser:
     if showInfo:
       name, user, ci = _getCIUserInvitationsEntity(ci, email)
@@ -49070,13 +49079,13 @@ def doCreateDriveFileACL():
 #	(role <DriveFileACLRole>) [expiration <Time>] [removeexpiration [<Boolean>]]
 #	[showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 def updateDriveFileACLs(users, useDomainAdminAccess=False):
+  fileIdEntity = getDriveFileEntity()
   isEmail, permissionId = getPermissionId()
   removeExpiration = showTitles = False
   showDetails = True
   csvPF = None
   FJQC = FormatJSONQuoteChar(csvPF)
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
-  fileIdEntity = getDriveFileEntity()
   body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
