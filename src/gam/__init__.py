@@ -6889,13 +6889,13 @@ class CSVPrintFile():
               if self.todrive[sheetEntity]:
                 sheetId = getSheetIdFromSheetEntity(spreadsheet, self.todrive[sheetEntity])
                 if sheetId is None:
-                  if not self.todrive['addsheet']:
+                  if not self.todrive['addsheet'] and ((sheetEntity != 'sheetEntity') or (self.todrive[sheetEntity]['sheetType'] == Ent.SHEET_ID)):
                     invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_FOUND, tdsheetLocation[sheetEntity])
                 else:
                   if self.todrive['addsheet']:
                     invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.ALREADY_EXISTS, tdsheetLocation[sheetEntity])
-                if protectedSheetId(spreadsheet, sheetId):
-                  invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_WRITABLE, tdsheetLocation[sheetEntity])
+                  if protectedSheetId(spreadsheet, sheetId):
+                    invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_WRITABLE, tdsheetLocation[sheetEntity])
                 self.todrive[sheetEntity]['sheetId'] = sheetId
           except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
                   GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
@@ -7291,17 +7291,7 @@ class CSVPrintFile():
               sheet = buildGAPIObject(API.SHEETS)
             csvFile.seek(0)
             spreadsheet = None
-            if self.todrive['addsheet']:
-              body = {'requests': [{'addSheet': {'properties': {'title': sheetTitle, 'sheetType': 'GRID'}}}]}
-              try:
-                addresult = callGAPI(sheet.spreadsheets(), 'batchUpdate',
-                                     throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                                     spreadsheetId=self.todrive['fileId'], body=body)
-                self.todrive['sheetEntity'] = {'sheetId': addresult['replies'][0]['addSheet']['properties']['sheetId']}
-              except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
-                todriveCSVErrorExit(entityValueList, str(e))
-            else:
+            if self.todrive['updatesheet']:
               for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
                 if self.todrive[sheetEntity]:
                   entityValueList = [Ent.USER, user, Ent.SPREADSHEET, title, self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']]
@@ -7312,10 +7302,23 @@ class CSVPrintFile():
                                            fields='spreadsheetUrl,sheets(properties(sheetId,title),protectedRanges(range(sheetId),requestingUserCanEdit))')
                   sheetId = getSheetIdFromSheetEntity(spreadsheet, self.todrive[sheetEntity])
                   if sheetId is None:
-                    todriveCSVErrorExit(entityValueList, Msg.NOT_FOUND)
-                  if protectedSheetId(spreadsheet, sheetId):
-                    todriveCSVErrorExit(entityValueList, Msg.NOT_WRITABLE)
-                  self.todrive[sheetEntity]['sheetId'] = sheetId
+                    if ((sheetEntity != 'sheetEntity') or (self.todrive[sheetEntity]['sheetType'] == Ent.SHEET_ID)):
+                      todriveCSVErrorExit(entityValueList, Msg.NOT_FOUND)
+                    self.todrive['addsheet'] = True
+                  else:
+                    if protectedSheetId(spreadsheet, sheetId):
+                      todriveCSVErrorExit(entityValueList, Msg.NOT_WRITABLE)
+                    self.todrive[sheetEntity]['sheetId'] = sheetId
+            if self.todrive['addsheet']:
+              body = {'requests': [{'addSheet': {'properties': {'title': sheetTitle, 'sheetType': 'GRID'}}}]}
+              try:
+                addresult = callGAPI(sheet.spreadsheets(), 'batchUpdate',
+                                     throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                                     spreadsheetId=self.todrive['fileId'], body=body)
+                self.todrive['sheetEntity'] = {'sheetId': addresult['replies'][0]['addSheet']['properties']['sheetId']}
+              except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+                todriveCSVErrorExit(entityValueList, str(e))
             body = {'requests': []}
             if not self.todrive['addsheet']:
               if self.todrive['backupSheetEntity']:
@@ -36151,6 +36154,7 @@ class CourseAttributes():
     self.body = {}
     self.courseId = None
     self.ownerId = None
+    self.markDraftAsPublished = False
     self.markPublishedAsDraft = False
     self.removeDueDate = False
     self.mapShareModeStudentCopy = None
@@ -36269,6 +36273,8 @@ class CourseAttributes():
         _getCourseStates(Cmd.OB_COURSE_MATERIAL_STATE_LIST, self.materialStates)
       elif myarg == 'members':
         self.members = getChoice(COURSE_MEMBER_ARGUMENTS)
+      elif myarg == 'markdraftaspublished':
+        self.markDraftAsPublished = getBoolean()
       elif myarg == 'markpublishedasdraft':
         self.markPublishedAsDraft = getBoolean()
       elif myarg == 'removeduedate':
@@ -36338,6 +36344,8 @@ class CourseAttributes():
             courseMaterial.pop(field, None)
           if self.markPublishedAsDraft and courseMaterial['state'] == 'PUBLISHED':
             courseMaterial['state'] = 'DRAFT'
+          elif self.markDraftAsPublished and courseMaterial['state'] == 'DRAFT':
+            courseMaterial['state'] = 'PUBLISHED'
           self.CleanMaterials(courseMaterial, Ent.COURSE_MATERIAL_ID, courseMaterial['id'])
       except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
@@ -36359,6 +36367,8 @@ class CourseAttributes():
           self.CleanAssignments(courseWork)
           if self.markPublishedAsDraft and courseWork['state'] == 'PUBLISHED':
             courseWork['state'] = 'DRAFT'
+          elif self.markDraftAsPublished and courseWork['state'] == 'DRAFT':
+            courseWork['state'] = 'PUBLISHED'
           if self.removeDueDate:
             courseWork.pop('dueDate', None)
             courseWork.pop('dueTime', None)
@@ -36614,10 +36624,11 @@ class CourseAttributes():
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [materialstates <CourseMaterialStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#		[removeduedate [<Boolean>]]
 #		[mapsharemodestudentcopy edit|none|view]
 #           [copymaterialsfiles [<Boolean>]]
 #	    [copytopics [<Boolean>]]
+#	    [markpublishedasdraft [<Boolean>]] [markdraftaspublished [<Boolean>]]
 #	    [members none|all|students|teachers]]
 #	    [logdrivefileids [<Boolean>>]]
 def doCreateCourse():
@@ -36714,10 +36725,11 @@ def _doUpdateCourses(entityList):
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [materialstates <CourseMaterialStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#		[removeduedate [<Boolean>]]
 #		[mapsharemodestudentcopy edit|none|view]
 #           [copymaterialsfiles [<Boolean>]]
 #	    [copytopics [<Boolean>]]
+#	    [markpublishedasdraft [<Boolean>]] [markdraftaspublished [<Boolean>]]
 #	    [members none|all|students|teachers]]
 #	    [logdrivefileids [<Boolean>>]]
 def doUpdateCourses():
@@ -36728,10 +36740,11 @@ def doUpdateCourses():
 #	    [announcementstates <CourseAnnouncementStateList>]
 #	    [materialstates <CourseMaterialStateList>]
 #	    [workstates <CourseWorkStateList>]
-#	        [markpublishedasdraft [<Boolean>]] [removeduedate [<Boolean>]]
+#		[removeduedate [<Boolean>]]
 #		[mapsharemodestudentcopy edit|none|view]
 #           [copymaterialsfiles [<Boolean>]]
 #	    [copytopics [<Boolean>]]
+#	    [markpublishedasdraft [<Boolean>]] [markdraftaspublished [<Boolean>]]
 #	    [members none|all|students|teachers]]
 def doUpdateCourse():
   _doUpdateCourses(getStringReturnInList(Cmd.OB_COURSE_ID))

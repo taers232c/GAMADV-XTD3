@@ -1,3 +1,15 @@
+6.10.05
+
+Added option to the `copyfrom` option used with `gam create/update course` that modifies how
+course work and materials are copied.
+* `markdraftaspublished` - Mark all draft course work and materials as published
+
+Updated `todrive` options to simplify updating an existing sheet within an existing file.
+Previously, if you specified `tdfileid <DriveFileID> tdsheet (id:<Number>)|<String> tdupdatesheet`,
+the sheet had to exist. The updated behavior is:
+* `tdfileid <DriveFileID> tdsheet id:<Number> tdupdatesheet` - The specified sheet must exist
+* `tdfileid <DriveFileID> tdsheet <String> tdupdatesheet` - The specified sheet will be created if necessary
+
 6.10.04
 
 Fixed bug introduced in 6.10.03 that broke `gam <UserTypeEntity> update drivefileacl <DriveFileEntity>`.
