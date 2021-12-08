@@ -1702,8 +1702,8 @@ gam <CrOSTypeEntity> getcommand commandid <CommandID> [times_to_check_status <In
         (org|ou <OrgUnitPath>)|
         (user <String>)
 
-gam update cros <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
-gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
+gam update cros <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatch_ou_update]
+gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatch_ou_update]
 
 <CrOSFieldName> ::=
         activetimeranges|timeranges|

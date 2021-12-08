@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.11.01'
+__version__ = '6.11.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -18731,10 +18731,11 @@ CROS_ACTION_NAME_MAP = {
   'reenable': Act.REENABLE,
   }
 
-# gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
+# gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatch_ou_update]
 # gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requirement]
 def updateCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
+  noBatchOuUpdate = False
   update_body = {}
   action_body = {}
   orgUnitPath = updateNotes = None
@@ -18760,6 +18761,8 @@ def updateCrOSDevices(entityList):
       ackWipe = True
     elif myarg == 'quickcrosmove':
       quickCrOSMove = getBoolean()
+    elif myarg == 'nobatchouupdate':
+      noBatchOuUpdate = getBoolean()
     else:
       unknownArgumentExit()
   if action_body and update_body:
@@ -18780,8 +18783,8 @@ def updateCrOSDevices(entityList):
     parmId = 'resourceId'
     kwargs = {parmId: None, 'body': action_body}
   else:
-    if update_body:
-      if orgUnitPath and not quickCrOSMove:
+    if update_body or noBatchOuUpdate:
+      if orgUnitPath and (not quickCrOSMove or noBatchOuUpdate):
         update_body['orgUnitPath'] = orgUnitPath
         orgUnitPath = None
       function = 'update'
@@ -18814,7 +18817,7 @@ def updateCrOSDevices(entityList):
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
 
-# gam update cros|croses <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]]
+# gam update cros|croses <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatch_ou_update]
 # gam update cros|croses <CrOSEntity> action <CrOSAction> [acknowledge_device_touch_requirement]
 def doUpdateCrOSDevices():
   updateCrOSDevices(getCrOSDeviceEntity())
