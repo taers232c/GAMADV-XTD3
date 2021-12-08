@@ -18731,11 +18731,11 @@ CROS_ACTION_NAME_MAP = {
   'reenable': Act.REENABLE,
   }
 
-# gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatch_ou_update]
+# gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatchupdate]
 # gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requirement]
 def updateCrOSDevices(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  noBatchOuUpdate = False
+  noBatchUpdate = False
   update_body = {}
   action_body = {}
   orgUnitPath = updateNotes = None
@@ -18762,7 +18762,7 @@ def updateCrOSDevices(entityList):
     elif myarg == 'quickcrosmove':
       quickCrOSMove = getBoolean()
     elif myarg == 'nobatchouupdate':
-      noBatchOuUpdate = getBoolean()
+      noBatchUpdate = getBoolean()
     else:
       unknownArgumentExit()
   if action_body and update_body:
@@ -18783,8 +18783,8 @@ def updateCrOSDevices(entityList):
     parmId = 'resourceId'
     kwargs = {parmId: None, 'body': action_body}
   else:
-    if update_body or noBatchOuUpdate:
-      if orgUnitPath and (not quickCrOSMove or noBatchOuUpdate):
+    if update_body or noBatchUpdate:
+      if orgUnitPath and (not quickCrOSMove or noBatchUpdate):
         update_body['orgUnitPath'] = orgUnitPath
         orgUnitPath = None
       function = 'update'
@@ -18817,7 +18817,7 @@ def updateCrOSDevices(entityList):
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.CROS_DEVICE, deviceId, i, count)
 
-# gam update cros|croses <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatch_ou_update]
+# gam update cros|croses <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatchupdate]
 # gam update cros|croses <CrOSEntity> action <CrOSAction> [acknowledge_device_touch_requirement]
 def doUpdateCrOSDevices():
   updateCrOSDevices(getCrOSDeviceEntity())

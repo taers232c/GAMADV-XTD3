@@ -1,8 +1,8 @@
 6.11.02
 
-Added option `nobatch_ou_update` to `gam <CrOSTypeEntity> update ou <OrgUnitPath>` and
+Added option `nobatchupdate` to `gam <CrOSTypeEntity> update ou <OrgUnitPath>` and
 `gam update cros <CrOSEntity> ou <OrgUnitPath>` that prevents GAM from using batch mode
-to update the OU; this allows handling the `rateLimitExceeded` error described below.
+to update the devices; this allows handling the `rateLimitExceeded` error described below.
 
 6.11.01
 
