@@ -1,3 +1,10 @@
+6.11.01
+
+Updated code to to handle the following error as retryable:
+```
+403: rateLimitExceeded - Quota exceeded for quota metric 'Queries' and limit 'Queries per minute per user' of service 'admin.googleapis.com' for consumer 'project_number: (project)'
+```
+
 6.11.00
 
 Updated `gam print groups` and `gam print|show group-members` to allow identification of groups

@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.11.00'
+__version__ = '6.11.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -4489,7 +4489,9 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
       elif 'does not match' in lmessage or 'invalid' in lmessage:
         error = makeErrorDict(http_status, GAPI.INVALID, message)
     elif http_status == 403:
-      if status == 'PERMISSION_DENIED' or 'the caller does not have permission' in lmessage or 'permission iam.serviceaccountkeys' in lmessage:
+      if 'quota exceeded for quota metric' in lmessage:
+        error = makeErrorDict(http_status, GAPI.QUOTA_EXCEEDED, message)
+      elif status == 'PERMISSION_DENIED' or 'the caller does not have permission' in lmessage or 'permission iam.serviceaccountkeys' in lmessage:
         error = makeErrorDict(http_status, GAPI.PERMISSION_DENIED, message)
     elif http_status == 404:
       if status == 'NOT_FOUND' or 'requested entity was not found' in lmessage or 'does not exist' in lmessage:
