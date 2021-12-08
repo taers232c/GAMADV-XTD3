@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.10.05'
+__version__ = '6.11.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3986,6 +3986,8 @@ def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, ap
         except google.auth.exceptions.RefreshError as e:
           if isinstance(e.args, tuple):
             e = e.args[0]
+          if 'Reauthentication is needed' in str(e):
+            e = Msg.REAUTHENTICATION_IS_NEEDED
           handleOAuthTokenError(e, False)
   return credentials
 
@@ -25433,13 +25435,22 @@ def groupFilters(kwargs):
     return queryTitle[:-2]
   return queryTitle
 
-def getGroupFilters(myarg, kwargs):
+def getGroupFilters(myarg, kwargs, showOwnedBy):
   if myarg == 'domain':
     kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
     kwargs.pop('customer', None)
   elif myarg in {'member', 'showownedby'}:
-    kwargs['userKey'] = getEmailAddress()
-    kwargs.pop('customer', None)
+    emailAddressOrUID = getEmailAddress()
+    if emailAddressOrUID != GC.Values[GC.CUSTOMER_ID].lower():
+      kwargs['userKey'] = emailAddressOrUID
+      kwargs.pop('customer', None)
+      key = 'email' if emailAddressOrUID.find('@') != -1 else 'id'
+    else:
+      kwargs['query'] = f'memberKey={GC.Values[GC.CUSTOMER_ID]}'
+      key = 'id'
+    if myarg == 'showownedby':
+      showOwnedBy['key'] = key
+      showOwnedBy['value'] = emailAddressOrUID
   elif myarg == 'query':
     kwargs['query'] = getString(Cmd.OB_QUERY)
   else:
@@ -25448,12 +25459,9 @@ def getGroupFilters(myarg, kwargs):
     usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format('member', 'query'))
   return True
 
-def setGroupShowOwnedBy(kwargs):
-  return ('email' if kwargs['userKey'].find('@') != -1 else 'id', kwargs['userKey'])
-
 def checkGroupShowOwnedBy(showOwnedBy, members):
   for member in members:
-    if (member.get('role', Ent.ROLE_MEMBER) == Ent.ROLE_OWNER) and (member.get(showOwnedBy[0], '').lower() == showOwnedBy[1]):
+    if (member.get('role', Ent.ROLE_MEMBER) == Ent.ROLE_OWNER) and (member.get(showOwnedBy['key'], '').lower() == showOwnedBy['value']):
       return True
   return False
 
@@ -25642,9 +25650,8 @@ def addMemberInfoToRow(row, groupMembers, typesSet, memberOptions, memberDisplay
 PRINT_GROUPS_JSON_TITLES = ['email', 'JSON']
 
 # gam print groups [todrive <ToDriveAttribute>*]
-#	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+#	[([domain <DomainName>] ([member|showownedby <EmailItem>]|[query <QueryGroup>]))|
 #	 (select <GroupEntity>)]
-#	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
 #	[admincreatedmatch <Boolean>]
@@ -25834,7 +25841,8 @@ def doPrintGroups():
   rolesSet = set()
   typesSet = set()
   memberOptions = initMemberOptions()
-  entitySelection = isSuspended = isArchived = showOwnedBy = None
+  entitySelection = isSuspended = isArchived = None
+  showOwnedBy = {}
   matchPatterns = {}
   matchSettings = {}
   deprecatedAttributesSet = set()
@@ -25843,9 +25851,8 @@ def doPrintGroups():
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif getGroupFilters(myarg, kwargs):
-      if myarg == 'showownedby':
-        showOwnedBy = setGroupShowOwnedBy(kwargs)
+    elif getGroupFilters(myarg, kwargs, showOwnedBy):
+      pass
     elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg == 'select':
@@ -26318,12 +26325,11 @@ GROUPMEMBERS_FIELDS_CHOICE_MAP = {
 GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 
 # gam print group-members [todrive <ToDriveAttribute>*]
-#	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+#	[([domain <DomainName>] ([member|showownedby <EmailItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
 #	 (select <GroupEntity>)]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
-#	[showownedby <UserItem>]
 #	[roles <GroupRoleList>] [members] [managers] [owners]
 #	[notsuspended|suspended] [notarchived|archived]
 #	[types <GroupTypeList>]
@@ -26358,7 +26364,8 @@ def doPrintGroupMembers():
   subTitle = f'{Msg.ALL} {Ent.Plural(Ent.GROUP)}'
   fieldsList = []
   csvPF = CSVPrintFile('group')
-  entityList = showOwnedBy = None
+  entityList = None
+  showOwnedBy = {}
   cdfieldsList = ['email']
   userFieldsList = []
   rolesSet = set()
@@ -26369,9 +26376,8 @@ def doPrintGroupMembers():
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif getGroupFilters(myarg, kwargs):
-      if myarg == 'showownedby':
-        showOwnedBy = setGroupShowOwnedBy(kwargs)
+    elif getGroupFilters(myarg, kwargs, showOwnedBy):
+      pass
     elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg in {'group', 'groupns', 'groupsusp'}:
@@ -26539,10 +26545,9 @@ def doPrintGroupMembers():
   csvPF.writeCSVfile(f'Group Members ({subTitle})')
 
 # gam show group-members
-#	[([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+#	[([domain <DomainName>] ([member|showownedby <EmailItem>]|[query <QueryGroup>]))|
 #	 (group|group_ns|group_susp <GroupItem>)|
 #	 (select <GroupEntity>)]
-#	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
@@ -26589,7 +26594,8 @@ def doShowGroupMembers():
   ci = None
   customerKey = GC.Values[GC.CUSTOMER_ID]
   kwargs = {'customer': customerKey}
-  entityList = showOwnedBy = None
+  entityList = None
+  showOwnedBy = {}
   cdfieldsList = ['email']
   rolesSet = set()
   typesSet = set()
@@ -26599,9 +26605,8 @@ def doShowGroupMembers():
   includeDerivedMembership = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if getGroupFilters(myarg, kwargs):
-      if myarg == 'showownedby':
-        showOwnedBy = setGroupShowOwnedBy(kwargs)
+    if getGroupFilters(myarg, kwargs, showOwnedBy):
+      pass
     elif getGroupMatchPatterns(myarg, matchPatterns, False):
       pass
     elif myarg in {'group', 'groupns', 'groupsusp'}:
@@ -27565,7 +27570,7 @@ def updateFieldsForCIGroupMatchPatterns(matchPatterns, fieldsList, csvPF=None):
 PRINT_CIGROUPS_JSON_TITLES = ['email', 'JSON']
 
 # gam print cigroups [todrive <ToDriveAttribute>*]
-#	[(cimember <UserItem>)|(select <GroupEntity>)]
+#	[(cimember|ciowner <UserItem>)|(select <GroupEntity>)]
 #	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
@@ -27626,10 +27631,12 @@ def doPrintCIGroups():
       csvPF.GetTodriveParameters()
     elif myarg == 'showownedby':
       showOwnedBy = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user'])
-    elif myarg in {'cimember', 'enterprisemember'}:
+    elif myarg in {'cimember', 'enterprisemember', 'ciowner'}:
       emailAddress = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user', 'group'])
       query = f"member_key_id == '{emailAddress}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels"
       entitySelection = None
+      if myarg == 'ciowner':
+        showOwnedBy = emailAddress
     elif getGroupMatchPatterns(myarg, matchPatterns, True):
       pass
     elif myarg == 'select':
@@ -27927,10 +27934,10 @@ CIGROUPMEMBERS_SORT_FIELDS = [
 CIGROUPMEMBERS_TIME_OBJECTS = {'createTime', 'updateTime', 'expireTime'}
 
 # gam print cigroup-members [todrive <ToDriveAttribute>*]
-#	[(cimember <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+#	[(cimember|ciowner <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+#	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
-#	[showownedby <UserItem>]
 #	[roles <GroupRoleList>] [members] [managers] [owners]
 #	[types <CIGroupTypeList>]
 #	<CIGroupMembersFieldName>* [fields <CIGroupMembersFieldNameList>]
@@ -27955,16 +27962,18 @@ def doPrintCIGroupMembers():
       csvPF.GetTodriveParameters()
     elif myarg == 'showownedby':
       showOwnedBy = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user'])
-    elif getGroupMatchPatterns(myarg, matchPatterns, True):
-      pass
-    elif myarg in {'cimember', 'enterprisemember'}:
+    elif myarg in {'cimember', 'enterprisemember', 'ciowner'}:
       emailAddress = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user', 'group'])
       query = f"member_key_id == '{emailAddress}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels"
       entityList = None
+      if myarg == 'ciowner':
+        showOwnedBy = emailAddress
     elif myarg in {'cigroup', 'group'}:
       entityList = [getString(Cmd.OB_EMAIL_ADDRESS)]
       subTitle = f'{Ent.Singular(Ent.CLOUD_IDENTITY_GROUP)}={entityList[0]}'
       query = None
+    elif getGroupMatchPatterns(myarg, matchPatterns, True):
+      pass
     elif myarg == 'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
       subTitle = f'{Msg.SELECTED} {Ent.Plural(Ent.CLOUD_IDENTITY_GROUP)}'
@@ -28056,10 +28065,10 @@ def doPrintCIGroupMembers():
   csvPF.writeCSVfile(f'Cloud Identity Group Members ({subTitle})')
 
 # gam show cigroup-members
-#	[(cimember <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+#	[(cimember|ciowner <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+#	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
-#	[showownedby <UserItem>]
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 #	[types <CIGroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
@@ -28117,16 +28126,18 @@ def doShowCIGroupMembers():
     myarg = getArgument()
     if myarg == 'showownedby':
       showOwnedBy = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user'])
-    elif getGroupMatchPatterns(myarg, matchPatterns, False):
-      pass
-    elif myarg in {'cimember', 'enterprisemember'}:
+    elif myarg in {'cimember', 'enterprisemember', 'ciowner'}:
       emailAddress = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user', 'group'])
       query = f"member_key_id == '{emailAddress}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels"
       entityList = None
+      if myarg == 'ciowner':
+        showOwnedBy = emailAddress
     elif myarg in {'cigroup', 'group'}:
       entityList = [getString(Cmd.OB_EMAIL_ADDRESS)]
       subTitle = f'{Ent.Singular(Ent.CLOUD_IDENTITY_GROUP)}={entityList[0]}'
       query = None
+    elif getGroupMatchPatterns(myarg, matchPatterns, False):
+      pass
     elif myarg == 'select':
       entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
       subTitle = f'{Msg.SELECTED} {Ent.Plural(Ent.CLOUD_IDENTITY_GROUP)}'

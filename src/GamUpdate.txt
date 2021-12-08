@@ -1,3 +1,10 @@
+6.11.00
+
+Updated `gam print groups` and `gam print|show group-members` to allow identification of groups
+with the `All users in the organization` member with: `member id:<CustomerID>`.
+
+Upgraded to Python 3.10.1
+
 6.10.05
 
 Added option to the `copyfrom` option used with `gam create/update course` that modifies how

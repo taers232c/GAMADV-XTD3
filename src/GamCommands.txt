@@ -273,7 +273,7 @@ If an item contains spaces, it should be surrounded by ".
 <ServiceAccountName> ::= <String>
         Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <SiteName> ::= [a-z,0-9,-]+
-<UniqueID> ::= uid:<String>
+<UniqueID> ::= id:<String>|uid:<String>
 
 ## Named items
 
@@ -2758,9 +2758,8 @@ gam info group|groups <GroupEntity>
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [formatjson]
 gam print groups [todrive <ToDriveAttribute>*]
-        [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+        [([domain <DomainName>] ([member|showownedby <EmailItem>]|[query <QueryGroup>]))|
          (select <GroupEntity>)]
-        [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>] (matchsetting [not] <GroupAttribute>)*
         [admincreatedmatch <Boolean>]
@@ -2794,10 +2793,9 @@ gam show grouptree <GroupEntity>
 gam <UserTypeEntity> info member|group-members <GroupEntity>
 gam info member|group-members <UserTypeEntity> <GroupEntity>
 gam print group-members [todrive <ToDriveAttribute>*]
-        [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+        [([domain <DomainName>] ([member|showownedby <EmailItem>]|[query <QueryGroup>]))|
          (group|group_ns|group_susp <GroupItem>)|
          (select <GroupEntity>)]
-        [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]
         [admincreatedmatch <Boolean>]
@@ -2812,10 +2810,9 @@ gam print group-members [todrive <ToDriveAttribute>*]
         [peoplelookup|(peoplelookupuser <EmailAddress>)]
         [includederivedmembership]
 gam show group-members
-        [([domain <DomainName>] ([member <UserItem>]|[query <QueryGroup>]))|
+        [([domain <DomainName>] ([member|showownedby <EmailItem>]|[query <QueryGroup>]))|
          (group|group_ns|group_susp <GroupItem>)|
          (select <GroupEntity>)]
-        [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]
         [admincreatedmatch <Boolean>]
@@ -2880,7 +2877,7 @@ gam info cigroups <GroupEntity>
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [formatjson]
 gam print cigroups [todrive <ToDriveAttribute>*]
-        [(cimember <UserItem>)|(select <GroupEntity>)]
+        [(cimember|ciowner <UserItem>)|(select <GroupEntity>)]
         [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]
@@ -2906,20 +2903,20 @@ gam print cigroups [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> info cimember <GroupEntity>
 gam info cimember <UserTypeEntity> <GroupEntity>
 gam print cigroup-members [todrive <ToDriveAttribute>*]
-        [(cimember <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+        [(cimember|ciowner <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+        [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]
-        [showownedby <UserItem>]
         [roles <GroupRoleList>] [members] [managers] [owners]
         [types <CIGroupTypeList>]
         <CIGroupMembersFieldName>* [fields <CIGroupMembersFieldNameList>]
         [recursive [noduplicates]] [nogroupeemail]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 gam show cigroup-members
-        [(cimember <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+        [(cimember|ciowner <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
+        [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]
-        [showownedby <UserIrtem>]
         [roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
         [types <CIGroupTypeList>]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
