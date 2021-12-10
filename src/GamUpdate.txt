@@ -1,3 +1,19 @@
+6.11.03
+
+Added option `noinvitablecheck` to `gam whatis <EmailItem>` that suppresses the user invitation check
+to avoid exceeding quota limits when checking a large number of addresses.
+
+Following Jay's lead, updated processing of `<UserAttribute> languages`.
+You could always set a user's languages via the API; Google has added the ability to
+indicate whether a language is `preferred` or `not_preferred`. This is implemeted in
+GAM by optionally appending a `+` to a language code to set `preferred` and a '-' to set `not_preferred`.
+In the user's profile, only `preferred` languages are displayed.
+```
+gam update user user@domain.com languages en+,fr+.
+```
+
+Updated all Cloud Identity API group calls to use version `v1` of the API rather than version `v1beta1`.
+
 6.11.02
 
 Added option `nobatchupdate` to `gam <CrOSTypeEntity> update ou <OrgUnitPath>` and

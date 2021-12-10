@@ -1139,7 +1139,7 @@ gam print alias|aliases [todrive <ToDriveAttribute>*]
         [shownoneditable] [nogroups] [nousers]
         [onerowpertarget] [suppressnoaliasrows]
 
-gam whatis <EmailItem> [noinfo]
+gam whatis <EmailItem> [noinfo] [noinivitablecheck]
 
 # Calendars
 
