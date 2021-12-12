@@ -1,3 +1,16 @@
+6.11.04
+
+When specifying `<UserAttribute> languages`, it is an error to specify a custom language with a preference suffix `+-`.
+
+Added option `includederivedmembership` to `gam print|show cigroup-members`.
+This option causes the API to list indirect members of groups.
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Identity-Groups-Membership
+
+Updated `gam oauth export|refresh` to privent the following error.
+```
+ERROR: Authentication Token Error - Not all requested scopes were granted by the authorization server, missing scopes , https://sitesgooglecom/feeds, https://wwwgooglecom/m8/feeds
+```
+
 6.11.03
 
 Added option `noinvitablecheck` to `gam whatis <EmailItem>` that suppresses the user invitation check

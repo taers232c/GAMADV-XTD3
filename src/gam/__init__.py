@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.11.03'
+__version__ = '6.11.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -5057,6 +5057,45 @@ def getCIGroupMemberRoleFixType(member):
       return
   member['role'] = memberRoles[0]['name']
 
+def getCIGroupTransitiveMemberRoleFixType(groupName, tmember):
+  ''' map transitive member to normal member '''
+  tid = tmember['preferredMemberKey'][0].get('id', GC.Values[GC.CUSTOMER_ID]) if tmember['preferredMemberKey'] else ''
+  ttype, tname = tmember['member'].split('/')
+  member = {'name': f'{groupName}/membershipd/{tname}', CIGROUP_MEMBERKEY: {'id': tid}}
+  if 'type' not in tmember:
+    if tid == GC.Values[GC.CUSTOMER_ID]:
+      member['type'] = Ent.TYPE_CUSTOMER
+    elif ttype == 'users':
+      member['type'] = Ent.TYPE_USER if not tid.endswith('.iam.gserviceaccount.com') else Ent.TYPE_SERVICE_ACCOUNT
+    elif ttype == 'groups':
+      member['type'] = Ent.TYPE_GROUP
+    else:
+      member['type'] = Ent.TYPE_OTHER
+  else:
+    member['type'] = tmember['type']
+  if 'roles' in tmember:
+    memberRoles = []
+    for trole in tmember['roles']:
+      if 'role' in trole:
+        trole['name'] = trole.pop('role')
+      if trole['name'] == 'ADMIN':
+        trole['name'] = Ent.ROLE_MANAGER
+      memberRoles.append(trole)
+  else:
+    memberRoles = [{'name': Ent.MEMBER}]
+  roles = {}
+  for role in memberRoles:
+    roles[role['name']] = role
+  for a_role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
+    if a_role in roles:
+      member['role'] = a_role
+      if 'expiryDetail' in roles[a_role]:
+        member['expireTime'] = roles[a_role]['expiryDetail']['expireTime']
+      break
+  else:
+    member['role'] = memberRoles[0]['name']
+  return member
+
 def convertGroupCloudIDToEmail(ci, group, i=0, count=0):
   if not group.startswith('groups/'):
     group = normalizeEmailAddressOrUID(group, ciGroupsAPI=True)
@@ -9087,7 +9126,7 @@ def doOAuthUpdate():
 def doOAuthRefresh():
   checkForExtraneousArguments()
   exitIfNoOauth2Txt()
-  getClientCredentials(forceRefresh=True, forceWrite=True, filename=GC.Values[GC.OAUTH2_TXT])
+  getClientCredentials(forceRefresh=True, forceWrite=True, filename=GC.Values[GC.OAUTH2_TXT], refreshOnly=True)
   entityActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
 
 # gam oauth|oauth2 export [<FileName>]
@@ -9097,7 +9136,7 @@ def doOAuthExport():
     checkForExtraneousArguments()
   else:
     filename = GC.Values[GC.OAUTH2_TXT]
-  getClientCredentials(forceRefresh=True, forceWrite=True, filename=filename)
+  getClientCredentials(forceRefresh=True, forceWrite=True, filename=filename, refreshOnly=True)
   if filename != '-':
     entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_TO, filename)
 
@@ -26352,9 +26391,9 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	[membernames] [showdeliverysettings]
 #	<MembersFieldName>* [fields <MembersFieldNameList>]
-#	[userfields <UserFieldNameList>] [recursive [noduplicates]] [nogroupemail]
+#	[userfields <UserFieldNameList>]
+#	[(recursive [noduplicates])|includederivedmembership] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
-#	[includederivedmembership]
 def doPrintGroupMembers():
   def getNameFromPeople(memberId):
     try:
@@ -26432,6 +26471,10 @@ def doPrintGroupMembers():
       memberOptions[MEMBEROPTION_NODUPLICATES] = True
     elif myarg == 'recursive':
       memberOptions[MEMBEROPTION_RECURSIVE] = True
+      memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP] = False
+    elif myarg == 'includederivedmembership':
+      memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP] = True
+      memberOptions[MEMBEROPTION_RECURSIVE] = False
     elif myarg == 'nogroupemail':
       groupColumn = False
     elif myarg == 'peoplelookup':
@@ -26440,8 +26483,6 @@ def doPrintGroupMembers():
       _, people = buildGAPIServiceObject(API.PEOPLE, getEmailAddress())
       if not people:
         return
-    elif myarg == 'includederivedmembership':
-      memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP] = True
     else:
       unknownArgumentExit()
   if not typesSet:
@@ -27396,7 +27437,7 @@ def getCIGroupTypes(myarg, typesSet):
       if gtype in CIGROUP_TYPES_MAP:
         typesSet.add(CIGROUP_TYPES_MAP[gtype])
       else:
-        invalidChoiceExit(gtype, GROUP_TYPES_MAP, True)
+        invalidChoiceExit(gtype, CIGROUP_TYPES_MAP, True)
   else:
     return False
   return True
@@ -27860,9 +27901,36 @@ def getCIGroupMembersEntityList(ci, entityList, query, subTitle, matchPatterns, 
     clearUnneededGroupMatchPatterns(matchPatterns)
   return entityList
 
+def getCIGroupTransitiveMembers(ci, groupName, membersList, i, count):
+  try:
+    groupMembers = callGAPIpages(ci.groups().memberships(), 'searchTransitiveMemberships', 'memberships',
+                                 throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                                 parent=groupName,
+                                 fields='nextPageToken,memberships(*)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+  except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+          GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+          GAPI.systemError):
+    entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupName, i, count)
+    return False
+  except GAPI.permissionDenied as e:
+    entityActionFailedExit([Ent.CLOUD_IDENTITY_GROUP, groupName], str(e))
+    return False
+  for member in groupMembers:
+    membersList.append(getCIGroupTransitiveMemberRoleFixType(groupName, member))
+  return True
+
 def getCIGroupMembers(ci, groupName, memberRoles, membersList, membersSet, i, count, memberOptions, level, typesSet):
   printGettingAllEntityItemsForWhom(memberRoles if memberRoles else Ent.ROLE_MANAGER_MEMBER_OWNER, groupName, i, count)
   validRoles = _getCIRoleVerification(memberRoles)
+  if memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP]:
+    groupMembers = []
+    if not getCIGroupTransitiveMembers(ci, groupName, groupMembers, i, count):
+      return
+    for member in groupMembers:
+      if _checkMemberRole(member, validRoles):
+        if member['type'] in typesSet and checkCIMemberMatch(member, memberOptions):
+          membersList.append(member)
+    return
   try:
     groupMembers = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
                                  throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
@@ -27957,9 +28025,9 @@ CIGROUPMEMBERS_TIME_OBJECTS = {'createTime', 'updateTime', 'expireTime'}
 #	[descriptionmatchpattern [not] <RegularExpression>]
 #	[roles <GroupRoleList>] [members] [managers] [owners]
 #	[types <CIGroupTypeList>]
-#	<CIGroupMembersFieldName>* [fields <CIGroupMembersFieldNameList>]
-#	[recursive [noduplicates]] [nogroupeemail]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
+#	<CIGroupMembersFieldName>* [fields <CIGroupMembersFieldNameList>]
+#	[(recursive [noduplicates])|includederivedmembership] [nogroupeemail]
 def doPrintCIGroupMembers():
   ci = buildGAPIObject(CIGROUP_MEMBER_API)
   setTrueCustomerId()
@@ -28007,6 +28075,10 @@ def doPrintCIGroupMembers():
       memberOptions[MEMBEROPTION_NODUPLICATES] = True
     elif myarg == 'recursive':
       memberOptions[MEMBEROPTION_RECURSIVE] = True
+      memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP] = False
+    elif myarg == 'includederivedmembership':
+      memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP] = True
+      memberOptions[MEMBEROPTION_RECURSIVE] = False
     elif myarg == 'nogroupemail':
       groupColumn = False
     else:
@@ -28089,6 +28161,7 @@ def doPrintCIGroupMembers():
 #	[roles <GroupRoleList>] [members] [managers] [owners] [depth <Number>]
 #	[types <CIGroupTypeList>]
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
+#	[includederivedmembership]
 def doShowCIGroupMembers():
   def _roleOrder(key):
     return {Ent.ROLE_OWNER: 0, Ent.ROLE_MANAGER: 1, Ent.ROLE_MEMBER: 2}.get(key, 3)
@@ -28097,20 +28170,25 @@ def doShowCIGroupMembers():
     return {Ent.TYPE_CUSTOMER: 0, Ent.TYPE_USER: 1, Ent.TYPE_GROUP: 2, Ent.TYPE_EXTERNAL: 3}.get(key, 4)
 
   def _showGroup(groupName, groupEmail, depth):
-    try:
-      membersList = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
-                                  throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
-                                  parent=groupName, view='FULL',
-                                  fields='nextPageToken,memberships(*)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
-      for member in membersList:
-        getCIGroupMemberRoleFixType(member)
-      if showOwnedBy and not checkCIGroupShowOwnedBy(showOwnedBy, membersList):
+    if includeDerivedMembership:
+      membersList = []
+      if not getCIGroupTransitiveMembers(ci, groupName, membersList, i, count):
         return
-    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
-            GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
-            GAPI.systemError, GAPI.permissionDenied):
-      if depth == 0:
-        entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
+    else:
+      try:
+        membersList = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                                    throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                                    parent=groupName, view='FULL',
+                                    fields='nextPageToken,memberships(*)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
+        for member in membersList:
+          getCIGroupMemberRoleFixType(member)
+      except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
+              GAPI.systemError, GAPI.permissionDenied):
+        if depth == 0:
+          entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
+        return
+    if showOwnedBy and not checkCIGroupShowOwnedBy(showOwnedBy, membersList):
       return
     if depth == 0:
       printEntity([Ent.CLOUD_IDENTITY_GROUP, groupEmail], i, count)
@@ -28123,7 +28201,7 @@ def doShowCIGroupMembers():
           if field in member:
             memberDetails += f', {formatLocalTime(member[field])}'
         printKeyValueList([memberDetails])
-      if (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
+      if not includeDerivedMembership and (member['type'] == Ent.TYPE_GROUP) and (maxdepth == -1 or depth < maxdepth):
         _, gname = member['name'].rsplit('/', 1)
         _showGroup(f'groups/{gname}', member[CIGROUP_MEMBERKEY]['id'], depth+1)
     if depth == 0 or Ent.TYPE_GROUP in typesSet:
@@ -28139,6 +28217,7 @@ def doShowCIGroupMembers():
   memberOptions = initMemberOptions()
   matchPatterns = {}
   maxdepth = -1
+  includeDerivedMembership = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'showownedby':
@@ -28167,6 +28246,8 @@ def doShowCIGroupMembers():
       pass
     elif myarg == 'depth':
       maxdepth = getInteger(minVal=-1)
+    elif myarg == 'includederivedmembership':
+      includeDerivedMembership = True
     else:
       unknownArgumentExit()
   if not rolesSet:
@@ -34026,15 +34107,21 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         for language in getString(Cmd.OB_LANGUAGE_LIST).replace('_', '-').replace(',', ' ').split():
           langItem = {}
           if language[-1] == '+':
+            suffix = '+'
             language = language[:-1]
             langItem['preference'] = 'preferred'
           elif language[-1] == '-':
+            suffix = '-'
             language = language[:-1]
             langItem['preference'] = 'not_preferred'
+          else:
+            suffix = ''
           if language.lower() in LANGUAGE_CODES_MAP:
             langItem['languageCode'] = LANGUAGE_CODES_MAP[language.lower()]
           else:
-            langItem.pop('preference', None)
+            if suffix:
+              Cmd.Backup()
+              usageErrorExit(Msg.SUFFIX_NOT_ALLOWED_WITH_CUSTOMLANGUAGE.format(suffix, language))
             langItem['customLanguage'] = language
           appendItemToBodyList(body, up, langItem)
       elif up == 'gender':
