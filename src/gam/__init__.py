@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.11.04'
+__version__ = '6.11.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13584,13 +13584,12 @@ def doCreateOrg():
       checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, fullPath)
 
 def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0, showError=False):
-  if orgUnitPath == '/':
-    return (True, orgUnitPath)
   try:
-    return (True, callGAPI(cd.orgunits(), 'get',
-                           throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
-                           customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnitPath)),
-                           fields='orgUnitPath')['orgUnitPath'])
+    orgUnit = callGAPI(cd.orgunits(), 'get',
+                       throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                       customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnitPath)),
+                       fields='orgUnitPath,orgUnitId')
+    return (True, orgUnit['orgUnitPath'], orgUnit['orgUnitId'])
   except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
     pass
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
@@ -13599,9 +13598,9 @@ def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0, showError=False):
       systemErrorExit(INVALID_DOMAIN_RC, errMsg)
   if showError:
     entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
-  return (False, orgUnitPath)
+  return (False, orgUnitPath, orgUnitPath)
 
-def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
+def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quickCrOSMove):
   def _callbackMoveCrOSesToOrgUnit(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
@@ -13618,7 +13617,13 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove):
   entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CROS_DEVICE, i, count)
   Ind.Increment()
   if not quickCrOSMove:
-    svcargs = dict([('customerId', GC.Values[GC.CUSTOMER_ID]), ('deviceId', None), ('body', {'orgUnitPath': orgUnitPath}), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    svcargs = dict([('customerId', GC.Values[GC.CUSTOMER_ID]),
+                    ('deviceId', None),
+                    ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+    if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
+      svcargs['body'] = {'orgUnitPath': orgUnitPath}
+    else:
+      svcargs['body'] = {'orgUnitId': orgUnitId}
     method = getattr(cd.chromeosdevices(), 'patch')
     dbatch = cd.new_batch_http_request(callback=_callbackMoveCrOSesToOrgUnit)
     bcount = 0
@@ -13709,13 +13714,13 @@ def _doUpdateOrgs(entityList):
       i += 1
       if orgItemLists:
         items = orgItemLists[orgUnitPath]
-      status, orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath, i, count, True)
+      status, orgUnitPath, orgUnitId = checkOrgUnitPathExists(cd, orgUnitPath, i, count, True)
       if not status:
         continue
       if entityType == Cmd.ENTITY_USERS:
         _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items)
       else:
-        _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, items, quickCrOSMove)
+        _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quickCrOSMove)
   elif checkArgumentPresent(['sync']):
     entityType, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, crosAllowed=True)
     orgItemLists = syncMembers if isinstance(syncMembers, dict) else None
@@ -13728,7 +13733,7 @@ def _doUpdateOrgs(entityList):
       if entityType == Cmd.ENTITY_CROS and myarg == 'quickcrosmove':
         quickCrOSMove = getBoolean()
       elif myarg == 'removetoou':
-        status, removeToOrgUnitPath = checkOrgUnitPathExists(cd, getOrgUnitItem())
+        status, removeToOrgUnitPath, removeToOrgUnitId = checkOrgUnitPathExists(cd, getOrgUnitItem())
         if not status:
           entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, removeToOrgUnitPath)
       else:
@@ -13740,7 +13745,7 @@ def _doUpdateOrgs(entityList):
       i += 1
       if orgItemLists:
         syncMembersSet = set(orgItemLists[orgUnitPath])
-      status, orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath, i, count, True)
+      status, orgUnitPath, orgUnitId = checkOrgUnitPathExists(cd, orgUnitPath, i, count, True)
       if not status:
         continue
       currentMembersSet = set(getItemsToModify(Cmd.ENTITY_OU, orgUnitPath))
@@ -13748,8 +13753,8 @@ def _doUpdateOrgs(entityList):
         _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, list(syncMembersSet-currentMembersSet))
         _batchMoveUsersToOrgUnit(cd, removeToOrgUnitPath, i, count, list(currentMembersSet-syncMembersSet))
       else:
-        _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, i, count, list(syncMembersSet-currentMembersSet), quickCrOSMove)
-        _batchMoveCrOSesToOrgUnit(cd, removeToOrgUnitPath, i, count, list(currentMembersSet-syncMembersSet), quickCrOSMove)
+        _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, list(syncMembersSet-currentMembersSet), quickCrOSMove)
+        _batchMoveCrOSesToOrgUnit(cd, removeToOrgUnitPath, removeToOrgUnitId, i, count, list(currentMembersSet-syncMembersSet), quickCrOSMove)
   else:
     body = {}
     while Cmd.ArgumentsRemaining():
@@ -18819,7 +18824,7 @@ def updateCrOSDevices(entityList):
     Cmd.SetLocation(actionLocation-1)
     usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format('action', '<CrOSAttribute>'))
   if orgUnitPath:
-    status, orgUnitPath = checkOrgUnitPathExists(cd, orgUnitPath)
+    status, orgUnitPath, orgUnitId = checkOrgUnitPathExists(cd, orgUnitPath)
     if not status:
       entityActionFailedWarning([Ent.CROS_DEVICE, ''], f'{Ent.Singular(Ent.ORGANIZATIONAL_UNIT)}: {orgUnitPath}, {Msg.DOES_NOT_EXIST}')
       return
@@ -18835,14 +18840,17 @@ def updateCrOSDevices(entityList):
   else:
     if update_body or noBatchUpdate:
       if orgUnitPath and (not quickCrOSMove or noBatchUpdate):
-        update_body['orgUnitPath'] = orgUnitPath
+        if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
+          update_body['orgUnitPath'] = orgUnitPath
+        else:
+          update_body['orgUnitId'] = orgUnitId
         orgUnitPath = None
       function = 'update'
       parmId = 'deviceId'
       kwargs = {parmId: None, 'body': update_body, 'fields': ''}
     if orgUnitPath:
       Act.Set(Act.ADD)
-      _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, 0, 0, entityList, quickCrOSMove)
+      _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, 0, 0, entityList, quickCrOSMove)
       Act.Set(Act.UPDATE)
   if function is None:
     return

@@ -1,3 +1,12 @@
+6.11.05
+
+Added `update_cros_ou_with_id` variable to `gam.cfg` that causes GAM to update
+the OU of a Chromebook with the OU ID rather than the OU path.
+Set this value to true if you are getting the following error:
+```
+400: invalidInput - Invalid Input: Inconsistent Orgunit id and path in request
+```
+
 6.11.04
 
 When specifying `<UserAttribute> languages`, it is an error to specify a custom language with a preference suffix `+-`.

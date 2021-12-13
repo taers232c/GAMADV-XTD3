@@ -230,6 +230,8 @@ TODRIVE_TIMEZONE = 'todrive_timezone'
 TODRIVE_UPLOAD_NODATA = 'todrive_upload_nodata'
 # User for todrive files
 TODRIVE_USER = 'todrive_user'
+# Update CrOS org unit with orgUnitId
+UPDATE_CROS_OU_WITH_ID = 'update_cros_ou_with_id'
 # When retrieving lists of Users from API, how many should be retrieved in each chunk
 USER_MAX_RESULTS = 'user_max_results'
 # User service account access only, no client access
@@ -327,6 +329,7 @@ Defaults = {
   TODRIVE_TIMEZONE: '',
   TODRIVE_UPLOAD_NODATA: TRUE,
   TODRIVE_USER: '',
+  UPDATE_CROS_OU_WITH_ID: FALSE,
   USER_MAX_RESULTS: '500',
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: FALSE,
   }
@@ -451,6 +454,7 @@ VAR_INFO = {
   TODRIVE_TIMEZONE: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   TODRIVE_UPLOAD_NODATA: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_USER: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
+  UPDATE_CROS_OU_WITH_ID: {VAR_TYPE: TYPE_BOOLEAN},
   USER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 500)},
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: {VAR_TYPE: TYPE_BOOLEAN},
   }
