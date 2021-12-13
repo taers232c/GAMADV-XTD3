@@ -1,3 +1,7 @@
+6.11.06
+
+Fixed bug in 6.11.05 for updating Chromebook OU by ID.
+
 6.11.05
 
 Added `update_cros_ou_with_id` variable to `gam.cfg` that causes GAM to update

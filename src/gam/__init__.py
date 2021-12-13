@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.11.05'
+__version__ = '6.11.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13623,7 +13623,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quick
     if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
       svcargs['body'] = {'orgUnitPath': orgUnitPath}
     else:
-      svcargs['body'] = {'orgUnitId': orgUnitId}
+      svcargs['body'] = {'orgUnitPath': orgUnitPath, 'orgUnitId': orgUnitId}
     method = getattr(cd.chromeosdevices(), 'patch')
     dbatch = cd.new_batch_http_request(callback=_callbackMoveCrOSesToOrgUnit)
     bcount = 0
@@ -18840,9 +18840,8 @@ def updateCrOSDevices(entityList):
   else:
     if update_body or noBatchUpdate:
       if orgUnitPath and (not quickCrOSMove or noBatchUpdate):
-        if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
-          update_body['orgUnitPath'] = orgUnitPath
-        else:
+        update_body['orgUnitPath'] = orgUnitPath
+        if GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
           update_body['orgUnitId'] = orgUnitId
         orgUnitPath = None
       function = 'update'
