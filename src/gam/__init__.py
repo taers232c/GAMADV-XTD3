@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.11.06'
+__version__ = '6.11.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -53260,6 +53260,26 @@ def deleteLabel(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
+# gam <UserTypeEntity> delete labelid <LabelID>
+def deleteLabelId(users):
+  labelId = getString(Cmd.OB_LABEL_ID)
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
+    if not gmail:
+      continue
+    try:
+      callGAPI(gmail.users().labels(), 'delete',
+               throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID],
+               userId='me', id=labelId)
+      entityActionPerformed([Ent.USER, user, Ent.LABEL_ID, labelId], i, count)
+    except (GAPI.notFound, GAPI.invalid) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.LABEL_ID, labelId], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+
 PRINT_LABELS_TITLES = ['User', 'type', 'name', 'id']
 SHOW_LABELS_DISPLAY_CHOICES = ['allfields', 'basename', 'fullname']
 LABEL_DISPLAY_FIELDS_LIST = ['type', 'id', 'labelListVisibility', 'messageListVisibility', 'color']
@@ -58052,6 +58072,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GROUP:		deleteUserFromGroups,
       Cmd.ARG_GUARDIAN:		deleteGuardians,
       Cmd.ARG_LABEL:		deleteLabel,
+      Cmd.ARG_LABELID:		deleteLabelId,
       Cmd.ARG_LICENSE:		deleteLicense,
       Cmd.ARG_MESSAGE:		processMessages,
       Cmd.ARG_NOTE:		deleteInfoNotes,

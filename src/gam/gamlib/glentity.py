@@ -196,6 +196,7 @@ class GamEntity():
   ISSUER_CN = 'iss'
   KEYBOARD_SHORTCUTS_ENABLED = 'kbsc'
   LABEL = 'labe'
+  LABEL_ID = 'labi'
   LANGUAGE = 'lang'
   LICENSE = 'lice'
   MD5HASH = 'md5h'
@@ -472,6 +473,7 @@ class GamEntity():
     ITEM: ['Items', 'Item'],
     KEYBOARD_SHORTCUTS_ENABLED: ['Keyboard Shortcuts Enabled', 'Keyboard Shortcuts Enabled'],
     LABEL: ['Labels', 'Label'],
+    LABEL_ID: ['Label IDs', 'Label ID'],
     LANGUAGE: ['Languages', 'Language'],
     LICENSE: ['Licenses', 'License'],
     MD5HASH: ['MD5 hash', 'MD5 Hash'],

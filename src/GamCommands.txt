@@ -5294,6 +5294,7 @@ gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messageli
         [backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
 gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [keepoldlabel]]
 gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
+gam <UserTypeEntity> delete labelid <LabelID>
 
 gam <UserTypeEntity> show labels|label [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
 gam <UserTypeEntity> print labels|label [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]] [todrive <ToDriveAttribute>*]
