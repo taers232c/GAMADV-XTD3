@@ -393,7 +393,7 @@ If an item contains spaces, it should be surrounded by ".
 <iCalUID> ::= <String>
 <JSONData> ::= <String>
 <Key> ::= <String>
-<LabelID> ::= <String>
+<LabelID> ::= Label_<String>
 <LabelName> ::= <String>
 <LabelReplacement> ::= <String>
 <Marker> ::= <String>
@@ -2621,7 +2621,7 @@ gam show peopleprofile
 <GroupAttribute> ::=
         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         <GroupSettingsAttribute>|
-        (whocandiscovergroup allmemberscandiscover|allindomaincandiscover|anyonecandiscover)|
+        (whocandiscovergroup all_members_can_discover|all_in_domain_can_discover|anyone_can_discover)|
         (whocanassistcontent all_members|owners_and_managers|managers_only|owners_only|none)|
         (whocanmoderatecontent all_members|owners_and_managers|owners_only|none)|
         (whocanmoderatemembers all_members|owners_and_managers|owners_only|none)|

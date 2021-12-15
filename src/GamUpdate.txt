@@ -1,3 +1,7 @@
+6.11.08
+
+Fixed bug where classic site names with embedded spaces were not properly parsed.
+
 6.11.07
 
 Added command `gam <UserTypeEntity> delete labelid <LabelID>` that is used to 

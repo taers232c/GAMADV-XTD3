@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.11.07'
+__version__ = '6.11.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33064,7 +33064,7 @@ class SitesManager():
     return site_entry
 
 def getSiteEntity():
-  siteEntity = {'list': getEntityList(Cmd.OB_SITE_ENTITY), 'dict': None}
+  siteEntity = {'list': getEntityList(Cmd.OB_SITE_ENTITY, shlexSplit=True), 'dict': None}
   if isinstance(siteEntity['list'], dict):
     siteEntity['dict'] = siteEntity['list']
   return siteEntity
