@@ -23,7 +23,7 @@ For more information, see https://github.com/taers232c/GAMADV-XTD3
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.11.08'
+__version__ = '6.12.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -33064,7 +33064,7 @@ class SitesManager():
     return site_entry
 
 def getSiteEntity():
-  siteEntity = {'list': getEntityList(Cmd.OB_SITE_ENTITY, shlexSplit=True), 'dict': None}
+  siteEntity = {'list': getEntityList(Cmd.OB_SITE_ENTITY), 'dict': None}
   if isinstance(siteEntity['list'], dict):
     siteEntity['dict'] = siteEntity['list']
   return siteEntity
@@ -46466,7 +46466,6 @@ def copyDriveFile(users):
   excludeTrashed = newParentsSpecified = recursive = False
   returnIdLink = None
   maxdepth = -1
-  copiedFiles = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if getCopyMoveOptions(myarg, copyMoveOptions, True):
@@ -46502,6 +46501,7 @@ def copyDriveFile(users):
       _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
       if not sheet:
         continue
+    copiedFiles = {}
     statistics = _initStatistics()
     Ind.Increment()
     j = 0
@@ -46574,6 +46574,8 @@ def copyDriveFile(users):
 #        if copyMoveOptions['destDriveId']:
 #          copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
+# If the parent folder is within the source tree, don't copy it
+          copiedFiles[newParentId] = 1
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):
               entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceFilename], Msg.NOT_COPYABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)

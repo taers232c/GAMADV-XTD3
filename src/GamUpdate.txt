@@ -1,6 +1,7 @@
-6.11.08
+6.12.00
 
-Fixed bug where classic site names with embedded spaces were not properly parsed.
+Fixed bug in `gam <UserTypeEntity> copy drivefile <DriveFileEntity> <DriveFileParentAttribute> recursive`
+that mis-copied files when the target parent folder `<DriveFileParentAttribute>` was within the folder structure of `<DriveFileEntity>`.
 
 6.11.07
 
