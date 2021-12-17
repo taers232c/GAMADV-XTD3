@@ -19,7 +19,9 @@
 """
 GAMADV-XTD3 is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
 
-For more information, see https://github.com/taers232c/GAMADV-XTD3
+For more information, see:
+https://github.com/taers232c/GAMADV-XTD3
+https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
