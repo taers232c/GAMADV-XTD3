@@ -45591,8 +45591,8 @@ def checkDriveFileShortcut(users):
           continue
         row['owner'] = scresult['owners'][0]['emailAddress']
         row['parentId'] = scresult['parents'][0]
-        row['shortcutDetails{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}targetId'] = scresult['shortcutDetails']['targetId']
-        row['shortcutDetails{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}targetMimeType'] = scresult['shortcutDetails']['targetMimeType']
+        row[f'shortcutDetails{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}targetId'] = scresult['shortcutDetails']['targetId']
+        row[f'shortcutDetails{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}targetMimeType'] = scresult['shortcutDetails']['targetMimeType']
         trfileId = scresult['shortcutDetails']['targetId']
         try:
           trresult = callGAPI(drive.files(), 'get',

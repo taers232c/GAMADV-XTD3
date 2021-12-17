@@ -3,6 +3,8 @@
 Fixed bug in `gam <UserTypeEntity> copy drivefile <DriveFileEntity> <DriveFileParentAttribute> recursive`
 that mis-copied files when the target parent folder `<DriveFileParentAttribute>` was within the folder structure of `<DriveFileEntity>`.
 
+Fixed bug in `gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity> csv` that caused a trap.
+
 6.11.07
 
 Added command `gam <UserTypeEntity> delete labelid <LabelID>` that is used to 
