@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.12.01'
+__version__ = '6.12.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -198,8 +198,6 @@ EV_OLDGAMPATH = 'OLDGAMPATH'
 FN_GAM_CFG = 'gam.cfg'
 FN_LAST_UPDATE_CHECK_TXT = 'lastupdatecheck.txt'
 FN_GAMCOMMANDS_TXT = 'GamCommands.txt'
-FN_GAM_OAUTH_URL_TXT = 'gamoauthurl.txt'
-FN_GAM_SVCACCT_URL_TXT = 'gamsvcaccturl.txt'
 MY_DRIVE = 'My Drive'
 TEAM_DRIVE = 'Drive'
 ROOT = 'root'
@@ -8908,13 +8906,10 @@ def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   while True:
     try:
       if noBrowser:
-        GM.Globals[GM.GAM_OAUTH_URL_TXT] = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_OAUTH_URL_TXT)
-        kwargs['auth_url_callback'] = writeGAMOauthURLfile
         flow.run_console(
-          authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(Msg.THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN.format(GM.Globals[GM.GAM_OAUTH_URL_TXT])),
+          authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE,
           authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
           **kwargs)
-        deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
       else:
         flow.run_local_server(
           authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
@@ -9959,20 +9954,12 @@ def checkServiceAccount(users):
     if GC.Values[GC.DOMAIN]:
       long_url += f'&dn={GC.Values[GC.DOMAIN]}'
     long_url += f'&authuser={_getAdminEmail()}'
-    if not writeURLtoFile:
-      printLine(message.format('', long_url))
-    else:
-      filename = os.path.join(GM.Globals[GM.GAM_PATH], FN_GAM_SVCACCT_URL_TXT)
-      printLine(message.format(Msg.THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN.format(filename), long_url))
-      writeFile(filename, long_url, mode='w', continueOnError=True, displayError=True)
-      readStdin(Msg.PRESS_ENTER_ONCE_AUTHORIZATION_IS_COMPLETE)
-      deleteFile(filename, continueOnError=True, displayError=True)
+    printLine(message.format('', long_url))
 
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
   allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], Act.Get() == Act.UPDATE)
   checkScopesSet = set()
   saScopes = {}
-  writeURLtoFile = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'scope', 'scopes'}:
@@ -9984,8 +9971,6 @@ def checkServiceAccount(users):
           checkScopesSet.add(scope)
         else:
           invalidChoiceExit(scope, allScopes, True)
-    elif myarg == 'writeurltofile':
-      writeURLtoFile = True
     else:
       unknownArgumentExit()
   if Act.Get() == Act.CHECK:
@@ -10124,8 +10109,8 @@ def checkServiceAccount(users):
       authorizeScopes(Msg.SCOPE_AUTHORIZATION_FAILED)
     printBlankLine()
 
-# gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)* [writeurltofile]
-# gam update svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)* [writeurltofile]
+# gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
+# gam update svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
 def doCheckUpdateSvcAcct():
   _, entityList = getEntityToModify(defaultEntityType=Cmd.ENTITY_USER)
   checkServiceAccount(entityList)
@@ -44979,7 +44964,7 @@ FILETREE_FIELDS_CHOICE_MAP = {
 FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size', 'explicitlyTrashed', 'trashed']
 
 # gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*]
-#	[select <DriveFileEntity>> [selectsubquery <QueryDriveFile>] [depth <Number>]]
+#	[select <DriveFileEntity> [selectsubquery <QueryDriveFile>] [depth <Number>]]
 #	[anyowner|(showownedby any|me|others)]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
@@ -44989,7 +44974,7 @@ FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size', 'e
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 #	[noindent] [stripcrsfromname]
 # gam <UserTypeEntity> show filetree
-#	[select <DriveFileEntity>> [selectsubquery <QueryDriveFile>] [depth <Number>]]
+#	[select <DriveFileEntity> [selectsubquery <QueryDriveFile>] [depth <Number>]]
 #	[anyowner|(showownedby any|me|others)]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
@@ -45057,7 +45042,7 @@ def printShowFileTree(users):
           Ind.Decrement()
 
   def _showChildDriveFolderContents(drive, fileEntry, user, i, count, depth):
-    if not DLP.CheckExcludeTrashed(fileEntry):
+    if not DLP.CheckExcludeTrashed(fileEntry) or not DLP.CheckShowOwnedBy(fileEntry):
       return
     q = WITH_PARENTS.format(fileEntry['id'])
     if selectSubQuery:
@@ -45077,7 +45062,8 @@ def printShowFileTree(users):
     for childEntryInfo in children:
       if not DLP.CheckExcludeTrashed(childEntryInfo):
         continue
-      if (DLP.CheckMimeType(childEntryInfo) and
+      if (DLP.CheckShowOwnedBy(childEntryInfo) and
+          DLP.CheckMimeType(childEntryInfo) and
           DLP.CheckMinimumFileSize(childEntryInfo) and
           DLP.CheckFilenameMatch(childEntryInfo) and
           DLP.CheckFilePermissionMatches(childEntryInfo)):

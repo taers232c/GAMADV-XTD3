@@ -1,3 +1,15 @@
+6.12.02
+
+When running `gam oauth create` and `gam.cfg no_browser = true`, the authorization link is
+no longer copied to the file `gamoauthurl.txt` as this functionality required modifying
+a Google supplied library.
+
+Removed the option `writeurltofile` from `gam check| svcacct` that caused GAM to write
+the authorization link to the file `gamsvcaccturl.txt`.
+
+Fixed bug in `gam <UserTypeEntity> print|show filetree select <DriveFileEntity>` where
+file ownership was not being checked which resulted in files not owned by the user being displayed.
+
 6.12.01
 
 Updated code to perform retries when a `serviceNotAvailable` error occurs when listing file permissions.

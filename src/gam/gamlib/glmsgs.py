@@ -76,7 +76,6 @@ YOUR_GAM_PROJECT_IS_CREATED_AND_READY_TO_USE = 'That\'s it! Your GAM Project is 
 # check|update service messages in order of appearance
 SYSTEM_TIME_STATUS = 'System time status'
 YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE = 'Your system time differs from {0} by {1}'
-THE_LINK_MAY_BE_COPIED_FROM_THE_FILE_RATHER_THAN_THE_SCREEN = '(The link may be copied from the file {0} rather than the screen.)\n'
 PRESS_ENTER_ONCE_AUTHORIZATION_IS_COMPLETE = 'Press enter once authorization is complete.'
 SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authentication'
 SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE = 'Service Account Private Key age; Google recommends rotating keys on a routine basis'
@@ -335,9 +334,8 @@ set no_browser = true in gam.cfg and re-run this command.
 """
 OAUTH2_GO_TO_LINK_MESSAGE = """
 Go to the following link in your browser:
-{0}
 
-    {{url}}
+    {url}
 """
 ON_CURRENT_PRIVATE_KEY = ' on current key'
 ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES = 'Only administrators can perform Shared Drive queries'
