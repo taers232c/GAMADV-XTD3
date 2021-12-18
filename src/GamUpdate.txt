@@ -1,3 +1,7 @@
+6.12.01
+
+Updated code to perform retries when a `serviceNotAvailable` error occurs when listing file permissions.
+
 6.12.00
 
 Fixed bug in `gam <UserTypeEntity> copy drivefile <DriveFileEntity> <DriveFileParentAttribute> recursive`

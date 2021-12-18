@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.12.00'
+__version__ = '6.12.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -42972,9 +42972,10 @@ def showFileInfo(users):
         if getPermissionsForTeamDrives and driveId and 'permissions' not in result:
           try:
             result['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                                  throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                                  throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                                   fileId=fileId, fields=permissionsFields, supportsAllDrives=True)
-          except GAPI.insufficientFilePermissions as e:
+          except (GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions) as e:
             if fields != '*':
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
               continue
@@ -43005,7 +43006,8 @@ def showFileInfo(users):
           Ind.Decrement()
         else:
           printLine(json.dumps(cleanJSON(result, skipObjects=skipObjects, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+              GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.invalid) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -44215,11 +44217,14 @@ def printFileList(users):
     if checkTeamDrivePermissions:
       try:
         f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                              throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                              throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                                              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                               fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
         if not DLP.CheckFilePermissionMatches(f_file):
           return
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+              GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
+              GAPI.unknownError, GAPI.invalid,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
         pass
     row = {'Owner': user}
@@ -44934,12 +44939,15 @@ def printShowFileCounts(users):
           if checkTeamDrivePermissions:
             try:
               f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST],
+                                                    throwReasons=GAPI.DRIVE3_GET_ACL_REASONS+[GAPI.BAD_REQUEST],
+                                                    retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                                     fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
               if not DLP.CheckFilePermissionMatches(f_file):
                 continue
-            except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
-                    GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy, GAPI.badRequest):
+            except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+                    GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
+                    GAPI.unknownError, GAPI.invalid, GAPI.badRequest,
+                    GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
               continue
           mimeTypeCounts.setdefault(f_file['mimeType'], 0)
           mimeTypeCounts[f_file['mimeType']] += 1
@@ -46115,11 +46123,14 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
   try:
     try:
       permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                  throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                  throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                   fileId=fileId,
                                   fields='nextPageToken,permissions(allowFileDiscovery,domain,emailAddress,expirationTime,id,role,type,deleted)',
                                   supportsAllDrives=True)
-    except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError) as e:
+    except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+            GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
+            GAPI.unknownError, GAPI.invalid) as e:
       entityActionFailedWarning([Ent.USER, user, entityType, fileTitle], str(e), j, jcount)
       _incrStatistic(statistics, stat)
       return
@@ -47792,7 +47803,8 @@ def transferDrive(users):
       if getSourcePermissionFromOwner or getTargetPermissionFromOwner:
         try:
           permissions = callGAPIpages(ownerDrive.permissions(), 'list', 'permissions',
-                                      throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                                      throwReasons=GAPI.DRIVE3_GET_ACL_REASONS+[GAPI.BAD_REQUEST],
+                                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                       fileId=childFileId, fields='nextPageToken,permissions')
           if getSourcePermissionFromOwner:
             for permission in permissions:
@@ -47808,7 +47820,9 @@ def transferDrive(users):
                 break
             else:
               childEntryInfo['targetPermission'] = {'role': 'none'}
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.badRequest) as e:
+        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+                GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
+                GAPI.unknownError, GAPI.invalid, GAPI.badRequest) as e:
           entityActionFailedWarning([Ent.USER, ownerUser, childFileType, childFileName], str(e), j, jcount)
           return
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -49909,12 +49923,14 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
         entityType = Ent.DRIVE_FILE_OR_FOLDER
       try:
         permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
+                                    throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                                    retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     useDomainAdminAccess=useDomainAdminAccess,
                                     includePermissionsForView=includePermissionsForView,
                                     fileId=fileId, fields=fields, supportsAllDrives=True)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-              GAPI.unknownError, GAPI.insufficientAdministratorPrivileges) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+              GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
+              GAPI.unknownError, GAPI.invalid) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
         continue
       except GAPI.notFound as e:
@@ -50727,6 +50743,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       try:
         permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                     throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                                    retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     useDomainAdminAccess=useDomainAdminAccess,
                                     fileId=teamdrive['id'], fields=fields, supportsAllDrives=True)
         if pmselect:
@@ -50746,7 +50763,8 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
         if teamdrive['permissions']:
           matchFeed.append(teamdrive)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
-              GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions, GAPI.unknownError):
+              GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
+              GAPI.unknownError, GAPI.invalid):
         pass
     jcount = len(matchFeed)
     if jcount == 0:
