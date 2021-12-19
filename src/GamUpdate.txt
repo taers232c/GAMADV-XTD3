@@ -1,3 +1,9 @@
+6.12.03
+
+The 6.12.02 bug fix in `gam <UserTypeEntity> print|show filetree select <DriveFileEntity>`
+was too aggressive; when showing a file tree, folders owned by others must be processed
+so that files owned by the user within those folders are displayed.
+
 6.12.02
 
 When running `gam oauth create` and `gam.cfg no_browser = true`, the authorization link is

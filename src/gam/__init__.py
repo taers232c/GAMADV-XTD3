@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.12.02'
+__version__ = '6.12.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -45042,7 +45042,7 @@ def printShowFileTree(users):
           Ind.Decrement()
 
   def _showChildDriveFolderContents(drive, fileEntry, user, i, count, depth):
-    if not DLP.CheckExcludeTrashed(fileEntry) or not DLP.CheckShowOwnedBy(fileEntry):
+    if not DLP.CheckExcludeTrashed(fileEntry):
       return
     q = WITH_PARENTS.format(fileEntry['id'])
     if selectSubQuery:
