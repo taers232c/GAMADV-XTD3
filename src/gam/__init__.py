@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.12.03'
+__version__ = '6.12.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19194,7 +19194,7 @@ def infoCrOSDevices(entityList):
   targetFolder = GC.Values[GC.DRIVE_DIR]
   projection = None
   fieldsList = []
-  noLists = False
+  noLists = showDVRstorageFreePercentage = False
   FJQC = FormatJSONQuoteChar()
   listLimit = 0
   startDate = endDate = startTime = endTime = None
@@ -19240,6 +19240,8 @@ def infoCrOSDevices(entityList):
       targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
       if not os.path.isdir(targetFolder):
         os.makedirs(targetFolder)
+    elif myarg == 'showdvrsfp':
+      showDVRstorageFreePercentage = True
     else:
       FJQC.GetFormatJSON(myarg)
   if fieldsList:
@@ -19363,6 +19365,8 @@ def infoCrOSDevices(entityList):
             Ind.Increment()
             printKeyValueList(['storageFree', volume['storageFree']])
             printKeyValueList(['storageTotal', volume['storageTotal']])
+            if showDVRstorageFreePercentage:
+              printKeyValueList(['storageFreePercentage', str(int(int(volume['storageFree'])/int(volume['storageTotal'])*100))])
             Ind.Decrement()
           Ind.Decrement()
         Ind.Decrement()
@@ -19391,7 +19395,7 @@ def infoCrOSDevices(entityList):
 # gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>]
 #	[start <Date>] [end <Date>]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-#	[timerangeorder ascending|descending]
+#	[timerangeorder ascending|descending] [showdvrsfp]
 #	[downloadfile latest|<Time>] [targetfolder <FilePath>]
 #	[formatjson]
 def doInfoCrOSDevices():
@@ -19566,7 +19570,7 @@ CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
 #	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
 #	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
-#	[timerangeorder ascending|descending]
+#	[timerangeorder ascending|descending] [showdvrsfp]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson [quotechar <Character>]]
 #
@@ -19575,7 +19579,7 @@ CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
 #	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
 #	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
-#	[timerangeorder ascending|descending]
+#	[timerangeorder ascending|descending] [showdvrsfp]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
 #	[sortheaders] [formatjson [quotechar <Character>]]
 def doPrintCrOSDevices(entityList=None):
@@ -19672,6 +19676,8 @@ def doPrintCrOSDevices(entityList=None):
           new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeId'] = volume['volumeId']
           new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageFree'] = volume['storageFree']
           new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageTotal'] = volume['storageTotal']
+          if showDVRstorageFreePercentage:
+            new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageFreePercentage'] = str(int(int(volume['storageFree'])/int(volume['storageTotal'])*100))
           j += 1
       if i < lenLKN:
         for key in ['ipAddress', 'wanIpAddress']:
@@ -19705,7 +19711,7 @@ def doPrintCrOSDevices(entityList=None):
   selectedLists = {}
   queryTimes = {}
   selectionAllowed = entityList is None
-  allFields = noLists = oneRow = sortHeaders = False
+  allFields = noLists = oneRow = showDVRstorageFreePercentage = sortHeaders = False
   directlyInOU = True
   activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
@@ -19769,6 +19775,8 @@ def doPrintCrOSDevices(entityList=None):
             csvPF.AddField(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
         else:
           invalidChoiceExit(field, CROS_FIELDS_CHOICE_MAP, True)
+    elif myarg == 'showdvrsfp':
+      showDVRstorageFreePercentage = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if selectedLists:
