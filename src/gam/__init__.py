@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.12.04'
+__version__ = '6.12.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19087,6 +19087,12 @@ def _filterBasicList(cros, field, selected, listLimit):
     return cros[field]
   return cros.get(field, [])
 
+def _computeDVRstorageFreePercentage(cros):
+  for diskVolumeReport in cros.get('diskVolumeReports', []):
+    volumeInfo = diskVolumeReport['volumeInfo']
+    for volume in volumeInfo:
+      volume['storageFreePercentage'] = str(int(int(volume['storageFree'])/int(volume['storageTotal'])*100))
+
 def _getFilterDateTime():
   filterDate = getYYYYMMDD(returnDateTime=True)
   return (filterDate, filterDate.replace(tzinfo=iso8601.UTC))
@@ -19262,6 +19268,8 @@ def infoCrOSDevices(entityList):
     checkTPMVulnerability(cros)
     if 'autoUpdateExpiration' in cros:
       cros['autoUpdateExpiration'] = formatLocalDatestamp(cros['autoUpdateExpiration'])
+    if showDVRstorageFreePercentage:
+      _computeDVRstorageFreePercentage(cros)
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(cros, timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       continue
@@ -19366,7 +19374,7 @@ def infoCrOSDevices(entityList):
             printKeyValueList(['storageFree', volume['storageFree']])
             printKeyValueList(['storageTotal', volume['storageTotal']])
             if showDVRstorageFreePercentage:
-              printKeyValueList(['storageFreePercentage', str(int(int(volume['storageFree'])/int(volume['storageTotal'])*100))])
+              printKeyValueList(['storageFreePercentage', volume['storageFreePercentage']])
             Ind.Decrement()
           Ind.Decrement()
         Ind.Decrement()
@@ -19603,6 +19611,8 @@ def doPrintCrOSDevices(entityList=None):
     checkTPMVulnerability(cros)
     if 'autoUpdateExpiration' in cros:
       cros['autoUpdateExpiration'] = formatLocalDatestamp(cros['autoUpdateExpiration'])
+    if showDVRstorageFreePercentage:
+      _computeDVRstorageFreePercentage(cros)
     if FJQC.formatJSON:
       if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
@@ -19677,7 +19687,7 @@ def doPrintCrOSDevices(entityList=None):
           new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageFree'] = volume['storageFree']
           new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageTotal'] = volume['storageTotal']
           if showDVRstorageFreePercentage:
-            new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageFreePercentage'] = str(int(int(volume['storageFree'])/int(volume['storageTotal'])*100))
+            new_row[f'diskVolumeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}volumeInfo{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}storageFreePercentage'] = volume['storageFreePercentage']
           j += 1
       if i < lenLKN:
         for key in ['ipAddress', 'wanIpAddress']:

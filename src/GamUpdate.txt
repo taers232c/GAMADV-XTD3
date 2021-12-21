@@ -1,3 +1,7 @@
+6.12.05
+
+Updated `gam info|print cros showdvrsfp formatjson` to include `diskVolumeReports.volumeInfo.storageFreePercentage`.
+
 6.12.04
 
 Added option `showdvrsfp` to `gam info|print cros` that causes GAM to display a field
