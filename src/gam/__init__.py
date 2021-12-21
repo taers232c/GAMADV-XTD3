@@ -29130,8 +29130,16 @@ def doCreateResourceCalendar():
              throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.REQUIRED, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
              customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='')
     entityActionPerformed([Ent.RESOURCE_CALENDAR, body['resourceId']])
-  except (GAPI.invalid, GAPI.invalidInput, GAPI.required) as e:
+  except (GAPI.invalid, GAPI.invalidInput) as e:
     entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body['resourceId']], str(e))
+  except GAPI.required as e:
+    errMsg = str(e)
+    if '[resourceCapacity, resourceFloorName]' in errMsg:
+      entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body['resourceId']], Msg.RESOURCE_CAPACITY_FLOOR_REQUIRED)
+    elif'[resourceFloorName]' in errMsg:
+      entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body['resourceId']], Msg.RESOURCE_FLOOR_REQUIRED)
+    else:
+      entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body['resourceId']], errMsg)
   except GAPI.duplicate:
     entityDuplicateWarning([Ent.RESOURCE_CALENDAR, body['resourceId']])
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
