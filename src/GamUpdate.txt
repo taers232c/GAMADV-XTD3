@@ -2,7 +2,7 @@
 
 Updated `gam info|print cros showdvrsfp formatjson` to include `diskVolumeReports.volumeInfo.storageFreePercentage`.
 
-Improved error messages for `gam create resource` when options `capacity <Number>` and `floor <String>`
+Improved error messages displayed for `gam create resource` when options `capacity <Number>` and `floor <String>`
 are required but not provided.
 
 6.12.04
