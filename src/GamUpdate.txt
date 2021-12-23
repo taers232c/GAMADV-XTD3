@@ -1,8 +1,26 @@
+6.12.06
+
+Fixed bug where `redirect csv - multiprocess todrive redirect stdout - multiprocess` would disable
+`multiprocess` for `redirect csv` which resulted in multiple files being uploaded.
+
+Added option `showshareddrivepermissions` to `gam <UserTypeEntity> show fileinfo <DriveFileEntity>` that is applicable
+when no fields are selected and `<DriveFileEntity>` is a shared drive file/folder. In this case,
+the Drive API returns the permission IDs but not the permissions themselves so GAM makes an additional API call
+to get the permissions.
+
+Added option `showshareddrivepermissions` to `gam <UserTypeEntity> print filelist` that is applicable
+when no fields are selected and shared drives are queried/selected. In this case,
+the Drive API returns the permission IDs but not the permissions themselves so GAM makes an additional API call
+per file to get the permissions.
+
+Added commands that can process lists of Gmail labels.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Labels
+
 6.12.05
 
 Updated `gam info|print cros showdvrsfp formatjson` to include `diskVolumeReports.volumeInfo.storageFreePercentage`.
 
-Improved error messages displayed for `gam create resource` when options `capacity <Number>` and `floor <String>`
+Improved error messages for `gam create resource` when options `capacity <Number>` and `floor <String>`
 are required but not provided.
 
 6.12.04

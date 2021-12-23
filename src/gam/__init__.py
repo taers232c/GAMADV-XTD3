@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.12.05'
+__version__ = '6.12.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -3631,8 +3631,6 @@ def SetGlobalVariables():
         multi = checkArgumentPresent('multiprocess')
         mode = DEFAULT_FILE_APPEND_MODE if checkArgumentPresent('append') else DEFAULT_FILE_WRITE_MODE
         _setSTDFile(GM.STDOUT, filename, mode, multi)
-        if GM.Globals[GM.CSVFILE].get(GM.REDIRECT_NAME) == '-':
-          GM.Globals[GM.CSVFILE] = {}
     else: # myarg == 'stderr'
       if filename.lower() == 'null':
         multi = checkArgumentPresent('multiprocess')
@@ -3651,7 +3649,14 @@ def SetGlobalVariables():
     _setSTDFile(GM.STDOUT, '-', DEFAULT_FILE_WRITE_MODE, False)
   if not GM.Globals[GM.STDERR]:
     _setSTDFile(GM.STDERR, '-', DEFAULT_FILE_WRITE_MODE, False)
-  if not GM.Globals[GM.CSVFILE]:
+# If both csv and stdout are redirected to - with same multiprocess setting and csv doesn't have any todrive parameters, collapse csv onto stdout
+  if (GM.Globals[GM.PID] == 0  and GM.Globals[GM.CSVFILE] and
+      GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] == '-' and GM.Globals[GM.STDOUT][GM.REDIRECT_NAME] == '-' and
+      GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS] == GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS] and
+      GM.Globals[GM.CSVFILE].get(GM.REDIRECT_QUEUE_CSVPF) and not GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE_CSVPF].todrive):
+    _setCSVFile('-', GM.Globals[GM.STDOUT].get(GM.REDIRECT_MODE, DEFAULT_FILE_WRITE_MODE), GC.Values[GC.CHARSET],
+                GM.Globals[GM.CSVFILE].get(GM.REDIRECT_WRITE_HEADER, True), GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS])
+  elif not GM.Globals[GM.CSVFILE]:
     _setCSVFile('-', GM.Globals[GM.STDOUT].get(GM.REDIRECT_MODE, DEFAULT_FILE_WRITE_MODE), GC.Values[GC.CHARSET], True, False)
   initAPICallsRateCheck()
 # Inherit csv_input_row_filter/csv_output_header_filter/csv_output_row_filter if not locally defined
@@ -7260,6 +7265,7 @@ class CSVPrintFile():
 
     def writeCSVToDrive():
       numRows = len(self.rows)
+      numColumns = len(titlesList)
       if numRows == 0 and not self.todrive['uploadnodata']:
         printKeyValueList([Msg.NO_CSV_DATA_TO_UPLOAD])
         setSysExitRC(NO_CSV_DATA_TO_UPLOAD_RC)
@@ -7317,7 +7323,7 @@ class CSVPrintFile():
             result = callGAPI(drive.about(), 'get',
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                               fields='maxImportSizes')
-            if numRows*len(titlesList) > MAX_GOOGLE_SHEET_CELLS or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
+            if numRows*numColumns > MAX_GOOGLE_SHEET_CELLS or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
               todriveCSVErrorExit([Ent.USER, user], Msg.RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET)
             fields = ','.join(['id', 'mimeType', 'webViewLink', 'name', 'capabilities(canEdit)'])
             body = {'name': title, 'description': self.todrive['description']}
@@ -42868,7 +42874,7 @@ def _setSkipObjects(skipObjects, skipTitles, fieldsList):
     if field != 'parents':
       if field not in fieldsList:
         skipObjects.add(field)
-      fieldsList.append(field)
+        fieldsList.append(field)
     else:
       for xfield in fieldsList:
         if xfield.startswith('parents'):
@@ -42893,27 +42899,23 @@ def _setGetPermissionsForTeamDrives(fieldsList):
 
 # gam <UserTypeEntity> info drivefile <DriveFileEntity>
 #	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
-#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+#	[showparentsidsaslist] [showshareddrivepermissions]
 #	[stripcrsfromname]
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity>
 #	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
-#	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
+#	[showparentsidsaslist] [showshareddrivepermissions]
 #	[stripcrsfromname]
 def showFileInfo(users):
   def _setSelectionFields():
     _setSkipObjects(skipObjects, FILEINFO_FIELDS_TITLES, DFF.fieldsList)
     if filepath:
       _setSkipObjects(skipObjects, FILEPATH_FIELDS_TITLES, DFF.fieldsList)
-    if getPermissionsForTeamDrives:
-      if 'driveId' not in DFF.fieldsList:
-        skipObjects.add('driveId')
-        DFF.fieldsList.append('driveId')
-    if DFF.showTeamDriveNames:
-      if 'driveId' not in DFF.fieldsList:
-        skipObjects.add('driveId')
-        DFF.fieldsList.append('driveId')
+    if getPermissionsForTeamDrives or DFF.showTeamDriveNames:
+      _setSkipObjects(skipObjects, ['driveId'], DFF.fieldsList)
 
-  filepath = showParentsIdsAsList = showNoParents = stripCRsFromName = False
+  getPermissionsForTeamDrives = filepath = showParentsIdsAsList = showNoParents = stripCRsFromName = False
   simpleLists = []
   skipObjects = set()
   fileIdEntity = getDriveFileEntity()
@@ -42928,11 +42930,13 @@ def showFileInfo(users):
       simpleLists.append('parentsIds')
     elif myarg == 'stripcrsfromname':
       stripCRsFromName = True
+    elif myarg == 'showshareddrivepermissions':
+      getPermissionsForTeamDrives = True
+      permissionsFields = 'nextPageToken,permissions'
     elif DFF.ProcessArgument(myarg):
       pass
     else:
       FJQC.GetFormatJSON(myarg)
-  getPermissionsForTeamDrives = False
   if DFF.fieldsList:
     getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(DFF.fieldsList)
     _setSelectionFields()
@@ -44171,7 +44175,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[countsonly [summary none|only|plus] [showsource] [showsize]] [countsrowfilter]
 #	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-#	[showdrivename] [showparentsidsaslist] [showpermissionslast]
+#	[showdrivename] [showparentsidsaslist] [showpermissionslast] [showshareddrivepermissions]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 #	[stripcrsfromname]
 #	[formatjson [quotechar <Character>]]
@@ -44350,8 +44354,8 @@ def printFileList(users):
 
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
-  addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = noRecursion = \
-    showParentsIdsAsList = showDepth = showParent = showSize = showSource = stripCRsFromName = False
+  addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = getPermissionsForTeamDrives = \
+    noRecursion = showParentsIdsAsList = showDepth = showParent = showSize = showSource = stripCRsFromName = False
   maxdepth = -1
   nodataFields = []
   simpleLists = ['permissionIds', 'spaces']
@@ -44431,6 +44435,9 @@ def printFileList(users):
       csvPF.SetShowPermissionsLast(True)
     elif myarg == 'stripcrsfromname':
       stripCRsFromName = True
+    elif myarg == 'showshareddrivepermissions':
+      getPermissionsForTeamDrives = True
+      permissionsFields = 'nextPageToken,permissions'
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
   if not filepath and not fullpath:
@@ -44467,8 +44474,6 @@ def printFileList(users):
     permissionsFields = 'nextPageToken,permissions'
   elif DFF.fieldsList:
     getPermissionsForTeamDrives, permissionsFields = _setGetPermissionsForTeamDrives(DFF.fieldsList)
-  else:
-    getPermissionsForTeamDrives = False
   if DFF.fieldsList:
     _setSelectionFields()
     fields = getFieldsFromFieldsList(DFF.fieldsList)
@@ -46155,20 +46160,16 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
         permission.pop('deleted', None)
         try:
           callGAPI(drive.permissions(), 'create',
-                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST,
-                                                                 GAPI.OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                                                 GAPI.ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                                                 GAPI.FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                                                 GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-                                                                 GAPI.INVALID_LINK_VISIBILITY],
+                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
                    retryReasons=[GAPI.INVALID_SHARING_REQUEST],
                    fileId=newFileId, sendNotificationEmail=False, emailMessage=None,
                    body=permission, fields='', supportsAllDrives=True)
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                 GAPI.ownerOnTeamDriveItemNotSupported,
-                GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported,
+                GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
+                GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
                 GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.invalidLinkVisibility) as e:
-          entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], str(e), j, jcount)
+          entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
         except GAPI.invalidSharingRequest as e:
           entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -46356,8 +46357,9 @@ def copyDriveFile(users):
       body.pop('copyRequiresWriterPermission', None)
       body.pop('writersCanShare', None)
     body.pop('trashed', None)
-    if not copyMoveOptions['destDriveId']:
-      body.pop('driveId', None)
+#    if not copyMoveOptions['destDriveId']:
+#      body.pop('driveId', None)
+    body.pop('driveId', None)
     if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
       newFolderTitle = _getUniqueFilename(newFolderTitle, source['mimeType'], targetChildren)
     elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
@@ -46455,6 +46457,7 @@ def copyDriveFile(users):
           if copyMoveOptions['destDriveId']:
             child.pop('copyRequiresWriterPermission', None)
             child.pop('writersCanShare', None)
+          child.pop('driveId', None)
           if child['mimeType'] == MIMETYPE_GA_SHORTCUT:
             child.pop('folderColorRgb', None)
           try:
@@ -49241,13 +49244,14 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
           entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
           if showDetails:
             _showDriveFilePermission(permission, printKeys, timeObjects)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internoalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
               GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
               GAPI.ownerOnTeamDriveItemNotSupported,
-              GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
+              GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
+              GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
       except GAPI.notFound as e:
@@ -52939,11 +52943,11 @@ def printShowGmailProfile(users):
   if csvPF:
     csvPF.writeCSVfile('Gmail Profiles')
 
-def _getUserGmailLabels(gmail, user, i, count, **kwargs):
+def _getUserGmailLabels(gmail, user, i, count, fields):
   try:
     labels = callGAPI(gmail.users().labels(), 'list',
                       throwReasons=GAPI.GMAIL_THROW_REASONS,
-                      userId='me', **kwargs)
+                      userId='me', fields=fields)
     if not labels:
       labels = {'labels': []}
     return labels
@@ -52995,88 +52999,105 @@ def checkLabelColor(body):
     missingArgumentExit('textcolor <LabelColorHex>')
   missingArgumentExit('backgroundcolor <LabelColorHex>')
 
-# gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
-#	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
-def createLabel(users):
-  label = getString(Cmd.OB_LABEL_NAME)
-  body = {'name': label}
+def createLabels(users, labelEntity):
+  body = {}
   buildPath = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'buildpath':
       buildPath = getBoolean()
-      label = label.strip('/')
     else:
       getLabelAttributes(myarg, body)
   checkLabelColor(body)
+  if not isinstance(labelEntity, dict):
+    userLabelList = None
+    labelList = labelEntity
+  else:
+    userLabelList = labelEntity
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    origUser = user
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    if not buildPath:
-      entityPerformActionNumItems([Ent.USER, user], 1, Ent.LABEL, i, count)
-      Ind.Increment()
-      try:
-        callGAPI(gmail.users().labels(), 'create',
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
-                 userId='me', body=body, fields='')
-        entityActionPerformed([Ent.USER, user, Ent.LABEL, label], i, count)
-      except GAPI.duplicate:
-        entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.DUPLICATE, i, count)
-      except (GAPI.serviceNotAvailable, GAPI.badRequest):
-        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-      Ind.Decrement()
-    else:
-      labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
+    if userLabelList:
+      labelList = userLabelList[origUser]
+    lcount = len(labelList)
+    if buildPath:
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
       if not labels:
         continue
-      labelParts = label.split('/')
-      invalid = False
-      for j, labelPart in enumerate(labelParts):
-        labelParts[j] = labelPart.strip()
-        if not labelParts[j]:
-          entityPerformActionNumItems([Ent.USER, user], 1, Ent.LABEL, i, count)
-          Ind.Increment()
-          entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.INVALID, i, count)
-          Ind.Decrement()
-          invalid = True
-          break
-      if invalid:
-        continue
       labelSet = {ulabel['name'] for ulabel in labels['labels'] if ulabel['type'] != LABEL_TYPE_SYSTEM}
-      duplicate = True
-      labelPath = ''
-      j = 0
-      for k, labelPart in enumerate(labelParts):
-        if labelPath != '':
-          labelPath += '/'
-        labelPath += labelPart
-        if labelPath not in labelSet:
-          if duplicate:
-            jcount = len(labelParts)-k
-            entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
-            Ind.Increment()
-            duplicate = False
-          j += 1
-          body['name'] = labelPath
-          try:
-            callGAPI(gmail.users().labels(), 'create',
-                     throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
-                     userId='me', body=body, fields='')
-            entityActionPerformed([Ent.USER, user, Ent.LABEL, labelPath], j, jcount)
-          except GAPI.duplicate:
-            entityActionFailedWarning([Ent.USER, user, Ent.LABEL, labelPath], Msg.DUPLICATE, j, jcount)
+    entityPerformActionNumItems([Ent.USER, user], lcount, Ent.LABEL, i, count)
+    Ind.Increment()
+    l = 0
+    for label in labelList:
+      l += 1
+      body['name'] = label
+      if not buildPath:
+        try:
+          callGAPI(gmail.users().labels(), 'create',
+                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
+                   userId='me', body=body, fields='')
+          entityActionPerformed([Ent.USER, user, Ent.LABEL, label], l, lcount)
+        except GAPI.duplicate:
+          entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.DUPLICATE, l, lcount)
+        except (GAPI.serviceNotAvailable, GAPI.badRequest):
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      else:
+        label = label.strip('/')
+        labelParts = label.split('/')
+        invalid = False
+        for j, labelPart in enumerate(labelParts):
+          labelParts[j] = labelPart.strip()
+          if not labelParts[j]:
+            entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.INVALID, l, lcount)
+            invalid = True
             break
-          except (GAPI.serviceNotAvailable, GAPI.badRequest):
-            entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-            break
-      if duplicate:
-        entityPerformActionNumItems([Ent.USER, user], 1, Ent.LABEL, i, count)
-        Ind.Increment()
-        entityActionFailedWarning([Ent.USER, user, Ent.LABEL, labelPath], Msg.DUPLICATE, i, count)
-      Ind.Decrement()
+        if invalid:
+          continue
+        duplicate = True
+        labelPath = ''
+        j = 0
+        for k, labelPart in enumerate(labelParts):
+          if labelPath != '':
+            labelPath += '/'
+          labelPath += labelPart
+          if labelPath not in labelSet:
+            if duplicate:
+              jcount = len(labelParts)-k
+              entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
+              Ind.Increment()
+              duplicate = False
+            j += 1
+            body['name'] = labelPath
+            try:
+              newLabel = callGAPI(gmail.users().labels(), 'create',
+                                  throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
+                                  userId='me', body=body, fields='id,type,name')
+              labelSet.add(newLabel['name'])
+              entityActionPerformed([Ent.USER, user, Ent.LABEL, labelPath], j, jcount)
+            except GAPI.duplicate:
+              entityActionFailedWarning([Ent.USER, user, Ent.LABEL, labelPath], Msg.DUPLICATE, j, jcount)
+              break
+            except (GAPI.serviceNotAvailable, GAPI.badRequest):
+              entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+              break
+        if duplicate:
+          entityActionFailedWarning([Ent.USER, user, Ent.LABEL, labelPath], Msg.DUPLICATE, l, lcount)
+        Ind.Decrement()
+    Ind.Decrement()
+
+# gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+#	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
+def createLabel(users):
+  createLabels(users, getStringReturnInList(Cmd.OB_LABEL_NAME))
+
+# gam <UserTypeEntity> create labellist <LabelNameEntity> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+#	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
+def createLabelList(users):
+  createLabels(users, getEntityList(Cmd.OB_LABEL_NAME_LIST, shlexSplit=True))
 
 # gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
 #	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
@@ -53097,7 +53118,7 @@ def updateLabelSettings(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
+    labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
     if not labels:
       continue
     try:
@@ -53161,7 +53182,7 @@ def updateLabels(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
+    labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
     if not labels:
       continue
     try:
@@ -53219,8 +53240,7 @@ def updateLabels(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>
-def deleteLabel(users):
+def deleteLabels(users, labelEntity):
   def _handleProcessGmailError(exception, ri):
     http_status, reason, message = checkGAPIError(exception)
     entityActionFailedWarning([Ent.USER, ri[RI_ENTITY], Ent.LABEL, labelIdToNameMap[ri[RI_ITEM]]], formatHTTPError(http_status, reason, message), int(ri[RI_J]), int(ri[RI_JCOUNT]))
@@ -53232,52 +53252,61 @@ def deleteLabel(users):
     else:
       _handleProcessGmailError(exception, ri)
 
-  label = getString(Cmd.OB_LABEL_NAME)
-  if label[:6].lower() == 'regex:':
-    labelPattern = validateREPattern(label[6:])
+  if not isinstance(labelEntity, dict):
+    userLabelList = None
+    labelList = labelEntity
   else:
-    labelPattern = None
-  label_name_lower = label.lower()
+    userLabelList = labelEntity
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    origUser = user
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if userLabelList:
+      labelList = userLabelList[origUser]
     try:
       printGettingAllEntityItemsForWhom(Ent.LABEL, user, i, count)
-      labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
       if not labels:
         continue
-      del_labels = []
-      if label == '--ALL_LABELS--':
-        count = len(labels['labels'])
-        for del_label in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
-          if del_label['type'] != LABEL_TYPE_SYSTEM:
-            del_labels.append(del_label)
-      elif labelPattern:
-        for del_label in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
-          if del_label['type'] != LABEL_TYPE_SYSTEM and labelPattern.match(del_label['name']):
-            del_labels.append(del_label)
-      else:
-        for del_label in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
-          if label_name_lower == del_label['name'].lower():
-            del_labels.append(del_label)
-            break
+      delLabels = []
+      for label in labelList:
+        label_name_lower = label.lower()
+        if label_name_lower[:6] == 'regex:':
+          labelPattern = validateREPattern(label[6:])
         else:
-          entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.DOES_NOT_EXIST, i, count)
-          continue
-      jcount = len(del_labels)
+          labelPattern = None
+        if label.upper() == '--ALL_LABELS--':
+          count = len(labels['labels'])
+          for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
+            if delLabel['type'] != LABEL_TYPE_SYSTEM:
+              delLabels.append(delLabel)
+        elif labelPattern:
+          for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
+            if delLabel['type'] != LABEL_TYPE_SYSTEM and labelPattern.match(delLabel['name']):
+              delLabels.append(delLabel)
+        else:
+          for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
+            if label_name_lower == delLabel['name'].lower():
+              delLabels.append(delLabel)
+              break
+          else:
+            entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.DOES_NOT_EXIST, i, count)
+      jcount = len(delLabels)
       labelIdToNameMap = {}
       entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
+      if jcount == 0:
+        continue
       Ind.Increment()
       svcargs = dict([('userId', 'me'), ('id', None), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
       method = getattr(gmail.users().labels(), 'delete')
       dbatch = gmail.new_batch_http_request(callback=_callbackDeleteLabel)
       bcount = 0
       j = 0
-      for del_me in del_labels:
+      for del_me in delLabels:
         j += 1
         svcparms = svcargs.copy()
         svcparms['id'] = del_me['id']
@@ -53294,25 +53323,55 @@ def deleteLabel(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
-# gam <UserTypeEntity> delete labelid <LabelID>
-def deleteLabelId(users):
-  labelId = getString(Cmd.OB_LABEL_ID)
+# gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>
+def deleteLabel(users):
+  deleteLabels(users, getStringReturnInList(Cmd.OB_LABEL_NAME))
+
+# gam <UserTypeEntity> delete labellist <LabelNameEntity>
+def deleteLabelList(users):
+  deleteLabels(users, getEntityList(Cmd.OB_LABEL_NAME_LIST, shlexSplit=True))
+
+def deleteLabelIds(users, labelEntity):
+  if not isinstance(labelEntity, dict):
+    userLabelList = None
+    labelList = labelEntity
+  else:
+    userLabelList = labelEntity
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    origUser = user
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    try:
-      callGAPI(gmail.users().labels(), 'delete',
-               throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID],
-               userId='me', id=labelId)
-      entityActionPerformed([Ent.USER, user, Ent.LABEL_ID, labelId], i, count)
-    except (GAPI.notFound, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.LABEL_ID, labelId], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.badRequest):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    if userLabelList:
+      labelList = userLabelList[origUser]
+    lcount = len(labelList)
+    entityPerformActionNumItems([Ent.USER, user], lcount, Ent.LABEL, i, count)
+    Ind.Increment()
+    l = 0
+    for labelId in labelList:
+      l += 1
+      try:
+        callGAPI(gmail.users().labels(), 'delete',
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID],
+                 userId='me', id=labelId)
+        entityActionPerformed([Ent.USER, user, Ent.LABEL_ID, labelId], l, lcount)
+      except (GAPI.notFound, GAPI.invalid) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.LABEL_ID, labelId], str(e), l, lcount)
+      except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+    Ind.Decrement()
+
+# gam <UserTypeEntity> delete labelid <LabelID>
+def deleteLabelId(users):
+  deleteLabelIds(users, getStringReturnInList(Cmd.OB_LABEL_ID))
+
+# gam <UserTypeEntity> delete labelidlist <LabelIDEntity>
+def deleteLabelIdList(users):
+  deleteLabelIds(users, getEntityList(Cmd.OB_LABEL_ID_LIST))
 
 PRINT_LABELS_TITLES = ['User', 'type', 'name', 'id']
 SHOW_LABELS_DISPLAY_CHOICES = ['allfields', 'basename', 'fullname']
@@ -53424,7 +53483,7 @@ def printShowLabels(users):
       continue
     if csvPF:
       printGettingEntityItemForWhom(Ent.LABEL, user, i, count)
-    labels = _getUserGmailLabels(gmail, user, i, count)
+    labels = _getUserGmailLabels(gmail, user, i, count, 'labels')
     if not labels:
       continue
     try:
@@ -53777,7 +53836,7 @@ def _processMessagesThreads(users, entityType):
       continue
     service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
     if addLabelNames or removeLabelNames:
-      userGmailLabels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
+      userGmailLabels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
       if not userGmailLabels:
         continue
       labelNameMap = _initLabelNameMap(userGmailLabels)
@@ -54124,7 +54183,7 @@ def _draftImportInsertMessage(users, operation):
     try:
       if operation != 'draft':
         if addLabelNames:
-          userGmailLabels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
+          userGmailLabels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
           if not userGmailLabels:
             continue
           labelNameMap = _initLabelNameMap(userGmailLabels)
@@ -54154,7 +54213,7 @@ def draftMessage(users):
 
 # gam <UserTypeEntity> import message
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
-#	(addlabel <LabelName>)*
+#	(addlabel <LabelName>)* [labels <LabelNameList>]
 #	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
@@ -54164,7 +54223,7 @@ def importMessage(users):
 
 # gam <UserTypeEntity> insert message
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
-#	(addlabel <LabelName>)*
+#	(addlabel <LabelName>)* [labels <LabelNameList>]
 #	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
@@ -54669,7 +54728,7 @@ def printShowMessagesThreads(users, entityType):
       continue
     service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
     if show_labels or labelMatchPattern:
-      labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name,type)')
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
       if not labels:
         continue
       senderLabelsMaps = {}
@@ -55202,7 +55261,7 @@ def createFilter(users):
     if not gmail:
       continue
     if addLabelIndicies:
-      labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
       if not labels:
         continue
     try:
@@ -55222,7 +55281,7 @@ def createFilter(users):
             retries = 0
             break
           except GAPI.duplicate:
-            labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
+            labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
         if retries:
           entityActionFailedWarning([Ent.USER, user, Ent.LABEL, addLabelName], Msg.DUPLICATE, i, count)
           continue
@@ -55275,7 +55334,7 @@ def infoFilters(users):
     user, gmail, filterIds, jcount = _validateUserGetObjectList(user, i, count, filterIdEntity)
     if jcount == 0:
       continue
-    labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
+    labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
     if not labels:
       continue
     Ind.Increment()
@@ -55323,7 +55382,7 @@ def printShowFilters(users):
     if not gmail:
       continue
     if not labelIdsOnly:
-      labels = _getUserGmailLabels(gmail, user, i, count, fields='labels(id,name)')
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
       if not labels:
         continue
     else:
@@ -55370,6 +55429,26 @@ def printShowFilters(users):
       csvPF.MoveTitlesToEnd(['JSON'])
     csvPF.SetSortTitles([])
     csvPF.writeCSVfile('Filters')
+
+# gam info forms <FormIDEntity>
+#def doInfoForms():
+#  gform = buildGAPIObject(API.FORMS)
+#  formIdEntity = getEntityList(Cmd.OB_FORM_ID_ENTITY)
+#  checkForExtraneousArguments()
+#  i = 0
+#  count = len(entityList)
+#  for formId in entityList:
+#    i += 1
+#    try:
+#      result = callGAPI(gform.forms(), 'get',
+#                        throwReasons=[GAPI.NOT_FOUND],
+#                        id=formId)
+#      printEntity([Ent.FORM, result['formId']], i, count)
+#      Ind.Increment()
+#      showJSON(None, result)
+#      Ind.Decrement()
+#    except GAPI.notFound as e:
+#      entityActionFailedWarning([Ent.FORM, formId], str(e), i, count)
 
 EMAILSETTINGS_OLD_NEW_OLD_FORWARD_ACTION_MAP = {
   'ARCHIVE': 'archive',
@@ -57296,6 +57375,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DOMAINCONTACT:	doInfoDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
       Cmd.ARG_INSTANCE:		doInfoInstance,
+#      Cmd.ARG_FORM:		doInfoForms,
       Cmd.ARG_GAL:		doInfoGAL,
       Cmd.ARG_GROUP:		doInfoGroups,
       Cmd.ARG_GROUPMEMBERS:	doInfoGroupMembers,
@@ -57631,6 +57711,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_EXPORT:		Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_EXPORTS:		Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_FEATURES:		Cmd.ARG_FEATURE,
+  Cmd.ARG_FORMS:		Cmd.ARG_FORM,
   Cmd.ARG_GROUPS:		Cmd.ARG_GROUP,
   Cmd.ARG_GROUPSMEMBERS:	Cmd.ARG_GROUPMEMBERS,
   Cmd.ARG_GUARDIANINVITATIONS:	Cmd.ARG_GUARDIANINVITATION,
@@ -58007,6 +58088,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_GUARDIAN:		inviteGuardians,
   Cmd.ARG_GUARDIANINVITATION:	inviteGuardians,
   Cmd.ARG_LABEL:		createLabel,
+  Cmd.ARG_LABELLIST:		createLabelList,
   Cmd.ARG_LICENSE:		createLicense,
   Cmd.ARG_NOTE:			createNote,
   Cmd.ARG_NOTEACL:		createNotesACLs,
@@ -58106,7 +58188,9 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GROUP:		deleteUserFromGroups,
       Cmd.ARG_GUARDIAN:		deleteGuardians,
       Cmd.ARG_LABEL:		deleteLabel,
+      Cmd.ARG_LABELLIST:	deleteLabelList,
       Cmd.ARG_LABELID:		deleteLabelId,
+      Cmd.ARG_LABELIDLIST:	deleteLabelIdList,
       Cmd.ARG_LICENSE:		deleteLicense,
       Cmd.ARG_MESSAGE:		processMessages,
       Cmd.ARG_NOTE:		deleteInfoNotes,

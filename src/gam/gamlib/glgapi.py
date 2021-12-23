@@ -109,6 +109,7 @@ NOT_A_CALENDAR_USER = 'notACalendarUser'
 NOT_FOUND = 'notFound'
 NOT_IMPLEMENTED = 'notImplemented'
 OPERATION_NOT_SUPPORTED = 'operationNotSupported'
+ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED = 'organizerOnNonTeamDriveNotSupported'
 ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED = 'organizerOnNonTeamDriveItemNotSupported'
 ORGUNIT_NOT_FOUND = 'orgunitNotFound'
 OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED = 'ownerOnTeamDriveItemNotSupported'
@@ -177,6 +178,7 @@ DRIVE3_CREATE_ACL_THROW_REASONS = [INVALID, INVALID_SHARING_REQUEST, OWNERSHIP_C
                                    CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                    CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS,
                                    OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
+                                   ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
@@ -192,6 +194,7 @@ DRIVE3_UPDATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID_OWNERSHIP_TRANSFER, CANN
                                    CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
                                    CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS,
                                    OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
+                                   ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
@@ -461,6 +464,8 @@ class notImplemented(Exception):
   pass
 class operationNotSupported(Exception):
   pass
+class organizerOnNonTeamDriveNotSupported(Exception):
+  pass
 class organizerOnNonTeamDriveItemNotSupported(Exception):
   pass
 class orgunitNotFound(Exception):
@@ -631,6 +636,7 @@ REASON_EXCEPTION_MAP = {
   NOT_FOUND: notFound,
   NOT_IMPLEMENTED: notImplemented,
   OPERATION_NOT_SUPPORTED: operationNotSupported,
+  ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED: organizerOnNonTeamDriveNotSupported,
   ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED: organizerOnNonTeamDriveItemNotSupported,
   ORGUNIT_NOT_FOUND: orgunitNotFound,
   OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED: ownerOnTeamDriveItemNotSupported,

@@ -44,6 +44,7 @@ DRIVE2 = 'drive2'
 DRIVE3 = 'drive3'
 DRIVETD = 'drivetd'
 DRIVEACTIVITY = 'driveactivity'
+FORMS = 'forms'
 GMAIL = 'gmail'
 GROUPSMIGRATION = 'groupsmigration'
 GROUPSSETTINGS = 'groupssettings'
@@ -129,6 +130,7 @@ PROJECT_APIS = [
   'docs.googleapis.com',
   'drive.googleapis.com',
   'driveactivity.googleapis.com',
+#  'forms.googleapis.com',
   'gmail.googleapis.com',
   'groupsmigration.googleapis.com',
   'groupssettings.googleapis.com',
@@ -169,6 +171,7 @@ _INFO = {
   DRIVE3: {'name': 'Drive API v3', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVETD: {'name': 'Drive API v3 - todrive', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVEACTIVITY: {'name': 'Drive Activity API v2', 'version': 'v2', 'v2discovery': True},
+#  FORMS: {'name': 'Forms API', 'version': 'v1beta', 'v2discovery': True},
   GMAIL: {'name': 'Gmail API', 'version': 'v1', 'v2discovery': True},
   GROUPSMIGRATION: {'name': 'Groups Migration API', 'version': 'v1', 'v2discovery': False},
   GROUPSSETTINGS: {'name': 'Groups Settings API', 'version': 'v1', 'v2discovery': True},
@@ -326,6 +329,10 @@ _CLIENT_SCOPES = [
    'api': DIRECTORY,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/admin.directory.user'},
+#  {'name': 'Forms API',
+#   'api': FORMS,
+#   'subscopes': [],
+#   'scope': 'https://www.googleapis.com/auth/forms.body'},
   {'name': 'Groups Migration API',
    'api': GROUPSMIGRATION,
    'subscopes': [],

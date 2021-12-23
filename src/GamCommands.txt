@@ -559,6 +559,7 @@ If an item contains spaces, it should be surrounded by ".
 <GroupList> ::= "<GroupItem>(,<GroupItem>)*"
 <GroupRoleList> ::= "<GroupRole>(,<GroupRole>)*"
 <GroupTypeList> ::= "<GroupType>(,<GroupType>)*"
+<LabelIDList> ::= "<LabelID>(,<LabelID)*"
 <LabelNameList> ::= "<LabelName>(,<LabelName)*"
 <LanguageList> ::= "<Language>(,<Language)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
@@ -874,6 +875,10 @@ Specify a collection of items by directly specifying them; the item type is dete
         <GuardianList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <GuardianInvitationIDEntity> ::=
         <GuardianInvitationIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<LabelIDEntity> ::=
+        <LabelIDList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
+<LabelNameEntity> ::=
+        <LabelNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
 <MessageIDEntity> ::=
         <MessageIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <MobileEntity> ::=
@@ -4715,7 +4720,9 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 gam <UserTypeEntity> info drivefile <DriveFileEntity>
         [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         [formatjson]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [showparentsidsaslist] [showshareddrivepermissions]
+        [stripcrsfromname]
 
 gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
         [<DriveFileParentAttribute>|convertparents]
@@ -4724,7 +4731,12 @@ gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutnam
 gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
         [csv [todrive <ToDriveAttribute>*]]
 
-<DriveFileACLRole> ::= commenter|editor|fileorganizer|organizer|owner|reader|writer
+<DriveFileACLRole> ::=
+        commenter|
+        contentmanager|fileorganizer|
+        contributor|editor|writer|
+        manager|organizer|owner|
+        reader|viewer
 <DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
@@ -5080,7 +5092,8 @@ gam <UserTypeEntity> collect orphans
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
         [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         [formatjson]
-        (orderby <DriveFileOrderByFieldName> [ascending|descending])* [showparentsidsaslist]
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [showparentsidsaslist] [showshareddrivepermissions]
         [stripcrsfromname]
 gam <UserTypeEntity> show filepath <DriveFileEntity>
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -5160,7 +5173,7 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [countsonly [summary none|only|plus] [showsource] [showsize]] [countsrowfilter]
         [filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
         [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-        [showdrivename] [showparentsidsaslist] [showpermissionslast]
+        [showdrivename] [showparentsidsaslist] [showpermissionslast] [showshareddrivepermissions]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
         [stripcrsfromname]
         [formatjson [quotechar <Character>]]
@@ -5288,16 +5301,27 @@ gam <UserTypeEntity> print forward|forwards [enabledonly] [todrive <ToDriveAttri
 
 # Users - Gmail - Labels/Messages
 
-gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
-        [backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
+gam <UserTypeEntity> [create|add] label|labels <String>
+        [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+        [backgroundcolor "<LabelColorHex>"] [textcolor "<LabelColorHex>"]
+        [buildpath [<Boolean>]]
+gam <UserTypeEntity> create labellist <LabelNameEntity>
+        [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+        [backgroundcolor "<LabelColorHex>"] [textcolor "<LabelColorHex>"]
+        [buildpath [<Boolean>]]
 gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
-        [backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
+        [backgroundcolor "<LabelColorHex>"] [textcolor "<LabelColorHex>"]
 gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [keepoldlabel]]
 gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
+gam <UserTypeEntity> delete labellist <LabelNameEntity>
 gam <UserTypeEntity> delete labelid <LabelID>
+gam <UserTypeEntity> delete labelidlist <LabelIDEntity>
 
-gam <UserTypeEntity> show labels|label [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
-gam <UserTypeEntity> print labels|label [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]] [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> show labels|label
+        [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]]
+        [nested [<Boolean>]] [display allfields|basename|fullname]
+gam <UserTypeEntity> print labels|label [todrive <ToDriveAttribute>*]
+        [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]]
 
 <SMTPDateHeader> ::=
         date|
