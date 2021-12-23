@@ -1,3 +1,8 @@
+6.13.00
+
+Fixed bug in `gam <UserTypeEntity> copy drivefile` where `contentManager|fileOrganizer` ACLs
+were not copied from a source shared drive folder to a target shared drive folder.
+
 6.12.06
 
 Fixed bug where `redirect csv - multiprocess todrive redirect stdout - multiprocess` would disable

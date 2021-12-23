@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.12.06'
+__version__ = '6.13.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -46152,26 +46152,26 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
       _incrStatistic(statistics, stat)
       return
     for permission in permissions:
-      if permission.get('deleted', False):
+      if (permission.pop('deleted', False) or
+          permission['role'] in {'owner', 'organizer'} or
+          (permission['role'] == 'fileOrganizer' and entityType == Ent.DRIVE_FILE) or
+          (copyMoveOptions['destDriveId'] and permission['id'] == 'anyone')):
         continue
-      if ((permission['role'] not in {'owner', 'organizer', 'fileOrganizer'}) and
-          not (copyMoveOptions['destDriveId'] and permission['id'] == 'anyone')):
-        permissionId = permission.pop('id')
-        permission.pop('deleted', None)
-        try:
-          callGAPI(drive.permissions(), 'create',
-                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
-                   retryReasons=[GAPI.INVALID_SHARING_REQUEST],
-                   fileId=newFileId, sendNotificationEmail=False, emailMessage=None,
-                   body=permission, fields='', supportsAllDrives=True)
-        except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                GAPI.ownerOnTeamDriveItemNotSupported,
-                GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
-                GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
-                GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.invalidLinkVisibility) as e:
-          entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
-        except GAPI.invalidSharingRequest as e:
-          entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
+      permissionId = permission.pop('id')
+      try:
+        callGAPI(drive.permissions(), 'create',
+                 throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
+                 retryReasons=[GAPI.INVALID_SHARING_REQUEST],
+                 fileId=newFileId, sendNotificationEmail=False, emailMessage=None,
+                 body=permission, fields='', supportsAllDrives=True)
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.ownerOnTeamDriveItemNotSupported,
+              GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
+              GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
+              GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.invalidLinkVisibility) as e:
+        entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
+      except GAPI.invalidSharingRequest as e:
+        entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     _incrStatistic(statistics, stat)
