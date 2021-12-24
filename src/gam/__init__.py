@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.01'
+__version__ = '6.13.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -46163,8 +46163,7 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
     for permission in permissions:
       if (permission.pop('deleted', False) or
           permission['role'] in {'owner', 'organizer'} or
-          (permission['role'] == 'fileOrganizer' and entityType == Ent.DRIVE_FILE) or
-          (copyMoveOptions['destDriveId'] and permission['id'] == 'anyone')):
+          (permission['role'] == 'fileOrganizer' and entityType == Ent.DRIVE_FILE)):
         continue
       permissionId = permission.pop('id')
       try:
@@ -46173,14 +46172,18 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
                  retryReasons=[GAPI.INVALID_SHARING_REQUEST],
                  fileId=newFileId, sendNotificationEmail=False, emailMessage=None,
                  body=permission, fields='', supportsAllDrives=True)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+      except (GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted,
+              GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
+              GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
+              GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+              GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
               GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
               GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
-              GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.invalidLinkVisibility) as e:
+              GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
+              GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
-      except GAPI.invalidSharingRequest as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     _incrStatistic(statistics, stat)
@@ -49253,9 +49256,9 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
           entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
           if showDetails:
             _showDriveFilePermission(permission, printKeys, timeObjects)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted,
-              GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveMembersOnlyRestriction,
+      except (GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.fileNeverWritable, GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted,
+              GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
               GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
@@ -49266,8 +49269,6 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
         entityActionFailedWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
-      except (GAPI.invalid, GAPI.invalidSharingRequest) as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
@@ -49376,7 +49377,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported,
               GAPI.cannotUpdatePermission, GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
-      except (GAPI.notFound, GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveMembersOnlyRestriction,
+      except (GAPI.notFound, GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.fileOrganizerNotYetEnabledForThisTeamDrive) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
@@ -49496,14 +49497,15 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
                  fileId=ri[RI_ENTITY], sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
                  body=_makePermissionBody(ri[RI_ITEM]), fields='', supportsAllDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+      except (GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted,
-              GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveMembersOnlyRestriction,
+              GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
               GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
-              GAPI.ownerOnTeamDriveItemNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
-              GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported,
+              GAPI.ownerOnTeamDriveItemNotSupported,
+              GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
+              GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))

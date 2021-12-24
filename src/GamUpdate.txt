@@ -1,3 +1,7 @@
+6.13.02
+
+Updated error handling in `gam <UserTypeEntity> copy drivefile` when copying files to a shared drive folder.
+
 6.13.01
 
 Added option `summaryuser <String>` to `gam <UserTypeEntity> print filecounts` and
