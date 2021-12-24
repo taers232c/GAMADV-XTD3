@@ -5091,10 +5091,11 @@ gam <UserTypeEntity> collect orphans
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
         [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-        [formatjson]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [showparentsidsaslist] [showshareddrivepermissions]
+        [showdrivename|showshareddrivename|showteamdrivename]
         [stripcrsfromname]
+        [formatjson]
 gam <UserTypeEntity> show filepath <DriveFileEntity>
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*]
@@ -5102,7 +5103,7 @@ gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute
 
 gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>)
-            (querytime.* <Time>)*]
+            (querytime<String> <Time>)*]
         [corpora <CorporaAttribute>]
         [select <SharedDriveEntity>]
         [anyowner|(showownedby any|me|others)]
@@ -5110,7 +5111,7 @@ gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
         [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [excludetrashed]
-        [summary none|only|plus]
+        [summary none|only|plus] [summaryuser <String>]
 gam <UserTypeEntity> show filecounts
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>)
             (querytime.* <Time>)*]
@@ -5121,7 +5122,7 @@ gam <UserTypeEntity> show filecounts
         [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [excludetrashed]
-        [summary none|only|plus]
+        [summary none|only|plus] [summaryuser <String>]
 
 <FileTreeFieldName> ::=
         explicitlytrashed|
@@ -5159,7 +5160,7 @@ gam <UserTypeEntity> show filetree
 
 gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>)
-            (querytime.* <Time>)*]
+            (querytime<String> <Time>)*]
         [choose <DriveFileNameEntity>|<DriveFileEntityShortcut>]
         [corpora <CorporaAttribute>]
         [select <DriveFileEntity> [selectsubquery <QueryDriveFile>]
@@ -5170,7 +5171,7 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [excludetrashed]
         [maxfiles <Integer>] [nodataheaders <String>]
-        [countsonly [summary none|only|plus] [showsource] [showsize]] [countsrowfilter]
+        [countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
         [filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
         [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         [showdrivename] [showparentsidsaslist] [showpermissionslast] [showshareddrivepermissions]

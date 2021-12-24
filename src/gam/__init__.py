@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.00'
+__version__ = '6.13.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -44172,7 +44172,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
 #	[maxfiles <Integer>] [nodataheaders <String>]
-#	[countsonly [summary none|only|plus] [showsource] [showsize]] [countsrowfilter]
+#	[countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
 #	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
 #	[showdrivename] [showparentsidsaslist] [showpermissionslast] [showshareddrivepermissions]
@@ -44366,6 +44366,7 @@ def printFileList(users):
   DLP = DriveListParameters({'allowChoose': True, 'allowCorpora': True, 'allowQuery': True, 'mimeTypeInQuery': False})
   DFF = DriveFileFields()
   summary = FILECOUNT_SUMMARY_NONE
+  summaryUser = FILECOUNT_SUMMARY_USER
   summaryMimeTypeCounts = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -44410,6 +44411,8 @@ def printFileList(users):
       csvPFco.SetZeroBlankMimeTypeCounts(True)
     elif myarg == 'summary':
       summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'summaryuser':
+      summaryUser = getString(Cmd.OB_STRING)
     elif myarg == 'showsource':
       showSource = True
       if countsOnly:
@@ -44723,7 +44726,7 @@ def printFileList(users):
     if not csvPFco.rows:
       setSysExitRC(NO_ENTITIES_FOUND_RC)
     if summary != FILECOUNT_SUMMARY_NONE:
-      writeMimeTypeCountsRow(FILECOUNT_SUMMARY_USER, 'Various', summaryMimeTypeCounts, sizeTotals['Summary'])
+      writeMimeTypeCountsRow(summaryUser, 'Various', summaryMimeTypeCounts, sizeTotals['Summary'])
     csvPFco.todrive = csvPF.todrive
     if not countsRowFilter:
       csvPFco.SetRowFilter([])
@@ -44804,7 +44807,7 @@ def printShowFilePaths(users):
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
-#	[summary none|only|plus]
+#	[summary none|only|plus] [summaryuser <String>]
 # gam <UserTypeEntity> show filecounts
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) (querytime.* <Time>)*]
 #	[corpora <CorporaAttribute>]
@@ -44814,7 +44817,7 @@ def printShowFilePaths(users):
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
-#	[summary none|only|plus]
+#	[summary none|only|plus] [summaryuser <String>]
 def printShowFileCounts(users):
   def _setSelectionFields():
     if DLP.showOwnedBy is not None:
@@ -44835,7 +44838,7 @@ def printShowFileCounts(users):
     for mimeTypeCount in iter(mimeTypeCounts.values()):
       total += mimeTypeCount
     if summary != FILECOUNT_SUMMARY_NONE:
-      if user != FILECOUNT_SUMMARY_USER:
+      if user != summaryUser:
         for mimeType, mtcount in iter(mimeTypeCounts.items()):
           summaryMimeTypeCounts.setdefault(mimeType, 0)
           summaryMimeTypeCounts[mimeType] += mtcount
@@ -44864,6 +44867,7 @@ def printShowFileCounts(users):
   fieldsList = ['mimeType']
   DLP = DriveListParameters({'allowChoose': False, 'allowCorpora': True, 'allowQuery': True, 'mimeTypeInQuery': True})
   summary = FILECOUNT_SUMMARY_NONE
+  summaryUser = FILECOUNT_SUMMARY_USER
   summaryMimeTypeCounts = {}
   fileIdEntity = {}
   while Cmd.ArgumentsRemaining():
@@ -44878,6 +44882,8 @@ def printShowFileCounts(users):
       fileIdEntity = getTeamDriveEntity()
     elif myarg == 'summary':
       summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'summaryuser':
+      summaryUser = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
   if not fileIdEntity:
@@ -44976,7 +44982,7 @@ def printShowFileCounts(users):
       continue
     showMimeTypeCounts(user, mimeTypeCounts, teamDriveId, teamDriveName, i, count)
   if summary != FILECOUNT_SUMMARY_NONE:
-    showMimeTypeCounts(FILECOUNT_SUMMARY_USER, summaryMimeTypeCounts, '', '', 0, 0)
+    showMimeTypeCounts(summaryUser, summaryMimeTypeCounts, '', '', 0, 0)
   if csvPF:
     csvPF.writeCSVfile('Drive File Counts')
 
@@ -45826,6 +45832,7 @@ def updateDriveFile(users):
             result = callGAPI(drive.files(), 'update',
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
                                                                             GAPI.FILE_NEVER_WRITABLE, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
+                                                                            GAPI.SHARE_OUT_NOT_PERMITTED, GAPI.SHARE_OUT_NOT_PERMITTED_TO_USER,
                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                             GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
                               fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
@@ -45843,6 +45850,7 @@ def updateDriveFile(users):
             result = callGAPI(drive.files(), 'update',
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
                                                                             GAPI.FILE_NEVER_WRITABLE, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
+                                                                            GAPI.SHARE_OUT_NOT_PERMITTED, GAPI.SHARE_OUT_NOT_PERMITTED_TO_USER,
                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                             GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
                                                                             GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
@@ -45866,6 +45874,7 @@ def updateDriveFile(users):
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
                 GAPI.unknownError, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
                 GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
+                GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
                 GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed,
                 GAPI.crossDomainMoveRestriction) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
@@ -49244,8 +49253,9 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
           entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
           if showDetails:
             _showDriveFilePermission(permission, printKeys, timeObjects)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internoalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction,
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted,
+              GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
               GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
@@ -49366,7 +49376,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported,
               GAPI.cannotUpdatePermission, GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
-      except (GAPI.notFound, GAPI.teamDriveDomainUsersOnlyRestriction,
+      except (GAPI.notFound, GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveMembersOnlyRestriction,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.fileOrganizerNotYetEnabledForThisTeamDrive) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
@@ -49487,7 +49497,8 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
                  body=_makePermissionBody(ri[RI_ITEM]), fields='', supportsAllDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.teamDriveDomainUsersOnlyRestriction,
+              GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted,
+              GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
               GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,

@@ -1,3 +1,18 @@
+6.13.01
+
+Added option `summaryuser <String>` to `gam <UserTypeEntity> print filecounts` and
+`gam <UserTypeEntity> print filelist countsonly` that replaces the default summary user `Summary`
+with `<String>`.
+```
+gam redirect csv ./FileCounts.csv multiprocess csv ./OUs.csv gam ou_ns "~orgUnitPath" print filecounts excludetrashed summary only summaryuser "~orgUnitPath"
+```
+
+Uodated `gam <UserTypeEntity> update drivefile <DriveFileEntity> teamdriveparentid <DriveFolderID>
+to handle the following error:
+```
+ERROR: 400: shareOutNotPermitted - Bad Request. User message: "shareOutNotPermitted"
+```
+
 6.13.00
 
 Fixed bug in `gam <UserTypeEntity> copy drivefile` where `contentManager|fileOrganizer` ACLs
