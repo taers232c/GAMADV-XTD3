@@ -1,3 +1,20 @@
+6.03.13
+
+Added options `parentselector <OrgUnitSelector>` and `childselector <OrgUnitSelector>` to
+`gam print orgs|ous` that add an additional column `orgUnitSelector` to the output. This column
+value can be used in subsequent `gam csv` commands to appropriatley select members without duplication.
+```
+<OrgUnitSelector> ::=
+        cros_ou | cros_ou_and_children|
+        ou| ou_ns | ou_susp|
+        ou_and_children | ou_and_children_ns | ou_and_children_susp
+
+Get file count summaries by OU; top level selector is ou, sub level selectors are ou_and_children
+
+gam redirect csv ./TopLevelOUs.csv print ous showparent toplevelonly parentselector ou childselector ou_and_children fields orgunitpath
+gam redirect csv ./FileCounts.csv multiprocess csv ./TopLevelOUs.csv gam "~orgUnitSelector" "~orgUnitPath" print filecounts excludetrashed summary only summaryuser "~orgUnitPath"
+```
+
 6.13.02
 
 Updated error handling in `gam <UserTypeEntity> copy drivefile` when copying files to a shared drive folder.

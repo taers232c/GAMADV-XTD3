@@ -3144,7 +3144,14 @@ gam delete orgs|ous <OrgUnitEntity>
 gam info org|ou <OrgUnitItem> [nousers|notsuspended|suspended] [children|child]
 gam info orgs|ous <OrgUnitEntity> [nousers|notsuspended|suspended] [children|child]
 
-gam print orgs|ous [todrive <ToDriveAttribute>*] [showparent] [toplevelonly] [fromparent <OrgUnitItem>]
+<OrgUnitSelector> ::=
+        cros_ou | cros_ou_and_children|
+        ou | ou_ns | ou_susp|
+        ou_and_children | ou_and_children_ns | ou_and_children_susp
+
+gam print orgs|ous [todrive <ToDriveAttribute>*]
+        [fromparent <OrgUnitItem>] [showparent] [toplevelonly]
+        [parentselector <OrgUnitSelector> childselector <OrgUnitSelector>]
         [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
         [mincroscount <Number>] [maxcroscount <Number>]
         [minusercount <Number>] [maxusercount <Number>]

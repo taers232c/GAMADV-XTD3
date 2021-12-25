@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.02'
+__version__ = '6.13.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -13935,7 +13935,14 @@ ORG_ARGUMENT_TO_FIELD_MAP = {
 ORG_FIELD_PRINT_ORDER = ['orgUnitPath', 'orgUnitId', 'name', 'description', 'parentOrgUnitPath', 'parentOrgUnitId', 'blockInheritance']
 PRINT_ORGS_DEFAULT_FIELDS = ['orgUnitPath', 'orgUnitId', 'name', 'parentOrgUnitId']
 
-def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs):
+ORG_UNIT_SELECTOR_FIELD = 'orgUnitSelector'
+PRINT_OUS_SELECTOR_CHOICES = [
+  Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN,
+  Cmd.ENTITY_OU, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OU_SUSP,
+  Cmd.ENTITY_OU_AND_CHILDREN, Cmd.ENTITY_OU_AND_CHILDREN_NS, Cmd.ENTITY_OU_AND_CHILDREN_SUSP,
+  ]
+
+def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs, childSelector=None, parentSelector=None):
   def _callbackListOrgUnits(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
@@ -14030,6 +14037,9 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
               GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
         pass
   printGotAccountEntities(len(orgUnits))
+  if childSelector is not None:
+    for orgUnit in orgUnits:
+      orgUnit[ORG_UNIT_SELECTOR_FIELD] = childSelector if orgUnit['orgUnitPath'] != orgUnitPath else parentSelector
   if deleteOrgUnitId or deleteParentOrgUnitId:
     for orgUnit in orgUnits:
       if deleteOrgUnitId:
@@ -14038,7 +14048,9 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
         orgUnit.pop('parentOrgUnitId', None)
   return orgUnits
 
-# gam print orgs|ous [todrive <ToDriveAttribute>*] [fromparent <OrgUnitItem>] [showparent] [toplevelonly]
+# gam print orgs|ous [todrive <ToDriveAttribute>*]
+#	[fromparent <OrgUnitItem>] [showparent] [toplevelonly]
+#	[parentselector <OrgUnitSelector> childselector <OrgUnitSelector>]
 #	[allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
 #	[mincroscount <Number>] [maxcroscount <Number>]
 #	[minusercount <Number>] [maxusercount <Number>]
@@ -14050,6 +14062,7 @@ def doPrintOrgs():
   orgUnitPath = '/'
   listType = 'all'
   batchSubOrgs = showParent = False
+  childSelector = parentSelector = None
   minCrOSCounts = maxCrOSCounts = minUserCounts = maxUserCounts = -1
   crosCounts = {}
   userCounts = {}
@@ -14061,6 +14074,10 @@ def doPrintOrgs():
       orgUnitPath = getOrgUnitItem()
     elif myarg == 'showparent':
       showParent = getBoolean()
+    elif myarg == 'parentselector':
+      parentSelector = getChoice(PRINT_OUS_SELECTOR_CHOICES)
+    elif myarg == 'childselector':
+      childSelector = getChoice(PRINT_OUS_SELECTOR_CHOICES)
     elif myarg == 'mincroscount':
       minCrOSCounts = getInteger(minVal=-1)
     elif myarg == 'maxcroscount':
@@ -14094,12 +14111,17 @@ def doPrintOrgs():
       convertCRNL = True
     else:
       unknownArgumentExit()
+  if childSelector:
+    if showParent and parentSelector is None:
+      missingArgumentExit('parentselector')
+    csvPF.AddTitle(ORG_UNIT_SELECTOR_FIELD)
+    csvPF.AddSortTitle(ORG_UNIT_SELECTOR_FIELD)
   showCrOSCounts = (minCrOSCounts >= 0 or maxCrOSCounts >= 0)
   showUserCounts = (minUserCounts >= 0 or maxUserCounts >= 0)
   if not fieldsList:
     for field in PRINT_ORGS_DEFAULT_FIELDS:
       csvPF.AddField(field, ORG_ARGUMENT_TO_FIELD_MAP, fieldsList)
-  orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs)
+  orgUnits = _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs, childSelector, parentSelector)
   if orgUnits is None:
     return
   if showUserCounts:
@@ -14180,6 +14202,8 @@ def doPrintOrgs():
         row[field] = escapeCRsNLs(orgUnit.get(field, ''))
       else:
         row[field] = orgUnit.get(field, '')
+    if childSelector:
+      row[ORG_UNIT_SELECTOR_FIELD] = orgUnit[ORG_UNIT_SELECTOR_FIELD]
     if showCrOSCounts or showUserCounts:
       if showCrOSCounts:
         total = 0
@@ -53038,7 +53062,7 @@ def createLabels(users, labelEntity):
       labelList = userLabelList[origUser]
     lcount = len(labelList)
     if buildPath:
-      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(name,type)')
       if not labels:
         continue
       labelSet = {ulabel['name'] for ulabel in labels['labels'] if ulabel['type'] != LABEL_TYPE_SYSTEM}
@@ -53088,7 +53112,7 @@ def createLabels(users, labelEntity):
             try:
               newLabel = callGAPI(gmail.users().labels(), 'create',
                                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
-                                  userId='me', body=body, fields='id,type,name')
+                                  userId='me', body=body, fields='name')
               labelSet.add(newLabel['name'])
               entityActionPerformed([Ent.USER, user, Ent.LABEL, labelPath], j, jcount)
             except GAPI.duplicate:
