@@ -20224,7 +20224,7 @@ CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP = {
 
 CROS_TELEMETRY_SCALAR_FIELDS = ['deviceId', 'serialNumber', 'customer', 'name', 'orgUnitId', 'orgUnitPath']
 CROS_TELEMETRY_SCALAR_FIELDS_SET = set(CROS_TELEMETRY_SCALAR_FIELDS)
-CROS_TELEMETRY_LIST_FIELDS = [CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP.values()]
+CROS_TELEMETRY_LIST_FIELDS = list(CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP.values())
 CROS_TELEMETRY_TIME_OBJECTS = ['reportTime', 'lastUpdateTime', 'lastUpdateCheckTime', 'lastRebootTime']
 
 # gam info crostelemetry <SerialNumber>
@@ -20365,7 +20365,7 @@ def doInfoPrintShowCrOSTelemetry():
     if showOrgUnitPath:
       fieldsList.append('orgUnitId')
   else:
-    fieldsList = CROS_TELEMETRY_FIELDS_CHOICE_MAP.values()
+    fieldsList = list(CROS_TELEMETRY_FIELDS_CHOICE_MAP.values())
   readMask = ','.join(set(fieldsList))
   if FJQC.formatJSON:
     csvPF.SetJSONTitles(['deviceId', 'JSON'])

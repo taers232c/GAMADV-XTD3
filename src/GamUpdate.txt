@@ -5,6 +5,11 @@ size (in bytes) of the files counted.
 
 Following Jay's lead, added commands to display ChromeOS device telemetry data.
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/ChromeOS-Devices#display-chromeos-telemetry-data
+To use these commands  you must authorize an additional scope:
+* `Chrome Management API - Telemetry read only`
+```
+gam oauth create
+```
 
 Added option `reverselists <ListFieldNameList>` to commands that display ChromeOS device information.
 For each list in `<ListFieldNameList>`, the list order is changed from ascending (oldest to newest) to descending (newest to oldest);
