@@ -1755,20 +1755,25 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatc
         lastknownnetwork|
         recentusers|
         systemramfreereports
+<CrOSListFieldNameList> ::= "<CrOSListFieldName>(,<CrOSListFieldName>)*"
 
 <CrOSOrderByFieldName> ::=
         lastsync|location|notes|serialnumber|status|supportenddate|user
 
-gam info cros <CrOSEntity> [nolists] [listlimit <Number>]
-        [start <Date>] [end <Date>]
+gam info cros <CrOSEntity>
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [nolists]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSListFieldNameList>]
         [timerangeorder ascending|descending] [showdvrsfp]
         [downloadfile latest|<Time>] [targetfolder <FilePath>]
         [formatjson]
 
-gam <CrOSTypeEntity> info [nolists] [listlimit <Number>]
-        [start <Date>] [end <Date>]
+gam <CrOSTypeEntity> info
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [nolists]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSListFieldNameList>]
         [timerangeorder ascending|descending] [showdvrsfp]
         [downloadfile latest|<Time>] [targetfolder <FilePath>]
         [formatjson]
@@ -1783,30 +1788,33 @@ gam print cros [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
          [(limittoou|cros_ou <OrgUnitItem>)|(cros_ou_and_children <OrgUnitItem>)|
           (cros_ous <OrgUnitList>)|(cros_ous_and_children <OrgUnitList>)]]
-        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
-        [timerangeorder ascending|descending] [showdvrsfp]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [nolists|(<CrOSListFieldName>* [onerow])]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSListFieldNameList>]
+        [timerangeorder ascending|descending] [showdvrsfp]
         [sortheaders]
         [formatjson [quotechar <Character>]]
 
 Print fields for specified CrOS devices.
 
 gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
-        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow]) [listlimit <Number>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [nolists|(<CrOSListFieldName>* [onerow])
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSListFieldNameList>]
         [timerangeorder ascending|descending] [showdvrsfp]
         [sortheaders]
         [formatjson [quotechar <Character>]]
 
 gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
-        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
-        [nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
         [basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
+        [nolists|(<CrOSListFieldName>* [onerow])]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSListFieldNameList>]
         [timerangeorder ascending|descending] [showdvrsfp]
         [sortheaders]
         [formatjson [quotechar <Character>]]
@@ -1838,28 +1846,36 @@ gam print crosactivity [todrive <ToDriveAttribute>*]
         [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
          [(limittoou|cros_ou <OrgUnitItem>)|(cros_ou_and_children <OrgUnitItem>)|
           (cros_ous <OrgUnitList>)|(cros_ous_and_children <OrgUnitList>)]]
-        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
+        [start <Date>] [end <Date>]
         [listlimit <Number>] [timerangeorder ascending|descending]
         [delimiter <Character>]
         [formatjson [quotechar <Character>]]
 
 Print activity for specified CrOS devices.
 
+<CrOSActivityListFieldName> ::=
+        activetimeranges|timeranges|
+        devicefiles|
+        recentusers
+<CrOSActivityListFieldNameList> ::= "<CrOSActivityListFieldName>(,<CrOSActivityListFieldName>)*"
+
 gam print crosactivity [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
-        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
-        [listlimit <Number>] [timerangeorder ascending|descending]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSActivityListFieldNameList>]
+        [timerangeorder ascending|descending]
         [delimiter <Character>]
         [formatjson [quotechar <Character>]]
 
 gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
-        [start <Date>] [end <Date>]
         [orderby <CrOSOrderByFieldName> [ascending|descending]]
         [recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
-        [listlimit <Number>] [timerangeorder ascending|descending]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSActivityListFieldNameList>]
+        [timerangeorder ascending|descending]
         [delimiter <Character>]
         [formatjson [quotechar <Character>]]
 
@@ -1885,6 +1901,55 @@ Delimiter defaults to gam.cfg/csv_output_field_delimiter.
 
 gam get devicefile <CrOSEntity> [select <DeviceFileEntity>] [targetfolder <FilePath>]
 gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <FilePath>]
+
+Print telemetry data for specified CrOS devices.
+
+<CrOSTelemetryFieldName> ::=
+        batteryinfo|
+        batterystatusreport|
+        cpuinfo|
+        cpustatusreport|
+        customer|
+        deviceid|
+        graphicsinfo|
+        graphicsstatusreport|
+        memoryinfo|
+        memorystatusreport|
+        name|
+        networkstatusreport|
+        orgunitid|
+        osupdatestatus|
+        serialnumber|
+        storageinfo|
+        storagestatusreport
+<CrOSTelemetryFieldNameList> ::= "<CrOSTelemetryFieldName>(,<CrOSTelemetryFieldName>)*"
+
+CrOSTelemetryListFieldName> ::=
+        batterystatusreport|
+        cpustatusreport|
+        graphicsstatusreport|
+        memorystatusreport|
+        networkstatusreport|
+        storagestatusreport
+<CrOSTelemetryListFieldNameList> ::= "<CrOSTelemetryListFieldName>(,<CrOSTelemetryLIstFieldName>)*"
+
+gam info crostelemetry <SerialNumber>
+        <CrOSTelemetryFieldName>* [fields <CrOSTelemetryFieldNameList>]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSTelemetryListFieldNameList>]
+        [formatjson]
+gam show crostelemetry
+        [(ou|org|orgunit <OrgUnitItem>)|(cros_sn <SerialNumber>)|(filter <String>)]
+        <CrOSTelemetryFieldName>* [fields <CrOSTelemetryFieldNameList>]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [reverselists <CrOSTelemetryListFieldNameList>]
+        [formatjson]
+gam print crostelemetry [todrive <ToDriveAttribute>*]
+        [(ou|org|orgunit <OrgUnitItem>)|(cros_sn <SerialNumber>)|(filter <String>)]
+        <CrOSTelemetryFieldName>* [fields <CrOSTelemetryFieldNameList>]
+        [reverselists <CrOSTelemetryListFieldNameList>]
+        [start <Date>] [end <Date>] [listlimit <Number>]
+        [formatjson [quotechar <Character>]]
 
 # Chrome Browser Policies
 
@@ -3451,7 +3516,7 @@ gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>
 
 gam resource <ResourceID> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam resource <ResourceID> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
-gam resource <ResourceID> delete acls|calendaracls <CalendarACLRole>] <CalendarACLScopeEntity>
+gam resource <ResourceID> delete acls|calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
 gam resource <ResourceID> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
 
 gam resource <ResourceID> show acls|calendaracls [formatjson]
@@ -3460,7 +3525,7 @@ gam resource <ResourceID> print acls|calendaracls [todrive <ToDriveAttribute>*]
 
 gam resources <ResourceEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam resources <ResourceEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
-gam resources <ResourceEntity> delete acls|calendaracls <CalendarACLRole>] <CalendarACLScopeEntity>
+gam resources <ResourceEntity> delete acls|calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
 gam resources <ResourceEntity> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
 
 gam resources <ResourceEntity> show acls|calendaracls [formatjson]
@@ -4690,7 +4755,8 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|ret
 
 gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [newfilename <DriveFileName>] [stripnameprefix <String>]
-        [summary [<Boolean>]] [excludetrashed] [returnidonly|returnlinkonly]
+        [excludetrashed] [returnidonly|returnlinkonly]
+        [summary [<Boolean>]]
         <DriveFileParentAttribute> [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
         <DriveFileCopyAttribute>*
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
@@ -5118,10 +5184,10 @@ gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
         [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [excludetrashed]
-        [summary none|only|plus] [summaryuser <String>]
+        [summary none|only|plus] [summaryuser <String>] [showsize]
 gam <UserTypeEntity> show filecounts
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>)
-            (querytime.* <Time>)*]
+            (querytime<String> <Time>)*]
         [corpora <CorporaAttribute>]
         [select <SharedDriveEntity>]
         [anyowner|(showownedby any|me|others)]
@@ -5129,7 +5195,7 @@ gam <UserTypeEntity> show filecounts
         [filenamematchpattern <RegularExpression>]
         <PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
         [excludetrashed]
-        [summary none|only|plus] [summaryuser <String>]
+        [summary none|only|plus] [summaryuser <String>] [showsize]
 
 <FileTreeFieldName> ::=
         explicitlytrashed|

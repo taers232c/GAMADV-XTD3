@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.03'
+__version__ = '6.13.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -19203,25 +19203,32 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   'willAutoRenew',
   ]
 
+CROS_LIST_FIELDS_CHOICE_MAP = {
+  'activetimeranges': 'activeTimeRanges',
+  'cpustatusreports': 'cpuStatusReports',
+  'devicefiles': 'deviceFiles',
+  'diskvolumereports': 'diskVolumeReports',
+  'files': 'deviceFiles',
+  'lastknownnetwork': 'lastKnownNetwork',
+  'recentusers': 'recentUsers',
+  'systemramfreereports': 'systemRamFreeReports',
+  'timeranges': 'activeTimeRanges',
+  'times': 'activeTimeRanges',
+  'users': 'recentUsers',
+  }
+
 CROS_TIME_OBJECTS = {'lastSync', 'lastEnrollmentTime', 'supportEndDate', 'createTime', 'reportTime'}
 CROS_FIELDS_WITH_CRS_NLS = {'notes'}
-CROS_ACTIVE_TIME_RANGES_ARGUMENTS = ['timeranges', 'activetimeranges', 'times']
-CROS_RECENT_USERS_ARGUMENTS = ['recentusers', 'users']
-CROS_DEVICE_FILES_ARGUMENTS = ['devicefiles', 'files']
-CROS_CPU_STATUS_REPORTS_ARGUMENTS = ['cpustatusreports']
-CROS_DISK_VOLUME_REPORTS_ARGUMENTS = ['diskvolumereports']
-CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS = ['systemramfreereports']
-CROS_LAST_KNOWN_NETWORK_ARGUMENTS = ['lastknownnetwork']
-CROS_LISTS_ARGUMENTS = CROS_ACTIVE_TIME_RANGES_ARGUMENTS+CROS_RECENT_USERS_ARGUMENTS+CROS_DEVICE_FILES_ARGUMENTS+\
-    CROS_CPU_STATUS_REPORTS_ARGUMENTS+CROS_DISK_VOLUME_REPORTS_ARGUMENTS+CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS+\
-    CROS_LAST_KNOWN_NETWORK_ARGUMENTS
 CROS_START_ARGUMENTS = ['start', 'startdate', 'oldestdate']
 CROS_END_ARGUMENTS = ['end', 'enddate']
 
-# gam <CrOSTypeEntity> info [nolists] [listlimit <Number>]
-#	[start <Date>] [end <Date>]
+# gam info cros <CrOSEntity>
+# gam <CrOSTypeEntity> info
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-#	[timerangeorder ascending|descending]
+#	[nolists]
+#	[start <Date>] [end <Date>] [listlimit <Number>]
+#	[reverselists <CrOSListFieldNameList>]
+#	[timerangeorder ascending|descending] [showdvrsfp]
 #	[downloadfile latest|<Time>] [targetfolder <FilePath>]
 #	[formatjson]
 def infoCrOSDevices(entityList):
@@ -19230,6 +19237,7 @@ def infoCrOSDevices(entityList):
   targetFolder = GC.Values[GC.DRIVE_DIR]
   projection = None
   fieldsList = []
+  reverseLists = []
   noLists = showDVRstorageFreePercentage = False
   FJQC = FormatJSONQuoteChar()
   listLimit = 0
@@ -19262,11 +19270,17 @@ def infoCrOSDevices(entityList):
       for field in _getFieldsList():
         if field in CROS_FIELDS_CHOICE_MAP:
           addFieldToFieldsList(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
-          if field in CROS_LISTS_ARGUMENTS:
+          if field in CROS_LIST_FIELDS_CHOICE_MAP:
             projection = 'FULL'
             noLists = False
         else:
           invalidChoiceExit(field, CROS_FIELDS_CHOICE_MAP, True)
+    elif myarg == 'reverselists':
+      for field in _getFieldsList():
+        if field in CROS_LIST_FIELDS_CHOICE_MAP:
+          reverseLists.append(CROS_LIST_FIELDS_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(field, CROS_LIST_FIELDS_CHOICE_MAP, True)
     elif myarg == 'downloadfile':
       downloadfile = getString(Cmd.OB_STRING).lower()
       if downloadfile != 'latest':
@@ -19300,6 +19314,9 @@ def infoCrOSDevices(entityList):
       cros['autoUpdateExpiration'] = formatLocalDatestamp(cros['autoUpdateExpiration'])
     if showDVRstorageFreePercentage:
       _computeDVRstorageFreePercentage(cros)
+    for field in reverseLists:
+      if field in cros:
+        cros[field].reverse()
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(cros, timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       continue
@@ -19381,11 +19398,12 @@ def infoCrOSDevices(entityList):
         for cpuStatusReport in cpuStatusReports:
           printKeyValueList(['reportTime', formatLocalTime(cpuStatusReport['reportTime'])])
           Ind.Increment()
-          printKeyValueList(['cpuTemperatureInfo'])
-          Ind.Increment()
-          for tempInfo in cpuStatusReport.get('cpuTemperatureInfo', []):
-            printKeyValueList([tempInfo['label'], tempInfo['temperature']])
-          Ind.Decrement()
+          if 'cpuTemperatureInfo' in cpuStatusReport:
+            printKeyValueList(['cpuTemperatureInfo'])
+            Ind.Increment()
+            for tempInfo in cpuStatusReport.get('cpuTemperatureInfo', []):
+              printKeyValueList([tempInfo['label'], tempInfo['temperature']])
+            Ind.Decrement()
           if 'cpuUtilizationPercentageInfo' in cpuStatusReport:
             printKeyValueList(['cpuUtilizationPercentageInfo', cpuStatusReport['cpuUtilizationPercentageInfo']])
           Ind.Decrement()
@@ -19430,12 +19448,6 @@ def infoCrOSDevices(entityList):
         Ind.Decrement()
     Ind.Decrement()
 
-# gam info cros|croses <CrOSEntity> [nolists] [listlimit <Number>]
-#	[start <Date>] [end <Date>]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-#	[timerangeorder ascending|descending] [showdvrsfp]
-#	[downloadfile latest|<Time>] [targetfolder <FilePath>]
-#	[formatjson]
 def doInfoCrOSDevices():
   infoCrOSDevices(getCrOSDeviceEntity())
 
@@ -19605,44 +19617,26 @@ CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
 #	 [(limittoou|cros_ou <OrgUnitItem>)|(cros_ou_and_children <OrgUnitItem>)|
 #	  (cros_ous <OrgUnitList>)|(cros_ous_and_children <OrgUnitList>)]]
-#	[start <Date>] [end <Date>]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
-#	[timerangeorder ascending|descending] [showdvrsfp]
-#	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-#	[sortheaders] [formatjson [quotechar <Character>]]
-#
 # gam print cros [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
 # gam <CrOSTypeEntity> print cros [todrive <ToDriveAttribute>*]
-#	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[nolists|(<CrOSListFieldName>* [onerow])] [listlimit <Number>]
-#	[timerangeorder ascending|descending] [showdvrsfp]
 #	[basic|full|allfields] <CrOSFieldName>* [fields <CrOSFieldNameList>]
-#	[sortheaders] [formatjson [quotechar <Character>]]
+#	[nolists|(<CrOSListFieldName>* [onerow])]
+#	[start <Date>] [end <Date>] [listlimit <Number>]
+#	[reverselists <CrOSListFieldNameList>]
+#	[timerangeorder ascending|descending] [showdvrsfp]
+#	[sortheaders]
+#	[formatjson [quotechar <Character>]]
 def doPrintCrOSDevices(entityList=None):
-  def _getSelectedLists(myarg):
-    if myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
-      selectedLists['activeTimeRanges'] = True
-    elif myarg in CROS_RECENT_USERS_ARGUMENTS:
-      selectedLists['recentUsers'] = True
-    elif myarg in CROS_DEVICE_FILES_ARGUMENTS:
-      selectedLists['deviceFiles'] = True
-    elif myarg in CROS_CPU_STATUS_REPORTS_ARGUMENTS:
-      selectedLists['cpuStatusReports'] = True
-    elif myarg in CROS_DISK_VOLUME_REPORTS_ARGUMENTS:
-      selectedLists['diskVolumeReports'] = True
-    elif myarg in CROS_SYSTEM_RAM_FREE_REPORTS_ARGUMENTS:
-      selectedLists['systemRamFreeReports'] = True
-    elif myarg in CROS_LAST_KNOWN_NETWORK_ARGUMENTS:
-      selectedLists['lastKnownNetwork'] = True
-
   def _printCrOS(cros):
     checkTPMVulnerability(cros)
     if 'autoUpdateExpiration' in cros:
       cros['autoUpdateExpiration'] = formatLocalDatestamp(cros['autoUpdateExpiration'])
     if showDVRstorageFreePercentage:
       _computeDVRstorageFreePercentage(cros)
+    for field in reverseLists:
+      if field in cros:
+        cros[field].reverse()
     if FJQC.formatJSON:
       if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
@@ -19741,6 +19735,7 @@ def doPrintCrOSDevices(entityList=None):
 
   cd = buildGAPIObject(API.DIRECTORY)
   fieldsList = ['deviceId']
+  reverseLists = []
   csvPF = CSVPrintFile(fieldsList, indexedTitles=CROS_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
   projection = orderBy = sortOrder = None
@@ -19802,19 +19797,25 @@ def doPrintCrOSDevices(entityList=None):
       fieldsList = []
     elif myarg == 'sortheaders':
       sortHeaders = getBoolean()
-    elif myarg in CROS_LISTS_ARGUMENTS:
-      _getSelectedLists(myarg)
+    elif myarg in CROS_LIST_FIELDS_CHOICE_MAP:
+      selectedLists[CROS_LIST_FIELDS_CHOICE_MAP[myarg]] = True
     elif myarg in CROS_FIELDS_CHOICE_MAP:
       csvPF.AddField(myarg, CROS_FIELDS_CHOICE_MAP, fieldsList)
     elif myarg == 'fields':
       for field in _getFieldsList():
         if field in CROS_FIELDS_CHOICE_MAP:
-          if field in CROS_LISTS_ARGUMENTS:
-            _getSelectedLists(field)
+          if field in CROS_LIST_FIELDS_CHOICE_MAP:
+            selectedLists[CROS_LIST_FIELDS_CHOICE_MAP[field]] = True
           else:
             csvPF.AddField(field, CROS_FIELDS_CHOICE_MAP, fieldsList)
         else:
           invalidChoiceExit(field, CROS_FIELDS_CHOICE_MAP, True)
+    elif myarg == 'reverselists':
+      for field in _getFieldsList():
+        if field in CROS_LIST_FIELDS_CHOICE_MAP:
+          reverseLists.append(CROS_LIST_FIELDS_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(field, CROS_LIST_FIELDS_CHOICE_MAP, True)
     elif myarg == 'showdvrsfp':
       showDVRstorageFreePercentage = True
     else:
@@ -19932,28 +19933,36 @@ def doPrintCrOSDevices(entityList=None):
     csvPF.SetSortTitles(['deviceId'])
   csvPF.writeCSVfile('CrOS')
 
+CROS_ACTIVITY_LIST_FIELDS_CHOICE_MAP = {
+  'activetimeranges': 'activeTimeRanges',
+  'devicefiles': 'deviceFiles',
+  'files': 'deviceFiles',
+  'recentusers': 'recentUsers',
+  'timeranges': 'activeTimeRanges',
+  'times': 'activeTimeRanges',
+  'users': 'recentUsers',
+  }
 CROS_ACTIVITY_TIME_OBJECTS = {'createTime'}
 
 # gam print crosactivity [todrive <ToDriveAttribute>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
 #	 [(limittoou|cros_ou <OrgUnitItem>)|(cros_ou_and_children <OrgUnitItem>)|
 #	  (cros_ous <OrgUnitList>)|(cros_ous_and_children <OrgUnitList>)]]
-#	[start <Date>] [end <Date>]
-#	[orderby <CrOSOrderByFieldName> [ascending|descending]]
-#	[recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
-#	[listlimit <Number>] [timerangeorder ascending|descending]
-#	[delimiter <Character>] [formatjson [quotechar <Character>]]
-#
 # gam print crosactivity [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
 # gam <CrOSTypeEntity> print crosactivity [todrive <ToDriveAttribute>*]
-#	[start <Date>] [end <Date>]
 #	[orderby <CrOSOrderByFieldName> [ascending|descending]]
 #	[recentusers] [timeranges] [both] [devicefiles] [all] [oneuserperrow]
-#	[listlimit <Number>] [timerangeorder ascending|descending]
-#	[delimiter <Character>] [formatjson [quotechar <Character>]]
+#	[start <Date>] [end <Date>] [listlimit <Number>]
+#	[reverselists <CrOSActivityListFieldNameList>]
+#	[timerangeorder ascending|descending]
+#	[delimiter <Character>]
+#	[formatjson [quotechar <Character>]]
 def doPrintCrOSActivity(entityList=None):
   def _printCrOS(cros):
     row = {}
+    for field in reverseLists:
+      if field in cros:
+        cros[field].reverse()
     if FJQC.formatJSON:
       if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_ACTIVITY_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
@@ -19963,12 +19972,12 @@ def doPrintCrOSActivity(entityList=None):
     for attrib in cros:
       if attrib not in {'recentUsers', 'activeTimeRanges', 'deviceFiles'}:
         row[attrib] = cros[attrib]
-    for activeTimeRange in _filterActiveTimeRanges(cros, selectActiveTimeRanges, listLimit, startDate, endDate, activeTimeRangesOrder):
+    for activeTimeRange in _filterActiveTimeRanges(cros, selectedLists.get('activeTimeRanges', False), listLimit, startDate, endDate, activeTimeRangesOrder):
       new_row = row.copy()
       for key in ['date', 'duration', 'minutes']:
         new_row[f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = activeTimeRange[key]
       csvPF.WriteRow(new_row)
-    recentUsers = _filterRecentUsers(cros, selectRecentUsers, listLimit)
+    recentUsers = _filterRecentUsers(cros, selectedLists.get('recentUsers', False), listLimit)
     if recentUsers:
       if not oneUserPerRow:
         new_row = row.copy()
@@ -19979,7 +19988,7 @@ def doPrintCrOSActivity(entityList=None):
           new_row = row.copy()
           new_row['recentUsers{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}email'] = recentUser['email']
           csvPF.WriteRow(new_row)
-    for deviceFile in _filterDeviceFiles(cros, selectDeviceFiles, listLimit, startTime, endTime):
+    for deviceFile in _filterDeviceFiles(cros, selectedLists.get('deviceFiles', False), listLimit, startTime, endTime):
       new_row = row.copy()
       for key in ['type', 'createTime']:
         new_row[f'deviceFiles{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = deviceFile[key]
@@ -20000,6 +20009,7 @@ def doPrintCrOSActivity(entityList=None):
   cd = buildGAPIObject(API.DIRECTORY)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   fieldsList = ['deviceId', 'annotatedAssetId', 'annotatedLocation', 'serialNumber', 'orgUnitPath']
+  reverseLists = []
   csvPF = CSVPrintFile(fieldsList)
   FJQC = FormatJSONQuoteChar(csvPF)
   projection = 'FULL'
@@ -20008,9 +20018,10 @@ def doPrintCrOSActivity(entityList=None):
   queries = [None]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
+  selectedLists = {}
   queryTimes = {}
   selectionAllowed = entityList is None
-  oneUserPerRow = selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = False
+  oneUserPerRow = False
   directlyInOU = True
   activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
@@ -20043,33 +20054,35 @@ def doPrintCrOSActivity(entityList=None):
       endDate, endTime = _getFilterDateTime()
     elif myarg == 'timerangeorder':
       activeTimeRangesOrder = getChoice(SORTORDER_CHOICE_MAP, mapChoice=True)
-    elif myarg in CROS_ACTIVE_TIME_RANGES_ARGUMENTS:
-      selectActiveTimeRanges = True
-    elif myarg in CROS_DEVICE_FILES_ARGUMENTS:
-      selectDeviceFiles = True
-    elif myarg in CROS_RECENT_USERS_ARGUMENTS:
-      selectRecentUsers = True
+    elif myarg in CROS_ACTIVITY_LIST_FIELDS_CHOICE_MAP:
+      selectedLists[CROS_ACTIVITY_LIST_FIELDS_CHOICE_MAP[myarg]] = True
     elif myarg == 'both':
-      selectActiveTimeRanges = selectRecentUsers = True
+      selectedLists['activeTimeRanges'] = selectedLists['recentUsers'] = True
     elif myarg == 'all':
-      selectActiveTimeRanges = selectDeviceFiles = selectRecentUsers = True
+      selectedLists['activeTimeRanges'] = selectedLists['recentUsers'] = selectedLists['deviceFiles'] = True
+    elif myarg == 'reverselists':
+      for field in _getFieldsList():
+        if field in CROS_ACTIVITY_LIST_FIELDS_CHOICE_MAP:
+          reverseLists.append(CROS_ACTIVITY_LIST_FIELDS_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(field, CROS_ACTIVITY_LIST_FIELDS_CHOICE_MAP, True)
     elif myarg == 'orderby':
       orderBy, sortOrder = getOrderBySortOrder(CROS_ORDERBY_CHOICE_MAP, 'DESCENDING', True)
     elif myarg == 'delimiter':
       delimiter = getCharacter()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
-  if not selectActiveTimeRanges and not selectDeviceFiles and not selectRecentUsers:
-    selectActiveTimeRanges = selectRecentUsers = True
-  if selectRecentUsers:
+  if not selectedLists:
+    selectedLists['activeTimeRanges'] = selectedLists['recentUsers'] = True
+  if selectedLists.get('recentUsers', False):
     fieldsList.append('recentUsers')
     csvPF.AddTitles(f'recentUsers{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}email')
-  if selectActiveTimeRanges:
+  if selectedLists.get('activeTimeRanges', False):
     fieldsList.append('activeTimeRanges')
     csvPF.AddTitles([f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}date',
                      f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}duration',
                      f'activeTimeRanges{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}minutes'])
-  if selectDeviceFiles:
+  if selectedLists.get('deviceFiles', False):
     fieldsList.append('deviceFiles')
     csvPF.AddTitles([f'deviceFiles{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}type',
                      f'deviceFiles{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}createTime'])
@@ -20180,6 +20193,242 @@ def doPrintCrOSEntity(entityList):
       doPrintCrOSDevices(entityList)
   else:
     doPrintCrOSActivity(entityList)
+
+CROS_TELEMETRY_FIELDS_CHOICE_MAP = {
+  'batteryinfo': 'batteryInfo',
+  'batterystatusreport': 'batteryStatusReport',
+  'cpuinfo': 'cpuInfo',
+  'cpustatusreport': 'cpuStatusReport',
+  'customer': 'customer',
+  'deviceid': 'deviceId',
+  'graphicsinfo': 'graphicsInfo',
+  'graphicsstatusreport': 'graphicsStatusReport',
+  'memoryinfo': 'memoryInfo',
+  'memorystatusreport': 'memoryStatusReport',
+  'name': 'name',
+  'networkstatusreport': 'networkStatusReport',
+  'orgunitid': 'orgUnitId',
+  'osupdatestatus': 'osUpdateStatus',
+  'serialnumber': 'serialNumber',
+  'storageinfo': 'storageInfo',
+  'storagestatusreport': 'storageStatusReport',
+  }
+CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP = {
+  'batterystatusreport': 'batteryStatusReport',
+  'cpustatusreport': 'cpuStatusReport',
+  'graphicsstatusreport': 'graphicsStatusReport',
+  'memorystatusreport': 'memoryStatusReport',
+  'networkstatusreport': 'networkStatusReport',
+  'storagestatusreport': 'storageStatusReport',
+  }
+
+CROS_TELEMETRY_SCALAR_FIELDS = ['deviceId', 'serialNumber', 'customer', 'name', 'orgUnitId', 'orgUnitPath']
+CROS_TELEMETRY_SCALAR_FIELDS_SET = set(CROS_TELEMETRY_SCALAR_FIELDS)
+CROS_TELEMETRY_LIST_FIELDS = [CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP.values()]
+CROS_TELEMETRY_TIME_OBJECTS = ['reportTime', 'lastUpdateTime', 'lastUpdateCheckTime', 'lastRebootTime']
+
+# gam info crostelemetry <SerialNumber>
+#	<CrOSTelemetryFieldName>* [fields <CrOSTelemetryFieldNameList>]
+#	[start <Date>] [end <Date>] [listlimit <Number>]
+#	[reverselists <CrOSTelemetryListFieldNameList>]
+#	[formatjson [quotechar <Character>]]
+# gam show crostelemetry
+#	[(ou|org|orgunit <OrgUnitItem>)|(cros_sn <SerialNumber>)|(filter <String>)]
+#	<CrOSTelemetryFieldName>* [fields <CrOSTelemetryFieldNameList>]
+#	[start <Date>] [end <Date>] [listlimit <Number>]
+#	[reverselists <CrOSTelemetryListFieldNameList>]
+#	[formatjson [quotechar <Character>]]
+# gam print crostelemetry [todrive <ToDriveAttribute>*]
+#	[(ou|org|orgunit <OrgUnitItem>)|(cros_sn <SerialNumber>)|(filter <String>)]
+#	<CrOSTelemetryFieldName>* [fields <CrOSTelemetryFieldNameList>]
+#	[reverselists <CrOSTelemetryListFieldNameList>]
+#	[start <Date>] [end <Date>] [listlimit <Number>]
+#	[formatjson [quotechar <Character>]]
+def doInfoPrintShowCrOSTelemetry():
+  def _cleanDevice(device):
+    for field in reverseLists:
+      if field in device:
+        device[field].reverse()
+    if listLimit or startTime or endTime:
+      for field in CROS_TELEMETRY_LIST_FIELDS:
+        if field in device:
+          listItems = device.pop(field)
+          device[field] = []
+          i = 0
+          for item in listItems:
+            timeValue, _ = iso8601.parse_date(item['reportTime'])
+            if ((startTime is None) or (timeValue >= startTime)) and ((endTime is None) or (timeValue <= endTime)):
+              device[field].append(item)
+              i += 1
+              if listLimit and i == listLimit:
+                break
+    storageInfo = device.get('storageInfo', {})
+    if 'totalDiskBytes' in storageInfo and 'availableDiskBytes' in storageInfo:
+      disk_avail = int(storageInfo['availableDiskBytes'])
+      disk_size = int(storageInfo['totalDiskBytes'])
+      if diskPercentOnly:
+        device['storageInfo'] = {}
+      device['storageInfo']['percentDiskFree'] = int((disk_avail / disk_size) * 100)
+      device['storageInfo']['percentDiskUsed'] = 100 - device['storageInfo']['percentDiskFree']
+    for cpuStatusReport in device.get('cpuStatusReport', []):
+      for tempInfo in cpuStatusReport.pop('cpuTemperatureInfo', []):
+        cpuStatusReport[f"cpuTemperatureInfo.{tempInfo['label'].strip()}"] = tempInfo['temperatureCelsius']
+    if showOrgUnitPath:
+      device['orgUnitPath'] = convertOrgUnitIDtoPath(cd, device['orgUnitId'])
+
+  def _printDevice(device):
+    _cleanDevice(device)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(flattenJSON(device, timeObjects=CROS_TELEMETRY_TIME_OBJECTS))
+    else:
+      if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(device, timeObjects=CROS_TELEMETRY_TIME_OBJECTS)):
+        csvPF.WriteRowNoFilter({'deviceId': device['deviceId'],
+                                'JSON': json.dumps(cleanJSON(device, timeObjects=CROS_TELEMETRY_TIME_OBJECTS),
+                                                   ensure_ascii=False, sort_keys=True)})
+
+  def _showDevice(device, i=0, count=0):
+    _cleanDevice(device)
+    if FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(device), ensure_ascii=False, sort_keys=True))
+    else:
+      printEntity([Ent.CROS_DEVICE, device['deviceId']], i, count)
+      Ind.Increment()
+      for up in CROS_TELEMETRY_SCALAR_FIELDS:
+        if up in device:
+          printKeyValueList([up, device[up]])
+      showJSON(None, device, skipObjects=CROS_TELEMETRY_SCALAR_FIELDS_SET, timeObjects=CROS_TELEMETRY_TIME_OBJECTS)
+      Ind.Decrement()
+
+  cm = buildGAPIObject(API.CHROMEMANAGEMENT)
+  cd = None
+  parent = _getCustomersCustomerIdWithC()
+  fieldsList = []
+  reverseLists = []
+  action = Act.Get()
+  if action == Act.INFO:
+    pfilter = f'serialNumber={getString(Cmd.OB_SERIAL_NUMBER)}'
+    Act.Set(Act.SHOW)
+  else:
+    pfilter = None
+  csvPF = CSVPrintFile(['devicdId'], CROS_TELEMETRY_SCALAR_FIELDS) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  diskPercentOnly = showOrgUnitPath = False
+  listLimit = 0
+  startTime = endTime = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in ['ou', 'org', 'orgunit', 'limittoou', 'crossn', 'filter']:
+      if pfilter:
+        Cmd.Backup()
+        usageErrorExit(Msg.ONLY_ONE_DEVICE_SELECTION_ALLOWED.format(pfilter))
+      if myarg == 'crossn':
+        pfilter = f'serialNumber={getString(Cmd.OB_SERIAL_NUMBER)}'
+      elif myarg == 'filter':
+        pfilter = getString(Cmd.OB_STRING)
+      else:
+        if cd is None:
+          cd = buildGAPIObject(API.DIRECTORY)
+        _, orgUnitId = getOrgUnitId(cd)
+        pfilter = f'orgUnitId={orgUnitId[3:]}'
+    elif myarg == 'listlimit':
+      listLimit = getInteger()
+    elif myarg in CROS_START_ARGUMENTS:
+      _, startTime = _getFilterDateTime()
+    elif myarg in CROS_END_ARGUMENTS:
+      _, endTime = _getFilterDateTime()
+    elif myarg in CROS_TELEMETRY_FIELDS_CHOICE_MAP:
+      fieldsList.append(CROS_TELEMETRY_FIELDS_CHOICE_MAP[myarg])
+    elif myarg == 'fields':
+      for field in _getFieldsList():
+        if field in CROS_TELEMETRY_FIELDS_CHOICE_MAP:
+          fieldsList.append(CROS_TELEMETRY_FIELDS_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(field, CROS_TELEMETRY_FIELDS_CHOICE_MAP, True)
+    elif myarg == 'reverselists':
+      for field in _getFieldsList():
+        if field in CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP:
+          reverseLists.append(CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(field, CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP, True)
+    elif myarg == 'showorgunitpath':
+      showOrgUnitPath = True
+      if cd is None:
+        cd = buildGAPIObject(API.DIRECTORY)
+    elif myarg == 'storagepercentonly':
+      diskPercentOnly = True
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
+  if fieldsList:
+    fieldsList.append('deviceId')
+    if showOrgUnitPath:
+      fieldsList.append('orgUnitId')
+  else:
+    fieldsList = CROS_TELEMETRY_FIELDS_CHOICE_MAP.values()
+  readMask = ','.join(set(fieldsList))
+  if FJQC.formatJSON:
+    csvPF.SetJSONTitles(['deviceId', 'JSON'])
+  printGettingAllAccountEntities(Ent.CROS_DEVICE, pfilter)
+  pageMessage = getPageMessage()
+  if csvPF:
+    pageToken = None
+    totalItems = 0
+    tokenRetries = 0
+    while True:
+      try:
+        devices = callGAPI(cm.customers().telemetry().devices(), 'list',
+                           throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.INVALID_INPUT],
+                           pageToken=pageToken,
+                           parent=parent, filter=pfilter,
+                           readMask=readMask, pageSize=GC.Values[GC.DEVICE_MAX_RESULTS])
+      except (GAPI.invalidArgument, GAPI.invalidInput) as e:
+        message = str(e).replace('\n', ',')
+# Invalid Input: xyz - Check for invalid pageToken!!
+# 0123456789012345
+        if message[15:] == pageToken:
+          tokenRetries += 1
+          if tokenRetries <= 2:
+            writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
+            time.sleep(tokenRetries*5)
+            continue
+          entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
+          return
+        entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
+        return
+      except GAPI.permissionDenied as e:
+        accessErrorExitNonDirectory(API.CHROMEMANAGEMENT, str(e))
+      tokenRetries = 0
+      pageToken, totalItems = _processGAPIpagesResult(devices, 'devices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
+      if devices:
+        for device in devices.get('devices', []):
+          _printDevice(device)
+        del devices
+      if not pageToken:
+        _finalizeGAPIpagesResult(pageMessage)
+        printGotAccountEntities(totalItems)
+        break
+  else:
+    try:
+      devices = callGAPIpages(cm.customers().telemetry().devices(), 'list', 'devices',
+                              throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.INVALID_INPUT],
+                              pageMessage=pageMessage,
+                              parent=parent, filter=pfilter,
+                              readMask=readMask, pageSize=GC.Values[GC.DEVICE_MAX_RESULTS])
+    except (GAPI.invalidArgument, GAPI.invalidInput) as e:
+      message = str(e).replace('\n', ',')
+      entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
+      return
+    except GAPI.permissionDenied as e:
+      accessErrorExitNonDirectory(API.CHROMEMANAGEMENT, str(e))
+    jcount = len(devices)
+    performActionNumItems(jcount, Ent.CROS_DEVICE)
+    j = 0
+    for device in devices:
+      j += 1
+      _showDevice(device, j, jcount)
+  if csvPF:
+    csvPF.writeCSVfile('CrOS Devices Telemetry')
 
 # gam delete browser <DeviceID>
 def doDeleteBrowsers():
@@ -41397,7 +41646,7 @@ def _getDriveFileNameFromId(drive, fileId, combineTitleId=True, useDomainAdminAc
                       fileId=fileId, fields='name,mimeType,driveId', supportsAllDrives=True)
     if result:
       fileName = result['name']
-      if (result['mimeType'] == MIMETYPE_GA_FOLDER) and (result['name'] == TEAM_DRIVE) and result.get('driveId'):
+      if (result['mimeType'] == MIMETYPE_GA_FOLDER) and result.get('driveId') and (result['name'] == TEAM_DRIVE):
         fileName = _getTeamDriveNameFromId(drive, result['driveId'])
       if combineTitleId:
         fileName += '('+fileId+')'
@@ -42399,7 +42648,7 @@ def initFilePathInfo():
 
 def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=False, showDepth=False):
   def _getParentName(result):
-    if (result['mimeType'] == MIMETYPE_GA_FOLDER) and (result['name'] == TEAM_DRIVE) and result.get('driveId'):
+    if (result['mimeType'] == MIMETYPE_GA_FOLDER) and result.get('driveId') and (result['name'] == TEAM_DRIVE):
       parentName = _getTeamDriveNameFromId(drive, result['driveId'])
       if parentName != TEAM_DRIVE:
         return f'SharedDrive({parentName})'
@@ -44831,7 +45080,7 @@ def printShowFilePaths(users):
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
-#	[summary none|only|plus] [summaryuser <String>]
+#	[summary none|only|plus] [summaryuser <String>] [showsize]
 # gam <UserTypeEntity> show filecounts
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) (querytime.* <Time>)*]
 #	[corpora <CorporaAttribute>]
@@ -44841,12 +45090,12 @@ def printShowFilePaths(users):
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
-#	[summary none|only|plus] [summaryuser <String>]
+#	[summary none|only|plus] [summaryuser <String>] [showsize]
 def printShowFileCounts(users):
   def _setSelectionFields():
     if DLP.showOwnedBy is not None:
       fieldsList.extend(OWNED_BY_ME_FIELDS_TITLES)
-    if DLP.minimumFileSize is not None:
+    if showSize or DLP.minimumFileSize is not None:
       fieldsList.append('size')
     if DLP.filenameMatchPattern:
       fieldsList.append('name')
@@ -44857,7 +45106,11 @@ def printShowFileCounts(users):
     if DLP.onlyTeamDrives or getPermissionsForTeamDrives:
       fieldsList.append('driveId')
 
-  def showMimeTypeCounts(user, mimeTypeCounts, teamDriveId, teamDriveName, i, count):
+  def incrementSizeSummary():
+    sizeTotals['Summary'] += sizeTotals['User']
+    sizeTotals['User'] = 0
+
+  def showMimeTypeCounts(user, mimeTypeCounts, sizeTotal, teamDriveId, teamDriveName, i, count):
     total = 0
     for mimeTypeCount in iter(mimeTypeCounts.values()):
       total += mimeTypeCount
@@ -44870,9 +45123,15 @@ def printShowFileCounts(users):
           return
     if not csvPF:
       if teamDriveId:
-        printEntityKVList([Ent.USER, user, Ent.TEAMDRIVE, f'{teamDriveName} ({teamDriveId})'], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+        kvList = [Ent.USER, user, Ent.TEAMDRIVE, f'{teamDriveName} ({teamDriveId})']
       else:
-        printEntityKVList([Ent.USER, user], [Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total], i, count)
+        kvList = [Ent.USER, user]
+      if showSize:
+        dataList = [Ent.Singular(Ent.SIZE), sizeTotal]
+      else:
+        dataList = []
+      dataList.extend([Ent.Choose(Ent.DRIVE_FILE_OR_FOLDER, total), total])
+      printEntityKVList(kvList, dataList, i, count)
       Ind.Increment()
       for mimeType, mimeTypeCount in sorted(iter(mimeTypeCounts.items())):
         printKeyValueList([mimeType, mimeTypeCount])
@@ -44882,6 +45141,8 @@ def printShowFileCounts(users):
         row = {'User': user, 'id': teamDriveId, 'name': teamDriveName, 'Total': total}
       else:
         row = {'User': user, 'Total': total}
+      if showSize:
+        row['Size'] = sizeTotal
       row.update(mimeTypeCounts)
       csvPF.WriteRowTitles(row)
 
@@ -44890,6 +45151,7 @@ def printShowFileCounts(users):
     csvPF.SetZeroBlankMimeTypeCounts(True)
   fieldsList = ['mimeType']
   DLP = DriveListParameters({'allowChoose': False, 'allowCorpora': True, 'allowQuery': True, 'mimeTypeInQuery': True})
+  showSize = False
   summary = FILECOUNT_SUMMARY_NONE
   summaryUser = FILECOUNT_SUMMARY_USER
   summaryMimeTypeCounts = {}
@@ -44904,6 +45166,8 @@ def printShowFileCounts(users):
       if fileIdEntity:
         usageErrorExit(Msg.CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE.format('select'))
       fileIdEntity = getTeamDriveEntity()
+    elif myarg == 'showsize':
+      showSize = True
     elif myarg == 'summary':
       summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
     elif myarg == 'summaryuser':
@@ -44925,10 +45189,14 @@ def printShowFileCounts(users):
     getPermissionsForTeamDrives = False
   _setSelectionFields()
   if csvPF:
-    csvPF.SetTitles(['User', 'id', 'name', 'Total'] if fileIdEntity.get('teamdrive') else ['User', 'Total'])
+    sortTitles = ['User', 'id', 'name', 'Total'] if fileIdEntity.get('teamdrive') else ['User', 'Total']
+    if showSize:
+      sortTitles.insert(-1, 'Size')
+    csvPF.SetTitles(sortTitles)
     csvPF.SetSortAllTitles()
   pagesFields = getItemFieldsFromFieldsList('files', fieldsList)
   i, count, users = getEntityArgument(users)
+  sizeTotals = {'User': 0, 'Summary': 0}
   for user in users:
     i += 1
     user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity)
@@ -44997,6 +45265,8 @@ def printShowFileCounts(users):
               continue
           mimeTypeCounts.setdefault(f_file['mimeType'], 0)
           mimeTypeCounts[f_file['mimeType']] += 1
+          if showSize:
+            sizeTotals['User'] += int(f_file.get('size', '0'))
       if not pageToken or (DLP.maxItems and totalItems >= DLP.maxItems):
         _finalizeGAPIpagesResult(pageMessage)
         break
@@ -45004,9 +45274,10 @@ def printShowFileCounts(users):
       break
     if userError:
       continue
-    showMimeTypeCounts(user, mimeTypeCounts, teamDriveId, teamDriveName, i, count)
+    showMimeTypeCounts(user, mimeTypeCounts, sizeTotals['User'], teamDriveId, teamDriveName, i, count)
+    incrementSizeSummary()
   if summary != FILECOUNT_SUMMARY_NONE:
-    showMimeTypeCounts(summaryUser, summaryMimeTypeCounts, '', '', 0, 0)
+    showMimeTypeCounts(summaryUser, summaryMimeTypeCounts, sizeTotals['Summary'], '', '', 0, 0)
   if csvPF:
     csvPF.writeCSVfile('Drive File Counts')
 
@@ -57402,6 +57673,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_COURSE:		doInfoCourse,
       Cmd.ARG_COURSES:		doInfoCourses,
       Cmd.ARG_CROS:		doInfoCrOSDevices,
+      Cmd.ARG_CROSTELEMETRY:	doInfoPrintShowCrOSTelemetry,
       Cmd.ARG_CUSTOMER:		doInfoCustomer,
       Cmd.ARG_DATATRANSFER:	doInfoDataTransfer,
       Cmd.ARG_DEVICE:		doInfoCIDevice,
@@ -57482,6 +57754,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_COURSEWORK:	doPrintCourseWork,
       Cmd.ARG_CROS:		doPrintCrOSDevices,
       Cmd.ARG_CROSACTIVITY:	doPrintCrOSActivity,
+      Cmd.ARG_CROSTELEMETRY:	doInfoPrintShowCrOSTelemetry,
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
       Cmd.ARG_DEVICE:		doPrintCIDevices,
       Cmd.ARG_DEVICEUSER:	doPrintCIDeviceUsers,
@@ -57582,6 +57855,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CIGROUPMEMBERS:	doShowCIGroupMembers,
       Cmd.ARG_CLASSROOMINVITATION:	doPrintShowClassroomInvitations,
       Cmd.ARG_CONTACT:		doPrintShowDomainContacts,
+      Cmd.ARG_CROSTELEMETRY:	doInfoPrintShowCrOSTelemetry,
       Cmd.ARG_DATATRANSFER:	doPrintShowDataTransfers,
       Cmd.ARG_DOMAIN:		doPrintShowDomains,
       Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,

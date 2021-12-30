@@ -25,6 +25,7 @@ CALENDAR = 'calendar'
 CBCM = 'cbcm'
 CHAT = 'chat'
 CHROMEMANAGEMENT = 'chromemanagement'
+CHROMEMANAGEMENT_TELEMETRY = 'chromemanagementtelemetry'
 CHROMEPOLICY = 'chromepolicy'
 CHROMEVERSIONHISTORY = 'versionhistory'
 CLASSROOM = 'classroom'
@@ -154,6 +155,7 @@ _INFO = {
   CHAT: {'name': 'Chat API', 'version': 'v1', 'v2discovery': True, 'localjson': False},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
   CHROMEMANAGEMENT: {'name': 'Chrome Management API', 'version': 'v1', 'v2discovery': True},
+  CHROMEMANAGEMENT_TELEMETRY: {'name': 'Chrome Management API - Telemetry', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'chromemanagement'},
   CHROMEPOLICY: {'name': 'Chrome Policy API', 'version': 'v1', 'v2discovery': True},
   CHROMEVERSIONHISTORY: {'name': 'Chrome Version History API', 'version': 'v1', 'v2discovery': True, 'localjson': True, 'noauthentication': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
@@ -212,6 +214,10 @@ _CLIENT_SCOPES = [
    'api': CHROMEMANAGEMENT,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/chrome.management.reports.readonly'},
+  {'name': 'Chrome Management API - Telemetry read only',
+   'api': CHROMEMANAGEMENT_TELEMETRY,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/chrome.management.telemetry.readonly'},
   {'name': 'Chrome Policy API',
    'api': CHROMEPOLICY,
    'subscopes': READONLY,

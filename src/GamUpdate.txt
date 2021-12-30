@@ -1,3 +1,15 @@
+6.13.04
+
+Added option `showsize` to `gam <UserTypeEntity> print|show filecounts` that displays the
+size (in bytes) of the files counted.
+
+Following Jay's lead, added commands to display ChromeOS device telemetry data.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/ChromeOS-Devices#display-chromeos-telemetry-data
+
+Added option `reverselists <ListFieldNameList>` to commands that display ChromeOS device information.
+For each list in `<ListFieldNameList>`, the list order is changed from ascending (oldest to newest) to descending (newest to oldest);
+this makes it easy to get the `N` most recent values with `listlimit N reverselists <ListFieldNameList>`.
+
 6.03.13
 
 Added options `parentselector <OrgUnitSelector>` and `childselector <OrgUnitSelector>` to

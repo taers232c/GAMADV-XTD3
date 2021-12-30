@@ -267,6 +267,7 @@ class GamEntity():
   SIGNATURE = 'sign'
   SITE = 'site'
   SITE_ACL = 'sacl'
+  SIZE = 'size'
   SKU = 'sku '
   SMIME_ID = 'smid'
   SNIPPETS_ENABLED = 'snip'
@@ -545,6 +546,7 @@ class GamEntity():
     SIGNATURE: ['Signatures', 'Signature'],
     SITE: ['Sites', 'Site'],
     SITE_ACL: ['Site ACLs', 'Site ACL'],
+    SIZE: ['Sizes', 'Size'],
     SKU: ['SKUs', 'SKU'],
     SMIME_ID: ['S/MIME Certificate IDs', 'S/MIME Certificate ID'],
     SNIPPETS_ENABLED: ['Preview Snippets Enabled', 'Preview Snippets Enabled'],
