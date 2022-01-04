@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.04'
+__version__ = '6.13.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -35057,13 +35057,15 @@ def signoutTurnoff2SVUsers(entityList):
     user = normalizeEmailAddressOrUID(user)
     try:
       callGAPI(service, function,
-               throwReasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.DOMAIN_NOT_FOUND,
-                             GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
+               throwReasons=[GAPI.NOT_FOUND, GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT,
+                             GAPI.DOMAIN_NOT_FOUND, GAPI.DOMAIN_CANNOT_USE_APIS,
+                             GAPI.FORBIDDEN, GAPI.AUTH_ERROR],
                userKey=user)
       entityActionPerformed([Ent.USER, user], i, count)
-    except GAPI.userNotFound:
+    except (GAPI.notFound, GAPI.userNotFound):
       entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.invalid, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.authError) as e:
+    except (GAPI.invalid, GAPI.invalidInput, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+            GAPI.forbidden, GAPI.authError) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam <UserTypeEntity> waitformailbox [retries <Number>]

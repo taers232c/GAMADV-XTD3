@@ -1,3 +1,10 @@
+6.13.05
+
+Handle the following error in `gam <UserTypeEntity> signout`:
+```
+ERROR: 400: invalidInput - Invalid Input
+```
+
 6.13.04
 
 Added option `showsize` to `gam <UserTypeEntity> print|show filecounts` that displays the
