@@ -5354,8 +5354,8 @@ gam <UserTypeEntity> [create|add] filter
          (json file <FileName> [charset <Charset>]))
 gam <UserTypeEntity> delete filters <FilterIDEntity>
 
-gam <UserTypeEntity> info filters <FilterIDEntity>
-gam <UserTypeEntity> show filters [labelidsonly]
+gam <UserTypeEntity> info filters <FilterIDEntity> [labelidsonly] [formatjson]
+gam <UserTypeEntity> show filters [labelidsonly] [formatjson]
 gam <UserTypeEntity> print filters [labelidsonly] [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
 

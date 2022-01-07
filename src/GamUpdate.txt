@@ -1,9 +1,14 @@
+6.13.06
+
+Added option `formatjson` to `gam <UserTypeEntity> info filters` and `gam <UserTypeEntity> show filters`.
+
 6.13.05
 
 Handle the following error in `gam <UserTypeEntity> signout`:
 ```
 ERROR: 400: invalidInput - Invalid Input
 ```
+This can be caused by applying the command to a suspended user.
 
 6.13.04
 

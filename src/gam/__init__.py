@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.05'
+__version__ = '6.13.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -12288,11 +12288,11 @@ SUBSCRIPTION_TIME_OBJECTS = {'creationTime', 'startTime', 'endTime', 'trialEndTi
 def _showSubscription(subscription, FJQC=None):
   if FJQC is not None and FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(subscription, timeObjects=SUBSCRIPTION_TIME_OBJECTS), ensure_ascii=False, sort_keys=False))
-  else:
-    Ind.Increment()
-    printEntity([Ent.SUBSCRIPTION, subscription['subscriptionId']])
-    showJSON(None, subscription, SUBSCRIPTION_SKIP_OBJECTS, SUBSCRIPTION_TIME_OBJECTS)
-    Ind.Decrement()
+    return
+  Ind.Increment()
+  printEntity([Ent.SUBSCRIPTION, subscription['subscriptionId']])
+  showJSON(None, subscription, SUBSCRIPTION_SKIP_OBJECTS, SUBSCRIPTION_TIME_OBJECTS)
+  Ind.Decrement()
 
 # gam create resoldsubscription <CustomerID> (sku <SKUID>)
 #	 (plan annual_monthly_pay|annual_yearly_pay|flexible|trial) (seats <NumberOfSeats> <MaximumNumberOfSeats>)
@@ -55416,7 +55416,21 @@ def _printFilter(user, userFilter, labels):
     row['error'] = 'NoActions'
   return row
 
-def _showFilter(userFilter, j, jcount, labels):
+def _mapFilterLabelIdsToNames(userFilter, labels):
+  # Map user label IDs to label names
+  if 'action' in userFilter:
+    for field in ['addLabelIds', 'removeLabelIds']:
+      if field in userFilter['action']:
+        for i, labelId in enumerate(userFilter['action'][field]):
+          if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
+            userFilter['action'][field][i] = _getLabelName(labels, labelId)
+
+def _showFilter(userFilter, j, jcount, labels, FJQC=None):
+  if FJQC is not None and FJQC.formatJSON:
+    if labels['labels']:
+      _mapFilterLabelIdsToNames(userFilter, labels)
+    printLine(json.dumps(cleanJSON(userFilter), ensure_ascii=False, sort_keys=False))
+    return
   printEntity([Ent.FILTER, userFilter['id']], j, jcount)
   Ind.Increment()
   printEntitiesCount(Ent.CRITERIA, None)
@@ -55634,19 +55648,30 @@ def deleteFilters(users):
         break
     Ind.Decrement()
 
-# gam <UserTypeEntity> info filters <FilterIDEntity>
+# gam <UserTypeEntity> info filters <FilterIDEntity> [labelidsonly] [formatjson]
 def infoFilters(users):
+  labelIdsOnly = False
   filterIdEntity = getUserObjectEntity(Cmd.OB_FILTER_ID_ENTITY, Ent.FILTER)
-  checkForExtraneousArguments()
+  FJQC = FormatJSONQuoteChar()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'labelidsonly':
+      labelIdsOnly = True
+    else:
+      FJQC.GetFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, gmail, filterIds, jcount = _validateUserGetObjectList(user, i, count, filterIdEntity)
+    user, gmail, filterIds, jcount = _validateUserGetObjectList(user, i, count, filterIdEntity,
+                                                                showAction=FJQC is None or not FJQC.formatJSON)
     if jcount == 0:
       continue
-    labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
-    if not labels:
-      continue
+    if not labelIdsOnly:
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
+      if not labels:
+        continue
+    else:
+      labels = {'labels': []}
     Ind.Increment()
     j = 0
     for filterId in filterIds:
@@ -55655,11 +55680,12 @@ def infoFilters(users):
         result = callGAPI(gmail.users().settings().filters(), 'get',
                           throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND],
                           userId='me', id=filterId)
-        printEntityKVList([Ent.USER, user],
-                          [Ent.Singular(Ent.FILTER), result['id']],
-                          i, count)
+        if not FJQC.formatJSON:
+          printEntityKVList([Ent.USER, user],
+                            [Ent.Singular(Ent.FILTER), result['id']],
+                            i, count)
         Ind.Increment()
-        _showFilter(result, j, jcount, labels)
+        _showFilter(result, j, jcount, labels, FJQC)
         Ind.Decrement()
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FILTER, filterId], str(e), j, jcount)
@@ -55670,7 +55696,7 @@ def infoFilters(users):
 
 # gam <UserTypeEntity> print filters [labelidsonly] [todrive <ToDriveAttribute>*]
 #	[formatjson] [quotechar <Character>]
-# gam <UserTypeEntity> show filters [labelidsonly]
+# gam <UserTypeEntity> show filters [labelidsonly] [formatjson]
 def printShowFilters(users):
   labelIdsOnly = False
   csvPF = CSVPrintFile() if Act.csvFormat() else None
@@ -55705,25 +55731,21 @@ def printShowFilters(users):
                               userId='me')
       jcount = len(results)
       if not csvPF:
-        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.FILTER, i, count)
+        if not FJQC.formatJSON:
+          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.FILTER, i, count)
         Ind.Increment()
         j = 0
         for userFilter in results:
           j += 1
-          _showFilter(userFilter, j, jcount, labels)
+          _showFilter(userFilter, j, jcount, labels, FJQC)
         Ind.Decrement()
       else:
         if results:
           for userFilter in results:
             row = _printFilter(user, userFilter, labels)
             if FJQC.formatJSON:
-              # Map user label IDs to label names
-              if 'action' in userFilter:
-                for field in ['addLabelIds', 'removeLabelIds']:
-                  if field in userFilter['action']:
-                    for i, labelId in enumerate(userFilter['action'][field]):
-                      if labelId not in GMAIL_SYSTEM_LABELS and labelId not in GMAIL_CATEGORY_LABELS:
-                        userFilter['action'][field][i] = _getLabelName(labels, labelId)
+              if labels['labels']:
+                _mapFilterLabelIdsToNames(userFilter, labels)
               row['JSON'] = json.dumps(userFilter, ensure_ascii=False, sort_keys=False)
             csvPF.WriteRowTitles(row)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
