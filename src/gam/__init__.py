@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.06'
+__version__ = '6.13.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -46310,6 +46310,8 @@ def initCopyMoveOptions(move):
     'mergeWithParent': False,
     'mergeWithParentRetain': False,
     'retainSourceFolders': False,
+    'showPermissionMessages': False,
+    'sendEmailIfRequired': False,
     'duplicateFiles': DUPLICATE_FILE_OVERWRITE_OLDER,
     'duplicateFolders': DUPLICATE_FOLDER_MERGE,
     'copyTopFileParents': COPY_NO_PARENTS,
@@ -46344,6 +46346,10 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
     copyMoveOptions['newFilename'] = getString(Cmd.OB_DRIVE_FILE_NAME)
   elif myarg =='stripnameprefix':
     copyMoveOptions['stripNamePrefix'] = getString(Cmd.OB_STRING, minLen=0)
+  elif myarg == 'showpermissionmessages':
+    copyMoveOptions['showPermissionMessages'] = getBoolean()
+  elif myarg == 'sendemailifrequired':
+    copyMoveOptions['sendEmailIfRequired'] = getBoolean()
   elif myarg == 'summary':
     copyMoveOptions['summary'] = getBoolean()
   elif myarg == 'mergewithparent':
@@ -46441,36 +46447,79 @@ def _getUniqueFilename(destFilename, mimeType, targetChildren):
     return f'{base}({n+1}){ext}'
   return f'{base}({n+1})'
 
-def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileTitle, newFileId, newFileTitle,
+def _copyPermissions(drive, user, i, count, j, jcount,
+                     entityType, fileId, fileTitle, newFileId, newFileTitle,
                      statistics, stat, copyMoveOptions):
-  try:
+  def getPermissions(fid):
+    permissions = {}
     try:
-      permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                  throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
-                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                                  fileId=fileId,
-                                  fields='nextPageToken,permissions(allowFileDiscovery,domain,emailAddress,expirationTime,id,role,type,deleted)',
-                                  supportsAllDrives=True)
+      result = callGAPIpages(drive.permissions(), 'list', 'permissions',
+                             throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                             fileId=fid,
+                             fields='nextPageToken,permissions(allowFileDiscovery,domain,emailAddress,expirationTime,id,role,type,deleted,view,pendingOwner,permissionDetails)',
+                             supportsAllDrives=True)
+      for permission in result:
+        permission['inherited'] = permission.pop('permissionDetails', [{'inherited': False}])[0]['inherited']
+        permissions[permission['id']] = permission
+      return permissions
     except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
             GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
             GAPI.unknownError, GAPI.invalid) as e:
       entityActionFailedWarning([Ent.USER, user, entityType, fileTitle], str(e), j, jcount)
       _incrStatistic(statistics, stat)
-      return
-    for permission in permissions:
-      if (permission.pop('deleted', False) or
-          permission['role'] in {'owner', 'organizer'} or
-          (permission['role'] == 'fileOrganizer' and entityType == Ent.DRIVE_FILE)):
-        continue
-      permissionId = permission.pop('id')
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      _incrStatistic(statistics, stat)
+    return None
+
+  def isPermissionCopyable(permission):
+    role = permission['role']
+    if role == 'owner':
+      notCopiedMessage = f"role {role} copy not required/appropriate"
+    elif permission.pop('deleted', False):
+      notCopiedMessage = f"{permission['type']} {permission['emailAddress']} deleted"
+    elif role == 'organizer':
+      notCopiedMessage = f"role {role} not copyable to {Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER)}"
+    elif role == 'fileOrganizer' and entityType == Ent.DRIVE_FILE:
+      notCopiedMessage = f"role {role} not copyable to {Ent.Plural(entityType)}"
+    elif role == 'fileOrganizer' and not copyMoveOptions['destDriveId']:
+      notCopiedMessage = f"role {role} only copyable to {Ent.Singular(Ent.TEAMDRIVE)} {Ent.Plural(Ent.DRIVE_FOLDER)}"
+    else:
+      return True
+    if copyMoveOptions['showPermissionMessages']:
+      entityActionNotPerformedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permission['id']], notCopiedMessage, 0, 0)
+    return False
+
+  sourcePerms = getPermissions(fileId)
+  if sourcePerms is None:
+    return
+  copySourcePerms = {}
+  for permissionId, permission in iter(sourcePerms.items()):
+    if isPermissionCopyable(permission):
+      copySourcePerms[permissionId] = permission
+  Ind.Increment()
+  kcount = len(copySourcePerms)
+  k = 0
+  for permissionId, permission in iter(copySourcePerms.items()):
+    k += 1
+    permission.pop('id')
+    permission.pop('inherited')
+    if copyMoveOptions['destDriveId']:
+      permission.pop('pendingOwner', None)
+    sendNotificationEmail = False
+    while True:
       try:
         callGAPI(drive.permissions(), 'create',
                  throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
-                 retryReasons=[GAPI.INVALID_SHARING_REQUEST],
-                 fileId=newFileId, sendNotificationEmail=False, emailMessage=None,
+#                 retryReasons=[GAPI.INVALID_SHARING_REQUEST],
+                 fileId=newFileId, sendNotificationEmail=sendNotificationEmail, emailMessage=None,
                  body=permission, fields='', supportsAllDrives=True)
-      except (GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted,
+        if copyMoveOptions['showPermissionMessages']:
+          entityActionPerformed([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], k, kcount)
+        break
+      except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+              GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
               GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
@@ -46480,10 +46529,19 @@ def _copyPermissions(drive, user, i, count, j, jcount, entityType, fileId, fileT
               GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
-  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-    _incrStatistic(statistics, stat)
+        entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), k, kcount)
+        break
+      except GAPI.invalidSharingRequest as e:
+        if not copyMoveOptions['sendEmailIfRequired'] or sendNotificationEmail or 'You are trying to invite' not in str(e):
+          entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), k, kcount)
+          break
+        sendNotificationEmail = True
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        _incrStatistic(statistics, stat)
+        Ind.Decrement()
+        return
+  Ind.Decrement()
 
 def _getSheetProtectedRanges(sheet, user, i, count, j, jcount, fileId, fileTitle,
                              statistics, stat):
@@ -46613,7 +46671,8 @@ def _verifyUserIsOrganizer(drive, user, i, count, fileId):
 
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity>
 #	[newfilename <DriveFileName>] [stripnameprefix <String>]
-#	[summary [<Boolean>]] [excludetrashed] [returnidonly|returnlinkonly]
+#	[excludetrashed] [returnidonly|returnlinkonly]
+#	[summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
 #	<DriveFileCopyAttribute>*
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
@@ -46623,6 +46682,7 @@ def _verifyUserIsOrganizer(drive, user, i, count, fileId):
 #	[copyfilepermissions [<Boolean>]]
 #	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
 #	[copysheetprotectedranges [<Boolean>]]
+#	[sendemailifrequired [<Boolean>]]
 def copyDriveFile(users):
   def _cloneFolderCopy(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren,
                        atTop, newParentId, copyMoveOptions, statistics):
@@ -46666,8 +46726,6 @@ def copyDriveFile(users):
       body.pop('copyRequiresWriterPermission', None)
       body.pop('writersCanShare', None)
     body.pop('trashed', None)
-#    if not copyMoveOptions['destDriveId']:
-#      body.pop('driveId', None)
     body.pop('driveId', None)
     if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
       newFolderTitle = _getUniqueFilename(newFolderTitle, source['mimeType'], targetChildren)
@@ -46986,13 +47044,14 @@ def copyDriveFile(users):
       _printStatistics(user, statistics, i, count, True)
 
 # gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
-#	[summary [<Boolean>]]
+#	[summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
 #	[<DriveFileParentAttribute>]
 #       [mergewithparent|mergewithparentretain [<Boolean>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
 #	[retainsourcefolders [<Boolean>]]
+#	[sendemailifrequired [<Boolean>]]
 def moveDriveFile(users):
   def _cloneFolderMove(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren,
                        atTop, newParentId, copyMoveOptions, statistics):

@@ -1,3 +1,14 @@
+6.13.07
+
+Added options `showpermissionmessages` and `sendemailifrequired` to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`.
+Previously, when attempting to copy ACLs, GAM would report any errors; some errors were generated when an attempt
+was made to inappropriately copy an ACL. Now, GAM will not attempt to copy ACLs unless they are appropriate.
+When `showpermissionmessages` is specified GAM will display messages about ACLs not copied, ACLs that were copied
+and any remaining copy errors.
+
+When copying an ACL that references a non Google account, an error is generated unless an email is sent to the account;
+by default, no email notifications are sent. The `sendemailifrequired` options instructs GAM to send an email notification in this case.
+
 6.13.06
 
 Added option `formatjson` to `gam <UserTypeEntity> info filters` and `gam <UserTypeEntity> show filters`.
