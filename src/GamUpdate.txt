@@ -1,3 +1,7 @@
+6.13.08
+
+* Updated to OpenSSL 3.0.1
+
 6.13.07
 
 Added options `showpermissionmessages` and `sendemailifrequired` to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`.
