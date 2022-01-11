@@ -1,92 +1,38 @@
 mypath=$(pwd)
 cpucount=$(sysctl -n hw.ncpu)
-echo "We are running on Ubuntu $TRAVIS_DIST $PLATFORM"
-export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
 echo "This device has $cpucount CPUs for compiling..."
 
-SSLVER=$(~/ssl/bin/openssl version)
-SSLRESULT=$?
-PYVER=$(~/python/bin/python3 -V)
-PYRESULT=$?
-if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
-  echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
-  if [ $SSLRESULT -ne 0 ]; then
-    echo "sslresult -ne 0"
-  fi
-  if [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]]; then
-    echo "sslver not equal to..."
-  fi
-  if [ $PYRESULT -ne 0 ]; then
-    echo "pyresult -ne 0"
-  fi
-  if [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION" ]]; then
-    echo "pyver not equal to..."
-  fi
-  cd ~
-  rm -rf ssl
-  rm -rf python
-  mkdir ssl
-  mkdir python
-# Compile latest OpenSSL # wget --quiet https://www.openssl.org/source/openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
-  ls -l ${mypath}/sslinstalls
-  cp ${mypath}/sslinstalls/openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz .
-  echo "Extracting OpenSSL..."
-  tar xf openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
-  cd openssl-$LINUX_BUILD_OPENSSL_VERSION
-  echo "Compiling OpenSSL $LINUX_BUILD_OPENSSL_VERSION..."
-  ./config shared --prefix=$HOME/ssl
-  echo "Running make for OpenSSL..."
-  make -j$cpucount -s
-  echo "Running make install for OpenSSL..."
-  make install > /dev/null
-  cd ~
+#brew install coreutils
+#brew install bash
 
-# Compile latest Python
-  echo "Downloading Python $BUILD_PYTHON_VERSION..."
-  curl -O https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/Python-$BUILD_PYTHON_VERSION.tar.xz
-  echo "Extracting Python..."
-  tar xf Python-$BUILD_PYTHON_VERSION.tar.xz
-  cd Python-$BUILD_PYTHON_VERSION
-  echo "Compiling Python $BUILD_PYTHON_VERSION..."
-  safe_flags="--with-openssl=$HOME/ssl --enable-shared --prefix=$HOME/python --with-ensurepip=upgrade"
-  unsafe_flags="--enable-optimizations --with-lto"
-  if [ ! -e Makefile ]; then
-    echo "running configure with safe and unsafe"
-    ./configure $safe_flags $unsafe_flags > /dev/null
-  fi
-  #make -j$cpucount PROFILE_TASK="-m test.regrtest --pgo -j$(( $cpucount * 2 ))" -s
-  make -j$cpucount -s
-  RESULT=$?
-  echo "First make exited with $RESULT"
-  if [ $RESULT != 0 ]; then
-    echo "Trying Python compile again without unsafe flags..."
-    make clean
-    ./configure $safe_flags > /dev/null
-    make -j$cpucount -s
-    echo "Sticking with safe Python for now..."
-  fi
-  echo "Installing Python..."
-  make install > /dev/null
-  cd ~
-fi
+# prefer standard GNU tools like date over MacOS defaults
+#export PATH="/usr/local/opt/coreutils/libexec/gnubin:$(brew --prefix)/opt/gnu-tar/libexec/gnubin:$PATH"
 
-# Use official Python.org version of Python which is backwards compatible
-# with older MacOS versions
-#export pyfile=python-$BUILD_PYTHON_VERSION-macos11.pkg
-#/bin/rm -f $pyfile
-
-#wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$pyfile
-#echo "Installing Python $BUILD_PYTHON_VERSION..."
-#sudo installer -pkg ./$pyfile -target /
+date --version
+gdate --version
+bash --version
 
 cd ~
 
-#export python=/usr/local/bin/python3
-#export pip=/usr/local/bin/pip3
-#SSLVER=$($openssl version)
-#SSLRESULT=$?
-#PYVER=$($python -V)
-#PYRESULT=$?
+# Use official Python.org version of Python which is backwards compatible
+# with older MacOS versions
+export pyfile=python-$BUILD_PYTHON_VERSION-macos11.pkg
+/bin/rm -f $pyfile
+
+wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$pyfile
+echo "Installing Python $BUILD_PYTHON_VERSION..."
+sudo installer -pkg ./$pyfile -target /
+
+brew install openssl@1.1
+
+cd ~
+
+export python=/usr/local/bin/python3
+export pip=/usr/local/bin/pip3
+SSLVER=$($openssl version)
+SSLRESULT=$?
+PYVER=$($python -V)
+PYRESULT=$?
 
 $python -V
 
