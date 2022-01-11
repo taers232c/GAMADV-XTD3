@@ -1,18 +1,46 @@
 mypath=$(pwd)
 cpucount=$(sysctl -n hw.ncpu)
+echo "We are running on Ubuntu $TRAVIS_DIST $PLATFORM"
+export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
 echo "This device has $cpucount CPUs for compiling..."
 
-#brew install coreutils
-#brew install bash
-
-# prefer standard GNU tools like date over MacOS defaults
-export PATH="/usr/local/opt/coreutils/libexec/gnubin:$(brew --prefix)/opt/gnu-tar/libexec/gnubin:$PATH"
-
-date --version
-gdate --version
-bash --version
-
-cd ~
+SSLVER=$(~/ssl/bin/openssl version)
+SSLRESULT=$?
+PYVER=$(~/python/bin/python3 -V)
+PYRESULT=$?
+if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
+  echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
+  if [ $SSLRESULT -ne 0 ]; then
+    echo "sslresult -ne 0"
+  fi
+  if [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]]; then
+    echo "sslver not equal to..."
+  fi
+  if [ $PYRESULT -ne 0 ]; then
+    echo "pyresult -ne 0"
+  fi
+  if [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION" ]]; then
+    echo "pyver not equal to..."
+  fi
+  cd ~
+  rm -rf ssl
+  rm -rf python
+  mkdir ssl
+  mkdir python
+# Compile latest OpenSSL # wget --quiet https://www.openssl.org/source/openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
+  ls -l ${mypath}/sslinstalls
+  cp ${mypath}/sslinstalls/openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz .
+  echo "Extracting OpenSSL..."
+  tar xf openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
+  cd openssl-$LINUX_BUILD_OPENSSL_VERSION
+  echo "Compiling OpenSSL $LINUX_BUILD_OPENSSL_VERSION..."
+  ./config shared --prefix=$HOME/ssl
+  echo "Running make for OpenSSL..."
+  make -j$cpucount -s
+  echo "Running make install for OpenSSL..."
+  make install > /dev/null
+  cd ~
+fi
 
 # Use official Python.org version of Python which is backwards compatible
 # with older MacOS versions
@@ -22,11 +50,6 @@ export pyfile=python-$BUILD_PYTHON_VERSION-macos11.pkg
 wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$pyfile
 echo "Installing Python $BUILD_PYTHON_VERSION..."
 sudo installer -pkg ./$pyfile -target /
-
-# This fixes https://github.com/pyinstaller/pyinstaller/issues/5062
-#codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
-
-brew install openssl@1.1
 
 cd ~
 
