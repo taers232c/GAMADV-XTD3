@@ -9862,6 +9862,11 @@ def doPrintShowProjects():
             csvPF.WriteRowTitles(mrow)
     csvPF.writeCSVfile('Projects')
 
+# gam info currentprojectid
+def doInfoCurrentProjectId():
+  checkForExtraneousArguments()
+  printEntity([Ent.PROJECT_ID, _getCurrentProjectId()])
+
 # gam create|add svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
 #	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doCreateSvcAcct():
@@ -57757,6 +57762,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_COURSES:		doInfoCourses,
       Cmd.ARG_CROS:		doInfoCrOSDevices,
       Cmd.ARG_CROSTELEMETRY:	doInfoPrintShowCrOSTelemetry,
+      Cmd.ARG_CURRENTPROJECTID:	doInfoCurrentProjectId,
       Cmd.ARG_CUSTOMER:		doInfoCustomer,
       Cmd.ARG_DATATRANSFER:	doInfoDataTransfer,
       Cmd.ARG_DEVICE:		doInfoCIDevice,

@@ -1054,6 +1054,8 @@ gam show projects [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
 gam print projects [[admin] <EmailAddress>] [all|<ProjectIDEntity>] [todrive <ToDriveAttribute>*]
         [states all|active|deleterequested] [showiampolicies 0|1|3 [onememberperrow]]
         [delimiter <Character>]] [[formatjson [quotechar <Character>]]
+gam info currentprojectid
+
 
 gam create|add svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
         [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]

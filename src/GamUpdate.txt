@@ -2,6 +2,8 @@
 
 * Updated to OpenSSL 1.1.1m
 
+Added command `gam info currentprojectid` that displays the current Project ID.
+
 6.13.07
 
 Added options `showpermissionmessages` and `sendemailifrequired` to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`.

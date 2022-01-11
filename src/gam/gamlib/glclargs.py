@@ -421,6 +421,7 @@ class GamCLArgs():
   ARG_CROSES = 'croses'
   ARG_CROSACTIVITY = 'crosactivity'
   ARG_CROSTELEMETRY = 'crostelemetry'
+  ARG_CURRENTPROJECTID = 'currentprojectid'
   ARG_CUSTOMER = 'customer'
   ARG_DATASTUDIOASSET = 'datastudioasset'
   ARG_DATASTUDIOASSETS = 'datastudioassets'
