@@ -40,25 +40,53 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   echo "Running make install for OpenSSL..."
   make install > /dev/null
   cd ~
+
+# Compile latest Python
+  echo "Downloading Python $BUILD_PYTHON_VERSION..."
+  curl -O https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/Python-$BUILD_PYTHON_VERSION.tar.xz
+  echo "Extracting Python..."
+  tar xf Python-$BUILD_PYTHON_VERSION.tar.xz
+  cd Python-$BUILD_PYTHON_VERSION
+  echo "Compiling Python $BUILD_PYTHON_VERSION..."
+  safe_flags="--with-openssl=$HOME/ssl --enable-shared --prefix=$HOME/python --with-ensurepip=upgrade"
+  unsafe_flags="--enable-optimizations --with-lto"
+  if [ ! -e Makefile ]; then
+    echo "running configure with safe and unsafe"
+    ./configure $safe_flags $unsafe_flags > /dev/null
+  fi
+  #make -j$cpucount PROFILE_TASK="-m test.regrtest --pgo -j$(( $cpucount * 2 ))" -s
+  make -j$cpucount -s
+  RESULT=$?
+  echo "First make exited with $RESULT"
+  if [ $RESULT != 0 ]; then
+    echo "Trying Python compile again without unsafe flags..."
+    make clean
+    ./configure $safe_flags > /dev/null
+    make -j$cpucount -s
+    echo "Sticking with safe Python for now..."
+  fi
+  echo "Installing Python..."
+  make install > /dev/null
+  cd ~
 fi
 
 # Use official Python.org version of Python which is backwards compatible
 # with older MacOS versions
-export pyfile=python-$BUILD_PYTHON_VERSION-macos11.pkg
-/bin/rm -f $pyfile
+#export pyfile=python-$BUILD_PYTHON_VERSION-macos11.pkg
+#/bin/rm -f $pyfile
 
-wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$pyfile
-echo "Installing Python $BUILD_PYTHON_VERSION..."
-sudo installer -pkg ./$pyfile -target /
+#wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$pyfile
+#echo "Installing Python $BUILD_PYTHON_VERSION..."
+#sudo installer -pkg ./$pyfile -target /
 
 cd ~
 
-export python=/usr/local/bin/python3
-export pip=/usr/local/bin/pip3
-SSLVER=$($openssl version)
-SSLRESULT=$?
-PYVER=$($python -V)
-PYRESULT=$?
+#export python=/usr/local/bin/python3
+#export pip=/usr/local/bin/pip3
+#SSLVER=$($openssl version)
+#SSLRESULT=$?
+#PYVER=$($python -V)
+#PYRESULT=$?
 
 $python -V
 
