@@ -26,7 +26,7 @@ sudo installer -pkg ./$pyfile -target /
 # This fixes https://github.com/pyinstaller/pyinstaller/issues/5062
 #codesign --remove-signature /Library/Frameworks/Python.framework/Versions/3.9/Python
 
-brew install openssl@3
+brew install openssl@1.1
 
 cd ~
 
@@ -46,4 +46,4 @@ $pip install --upgrade pip
 $pip install --upgrade packaging
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirements.txt
-$pip install --upgrade git+git://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
+$pip install --upgrade git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
