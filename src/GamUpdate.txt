@@ -1,6 +1,6 @@
 6.13.08
 
-* Updated to OpenSSL 3.0.1
+* Updated to OpenSSL 1.1.1m
 
 6.13.07
 
