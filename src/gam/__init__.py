@@ -3,7 +3,7 @@
 #
 # GAMADV-XTD3
 #
-# Copyright 2021, All Rights Reserved.
+# Copyright 2022, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.08'
+__version__ = '6.13.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -1129,7 +1129,7 @@ def normalizeStudentGuardianEmailAddressOrUID(emailAddressOrUID, allowDash=False
     return emailAddressOrUID
   return normalizeEmailAddressOrUID(emailAddressOrUID)
 
-def getEmailAddress(noUid=False, minLen=1, optional=False):
+def getEmailAddress(noUid=False, minLen=1, optional=False, returnUIDprefix=''):
   if Cmd.ArgumentsRemaining():
     emailAddress = Cmd.Current().strip().lower()
     if emailAddress:
@@ -1138,7 +1138,7 @@ def getEmailAddress(noUid=False, minLen=1, optional=False):
         if not noUid:
           if cg.group(1):
             Cmd.Advance()
-            return cg.group(1)
+            return f'{returnUIDprefix}{cg.group(1)}'
         else:
           invalidArgumentExit('name@domain')
       else:
@@ -3841,7 +3841,7 @@ def handleOAuthTokenError(e, softErrors):
   stderrErrorMsg(f'Authentication Token Error - {errMsg}')
   APIAccessDeniedExit()
 
-def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnly=False):
+def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnly=False, noScopes=False):
   if not noDASA and GC.Values[GC.ENABLE_DASA]:
     jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=False)
     if jsonData:
@@ -3860,6 +3860,8 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
   if jsonData:
     try:
       jsonDict = json.loads(jsonData)
+      if noScopes:
+        jsonDict['scopes'] = []
       if 'client_id' in jsonDict:
         if not refreshOnly:
           if set(jsonDict.get('scopes', API.REQUIRED_SCOPES)) == API.REQUIRED_SCOPES_SET:
@@ -3966,13 +3968,13 @@ def writeClientCredentials(creds, filename):
   else:
     writeStdout(json.dumps(creds_data, ensure_ascii=False, sort_keys=True, indent=2)+'\n')
 
-def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, api=None, noDASA=False, refreshOnly=False):
+def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, api=None, noDASA=False, refreshOnly=False, noScopes=False):
   """Gets OAuth2 credentials which are guaranteed to be fresh and valid.
      Locks during read and possible write so that only one process will
      attempt refresh/write when running in parallel. """
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
-    writeCreds, credentials = getOauth2TxtCredentials(api=api, noDASA=noDASA, refreshOnly=refreshOnly)
+    writeCreds, credentials = getOauth2TxtCredentials(api=api, noDASA=noDASA, refreshOnly=refreshOnly, noScopes=noScopes)
     if not credentials:
       invalidOauth2TxtExit('')
     if credentials.expired or forceRefresh:
@@ -9003,7 +9005,7 @@ def doOAuthDelete():
   exitIfNoOauth2Txt()
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK], timeout=10)
   with lock:
-    _, credentials = getOauth2TxtCredentials()
+    _, credentials = getOauth2TxtCredentials(noScopes=True)
     if not credentials:
       return
     entityType = Ent.OAUTH2_TXT_FILE
@@ -9044,7 +9046,7 @@ def doOAuthInfo():
       unknownArgumentExit()
   exitIfNoOauth2Txt()
   if not access_token and not id_token:
-    credentials = getClientCredentials()
+    credentials = getClientCredentials(noScopes=True)
     access_token = credentials.token
     printEntity([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
   oa2 = buildGAPIObject(API.OAUTH2)
@@ -13132,7 +13134,7 @@ ADMIN_SCOPE_TYPE_CHOICE_MAP = {'customer': 'CUSTOMER', 'orgunit': 'ORG_UNIT', 'o
 # gam create admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
 def doCreateAdmin():
   cd = buildGAPIObject(API.DIRECTORY)
-  user = getEmailAddress()
+  user = getEmailAddress(returnUIDprefix='uid:')
   body = {'assignedTo': convertEmailAddressToUID(user, cd)}
   role, roleId = getRoleId()
   body['roleId'] = roleId
@@ -13304,7 +13306,7 @@ def doCreateDataTransfer():
 
   dt = buildGAPIObject(API.DATATRANSFER)
   apps = getTransferApplications(dt)
-  old_owner = getEmailAddress()
+  old_owner = getEmailAddress(returnUIDprefix='uid:')
   body = {'oldOwnerUserId': convertEmailAddressToUID(old_owner)}
   appIndicies = {}
   appNameList = []
@@ -13316,7 +13318,7 @@ def doCreateDataTransfer():
     appIndicies[appId] = i
     i += 1
     appNameList.append(appName)
-  new_owner = getEmailAddress()
+  new_owner = getEmailAddress(returnUIDprefix='uid:')
   body['newOwnerUserId'] = convertEmailAddressToUID(new_owner)
   if body['oldOwnerUserId'] == body['newOwnerUserId']:
     Cmd.Backup()
@@ -13409,9 +13411,9 @@ def doPrintShowDataTransfers():
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in {'olduser', 'oldowner'}:
-      oldOwnerUserId = convertEmailAddressToUID(getEmailAddress())
+      oldOwnerUserId = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'))
     elif myarg in {'newuser', 'newowner'}:
-      newOwnerUserId = convertEmailAddressToUID(getEmailAddress())
+      newOwnerUserId = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'))
     elif myarg == 'status':
       status = getChoice(DATA_TRANSFER_STATUS_MAP, mapChoice=True)
     elif myarg == 'delimiter':
@@ -20479,6 +20481,7 @@ BROWSER_FIELDS_CHOICE_MAP = {
   'lastregistrationtime': 'lastRegistrationTime',
   'laststatusreporttime': 'lastStatusReportTime',
   'location': 'annotatedLocation',
+  'machineextensionpolicies': 'machineExtensionPolicies',
   'machinename': 'machineName',
   'machinepolicies': 'machinePolicies',
   'notes': 'annotatedNotes',
@@ -21346,7 +21349,7 @@ def buildChromeSchemas(cp=None, sfilter=None):
                   if fdesc.get('field') == setting_name:
                     for d in fdesc.get('knownValueDescriptions', []):
                       if d['value'][prefix_len:] == an:
-                        setting_dict['descriptions'][i] = d['description']
+                        setting_dict['descriptions'][i] = d.get('description', '')
                         break
                     break
               break
@@ -34914,12 +34917,13 @@ def deleteUsers(entityList):
     try:
       callGAPI(cd.users(), 'delete',
                throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                             GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
+                             GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN,
+                             GAPI.CONDITION_NOT_MET],
                userKey=user)
       entityActionPerformed([Ent.USER, user], i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
+    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam delete users <UserTypeEntity> [noactionifalias]
@@ -37113,7 +37117,8 @@ def _doUpdateCourses(entityList):
         if body:
           result = callGAPI(croom.courses(), 'patch',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
-                                          GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE],
+                                          GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT,
+                                          GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             id=courseId, body=body, updateMask=','.join(list(body)), fields='id,name,ownerId,courseState,teacherFolder(id)')
         else:
@@ -37130,7 +37135,8 @@ def _doUpdateCourses(entityList):
         if courseAttributes.courseId:
           courseAttributes.CopyFromCourse(result, i, count)
       except (GAPI.notFound, GAPI.permissionDenied,
-              GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
+              GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument,
+              GAPI.internalError, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
       except GAPI.failedPrecondition as e:
         errMsg = str(e)
@@ -37213,15 +37219,17 @@ def _doDeleteCourses(entityList):
       if body:
         callGAPI(croom.courses(), 'patch',
                  throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
-                               GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                               GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT,
+                               GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  id=courseId, body=body, updateMask=updateMask, fields='')
       callGAPI(croom.courses(), 'delete',
-               throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
+               throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION, GAPI.INTERNAL_ERROR],
                id=courseId)
       entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId)], i, count)
     except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
-            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument, GAPI.internalError, GAPI.serviceNotAvailable) as e:
+            GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument,
+            GAPI.internalError, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
 
 # gam delete courses <CourseEntity> [archive|archived]
@@ -38680,11 +38688,13 @@ def _updateCourseOwner(croom, courseId, owner, i, count):
   try:
     callGAPI(croom.courses(), 'patch',
              throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION,
-                           GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                           GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT,
+                           GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
              id=courseId, body={'ownerId': owner}, updateMask='ownerId', fields='ownerId')
     entityActionPerformed([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, owner], i, count)
   except (GAPI.notFound, GAPI.permissionDenied, GAPI.failedPrecondition,
-          GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument) as e:
+          GAPI.forbidden, GAPI.badRequest, GAPI.invalidArgument,
+          GAPI.internalError, GAPI.serviceNotAvailable) as e:
     errMsg = str(e)
     if '@UserAlreadyOwner' not in errMsg:
       entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, owner], errMsg, i, count)
@@ -49617,8 +49627,8 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
           entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
           if showDetails:
             _showDriveFilePermission(permission, printKeys, timeObjects)
-      except (GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.fileNeverWritable, GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted,
+      except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+              GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
               GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
@@ -49626,7 +49636,8 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
               GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
               GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
-              GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility) as e:
+              GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
+              GAPI.invalidSharingRequest, GAPI.fileNeverWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], str(e), j, jcount)
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, fileName], str(e), j, jcount)
@@ -49858,8 +49869,8 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
                  fileId=ri[RI_ENTITY], sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
                  body=_makePermissionBody(ri[RI_ITEM]), fields='', supportsAllDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-      except (GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.invalidSharingRequest, GAPI.ownershipChangeAcrossDomainNotPermitted,
+      except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+              GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
               GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
@@ -49868,6 +49879,7 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
               GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
               GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
+              GAPI.invalidSharingRequest,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except GAPI.notFound as e:

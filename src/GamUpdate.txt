@@ -1,3 +1,10 @@
+6.13.09
+
+Fixed bug in `gam <UserTypeEntity> update chromepolicy` that caused a trap.
+
+Fixed bug in `gam print|show datatransfers oldowner|newowner <UserItem>` that did not
+properly handle `<UserItem>` of form `uid:<String>`.
+
 6.13.08
 
 * Updated to OpenSSL 1.1.1m

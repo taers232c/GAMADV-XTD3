@@ -472,7 +472,7 @@ If an item contains spaces, it should be surrounded by ".
 <SMTPHostName> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
-<SharedDriveACLRole> ::= commenter|contentmanager|fileorganizer|organizer|reader|writer
+<SharedDriveACLRole> ::= commenter|contentmanager|fileorganizer|manager|organizer|reader|writer
 <SharedDriveID> ::= <String>
 <SharedDriveName> ::= <String>
 <ThreadID> ::= <String>
@@ -1056,7 +1056,6 @@ gam print projects [[admin] <EmailAddress>] [all|<ProjectIDEntity>] [todrive <To
         [delimiter <Character>]] [[formatjson [quotechar <Character>]]
 gam info currentprojectid
 
-
 gam create|add svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
         [saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>]
         [sadescription <ServiceAccountDescription>]
@@ -1447,6 +1446,7 @@ gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
         lastpolicyfetchtime|
         lastregistrationtime|
         laststatusreporttime|
+        machineextensionpolicies|
         machinename|
         machinepolicies|
         orgunitpath|org|orgunit|
@@ -1750,12 +1750,12 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatc
 <CrOSFieldNameList> ::= "<CrOSFieldName>(,<CrOSFieldName>)*"
 
 <CrOSListFieldName> ::=
-        activetimeranges|timeranges|
+        activetimeranges|timeranges|times|
         cpustatusreports|
-        devicefiles|
+        devicefiles|files|
         diskvolumereports|
         lastknownnetwork|
-        recentusers|
+        recentusers|users|
         systemramfreereports
 <CrOSListFieldNameList> ::= "<CrOSListFieldName>(,<CrOSListFieldName>)*"
 
@@ -1858,9 +1858,9 @@ gam print crosactivity [todrive <ToDriveAttribute>*]
 Print activity for specified CrOS devices.
 
 <CrOSActivityListFieldName> ::=
-        activetimeranges|timeranges|
-        devicefiles|
-        recentusers
+        activetimeranges|timeranges|times|
+        devicefiles|files|
+        recentusers|users
 <CrOSActivityListFieldNameList> ::= "<CrOSActivityListFieldName>(,<CrOSActivityListFieldName>)*"
 
 gam print crosactivity [todrive <ToDriveAttribute>*] select <CrOSTypeEntity>
