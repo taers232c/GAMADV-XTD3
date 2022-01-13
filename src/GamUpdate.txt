@@ -1,3 +1,20 @@
+6.14.00
+
+Added the following options to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`
+that provide more flexibility in managing permissions when copying/moving folders.
+```
+copyfileinheritedpermissions (copy only)
+copytopfolderinheritedpermissions
+copysubfolderinheritedpermissions
+copymergewithparentfolderpermissions
+copymergedtopfolderpermissions
+copymergedsubfolderpermissions
+synctopfoldernoninheritedpermissions
+syncsubfoldernoninheritedpermissions
+```
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Copy-Move#copy-permissions
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Copy-Move#move-permissions
+
 6.13.09
 
 Fixed bug in `gam <UserTypeEntity> update chromepolicy` that caused a trap.
@@ -7,7 +24,7 @@ properly handle `<UserItem>` of form `uid:<String>`.
 
 6.13.08
 
-* Updated to OpenSSL 1.1.1m
+* Upgraded to OpenSSL 1.1.1m
 
 Added command `gam info currentprojectid` that displays the current Project ID.
 
@@ -32,7 +49,7 @@ Handle the following error in `gam <UserTypeEntity> signout`:
 ```
 ERROR: 400: invalidInput - Invalid Input
 ```
-This can be caused by applying the command to a suspended user.
+This can be caused by applying the command to a suspnded user.
 
 6.13.04
 
@@ -41,6 +58,7 @@ size (in bytes) of the files counted.
 
 Following Jay's lead, added commands to display ChromeOS device telemetry data.
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/ChromeOS-Devices#display-chromeos-telemetry-data
+
 To use these commands  you must authorize an additional scope:
 * `Chrome Management API - Telemetry read only`
 ```
@@ -51,11 +69,11 @@ Added option `reverselists <ListFieldNameList>` to commands that display ChromeO
 For each list in `<ListFieldNameList>`, the list order is changed from ascending (oldest to newest) to descending (newest to oldest);
 this makes it easy to get the `N` most recent values with `listlimit N reverselists <ListFieldNameList>`.
 
-6.03.13
+6.13.03
 
 Added options `parentselector <OrgUnitSelector>` and `childselector <OrgUnitSelector>` to
 `gam print orgs|ous` that add an additional column `orgUnitSelector` to the output. This column
-value can be used in subsequent `gam csv` commands to appropriatley select members without duplication.
+value can be used in subsequent `gam csv` commands to appropriately select members without duplication.
 ```
 <OrgUnitSelector> ::=
         cros_ou | cros_ou_and_children|

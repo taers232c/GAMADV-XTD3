@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.13.09'
+__version__ = '6.14.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -46314,11 +46314,17 @@ COPY_NO_PARENTS = 0
 COPY_NONPATH_PARENTS = 1
 COPY_ALL_PARENTS = 2
 
-def initCopyMoveOptions(move):
+DEST_PARENT_MYDRIVE_ROOT = 0
+DEST_PARENT_MYDRIVE_FOLDER = 1
+DEST_PARENT_SHAREDDRIVE_ROOT = 2
+DEST_PARENT_SHAREDDRIVE_FOLDER = 3
+
+def initCopyMoveOptions(copyCmd):
   return {
-    'move': move,
+    'copyCmd': copyCmd,
     'sourceDriveId': None,
     'destDriveId': None,
+    'destParentType': False,
     'newFilename': None,
     'stripNamePrefix': None,
     'summary': False,
@@ -46334,8 +46340,17 @@ def initCopyMoveOptions(move):
     'copyTopFolderParents': COPY_NO_PARENTS,
     'copySubFolderParents': COPY_NONPATH_PARENTS,
     'copyFilePermissions': False,
+    'copyFileInheritedPermissions': True,
+    'copyMergeWithParentFolderPermissions': False,
+    'copyMergedTopFolderPermissions': copyCmd,
+    'copyMergedSubFolderPermissions': copyCmd,
     'copyTopFolderPermissions': True,
     'copySubFolderPermissions': True,
+    'copyTopFolderInheritedPermissions': True,
+    'copySubFolderInheritedPermissions': True,
+    'syncTopFolderNonInheritedPermissions': False,
+    'syncSubFolderNonInheritedPermissions': False,
+    'noSyncNonInheritedPermissions': False,
     'copySheetProtectedRanges': False,
     }
 
@@ -46356,7 +46371,7 @@ COPY_TOP_PARENTS_CHOICES = {'none': COPY_NO_PARENTS}
 COPY_SUB_PARENTS_CHOICES = {'none': COPY_NO_PARENTS}
 MOVE_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'nonpath': COPY_NONPATH_PARENTS}
 
-def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
+def getCopyMoveOptions(myarg, copyMoveOptions):
   if myarg == 'newfilename':
     copyMoveOptions['newFilename'] = getString(Cmd.OB_DRIVE_FILE_NAME)
   elif myarg =='stripnameprefix':
@@ -46375,8 +46390,22 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
     copyMoveOptions['duplicateFiles'] = getChoice(DUPLICATE_FILE_CHOICES, mapChoice=True)
   elif myarg == 'duplicatefolders':
     copyMoveOptions['duplicateFolders'] = getChoice(DUPLICATE_FOLDER_CHOICES, mapChoice=True)
+  elif myarg == 'copymergewithparentfolderrpermissions':
+    copyMoveOptions['copyMergeWithParentFolderPermissions'] = getBoolean()
+  elif myarg == 'copymergedtopfolderpermissions':
+    copyMoveOptions['copyMergedTopFolderPermissions'] = getBoolean()
+  elif myarg == 'copymergedsubfolderpermissions':
+    copyMoveOptions['copyMergedSubFolderPermissions'] = getBoolean()
+  elif myarg == 'copytopfolderpermissions':
+    copyMoveOptions['copyTopFolderPermissions'] = getBoolean()
+  elif myarg == 'copysubfolderpermissions':
+    copyMoveOptions['copySubFolderPermissions'] = getBoolean()
+  elif myarg == 'copytopfolderinheritedpermissions':
+    copyMoveOptions['copyTopFolderInheritedPermissions'] = getBoolean()
+  elif myarg == 'copysubfolderinheritedpermissions':
+    copyMoveOptions['copySubFolderInheritedPermissions'] = getBoolean()
   else:
-    if not copyCmd:
+    if not copyMoveOptions['copyCmd']:
       if myarg == 'retainsourcefolders':
         copyMoveOptions['retainSourceFolders'] = getBoolean()
       elif myarg == 'mergewithparentretain':
@@ -46400,10 +46429,12 @@ def getCopyMoveOptions(myarg, copyMoveOptions, copyCmd):
         copyMoveOptions['copySubFolderParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
       elif myarg == 'copyfilepermissions':
         copyMoveOptions['copyFilePermissions'] = getBoolean()
-      elif myarg == 'copytopfolderpermissions':
-        copyMoveOptions['copyTopFolderPermissions'] = getBoolean()
-      elif myarg == 'copysubfolderpermissions':
-        copyMoveOptions['copySubFolderPermissions'] = getBoolean()
+      elif myarg == 'copyfileinheritedpermissions':
+        copyMoveOptions['copyFileInheritedPermissions'] = getBoolean()
+      elif myarg == 'synctopfoldernoninheritedpermissions':
+        copyMoveOptions['syncTopFolderNonInheritedPermissions'] = getBoolean()
+      elif myarg == 'syncsubfoldernoninheritedpermissions':
+        copyMoveOptions['syncSubFolderNonInheritedPermissions'] = getBoolean()
       elif myarg == 'copysheetprotectedranges':
         copyMoveOptions['copySheetProtectedRanges'] = getBoolean()
       else:
@@ -46416,10 +46447,6 @@ CLEAR_COPY_MOVE_PARENT_OPTIONS = {
   'copyTopFolderParents': COPY_NO_PARENTS,
   'copySubFolderParents': COPY_NO_PARENTS,
   }
-#CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS = {
-#  'copyTopFolderPermissions': False,
-#  'copySubFolderPermissions': False,
-#  }
 
 def _targetFilenameExists(destFilename, mimeType, targetChildren):
   destFilenameLower = destFilename.lower()
@@ -46464,7 +46491,7 @@ def _getUniqueFilename(destFilename, mimeType, targetChildren):
 
 def _copyPermissions(drive, user, i, count, j, jcount,
                      entityType, fileId, fileTitle, newFileId, newFileTitle,
-                     statistics, stat, copyMoveOptions):
+                     statistics, stat, copyMoveOptions, copyInherited, syncNonInherited):
   def getPermissions(fid):
     permissions = {}
     try:
@@ -46490,7 +46517,9 @@ def _copyPermissions(drive, user, i, count, j, jcount,
 
   def isPermissionCopyable(permission):
     role = permission['role']
-    if role == 'owner':
+    if permission['inherited'] and not copyMoveOptions[copyInherited]:
+      notCopiedMessage = "inherited"
+    elif role == 'owner':
       notCopiedMessage = f"role {role} copy not required/appropriate"
     elif permission.pop('deleted', False):
       notCopiedMessage = f"{permission['type']} {permission['emailAddress']} deleted"
@@ -46506,13 +46535,46 @@ def _copyPermissions(drive, user, i, count, j, jcount,
       entityActionNotPerformedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permission['id']], notCopiedMessage, 0, 0)
     return False
 
+  def getNonInheritedPermissions(permissions):
+    nonInheritedPermIds = set()
+    for permissionId, permission in iter(permissions.items()):
+      if not permission['inherited']:
+        nonInheritedPermIds.add(permissionId)
+    return nonInheritedPermIds
+
   sourcePerms = getPermissions(fileId)
   if sourcePerms is None:
     return
   copySourcePerms = {}
+  deleteTargetPermIds = set()
+  updateTargetPerms = {}
   for permissionId, permission in iter(sourcePerms.items()):
     if isPermissionCopyable(permission):
       copySourcePerms[permissionId] = permission
+  if copyMoveOptions[syncNonInherited]:
+    targetPerms = getPermissions(newFileId)
+    if targetPerms is None:
+      return
+    targetNotInheritedPermIDs = getNonInheritedPermissions(targetPerms)
+    sourceNonInheritedPermIDs = getNonInheritedPermissions(copySourcePerms)
+    deleteTargetPermIds = targetNotInheritedPermIDs-sourceNonInheritedPermIDs
+    for permissionId in targetNotInheritedPermIDs&sourceNonInheritedPermIDs:
+      updatePerm = {}
+      for field in ['expirationTime', 'role', 'view', 'pendingOwner']:
+        if field in copySourcePerms[permissionId]:
+          if field not in targetPerms[permissionId]:
+            if field != 'pendingOwner' or copySourcePerms[permissionId][field]:
+              updatePerm[field] = copySourcePerms[permissionId][field]
+          elif copySourcePerms[permissionId][field] != targetPerms[permissionId][field]:
+            updatePerm[field] = copySourcePerms[permissionId][field]
+        elif field in targetPerms[permissionId]:
+          if field == 'expirationTime':
+            updatePerm['removeExpiration'] = True
+          elif field == 'pendingOwner':
+            updatePerm[field] = False
+      if updatePerm:
+        updateTargetPerms[permissionId] = updatePerm
+        copySourcePerms.pop(permissionId)
   Ind.Increment()
   kcount = len(copySourcePerms)
   k = 0
@@ -46556,6 +46618,51 @@ def _copyPermissions(drive, user, i, count, j, jcount,
         _incrStatistic(statistics, stat)
         Ind.Decrement()
         return
+  action = Act.Get()
+  Act.Set(Act.DELETE)
+  kcount = len(deleteTargetPermIds)
+  k = 0
+  for permissionId in deleteTargetPermIds:
+    k += 1
+    try:
+      callGAPI(drive.permissions(), 'delete',
+               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_DELETE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
+               fileId=newFileId, permissionId=permissionId, supportsAllDrives=True)
+      if copyMoveOptions['showPermissionMessages']:
+        entityActionPerformed([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], k, kcount)
+    except (GAPI.notFound, GAPI.permissionNotFound,
+            GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+            GAPI.fileNeverWritable, GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
+            GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded) as e:
+      entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), k, kcount)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      _incrStatistic(statistics, stat)
+      break
+  Act.Set(Act.UPDATE)
+  kcount = len(updateTargetPerms)
+  k = 0
+  for permissionId, permission in iter(updateTargetPerms.items()):
+    k += 1
+    removeExpiration = permission.pop('removeExpiration', False)
+    try:
+      callGAPI(drive.permissions(), 'update',
+               bailOnInternalError=True,
+               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
+               fileId=newFileId, permissionId=permissionId, removeExpiration=removeExpiration,
+               body=permission, supportsAllDrives=True)
+      if copyMoveOptions['showPermissionMessages']:
+        entityActionPerformed([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], k, kcount)
+    except (GAPI.notFound, GAPI.permissionNotFound,
+            GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+            GAPI.fileNeverWritable, GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
+            GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded) as e:
+      entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), k, kcount)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      _incrStatistic(statistics, stat)
+      break
+  Act.Set(action)
   Ind.Decrement()
 
 def _getSheetProtectedRanges(sheet, user, i, count, j, jcount, fileId, fileTitle,
@@ -46635,10 +46742,24 @@ def _checkForDuplicateTargetFile(drive, user, k, kcount, child, destFilename, ta
   return False
 
 def _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statistics):
+# newParentId is known to be a folder
   try:
-    return callGAPI(drive.files(), 'get',
-                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
-                    fileId=newParentId, fields='name,driveId', supportsAllDrives=True)
+    result = callGAPI(drive.files(), 'get',
+                      throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                      fileId=newParentId, fields='name,driveId,parents', supportsAllDrives=True)
+    if 'driveId' not in result:
+      result['driveId'] = None
+      if result['name'] == MY_DRIVE and not result.get('parents', []):
+        result['destParentType'] = DEST_PARENT_MYDRIVE_ROOT
+      else:
+        result['destParentType'] = DEST_PARENT_MYDRIVE_FOLDER
+    else:
+      if result['name'] == TEAM_DRIVE and not result.get('parents', []):
+        result['name'] = _getTeamDriveNameFromId(drive, result['driveId'])
+        result['destParentType'] = DEST_PARENT_SHAREDDRIVE_ROOT
+      else:
+        result['destParentType'] = DEST_PARENT_SHAREDDRIVE_FOLDER
+    return result
   except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
           GAPI.unknownError, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.fileNeverWritable) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, newParentId], str(e), j, jcount)
@@ -46694,13 +46815,18 @@ def _verifyUserIsOrganizer(drive, user, i, count, fileId):
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copytopfileparents none] [copytopfolderparents none]
 #	[copysubfileparents none] [copysubfolderparents none]
-#	[copyfilepermissions [<Boolean>]]
+#	[copyfilepermissions [<Boolean>]] [copyfileinheritedpermissions [<Boolean>]
+#	[copymergewithparentfolderpermissions [<Boolean>]]
+#	[copymergedtopfolderpermissions [<Boolean>]] [copymergedsubfolderpermissions [<Boolean>]]
 #	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
+#	[copytopfolderiheritedpermissions [<Boolean>]] [copysubfolderinheritedpermissions [<Boolean>]]
+#	[synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
 #	[copysheetprotectedranges [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def copyDriveFile(users):
-  def _cloneFolderCopy(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren,
-                       atTop, newParentId, copyMoveOptions, statistics):
+  def _cloneFolderCopy(drive, user, i, count, j, jcount,
+                       source, targetChildren, newParentId, newFolderTitle,
+                       statistics, copyMoveOptions, atTop):
     folderId = source.pop('id')
     folderTitle = source['name']
     if atTop and copyMoveOptions['mergeWithParent']:
@@ -46711,8 +46837,16 @@ def copyDriveFile(users):
                                                          [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
       Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_MERGED)
+###### 6.14.00
+      if (copyMoveOptions['copyMergeWithParentFolderPermissions'] and
+          copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT):
+        _copyPermissions(drive, user, i, count, j, jcount,
+                         Ent.DRIVE_FOLDER, folderId, folderTitle, newParentId, newFolderTitle,
+                         statistics, STAT_FOLDER_PERMISSIONS_FAILED,
+                         copyMoveOptions, 'copyTopFolderInheritedPermissions', 'syncTopFolderNonInheritedPermissions')
       source.pop('oldparents', None)
       return (newParentId, True)
+# Merge parent folders
     if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
       newFolderTitleLower = newFolderTitle.lower()
       for target in targetChildren:
@@ -46727,13 +46861,20 @@ def copyDriveFile(users):
                                                                [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
             Act.Set(action)
             _incrStatistic(statistics, STAT_FOLDER_MERGED)
-            if copyMoveOptions[['copySubFolderPermissions', 'copyTopFolderPermissions'][atTop]]:
-              _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
-                               statistics, STAT_FOLDER_PERMISSIONS_FAILED, copyMoveOptions)
+###### 6.14.00
+            if (copyMoveOptions[['copyMergedSubFolderPermissions', 'copyMergedTopFolderPermissions'][atTop]] and
+                (not atTop or copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT)):
+              _copyPermissions(drive, user, i, count, j, jcount,
+                               Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
+                               statistics, STAT_FOLDER_PERMISSIONS_FAILED,
+                               copyMoveOptions,
+                               ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
+                               ['syncSubFolderNonInheritedPermissions', 'syncTopFolderNonInheritedPermissions'][atTop])
             return (newFolderId, True)
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.NOT_WRITABLE, j, jcount)
           _incrStatistic(statistics, STAT_FOLDER_NOT_WRITABLE)
           return (None, False)
+# Copy parent folders
     source.pop('oldparents', None)
     body = source.copy()
     body.pop('capabilities', None)
@@ -46764,8 +46905,12 @@ def copyDriveFile(users):
                                                            [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
       _incrStatistic(statistics, STAT_FOLDER_COPIED_MOVED)
       if copyMoveOptions[['copySubFolderPermissions', 'copyTopFolderPermissions'][atTop]]:
-        _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
-                         statistics, STAT_FOLDER_PERMISSIONS_FAILED, copyMoveOptions)
+        _copyPermissions(drive, user, i, count, j, jcount,
+                         Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
+                         statistics, STAT_FOLDER_PERMISSIONS_FAILED,
+                         copyMoveOptions,
+                         ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
+                         'noSyncNonInheritedPermissions')
       return (newFolderId, False)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError,
             GAPI.teamDriveHierarchyTooDeep, GAPI.badRequest) as e:
@@ -46776,10 +46921,12 @@ def copyDriveFile(users):
     copyMoveOptions['retainSourceFolders'] = True
     return (None, False)
 
-  def _recursiveFolderCopy(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren, depth, atTop, newParentId):
+  def _recursiveFolderCopy(drive, user, i, count, j, jcount,
+                           source, targetChildren, newParentId, newFolderTitle, atTop, depth):
     folderId = source['id']
-    newFolderId, existingTargetFolder = _cloneFolderCopy(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren,
-                                                         atTop, newParentId, copyMoveOptions, statistics)
+    newFolderId, existingTargetFolder = _cloneFolderCopy(drive, user, i, count, j, jcount,
+                                                         source, targetChildren, newParentId, newFolderTitle,
+                                                         statistics, copyMoveOptions, atTop)
     if newFolderId is None:
       return
     if maxdepth != -1 and depth > maxdepth:
@@ -46827,7 +46974,8 @@ def copyDriveFile(users):
         child.pop('parents', [])
         child['parents'] = [newFolderId]
         if child['mimeType'] == MIMETYPE_GA_FOLDER:
-          _recursiveFolderCopy(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, depth, False, newFolderId)
+          _recursiveFolderCopy(drive, user, i, count, k, kcount,
+                               child, subTargetChildren, newFolderId, childTitle, False, depth)
         else:
           if not child.pop('capabilities')['canCopy']:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
@@ -46855,8 +47003,10 @@ def copyDriveFile(users):
               if copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET:
                 protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, k, kcount, childId, childTitle,
                                                                 statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
-              _copyPermissions(drive, user, i, count, k, kcount, Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
-                               statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
+              _copyPermissions(drive, user, i, count, k, kcount,
+                               Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
+                               statistics, STAT_FILE_PERMISSIONS_FAILED,
+                               copyMoveOptions, 'copyFileInheritedPermissions', 'noSyncNonInheritedPermissions')
               if copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET and protectedSheetRanges:
                 _updateSheetProtectedRanges(sheet, user, i, count, k, kcount, result['id'], result['name'], protectedSheetRanges,
                                             statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
@@ -46872,13 +47022,13 @@ def copyDriveFile(users):
   parentBody = {}
   parentParms = initDriveFileAttributes()
   copyParameters = initDriveFileAttributes()
-  copyMoveOptions = initCopyMoveOptions(False)
+  copyMoveOptions = initCopyMoveOptions(True)
   excludeTrashed = newParentsSpecified = recursive = False
   returnIdLink = None
   maxdepth = -1
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if getCopyMoveOptions(myarg, copyMoveOptions, True):
+    if getCopyMoveOptions(myarg, copyMoveOptions):
       pass
     elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
@@ -46924,6 +47074,9 @@ def copyDriveFile(users):
                           fields='id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
                             'description,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare',
                           supportsAllDrives=True)
+# Source at root of My Drive or Shared Drive?
+        if source['mimeType'] == MIMETYPE_GA_FOLDER and source.get('driveId') and source['name'] == TEAM_DRIVE and not source.get('parents', []):
+          source['name'] = _getTeamDriveNameFromId(drive, source['driveId'])
         sourceFilename = source['name']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
         if excludeTrashed and source['trashed']:
@@ -46955,7 +47108,8 @@ def copyDriveFile(users):
         dest = _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statistics)
         if dest is None:
           continue
-        copyMoveOptions['destDriveId'] = dest.get('driveId')
+        copyMoveOptions['destDriveId'] = dest['driveId']
+        copyMoveOptions['destParentType'] = dest['destParentType']
         if copyMoveOptions['destDriveId']:
 # If copying to a Shared Drive, user has to be an organizer
           if not _verifyUserIsOrganizer(drive, user, i, count, copyMoveOptions['destDriveId']):
@@ -46981,8 +47135,6 @@ def copyDriveFile(users):
         if targetChildren is None:
           continue
         copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
-#        if copyMoveOptions['destDriveId']:
-#          copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
 # If the parent folder is within the source tree, don't copy it
           copiedFiles[newParentId] = 1
@@ -46999,11 +47151,13 @@ def copyDriveFile(users):
               _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
               continue
           if recursive:
-            _recursiveFolderCopy(drive, user, i, count, j, jcount, source, destFilename, targetChildren, 0, True, newParentId)
+            _recursiveFolderCopy(drive, user, i, count, j, jcount,
+                                 source, targetChildren, newParentId, destFilename, True, 0)
           else:
             source.update(copyBody)
-            _cloneFolderCopy(drive, user, i, count, j, jcount, source, destFilename, targetChildren,
-                             True, newParentId, copyMoveOptions, statistics)
+            _cloneFolderCopy(drive, user, i, count, j, jcount,
+                             source, targetChildren, newParentId, destFilename,
+                             statistics, copyMoveOptions, True)
         else:
           if not source.pop('capabilities')['canCopy']:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename], Msg.NOT_COPYABLE, j, jcount)
@@ -47040,8 +47194,10 @@ def copyDriveFile(users):
             if copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET:
               protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, j, jcount, sourceId, sourceFilename,
                                                               statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
-            _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
-                             statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
+            _copyPermissions(drive, user, i, count, j, jcount,
+                             Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
+                             statistics, STAT_FILE_PERMISSIONS_FAILED,
+                             copyMoveOptions, 'copyFileInheritedPermissions', 'noSyncNonInheritedPermissions')
             if copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET and protectedSheetRanges:
               _updateSheetProtectedRanges(sheet, user, i, count, j, jcount, result['id'], result['name'], protectedSheetRanges,
                                           statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
@@ -47065,11 +47221,17 @@ def copyDriveFile(users):
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
+#	[copymergewithparentfolderpermissions [<Boolean>]]
+#	[copymergedtopfolderpermissions [<Boolean>]] [copymergedsubfolderpermissions [<Boolean>]]
+#	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
+#	[copytopfolderiheritedpermissions [<Boolean>]] [copysubfolderinheritedpermissions [<Boolean>]]
+#	[synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
 #	[retainsourcefolders [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def moveDriveFile(users):
-  def _cloneFolderMove(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren,
-                       atTop, newParentId, copyMoveOptions, statistics):
+  def _cloneFolderMove(drive, user, i, count, j, jcount,
+                       source, targetChildren, newParentId, newFolderTitle,
+                       statistics, copyMoveOptions, atTop):
     folderId = source.pop('id')
     folderTitle = source['name']
     if atTop and (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain']):
@@ -47080,6 +47242,13 @@ def moveDriveFile(users):
                                                        [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
       Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_MERGED)
+###### 6.14.00
+      if (copyMoveOptions['copyMergeWithParentFolderPermissions'] and
+          copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT):
+        _copyPermissions(drive, user, i, count, j, jcount,
+                         Ent.DRIVE_FOLDER, folderId, folderTitle, newParentId, newFolderTitle,
+                         statistics, STAT_FOLDER_PERMISSIONS_FAILED,
+                         copyMoveOptions, 'copyTopFolderInheritedPermissions', 'syncTopFolderNonInheritedPermissions')
       source.pop('oldparents', None)
       return (newParentId, True)
     if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
@@ -47096,6 +47265,14 @@ def moveDriveFile(users):
                                                                [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
             Act.Set(action)
             _incrStatistic(statistics, STAT_FOLDER_MERGED)
+###### 6.14.00
+            if (copyMoveOptions[['copyMergedSubFolderPermissions', 'copyMergedTopFolderPermissions'][atTop]] and
+                (not atTop or copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT)):
+              _copyPermissions(drive, user, i, count, j, jcount,
+                               Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
+                               statistics, STAT_FOLDER_PERMISSIONS_FAILED,
+                               copyMoveOptions, ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
+                               copyMoveOptions, ['syncSubFolderNonInheritedPermissions', 'syncTopFolderNonInheritedPermissions'][atTop])
             return (newFolderId, True)
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.NOT_WRITABLE, j, jcount)
           _incrStatistic(statistics, STAT_FOLDER_NOT_WRITABLE)
@@ -47159,8 +47336,12 @@ def moveDriveFile(users):
                                                          [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
       _incrStatistic(statistics, STAT_FOLDER_COPIED_MOVED)
       if copyMoveOptions[['copySubFolderPermissions', 'copyTopFolderPermissions'][atTop]]:
-        _copyPermissions(drive, user, i, count, j, jcount, Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
-                         statistics, STAT_FOLDER_PERMISSIONS_FAILED, copyMoveOptions)
+        _copyPermissions(drive, user, i, count, j, jcount,
+                         Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
+                         statistics, STAT_FOLDER_PERMISSIONS_FAILED,
+                         copyMoveOptions,
+                         ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
+                         'noSyncNonInheritedPermissions')
       return (newFolderId, False)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError, GAPI.teamDriveHierarchyTooDeep) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
@@ -47170,10 +47351,12 @@ def moveDriveFile(users):
     copyMoveOptions['retainSourceFolders'] = True
     return (None, False)
 
-  def _recursiveFolderMove(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren, atTop, newParentId):
+  def _recursiveFolderMove(drive, user, i, count, j, jcount,
+                           source, targetChildren, newParentId, newFolderTitle, atTop):
     folderId = source['id']
-    newFolderId, existingTargetFolder = _cloneFolderMove(drive, user, i, count, j, jcount, source, newFolderTitle, targetChildren,
-                                                         atTop, newParentId, copyMoveOptions, statistics)
+    newFolderId, existingTargetFolder = _cloneFolderMove(drive, user, i, count, j, jcount,
+                                                         source, targetChildren, newParentId, newFolderTitle,
+                                                         statistics, copyMoveOptions, atTop)
     if newFolderId is None:
       return
     movedFiles[newFolderId] = 1
@@ -47219,7 +47402,8 @@ def moveDriveFile(users):
               if parentId != folderId or copyMoveOptions['copySubFolderParents'] == COPY_ALL_PARENTS:
                 child['parents'].append(parentId)
           child['oldparents'] = childParents
-          _recursiveFolderMove(drive, user, i, count, k, kcount, child, childTitle, subTargetChildren, False, newFolderId)
+          _recursiveFolderMove(drive, user, i, count, k, kcount,
+                               child, subTargetChildren, newFolderId, childTitle, False)
         else:
           if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, childTitle, subTargetChildren, copyMoveOptions, statistics):
             copyMoveOptions['retainSourceFolders'] = True
@@ -47274,15 +47458,23 @@ def moveDriveFile(users):
     Act.Set(Act.MOVE)
     return
 
+  def anyFolderPermissionOperations():
+    for field in ['copyMergeWithParentFolderPermissions',
+                  'copyMergedTopFolderPermissions', 'copyMergedSubFolderPermissions',
+                  'copyTopFolderPermissions', 'copySubFolderPermissions']:
+      if copyMoveOptions[field]:
+        return True
+    return False
+
   fileIdEntity = getDriveFileEntity()
   parentBody = {}
   parentParms = initDriveFileAttributes()
-  copyMoveOptions = initCopyMoveOptions(True)
+  copyMoveOptions = initCopyMoveOptions(False)
   newParentsSpecified = False
   movedFiles = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if getCopyMoveOptions(myarg, copyMoveOptions, False):
+    if getCopyMoveOptions(myarg, copyMoveOptions):
       pass
     elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
@@ -47339,7 +47531,8 @@ def moveDriveFile(users):
         dest = _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statistics)
         if dest is None:
           continue
-        copyMoveOptions['destDriveId'] = dest.get('driveId')
+        copyMoveOptions['destDriveId'] = dest['driveId']
+        copyMoveOptions['destParentType'] = dest['destParentType']
         if copyMoveOptions['destDriveId'] and not parentParms[DFA_SEARCHARGS]:
           parentParms[DFA_SEARCHARGS] = {'driveId': copyMoveOptions['destDriveId'], 'corpora': 'drive',
                                          'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
@@ -47360,7 +47553,6 @@ def moveDriveFile(users):
 # If moving from My Drive to a Shared Drive, parents have to be recreated.
           if not copyMoveOptions['sourceDriveId']:
             copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
-#        copyMoveOptions.update(CLEAR_COPY_MOVE_FOLDER_PERMISSION_OPTIONS)
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):
@@ -47374,12 +47566,14 @@ def moveDriveFile(users):
               entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, destFilename], Msg.DUPLICATE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
               continue
-          if ((copyMoveOptions['sourceDriveId'] != copyMoveOptions['destDriveId']) or
-              copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain'] or copyMoveOptions['retainSourceFolders'] or
-              (copyMoveOptions['copySubFileParents'] != COPY_NONPATH_PARENTS) or (copyMoveOptions['copySubFolderParents'] != COPY_NONPATH_PARENTS) or
-              (copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destFilename, source['mimeType'], targetChildren))):
+          if ((not copyMoveOptions['sourceDriveId'] and copyMoveOptions['destDriveId']) or
+              (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain'] or copyMoveOptions['retainSourceFolders']) or
+              (copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destFilename, source['mimeType'], targetChildren)) or
+              (copyMoveOptions['copySubFileParents'] != COPY_NONPATH_PARENTS or copyMoveOptions['copySubFolderParents'] != COPY_NONPATH_PARENTS) or
+              anyFolderPermissionOperations()):
             source['oldparents'] = sourceParents
-            _recursiveFolderMove(drive, user, i, count, j, jcount, source, destFilename, targetChildren, True, newParentId)
+            _recursiveFolderMove(drive, user, i, count, j, jcount,
+                                 source, targetChildren, newParentId, destFilename, True)
             continue
           body = {'name': destFilename}
         else:
