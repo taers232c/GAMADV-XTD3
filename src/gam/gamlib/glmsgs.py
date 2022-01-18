@@ -139,6 +139,7 @@ BAD_REQUEST = 'Bad Request'
 BATCH = 'Batch'
 BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE = '"gam {0} - ..." is not compatible with debugging. Disable debugging by setting debug_level = 0 in gam.cfg'
 BATCH_NOT_PROCESSED_ERRORS = '{0}batch file: {1}, not processed, {2} {3}\n'
+CAN_NOT_DELETE_USER_WITH_VAULT_HOLD = '{0}: The user may be (or have recently been) on Google Vault Hold and thus not eligible for deletion. You can check holds with "gam user {1} show vaultholds".'
 CAN_NOT_BE_DOWNLOADED = 'Can not be downloaded'
 CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE = 'Argument {0} can not be specified more than once'
 COLUMN_DOES_NOT_MATCH_ANY_INPUT_COLUMNS = '{0} column "{1}" does not match any input columns'
@@ -338,6 +339,7 @@ Go to the following link in your browser:
     {url}
 """
 ON_CURRENT_PRIVATE_KEY = ' on current key'
+ON_VAULT_HOLD = 'On Google Vault Hold'
 ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES = 'Only administrators can perform Shared Drive queries'
 ONLY_ONE_DEVICE_SELECTION_ALLOWED = 'Only one device selection allowed, filter = "{0}"'
 ONLY_ONE_JSON_RANGE_ALLOWED = 'Only one range/json allowed'

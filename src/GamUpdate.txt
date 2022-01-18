@@ -3,17 +3,37 @@
 Added the following options to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`
 that provide more flexibility in managing permissions when copying/moving folders.
 ```
-copyfileinheritedpermissions (copy only)
-copytopfolderinheritedpermissions
-copysubfolderinheritedpermissions
-copymergewithparentfolderpermissions
-copymergedtopfolderpermissions
-copymergedsubfolderpermissions
-synctopfoldernoninheritedpermissions
-syncsubfoldernoninheritedpermissions
+copyfileinheritedpermissions [<Boolean>]
+copyfilenoninheritedpermissions [<Boolean>]
+copymergewithparentfolderpermissions [<Boolean>]
+copymergedtopfolderpermissions [<Boolean>]
+copytopfolderiheritedpermissions [<Boolean>]
+copytopfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders
+copymergedsubfolderpermissions [<Boolean>]
+copysubfolderinheritedpermissions [<Boolean>]
+copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders
 ```
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Copy-Move#copy-permissions
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Copy-Move#move-permissions
+
+Following Jay's lead, added command `gam <UserTypeEntity> show vaultholds` to display all vault holds
+affecting a user. This allows you to investigate the error `Delete Failed: Precondition is not met.`
+when trying to delete a user.
+
+Added option `buildpath [<Boolean>]` to `gam <UserTypeEntity> create filter label <LabelName>` that controls whether
+`<LabelNames>` of the form `Top/Middle/Bottom` will be created as single-level or multi-level.
+
+Added option `hidden <Boolean>' to `gam <UserTypeEntity> update teamdrive`.
+
+Fixed bug in `gam print|show matters matterstate <MatterStateList>` that caused a trap.
+
+Fixed bug in `gam update mobile <MobileEntity> action block` that caused the following error:
+```
+ERROR: 400: invalidInput - Invalid value for: action_block is not a valid value
+```
+
+* Upgraded to Python 3.10.2
+* Updated google-api-python-client to version 2.35.0
 
 6.13.09
 

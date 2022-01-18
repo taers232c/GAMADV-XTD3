@@ -1468,6 +1468,37 @@ def getOrgUnitId(cd=None, orgUnit=None):
   except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
     accessErrorExit(cd)
 
+def getAllParentOrgUnitsForUser(cd, user):
+  try:
+    result = callGAPI(cd.users(), 'get',
+                      throwReasons=GAPI.USER_GET_THROW_REASONS,
+                      userKey=user, fields='orgUnitPath', projection='basic')
+  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
+    entityDoesNotExistExit(Ent.USER, user)
+  except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+    accessErrorExit(cd)
+  parentPath = result['orgUnitPath']
+  if parentPath == '/':
+    orgUnitPath, orgUnitId = getOrgUnitId(cd, '/')
+    return {orgUnitId: orgUnitPath}
+  parentPath = encodeOrgUnitPath(makeOrgUnitPathRelative(parentPath))
+  orgUnits = {}
+  while True:
+    try:
+      result = callGAPI(cd.orgunits(), 'get',
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=parentPath,
+                        fields='orgUnitId,orgUnitPath,parentOrgUnitId')
+      orgUnits[result['orgUnitId']] = result['orgUnitPath']
+      if 'parentOrgUnitId' not in result:
+        break
+      parentPath = result['parentOrgUnitId']
+    except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
+      entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, parentPath)
+    except (GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+      accessErrorExit(cd)
+  return orgUnits
+
 def validateREPattern(patstr, flags=0):
   try:
     return re.compile(patstr, flags)
@@ -4856,7 +4887,8 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None,
                         userKey=normalizedEmailAddressOrUID, fields='primaryEmail')
       if 'primaryEmail' in result:
         return result['primaryEmail'].lower()
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       pass
   if 'group' in emailTypes:
     try:
@@ -4891,7 +4923,8 @@ def convertEmailAddressToUID(emailAddressOrUID, cd=None, emailType='user', saved
       return callGAPI(cd.users(), 'get',
                       throwReasons=GAPI.USER_GET_THROW_REASONS,
                       userKey=normalizedEmailAddressOrUID, fields='id')['id']
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       if emailType == 'user':
         if savedLocation is not None:
           Cmd.SetLocation(savedLocation)
@@ -4915,7 +4948,8 @@ def convertUserIDtoEmail(uid, cd=None):
       primaryEmail = callGAPI(cd.users(), 'get',
                               throwReasons=GAPI.USER_GET_THROW_REASONS,
                               userKey=uid, fields='primaryEmail')['primaryEmail']
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       primaryEmail = f'uid:{uid}'
     GM.Globals[GM.MAP_USER_ID_TO_NAME][uid] = primaryEmail
   return primaryEmail
@@ -4936,7 +4970,8 @@ def splitEmailAddressOrUID(emailAddressOrUID):
       normalizedEmailAddressOrUID = result['primaryEmail'].lower()
       atLoc = normalizedEmailAddressOrUID.find('@')
       return (normalizedEmailAddressOrUID, normalizedEmailAddressOrUID[:atLoc], normalizedEmailAddressOrUID[atLoc+1:])
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.badRequest, GAPI.backendError, GAPI.systemError):
     pass
   return (normalizedEmailAddressOrUID, normalizedEmailAddressOrUID, GC.Values[GC.DOMAIN])
 
@@ -6201,7 +6236,8 @@ def checkUserExists(cd, user, entityType=Ent.USER, i=0, count=0):
     return callGAPI(cd.users(), 'get',
                     throwReasons=GAPI.USER_GET_THROW_REASONS,
                     userKey=user, fields='primaryEmail')['primaryEmail']
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.badRequest, GAPI.backendError, GAPI.systemError):
     entityUnknownWarning(entityType, user, i, count)
     return None
 
@@ -10557,7 +10593,8 @@ def doWhatIs():
     return
   except (GAPI.userNotFound, GAPI.badRequest):
     pass
-  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError):
+  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.backendError, GAPI.systemError):
     entityUnknownWarning(Ent.EMAIL, email)
     setSysExitRC(ENTITY_IS_UKNOWN_RC)
     return
@@ -10765,7 +10802,7 @@ def doReportUsage():
       csvPF.GetTodriveParameters()
     elif myarg in {'start', 'startdate', 'end', 'enddate', 'range', 'thismonth', 'previousmonths'}:
       startEndTime.Get(myarg)
-    elif userReports and myarg in ['ou', 'org', 'orgunit']:
+    elif userReports and myarg in {'ou', 'org', 'orgunit'}:
       if cd is None:
         cd = buildGAPIObject(API.DIRECTORY)
       orgUnit, orgUnitId = getOrgUnitId(cd)
@@ -14500,7 +14537,8 @@ def infoAliases(entityList):
       continue
     except (GAPI.userNotFound, GAPI.badRequest):
       pass
-    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.backendError, GAPI.systemError):
+    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.backendError, GAPI.systemError):
       entityUnknownWarning(Ent.USER_ALIAS, aliasEmail, i, count)
       continue
     try:
@@ -18640,7 +18678,8 @@ def _getDelegateName(cd, delegateEmail, delegateNames):
                       throwReasons=GAPI.USER_GET_THROW_REASONS,
                       userKey=delegateEmail, fields='name(fullName)')
     delegateName = result.get('name', {'fullName': delegateEmail}).get('fullName', delegateEmail)
-  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.badRequest, GAPI.backendError, GAPI.systemError):
     delegateName = delegateEmail
   delegateNames[delegateEmail] = delegateName
   return delegateName
@@ -23823,7 +23862,7 @@ MOBILE_ACTION_CHOICE_MAP = {
   'adminremotewipe': 'admin_remote_wipe',
   'wipe': 'admin_remote_wipe',
   'approve': 'approve',
-  'block': 'action_block',
+  'block': 'block',
   'cancelremotewipethenactivate': 'cancel_remote_wipe_then_activate',
   'cancelremotewipethenblock': 'cancel_remote_wipe_then_block',
   }
@@ -26871,8 +26910,8 @@ def doPrintGroupMembers():
                 peopleNames[memberId] = getNameFromPeople(memberId)
               if peopleNames[memberId]:
                 row['name'] = peopleNames[memberId]
-          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
-                  GAPI.backendError, GAPI.systemError, GAPI.serviceNotAvailable):
+          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+                  GAPI.badRequest, GAPI.backendError, GAPI.systemError, GAPI.serviceNotAvailable):
             pass
         elif memberType == Ent.TYPE_GROUP:
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
@@ -32776,6 +32815,89 @@ def doPrintShowVaultHolds():
   if csvPF:
     csvPF.writeCSVfile('Vault Holds')
 
+PRINT_USER_VAULT_HOLDS_TITLES = ['User', 'matterId', 'matterName', 'holdId', 'name', 'orgUnitId', 'orgUnitPath']
+
+# gam <UserTypeEntity> print vaultholds|holds [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> show vaultholds|holds
+def printShowUserVaultHolds(entityList):
+  cd = buildGAPIObject(API.DIRECTORY)
+  v = buildGAPIObject(API.VAULT)
+  csvPF = CSVPrintFile(PRINT_USER_VAULT_HOLDS_TITLES, 'sortall') if Act.csvFormat() else None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      unknownArgumentExit()
+  printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=' (OPEN)')
+  try:
+    matters = callGAPIpages(v.matters(), 'list', 'matters',
+                            pageMessage=getPageMessage(),
+                            throwReasons=[GAPI.FORBIDDEN],
+                            view='BASIC', state='OPEN', fields='matters(matterId,name),nextPageToken')
+  except GAPI.forbidden as e:
+    entityActionFailedWarning([Ent.VAULT_HOLD, None], str(e))
+    return
+  jcount = len(matters)
+  j = 0
+  for matter in matters:
+    j += 1
+    matterId = matter['matterId']
+    matterName = matter['name']
+    matterNameId = formatVaultNameId(matterName, matterId)
+    printGettingAllEntityItemsForWhom(Ent.VAULT_HOLD, f'{Ent.Singular(Ent.VAULT_MATTER)}: {matterNameId}', j, jcount)
+    pageMessage = getPageMessageForWhom()
+    try:
+      matter['holds'] = callGAPIpages(v.matters().holds(), 'list', 'holds',
+                                      pageMessage=pageMessage,
+                                      throwReasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                                      matterId=matterId, fields='holds(holdId,name,accounts(accountId,email),orgUnit(orgUnitId)),nextPageToken')
+    except GAPI.failedPrecondition:
+      warnMatterNotOpen(matter, matterNameId, j, jcount)
+    except GAPI.forbidden as e:
+      entityActionFailedWarning([Ent.VAULT_HOLD, None], str(e), j, jcount)
+  totalHolds = 0
+  _, _, entityList = getEntityArgument(entityList)
+  for user in entityList:
+    user = normalizeEmailAddressOrUID(user)
+    orgUnits = getAllParentOrgUnitsForUser(cd, user)
+    for matter in matters:
+      matterId = matter['matterId']
+      matterName = matter['name']
+      matterNameId = formatVaultNameId(matterName, matterId)
+      for hold in matter['holds']:
+        if 'orgUnit' in hold:
+          orgUnitId = hold['orgUnit'].get('orgUnitId')
+          if orgUnitId in orgUnits:
+            if not csvPF:
+              printEntityMessage([Ent.USER, user,
+                                  Ent.ORGANIZATIONAL_UNIT, orgUnits[orgUnitId],
+                                  Ent.VAULT_MATTER, formatVaultNameId(matter['name'], matter['matterId']),
+                                  Ent.VAULT_HOLD, formatVaultNameId(hold['name'], hold['holdId'])],
+                                 Msg.ON_VAULT_HOLD)
+            else:
+              csvPF.WriteRow({'User': user, 'matterId': matterId, 'matterName': matterName,
+                              'holdId': hold['holdId'], 'name': hold['name'],
+                              'orgUnitId': orgUnitId, 'orgUnitPath': orgUnits[orgUnitId]})
+            totalHolds += 1
+        else:
+          for account in hold.get('accounts', []):
+            if user == account.get('email', '').lower() or user == account.get('accountId', ''):
+              if not csvPF:
+                printEntityMessage([Ent.USER, user,
+                                    Ent.VAULT_MATTER, formatVaultNameId(matter['name'], matter['matterId']),
+                                    Ent.VAULT_HOLD, formatVaultNameId(hold['name'], hold['holdId'])],
+                                   Msg.ON_VAULT_HOLD)
+              else:
+                csvPF.WriteRow({'User': user, 'matterId': matterId, 'matterName': matterName,
+                                'holdId': hold['holdId'], 'name': hold['name']})
+              totalHolds += 1
+              break
+  if csvPF:
+    csvPF.writeCSVfile('User Vault Holds')
+  else:
+    printKeyValueList(['Total Holds', totalHolds])
+
 def validateCollaborators(cd):
   collaborators = []
   for collaborator in getEntityList(Cmd.OB_COLLABORATOR_ENTITY):
@@ -33021,7 +33143,8 @@ def doPrintShowVaultMatters():
           userEmail = callGAPI(cd.users(), 'get',
                                throwReasons=GAPI.USER_GET_THROW_REASONS,
                                userKey=userId, fields='primaryEmail').get('primaryEmail')
-        except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+        except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+                GAPI.badRequest, GAPI.backendError, GAPI.systemError):
           userEmail = 'Unknown user'
         emails[userId] = userEmail
       matterPermission['email'] = emails[userId]
@@ -33037,7 +33160,6 @@ def doPrintShowVaultMatters():
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'matterstate':
-      fieldsList.append('state')
       for state in getString(Cmd.OB_STATE_NAME_LIST).lower().replace('_', '').replace(',', ' ').split():
         if state in VAULT_MATTER_STATE_MAP:
           matterStatesList.append(VAULT_MATTER_STATE_MAP[state])
@@ -33049,6 +33171,8 @@ def doPrintShowVaultMatters():
       pass
     else:
       unknownArgumentExit()
+  if fieldsList and matterStatesList:
+    fieldsList.append('state')
   fields = f'nextPageToken,matters({getFieldsFromFieldsList(fieldsList)})' if fieldsList else None
   # If no states are set, there is no filtering; if 1 state is set, the API can filter; else GAM filters
   matterStates = set()
@@ -34763,7 +34887,8 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
   except GAPI.userNotFound:
     if createIfNotFound:
       return True
-  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.badRequest, GAPI.backendError, GAPI.systemError):
     pass
   entityUnknownWarning(Ent.USER, user, i, count)
   return False
@@ -34923,9 +35048,10 @@ def deleteUsers(entityList):
       entityActionPerformed([Ent.USER, user], i, count)
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.conditionNotMet) as e:
+    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-
+    except GAPI.conditionNotMet as e:
+      entityActionFailedWarning([Ent.USER, user], Msg.CAN_NOT_DELETE_USER_WITH_VAULT_HOLD.format(str(e), user), i, count)
 # gam delete users <UserTypeEntity> [noactionifalias]
 def doDeleteUsers():
   deleteUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
@@ -35880,8 +36006,8 @@ def doPrintUsers(entityList=None):
           _printUser(user, int(ri[RI_J]), int(ri[RI_JCOUNT]))
         except (GAPI.userNotFound, GAPI.resourceNotFound):
           entityUnknownWarning(Ent.USER, ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
-        except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
-                GAPI.backendError, GAPI.systemError, GAPI.rateLimitExceeded) as e:
+        except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+                GAPI.badRequest, GAPI.backendError, GAPI.systemError, GAPI.rateLimitExceeded) as e:
           entityActionFailedWarning([Ent.USER, ri[RI_ITEM]], str(e), int(ri[RI_J]), int(ri[RI_JCOUNT]))
         except GAPI.invalidInput as e:
           if customFieldMask:
@@ -36111,8 +36237,8 @@ def doPrintUsers(entityList=None):
             _printUser(user, j, jcount)
           except (GAPI.userNotFound, GAPI.resourceNotFound):
             entityUnknownWarning(Ent.USER, userEmail, j, jcount)
-          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
-                  GAPI.backendError, GAPI.systemError, GAPI.rateLimitExceeded) as e:
+          except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+                  GAPI.badRequest, GAPI.backendError, GAPI.systemError, GAPI.rateLimitExceeded) as e:
             entityActionFailedWarning([Ent.USER, userEmail], str(e), j, jcount)
           except GAPI.invalidInput as e:
             if customFieldMask:
@@ -42270,7 +42396,8 @@ def printDriveActivity(users):
                           throwReasons=GAPI.USER_GET_THROW_REASONS,
                           userKey=userId, fields='primaryEmail,name.fullName')
         entry = (result['primaryEmail'], result['name']['fullName'])
-      except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+      except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+              GAPI.badRequest, GAPI.backendError, GAPI.systemError):
         entry = (f'uid:{userId}', 'Unknown')
       userInfo[userId] = entry
     return entry
@@ -46319,6 +46446,17 @@ DEST_PARENT_MYDRIVE_FOLDER = 1
 DEST_PARENT_SHAREDDRIVE_ROOT = 2
 DEST_PARENT_SHAREDDRIVE_FOLDER = 3
 
+COPY_NONINHERITED_PERMISSIONS_NEVER = 0
+COPY_NONINHERITED_PERMISSIONS_ALWAYS = 1
+COPY_NONINHERITED_PERMISSIONS_SYNC_ALL_FOLDERS = 2
+COPY_NONINHERITED_PERMISSIONS_SYNC_UPDATED_FOLDERS = 3
+COPY_NONINHERITED_PERMISSIONS_CHOICES_MAP = {
+  'never': COPY_NONINHERITED_PERMISSIONS_NEVER,
+  'always': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
+  'syncallfolders': COPY_NONINHERITED_PERMISSIONS_SYNC_ALL_FOLDERS,
+  'syncupdatedfolders': COPY_NONINHERITED_PERMISSIONS_SYNC_UPDATED_FOLDERS,
+  }
+
 def initCopyMoveOptions(copyCmd):
   return {
     'copyCmd': copyCmd,
@@ -46341,6 +46479,7 @@ def initCopyMoveOptions(copyCmd):
     'copySubFolderParents': COPY_NONPATH_PARENTS,
     'copyFilePermissions': False,
     'copyFileInheritedPermissions': True,
+    'copyFileNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
     'copyMergeWithParentFolderPermissions': False,
     'copyMergedTopFolderPermissions': copyCmd,
     'copyMergedSubFolderPermissions': copyCmd,
@@ -46348,10 +46487,12 @@ def initCopyMoveOptions(copyCmd):
     'copySubFolderPermissions': True,
     'copyTopFolderInheritedPermissions': True,
     'copySubFolderInheritedPermissions': True,
-    'syncTopFolderNonInheritedPermissions': False,
-    'syncSubFolderNonInheritedPermissions': False,
-    'noSyncNonInheritedPermissions': False,
+    'copyTopFolderNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
+    'copySubFolderNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
+    'noCopyNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_NEVER,
     'copySheetProtectedRanges': False,
+    'copyInheritedSheetProtectedRanges': True,
+    'copyNonInheritedSheetProtectedRanges': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
     }
 
 DUPLICATE_FILE_CHOICES = {
@@ -46394,16 +46535,20 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
     copyMoveOptions['copyMergeWithParentFolderPermissions'] = getBoolean()
   elif myarg == 'copymergedtopfolderpermissions':
     copyMoveOptions['copyMergedTopFolderPermissions'] = getBoolean()
-  elif myarg == 'copymergedsubfolderpermissions':
-    copyMoveOptions['copyMergedSubFolderPermissions'] = getBoolean()
   elif myarg == 'copytopfolderpermissions':
     copyMoveOptions['copyTopFolderPermissions'] = getBoolean()
-  elif myarg == 'copysubfolderpermissions':
-    copyMoveOptions['copySubFolderPermissions'] = getBoolean()
   elif myarg == 'copytopfolderinheritedpermissions':
     copyMoveOptions['copyTopFolderInheritedPermissions'] = getBoolean()
+  elif myarg == 'copytopfoldernoninheritedpermissions':
+    copyMoveOptions['copyTopFolderNonInheritedPermissions'] = getChoice(COPY_NONINHERITED_PERMISSIONS_CHOICES_MAP, mapChoice=True)
+  elif myarg == 'copymergedsubfolderpermissions':
+    copyMoveOptions['copyMergedSubFolderPermissions'] = getBoolean()
+  elif myarg == 'copysubfolderpermissions':
+    copyMoveOptions['copySubFolderPermissions'] = getBoolean()
   elif myarg == 'copysubfolderinheritedpermissions':
     copyMoveOptions['copySubFolderInheritedPermissions'] = getBoolean()
+  elif myarg == 'copysubfoldernoninheritedpermissions':
+    copyMoveOptions['copySubFolderNonInheritedPermissions'] = getChoice(COPY_NONINHERITED_PERMISSIONS_CHOICES_MAP, mapChoice=True)
   else:
     if not copyMoveOptions['copyCmd']:
       if myarg == 'retainsourcefolders':
@@ -46431,10 +46576,8 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
         copyMoveOptions['copyFilePermissions'] = getBoolean()
       elif myarg == 'copyfileinheritedpermissions':
         copyMoveOptions['copyFileInheritedPermissions'] = getBoolean()
-      elif myarg == 'synctopfoldernoninheritedpermissions':
-        copyMoveOptions['syncTopFolderNonInheritedPermissions'] = getBoolean()
-      elif myarg == 'syncsubfoldernoninheritedpermissions':
-        copyMoveOptions['syncSubFolderNonInheritedPermissions'] = getBoolean()
+      elif myarg == 'copyfilenoninheritedpermissions':
+        copyMoveOptions['copyFileNonInheritedPermissions'] = COPY_NONINHERITED_PERMISSIONS_ALWAYS if getBoolean() else COPY_NONINHERITED_PERMISSIONS_ALWAYS
       elif myarg == 'copysheetprotectedranges':
         copyMoveOptions['copySheetProtectedRanges'] = getBoolean()
       else:
@@ -46491,7 +46634,7 @@ def _getUniqueFilename(destFilename, mimeType, targetChildren):
 
 def _copyPermissions(drive, user, i, count, j, jcount,
                      entityType, fileId, fileTitle, newFileId, newFileTitle,
-                     statistics, stat, copyMoveOptions, copyInherited, syncNonInherited):
+                     statistics, stat, copyMoveOptions, copyInherited, copyNonInherited):
   def getPermissions(fid):
     permissions = {}
     try:
@@ -46518,11 +46661,19 @@ def _copyPermissions(drive, user, i, count, j, jcount,
   def isPermissionCopyable(permission):
     role = permission['role']
     if permission['inherited'] and not copyMoveOptions[copyInherited]:
-      notCopiedMessage = "inherited"
+      notCopiedMessage = "inherited not selected"
+    elif not permission['inherited'] and copyMoveOptions[copyNonInherited] == COPY_NONINHERITED_PERMISSIONS_NEVER:
+      notCopiedMessage = "noninherited not selected"
     elif role == 'owner':
       notCopiedMessage = f"role {role} copy not required/appropriate"
     elif permission.pop('deleted', False):
       notCopiedMessage = f"{permission['type']} {permission['emailAddress']} deleted"
+    elif ((copyInherited == 'copyInheritedSheetProtectedRanges' and copyMoveOptions[copyInherited]) or
+          (copyNonInherited == 'copyNonInheritedSheetProtectedRanges' and
+           copyMoveOptions[copyNonInherited] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
+      if role in {'organizer', 'fileOrganizer'}:
+        permission['role'] = 'writer'
+      return True
     elif role == 'organizer':
       notCopiedMessage = f"role {role} not copyable to {Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER)}"
     elif role == 'fileOrganizer' and entityType == Ent.DRIVE_FILE:
@@ -46551,7 +46702,8 @@ def _copyPermissions(drive, user, i, count, j, jcount,
   for permissionId, permission in iter(sourcePerms.items()):
     if isPermissionCopyable(permission):
       copySourcePerms[permissionId] = permission
-  if copyMoveOptions[syncNonInherited]:
+  if copyMoveOptions[copyNonInherited] in {COPY_NONINHERITED_PERMISSIONS_SYNC_ALL_FOLDERS,
+                                           COPY_NONINHERITED_PERMISSIONS_SYNC_UPDATED_FOLDERS}:
     targetPerms = getPermissions(newFileId)
     if targetPerms is None:
       return
@@ -46746,7 +46898,7 @@ def _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statis
   try:
     result = callGAPI(drive.files(), 'get',
                       throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
-                      fileId=newParentId, fields='name,driveId,parents', supportsAllDrives=True)
+                      fileId=newParentId, fields='name,driveId,parents,modifiedTime', supportsAllDrives=True)
     if 'driveId' not in result:
       result['driveId'] = None
       if result['name'] == MY_DRIVE and not result.get('parents', []):
@@ -46805,27 +46957,41 @@ def _verifyUserIsOrganizer(drive, user, i, count, fileId):
     entityActionNotPerformedWarning([Ent.USER, user], Msg.UNABLE_TO_GET_PERMISSION_ID.format(user), i, count)
   return False
 
+def _getCopyFolderNonInheritedPermissions(copyMoveOptions, copyNonInherited, sourceModifiedTime, targetModifiedTime):
+  if ((copyMoveOptions[copyNonInherited] == COPY_NONINHERITED_PERMISSIONS_NEVER) or
+      ((copyMoveOptions[copyNonInherited] == COPY_NONINHERITED_PERMISSIONS_SYNC_UPDATED_FOLDERS) and
+       (sourceModifiedTime <= targetModifiedTime))):
+    return 'noCopyNonInheritedPermissions'
+  return copyNonInherited
+
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity>
 #	[newfilename <DriveFileName>] [stripnameprefix <String>]
 #	[excludetrashed] [returnidonly|returnlinkonly]
 #	[summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
-#	<DriveFileCopyAttribute>*
+#	[<DriveFileParentAttribute>]
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
+#	<DriveFileCopyAttribute>*
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copytopfileparents none] [copytopfolderparents none]
 #	[copysubfileparents none] [copysubfolderparents none]
-#	[copyfilepermissions [<Boolean>]] [copyfileinheritedpermissions [<Boolean>]
+#	[copyfilepermissions [<Boolean>]]
+#	[copyfileinheritedpermissions [<Boolean>]
+#	[copyfilenoninheritedpermissions [<Boolean>]
 #	[copymergewithparentfolderpermissions [<Boolean>]]
-#	[copymergedtopfolderpermissions [<Boolean>]] [copymergedsubfolderpermissions [<Boolean>]]
-#	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
-#	[copytopfolderiheritedpermissions [<Boolean>]] [copysubfolderinheritedpermissions [<Boolean>]]
-#	[synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
+#	[copymergedtopfolderpermissions [<Boolean>]]
+#	[copytopfolderpermissions [<Boolean>]]
+#	[copytopfolderiheritedpermissions [<Boolean>]]
+#	[copytopfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
+#	[copymergedsubfolderpermissions [<Boolean>]]
+#	[copysubfolderpermissions [<Boolean>]]
+#	[copysubfolderinheritedpermissions [<Boolean>]]
+#	[copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
 #	[copysheetprotectedranges [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def copyDriveFile(users):
   def _cloneFolderCopy(drive, user, i, count, j, jcount,
-                       source, targetChildren, newParentId, newFolderTitle,
+                       source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
                        statistics, copyMoveOptions, atTop):
     folderId = source.pop('id')
     folderTitle = source['name']
@@ -46837,13 +47003,18 @@ def copyDriveFile(users):
                                                          [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
       Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_MERGED)
-###### 6.14.00
       if (copyMoveOptions['copyMergeWithParentFolderPermissions'] and
           copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT):
+        copyFolderNonInheritedPermissions =\
+            _getCopyFolderNonInheritedPermissions(copyMoveOptions,
+                                                  'copyTopFolderNonInheritedPermissions',
+                                                  source['modifiedTime'], mergeParentModifiedTime)
         _copyPermissions(drive, user, i, count, j, jcount,
                          Ent.DRIVE_FOLDER, folderId, folderTitle, newParentId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                         copyMoveOptions, 'copyTopFolderInheritedPermissions', 'syncTopFolderNonInheritedPermissions')
+                         copyMoveOptions,
+                         'copyTopFolderInheritedPermissions',
+                         copyFolderNonInheritedPermissions)
       source.pop('oldparents', None)
       return (newParentId, True)
 # Merge parent folders
@@ -46861,15 +47032,19 @@ def copyDriveFile(users):
                                                                [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
             Act.Set(action)
             _incrStatistic(statistics, STAT_FOLDER_MERGED)
-###### 6.14.00
             if (copyMoveOptions[['copyMergedSubFolderPermissions', 'copyMergedTopFolderPermissions'][atTop]] and
                 (not atTop or copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT)):
+
+              copyFolderNonInheritedPermissions =\
+                  _getCopyFolderNonInheritedPermissions(copyMoveOptions,
+                                                        ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop],
+                                                        source['modifiedTime'], target['modifiedTime'])
               _copyPermissions(drive, user, i, count, j, jcount,
                                Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                                statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                                copyMoveOptions,
                                ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
-                               ['syncSubFolderNonInheritedPermissions', 'syncTopFolderNonInheritedPermissions'][atTop])
+                               copyFolderNonInheritedPermissions)
             return (newFolderId, True)
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.NOT_WRITABLE, j, jcount)
           _incrStatistic(statistics, STAT_FOLDER_NOT_WRITABLE)
@@ -46895,7 +47070,7 @@ def copyDriveFile(users):
       result = callGAPI(drive.files(), 'create',
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR,
                                                                     GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.BAD_REQUEST],
-                        body=body, fields='id,webViewLink', supportsAllDrives=True)
+                        body=body, fields='id,webViewLink,modifiedTime', supportsAllDrives=True)
       newFolderId = result['id']
       if returnIdLink:
         writeStdout(f'{result[returnIdLink]}\n')
@@ -46910,7 +47085,7 @@ def copyDriveFile(users):
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                          copyMoveOptions,
                          ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
-                         'noSyncNonInheritedPermissions')
+                         ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop])
       return (newFolderId, False)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError,
             GAPI.teamDriveHierarchyTooDeep, GAPI.badRequest) as e:
@@ -46922,10 +47097,11 @@ def copyDriveFile(users):
     return (None, False)
 
   def _recursiveFolderCopy(drive, user, i, count, j, jcount,
-                           source, targetChildren, newParentId, newFolderTitle, atTop, depth):
+                           source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
+                           atTop, depth):
     folderId = source['id']
     newFolderId, existingTargetFolder = _cloneFolderCopy(drive, user, i, count, j, jcount,
-                                                         source, targetChildren, newParentId, newFolderTitle,
+                                                         source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
                                                          statistics, copyMoveOptions, atTop)
     if newFolderId is None:
       return
@@ -46975,7 +47151,8 @@ def copyDriveFile(users):
         child['parents'] = [newFolderId]
         if child['mimeType'] == MIMETYPE_GA_FOLDER:
           _recursiveFolderCopy(drive, user, i, count, k, kcount,
-                               child, subTargetChildren, newFolderId, childTitle, False, depth)
+                               child, subTargetChildren, newFolderId, childTitle, child['modifiedTime'],
+                               False, depth)
         else:
           if not child.pop('capabilities')['canCopy']:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
@@ -46999,17 +47176,24 @@ def copyDriveFile(users):
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], k, kcount)
             _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
             copiedFiles[result['id']] = 1
-            if copyMoveOptions['copyFilePermissions'] or (copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET):
-              if copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET:
-                protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, k, kcount, childId, childTitle,
-                                                                statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
+            if (copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET):
+              protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, k, kcount, childId, childTitle,
+                                                              statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
               _copyPermissions(drive, user, i, count, k, kcount,
                                Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED,
-                               copyMoveOptions, 'copyFileInheritedPermissions', 'noSyncNonInheritedPermissions')
-              if copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET and protectedSheetRanges:
-                _updateSheetProtectedRanges(sheet, user, i, count, k, kcount, result['id'], result['name'], protectedSheetRanges,
-                                            statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
+                               copyMoveOptions,
+                               'copyInheritedSheetProtectedRanges',
+                               'copyNonInheritedSheetProtectedRanges')
+              _updateSheetProtectedRanges(sheet, user, i, count, k, kcount, result['id'], result['name'], protectedSheetRanges,
+                                          statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
+            elif copyMoveOptions['copyFilePermissions']:
+              _copyPermissions(drive, user, i, count, k, kcount,
+                               Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
+                               statistics, STAT_FILE_PERMISSIONS_FAILED,
+                               copyMoveOptions,
+                               'copyFileInheritedPermissions',
+                               'copyFileNonInheritedPermissions')
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                   GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
                   GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
@@ -47152,11 +47336,12 @@ def copyDriveFile(users):
               continue
           if recursive:
             _recursiveFolderCopy(drive, user, i, count, j, jcount,
-                                 source, targetChildren, newParentId, destFilename, True, 0)
+                                 source, targetChildren, newParentId, destFilename, dest['modifiedTime'],
+                                 True, 0)
           else:
             source.update(copyBody)
             _cloneFolderCopy(drive, user, i, count, j, jcount,
-                             source, targetChildren, newParentId, destFilename,
+                             source, targetChildren, newParentId, destFilename, dest['modifiedTime'],
                              statistics, copyMoveOptions, True)
         else:
           if not source.pop('capabilities')['canCopy']:
@@ -47197,7 +47382,9 @@ def copyDriveFile(users):
             _copyPermissions(drive, user, i, count, j, jcount,
                              Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
                              statistics, STAT_FILE_PERMISSIONS_FAILED,
-                             copyMoveOptions, 'copyFileInheritedPermissions', 'noSyncNonInheritedPermissions')
+                             copyMoveOptions,
+                             'copyFileInheritedPermissions',
+                             'copyFileNonInheritedPermissions')
             if copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET and protectedSheetRanges:
               _updateSheetProtectedRanges(sheet, user, i, count, j, jcount, result['id'], result['name'], protectedSheetRanges,
                                           statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
@@ -47222,15 +47409,20 @@ def copyDriveFile(users):
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
 #	[copymergewithparentfolderpermissions [<Boolean>]]
-#	[copymergedtopfolderpermissions [<Boolean>]] [copymergedsubfolderpermissions [<Boolean>]]
-#	[copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
-#	[copytopfolderiheritedpermissions [<Boolean>]] [copysubfolderinheritedpermissions [<Boolean>]]
+#	[copymergedtopfolderpermissions [<Boolean>]]
+#	[copytopfolderpermissions [<Boolean>]]
+#	[copytopfolderiheritedpermissions [<Boolean>]]
+#	[copytopfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
+#	[copymergedsubfolderpermissions [<Boolean>]]
+#	[copysubfolderpermissions [<Boolean>]]
+#	[copysubfolderinheritedpermissions [<Boolean>]]
+#	[copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
 #	[synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
 #	[retainsourcefolders [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def moveDriveFile(users):
   def _cloneFolderMove(drive, user, i, count, j, jcount,
-                       source, targetChildren, newParentId, newFolderTitle,
+                       source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
                        statistics, copyMoveOptions, atTop):
     folderId = source.pop('id')
     folderTitle = source['name']
@@ -47242,13 +47434,18 @@ def moveDriveFile(users):
                                                        [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
       Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_MERGED)
-###### 6.14.00
       if (copyMoveOptions['copyMergeWithParentFolderPermissions'] and
           copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT):
+        copyFolderNonInheritedPermissions =\
+            _getCopyFolderNonInheritedPermissions(copyMoveOptions,
+                                                  'copyTopFolderNonInheritedPermissions',
+                                                  source['modifiedTime'], mergeParentModifiedTime)
         _copyPermissions(drive, user, i, count, j, jcount,
                          Ent.DRIVE_FOLDER, folderId, folderTitle, newParentId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                         copyMoveOptions, 'copyTopFolderInheritedPermissions', 'syncTopFolderNonInheritedPermissions')
+                         copyMoveOptions,
+                         'copyTopFolderInheritedPermissions',
+                         copyFolderNonInheritedPermissions)
       source.pop('oldparents', None)
       return (newParentId, True)
     if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
@@ -47265,14 +47462,18 @@ def moveDriveFile(users):
                                                                [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
             Act.Set(action)
             _incrStatistic(statistics, STAT_FOLDER_MERGED)
-###### 6.14.00
             if (copyMoveOptions[['copyMergedSubFolderPermissions', 'copyMergedTopFolderPermissions'][atTop]] and
                 (not atTop or copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT)):
+              copyFolderNonInheritedPermissions =\
+                  _getCopyFolderNonInheritedPermissions(copyMoveOptions,
+                                                        ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop],
+                                                        source['modifiedTime'], target['modifiedTime'])
               _copyPermissions(drive, user, i, count, j, jcount,
                                Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                                statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                               copyMoveOptions, ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
-                               copyMoveOptions, ['syncSubFolderNonInheritedPermissions', 'syncTopFolderNonInheritedPermissions'][atTop])
+                               copyMoveOptions,
+                               ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
+                               copyFolderNonInheritedPermissions)
             return (newFolderId, True)
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.NOT_WRITABLE, j, jcount)
           _incrStatistic(statistics, STAT_FOLDER_NOT_WRITABLE)
@@ -47341,7 +47542,7 @@ def moveDriveFile(users):
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                          copyMoveOptions,
                          ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
-                         'noSyncNonInheritedPermissions')
+                         ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop])
       return (newFolderId, False)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError, GAPI.teamDriveHierarchyTooDeep) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
@@ -47352,10 +47553,10 @@ def moveDriveFile(users):
     return (None, False)
 
   def _recursiveFolderMove(drive, user, i, count, j, jcount,
-                           source, targetChildren, newParentId, newFolderTitle, atTop):
+                           source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime, atTop):
     folderId = source['id']
     newFolderId, existingTargetFolder = _cloneFolderMove(drive, user, i, count, j, jcount,
-                                                         source, targetChildren, newParentId, newFolderTitle,
+                                                         source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
                                                          statistics, copyMoveOptions, atTop)
     if newFolderId is None:
       return
@@ -47403,7 +47604,7 @@ def moveDriveFile(users):
                 child['parents'].append(parentId)
           child['oldparents'] = childParents
           _recursiveFolderMove(drive, user, i, count, k, kcount,
-                               child, subTargetChildren, newFolderId, childTitle, False)
+                               child, subTargetChildren, newFolderId, childTitle, child['modifiedTime'], False)
         else:
           if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, childTitle, subTargetChildren, copyMoveOptions, statistics):
             copyMoveOptions['retainSourceFolders'] = True
@@ -47573,7 +47774,7 @@ def moveDriveFile(users):
               anyFolderPermissionOperations()):
             source['oldparents'] = sourceParents
             _recursiveFolderMove(drive, user, i, count, j, jcount,
-                                 source, targetChildren, newParentId, destFilename, True)
+                                 source, targetChildren, newParentId, destFilename, dest['modifiedTime'], True)
             continue
           body = {'name': destFilename}
         else:
@@ -50745,7 +50946,7 @@ def _getTeamDriveRestrictions(myarg, body):
 # gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<TeamDriveRestrictionsFieldName> <Boolean>)*
-#	[hide <Boolean>]
+#	[hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
 def createTeamDrive(users, useDomainAdminAccess=False):
   requestId = str(uuid.uuid4())
@@ -50759,8 +50960,10 @@ def createTeamDrive(users, useDomainAdminAccess=False):
       pass
     elif _getTeamDriveRestrictions(myarg, updateBody):
       pass
-    elif myarg == 'hide':
+    elif myarg in {'hide', 'hidden'}:
       hide = getBoolean()
+    elif myarg in {'ou', 'org', 'orgunit'}:
+      _, body['orgUnitId'] = getOrgUnitId()
     elif myarg == 'returnidonly':
       returnIdOnly = True
     elif myarg == 'csv':
@@ -50773,7 +50976,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
       unknownArgumentExit()
   if csvPF:
     csvPF.SetTitles(['User', 'name', 'id'])
-  for field in ['backgroundImageFile', 'colorRgb']:
+  for field in ['backgroundImageFile', 'colorRgb', 'orgUnitId']:
     if field in body:
       updateBody[field] = body.pop(field)
   i, count, users = getEntityArgument(users)
@@ -50874,7 +51077,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
 # gam create|add teamdrive <Name>
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<TeamDriveRestrictionsFieldName> <Boolean>)*
-#	[hide <Boolean>]
+#	[hide|hidden <Boolean>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
 def doCreateTeamDrive():
   createTeamDrive([_getAdminEmail()], True)
@@ -50882,9 +51085,11 @@ def doCreateTeamDrive():
 # gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<TeamDriveRestrictionsFieldName> <Boolean>)*
+#	[hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 def updateTeamDrive(users, useDomainAdminAccess=False):
   fileIdEntity = getTeamDriveEntity()
   body = {}
+  hide = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'name':
@@ -50893,6 +51098,10 @@ def updateTeamDrive(users, useDomainAdminAccess=False):
       pass
     elif _getTeamDriveRestrictions(myarg, body):
       pass
+    elif myarg in {'hide', 'hidden'}:
+      hide = getBoolean()
+    elif myarg in {'ou', 'org', 'orgunit'}:
+      _, body['orgUnitId'] = getOrgUnitId()
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
     else:
@@ -50905,13 +51114,25 @@ def updateTeamDrive(users, useDomainAdminAccess=False):
       continue
     try:
       teamDriveId = fileIdEntity['teamdrive']['driveId']
-      result = callGAPI(drive.drives(), 'update',
-                        bailOnInternalError=True,
-                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
-                                                                    GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE,
-                                                                    GAPI.INTERNAL_ERROR, GAPI.FILE_NOT_FOUND],
-                        useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=body, fields='name')
-      entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_NAME, result['name'], Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+      if body:
+        result = callGAPI(drive.drives(), 'update',
+                          bailOnInternalError=True,
+                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
+                                                                      GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE,
+                                                                      GAPI.INTERNAL_ERROR, GAPI.FILE_NOT_FOUND],
+                          useDomainAdminAccess=useDomainAdminAccess, driveId=teamDriveId, body=body, fields='name')
+        entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_NAME, result['name'], Ent.TEAMDRIVE_ID, teamDriveId], i, count)
+      if hide is not None:
+        if hide:
+          Act.Set(Act.HIDE)
+          function = 'hide'
+        else:
+          Act.Set(Act.UNHIDE)
+          function = 'unhide'
+        callGAPI(drive.drives(), function,
+                 throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                 driveId=teamDriveId)
+        entityActionPerformed([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], i, count)
     except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.internalError,
             GAPI.noManageTeamDriveAdministratorPrivilege) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, teamDriveId], str(e), i, count)
@@ -50921,6 +51142,8 @@ def updateTeamDrive(users, useDomainAdminAccess=False):
                                 str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+    if hide is not None:
+      Act.Set(Act.UPDATE)
 
 def doUpdateTeamDrive():
   updateTeamDrive([_getAdminEmail()], True)
@@ -50991,6 +51214,12 @@ TEAMDRIVE_FIELDS_CHOICE_MAP = {
   'restrictions': 'restrictions',
   'themeid': 'themeId',
   }
+TEAMDRIVE_LIST_FIELDS_CHOICE_MAP = {
+  'org': 'orgUnitId',
+  'orgunit': 'orgUnitId',
+  'orgunitid': 'orgUnitId',
+  'ou': 'orgUnitId',
+  }
 TEAMDRIVE_TIME_OBJECTS = {'createdTime'}
 
 def _showTeamDrive(user, teamdrive, j, jcount, FJQC):
@@ -51013,7 +51242,7 @@ def _showTeamDrive(user, teamdrive, j, jcount, FJQC):
     printKeyValueList(['hidden', teamdrive['hidden']])
   if 'createdTime' in teamdrive:
     printKeyValueList(['createdTime', formatLocalTime(teamdrive['createdTime'])])
-  for setting in ['backgroundImageLink', 'colorRgb', 'themeId']:
+  for setting in ['backgroundImageLink', 'colorRgb', 'themeId', 'orgUnitId']:
     if setting in teamdrive:
       printKeyValueList([setting, teamdrive[setting]])
   if 'role' in teamdrive:
@@ -51104,6 +51333,7 @@ def printShowTeamDrives(users, useDomainAdminAccess=False):
   query = matchPattern = None
   showFields = set()
   fieldsList = []
+  TEAMDRIVE_FIELDS_CHOICE_MAP.update(TEAMDRIVE_LIST_FIELDS_CHOICE_MAP)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -51472,7 +51702,8 @@ def deleteUsersAliases(users):
         except GAPI.resourceIdNotFound:
           entityActionFailedWarning([Ent.USER, user_primary, Ent.ALIAS, an_alias], Msg.DOES_NOT_EXIST, j, jcount)
       Ind.Decrement()
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
       entityUnknownWarning(Ent.USER, user, i, count)
 
 DATASTUDIO_ASSETTYPE_CHOICE_MAP = {
@@ -51583,7 +51814,9 @@ def printShowDataStudioAssets(users):
   assetIdEntity = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if getDataStudioAssetSelectionParameters(myarg, parameters, assetTypes):
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif getDataStudioAssetSelectionParameters(myarg, parameters, assetTypes):
       pass
     elif myarg in {'assetid', 'assetids'}:
       assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
@@ -53547,6 +53780,13 @@ def _getLabelName(labels, labelId):
       return label['name']
   return labelId
 
+def _getLabelSet(labels):
+  labelSet = {}
+  for ulabel in labels['labels']:
+    if ulabel['type'] != LABEL_TYPE_SYSTEM:
+      labelSet[ulabel['name']] = ulabel['id']
+  return labelSet
+
 LABEL_LABEL_LIST_VISIBILITY_CHOICE_MAP = {
   'hide': 'labelHide',
   'show': 'labelShow',
@@ -53579,6 +53819,55 @@ def checkLabelColor(body):
     missingArgumentExit('textcolor <LabelColorHex>')
   missingArgumentExit('backgroundcolor <LabelColorHex>')
 
+def buildLabelPath(gmail, user, i, count, body, label, labelSet, l=0, lcount=0):
+  label = label.strip('/')
+  if label in labelSet:
+    entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.DUPLICATE, l, lcount)
+    return
+  labelParts = label.split('/')
+  invalid = False
+  for j, labelPart in enumerate(labelParts):
+    labelParts[j] = labelPart.strip()
+    if not labelParts[j]:
+      entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.INVALID, l, lcount)
+      invalid = True
+      break
+  if invalid:
+    return
+  decrement = False
+  duplicate = True
+  labelPath = ''
+  j = 0
+  for k, labelPart in enumerate(labelParts):
+    if labelPath != '':
+      labelPath += '/'
+    labelPath += labelPart
+    if labelPath not in labelSet:
+      if duplicate:
+        jcount = len(labelParts)-k
+        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
+        Ind.Increment()
+        decrement = True
+        duplicate = False
+      j += 1
+      body['name'] = labelPath
+      try:
+        newLabel = callGAPI(gmail.users().labels(), 'create',
+                            throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
+                            userId='me', body=body, fields='id,name')
+        labelSet[newLabel['name']] = newLabel['id']
+        entityActionPerformed([Ent.USER, user, Ent.LABEL, labelPath], j, jcount)
+      except GAPI.duplicate:
+        entityActionFailedWarning([Ent.USER, user, Ent.LABEL, labelPath], Msg.DUPLICATE, j, jcount)
+        break
+      except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+  if duplicate:
+    entityActionFailedWarning([Ent.USER, user, Ent.LABEL, labelPath], Msg.DUPLICATE, l, lcount)
+  if decrement:
+    Ind.Decrement()
+
 def createLabels(users, labelEntity):
   body = {}
   buildPath = False
@@ -53605,10 +53894,10 @@ def createLabels(users, labelEntity):
       labelList = userLabelList[origUser]
     lcount = len(labelList)
     if buildPath:
-      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(name,type)')
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
       if not labels:
         continue
-      labelSet = {ulabel['name'] for ulabel in labels['labels'] if ulabel['type'] != LABEL_TYPE_SYSTEM}
+      labelSet = _getLabelSet(labels)
     entityPerformActionNumItems([Ent.USER, user], lcount, Ent.LABEL, i, count)
     Ind.Increment()
     l = 0
@@ -53626,60 +53915,25 @@ def createLabels(users, labelEntity):
         except (GAPI.serviceNotAvailable, GAPI.badRequest):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
       else:
-        label = label.strip('/')
-        labelParts = label.split('/')
-        invalid = False
-        for j, labelPart in enumerate(labelParts):
-          labelParts[j] = labelPart.strip()
-          if not labelParts[j]:
-            entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.INVALID, l, lcount)
-            invalid = True
-            break
-        if invalid:
-          continue
-        duplicate = True
-        labelPath = ''
-        j = 0
-        for k, labelPart in enumerate(labelParts):
-          if labelPath != '':
-            labelPath += '/'
-          labelPath += labelPart
-          if labelPath not in labelSet:
-            if duplicate:
-              jcount = len(labelParts)-k
-              entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
-              Ind.Increment()
-              duplicate = False
-            j += 1
-            body['name'] = labelPath
-            try:
-              newLabel = callGAPI(gmail.users().labels(), 'create',
-                                  throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
-                                  userId='me', body=body, fields='name')
-              labelSet.add(newLabel['name'])
-              entityActionPerformed([Ent.USER, user, Ent.LABEL, labelPath], j, jcount)
-            except GAPI.duplicate:
-              entityActionFailedWarning([Ent.USER, user, Ent.LABEL, labelPath], Msg.DUPLICATE, j, jcount)
-              break
-            except (GAPI.serviceNotAvailable, GAPI.badRequest):
-              entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-              break
-        if duplicate:
-          entityActionFailedWarning([Ent.USER, user, Ent.LABEL, labelPath], Msg.DUPLICATE, l, lcount)
-        Ind.Decrement()
+        buildLabelPath(gmail, user, i, count, body, label, labelSet, l, lcount)
     Ind.Decrement()
 
-# gam <UserTypeEntity> [create|add] label|labels <String> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+# gam <UserTypeEntity> [create|add] label|labels <String>
+#	[messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
 #	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
+#	[buildpath [<Boolean>]]
 def createLabel(users):
   createLabels(users, getStringReturnInList(Cmd.OB_LABEL_NAME))
 
-# gam <UserTypeEntity> create labellist <LabelNameEntity> [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread] [buildpath [<Boolean>]]
+# gam <UserTypeEntity> create labellist <LabelNameEntity>
+#	[messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
 #	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
+#	[buildpath [<Boolean>]]
 def createLabelList(users):
   createLabels(users, getEntityList(Cmd.OB_LABEL_NAME_LIST, shlexSplit=True))
 
-# gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+# gam <UserTypeEntity> update labelsettings <LabelName> [name <String>]
+#	[messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
 #	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
 def updateLabelSettings(users):
   label_name = getString(Cmd.OB_LABEL_NAME)
@@ -55774,10 +56028,12 @@ FILTER_ACTION_LABEL_MAP = {
 #	(filter <FilterCriteria>+ <FilterAction>+) |
 #	((json [charset <Charset>] <String>) |
 #	 (json file <FileName> [charset <Charset>]))
+#	[buildpath [<Boolean>]]
 def createFilter(users):
   body = {'criteria': {}, 'action': {'addLabelIds': [], 'removeLabelIds': []}}
+  buildPath = False
   jsonData = None
-  categorySet = labelSet = False
+  categorySpecified = labelSpecified = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if jsonData is None and myarg in FILTER_CRITERIA_CHOICE_MAP:
@@ -55807,15 +56063,15 @@ def createFilter(users):
         labelUpper = label.upper()
         if labelUpper not in GMAIL_SYSTEM_LABELS:
           if labelUpper not in GMAIL_CATEGORY_LABELS:
-            if not labelSet:
+            if not labelSpecified:
               body['action']['addLabelIds'].append(label)
-              labelSet = True
+              labelSpecified = True
             else:
               Cmd.Backup()
               usageErrorExit(Msg.FILTER_CAN_ONLY_CONTAIN_ONE_USER_LABEL)
-          elif not categorySet:
+          elif not categorySpecified:
             body['action']['addLabelIds'].append(labelUpper)
-            categorySet = True
+            categorySpecified = True
           else:
             Cmd.Backup()
             usageErrorExit(Msg.FILTER_CAN_ONLY_CONTAIN_ONE_CATEGORY_LABEL)
@@ -55824,9 +56080,9 @@ def createFilter(users):
           if (labelUpper == 'IMPORTANT') and (labelUpper in body['action']['removeLabelIds']):
             body['action']['removeLabelIds'].remove(labelUpper)
       elif myarg == 'category':
-        if not categorySet:
+        if not categorySpecified:
           body['action']['addLabelIds'].append(getChoice(FILTER_CATEGORY_CHOICE_MAP, mapChoice=True))
-          categorySet = True
+          categorySpecified = True
         else:
           Cmd.Backup()
           usageErrorExit(Msg.FILTER_CAN_ONLY_CONTAIN_ONE_CATEGORY_LABEL)
@@ -55836,6 +56092,8 @@ def createFilter(users):
       jsonData = getJSON([])
       body['criteria'] = jsonData['criteria']
       body['action'] = jsonData['action']
+    elif myarg == 'buildpath':
+      buildPath = getBoolean()
     else:
       unknownArgumentExit()
   if not body['criteria']:
@@ -55855,27 +56113,38 @@ def createFilter(users):
     if not gmail:
       continue
     if addLabelIndicies:
-      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
+      labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
       if not labels:
         continue
+      labelSet = _getLabelSet(labels)
     try:
+      lcount = len(addLabelIndicies)
+      l = 0
       for addLabelName, addLabelData in iter(addLabelIndicies.items()):
+        l += 1
         retries = 3
         for _ in range(1, retries+1):
           addLabelId = _getLabelId(labels, addLabelName)
           if addLabelId:
             retries = 0
             break
-          try:
-            result = callGAPI(gmail.users().labels(), 'create',
-                              throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
-                              userId='me', body={'name': addLabelName}, fields='id')
-            addLabelId = result['id']
-            labels['labels'].append({'id': result['id'], 'name': addLabelName})
-            retries = 0
-            break
-          except GAPI.duplicate:
-            labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name)')
+          lbody = {'name': addLabelName}
+          if not buildPath:
+            try:
+              result = callGAPI(gmail.users().labels(), 'create',
+                                throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
+                                userId='me', body=lbody, fields='id')
+              addLabelId = result['id']
+              labels['labels'].append({'id': result['id'], 'name': addLabelName})
+              retries = 0
+              break
+            except GAPI.duplicate:
+              labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
+              labelSet = _getLabelSet(labels)
+          else:
+            buildLabelPath(gmail, user, i, count, lbody, addLabelName, labelSet, l, lcount)
+            labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name, type)')
+            labelSet = _getLabelSet(labels)
         if retries:
           entityActionFailedWarning([Ent.USER, user, Ent.LABEL, addLabelName], Msg.DUPLICATE, i, count)
           continue
@@ -58947,6 +59216,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TOKEN:		printShowTokens,
       Cmd.ARG_USER:		doPrintUserEntity,
       Cmd.ARG_VACATION:		printShowVacation,
+      Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
      }
     ),
   'remove':
@@ -59007,6 +59277,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TEAMDRIVETHEMES:	showTeamDriveThemes,
       Cmd.ARG_THREAD:		printShowThreads,
       Cmd.ARG_TOKEN:		printShowTokens,
+      Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
       Cmd.ARG_VACATION:		printShowVacation,
      }
     ),
@@ -59196,6 +59467,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_THREADS:		Cmd.ARG_THREAD,
   Cmd.ARG_TOKENS:		Cmd.ARG_TOKEN,
   Cmd.ARG_USERS:		Cmd.ARG_USER,
+  Cmd.ARG_VAULTHOLDS:		Cmd.ARG_VAULTHOLD,
   Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODE,
   }
 

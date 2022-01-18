@@ -3635,7 +3635,7 @@ gam show teamdrivethemes
 gam create|add teamdrive <Name>
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
-        [hide <Boolean>]
+        [hide|hidden <Boolean>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
 gam delete teamdrive <SharedDriveEntity>
 gam hide teamdrive <SharedDriveEntity>
@@ -3643,6 +3643,7 @@ gam unhide teamdrive <SharedDriveEntity>
 gam update teamdrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsFieldName> <Boolean>)*
+        [hide|hidden <Boolean>]
 gam info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
         [formatjson]
 gam show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
@@ -4007,6 +4008,9 @@ gam print vaultholds|holds [todrive <ToDriveAttribute>*] [matters <MatterItemLis
         [fields <VaultHoldFieldNameList>] [shownames]
 gam show vaultholds|holds [matters <MatterItemList>]
         [fields <VaultHoldFieldNameList>] [shownames]
+
+gam <UserTypeEntity> print vaultholds|holds [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> show vaultholds|holds
 
 # Users
 
@@ -4759,32 +4763,44 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [newfilename <DriveFileName>] [stripnameprefix <String>]
         [excludetrashed] [returnidonly|returnlinkonly]
         [summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
-        <DriveFileParentAttribute> [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
+        [<DriveFileParentAttribute>]
+        [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
         <DriveFileCopyAttribute>*
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
         [copytopfileparents none] [copytopfolderparents none]
         [copysubfileparents none] [copysubfolderparents none]
-        [copyfilepermissions [<Boolean>]] [copyfileinheritedpermissions [<Boolean>]
+        [copyfilepermissions [<Boolean>]]
+        [copyfileinheritedpermissions [<Boolean>]
+        [copyfilenoninheritedpermissions [<Boolean>]
         [copymergewithparentfolderpermissions [<Boolean>]]
-        [copymergedtopfolderpermissions [<Boolean>]] [copymergedsubfolderpermissions [<Boolean>]]
-        [copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
-        [copytopfolderiheritedpermissions [<Boolean>]] [copysubfolderinheritedpermissions [<Boolean>]]
-        [synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
+        [copymergedtopfolderpermissions [<Boolean>]]
+        [copytopfolderpermissions [<Boolean>]]
+        [copytopfolderiheritedpermissions [<Boolean>]]
+        [copytopfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
+        [copymergedsubfolderpermissions [<Boolean>]]
+        [copysubfolderpermissions [<Boolean>]]
+        [copysubfolderinheritedpermissions [<Boolean>]]
+        [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
         [copysheetprotectedranges [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
 
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
         [summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
-        [<DriveFileParentAttribute>] [mergewithparent|mergewithparentretain [<Boolean>]]
+        [<DriveFileParentAttribute>]
+        [mergewithparent|mergewithparentretain [<Boolean>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
         [copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
         [copymergewithparentfolderpermissions [<Boolean>]]
-        [copymergedtopfolderpermissions [<Boolean>]] [copymergedsubfolderpermissions [<Boolean>]]
-        [copytopfolderpermissions [<Boolean>]] [copysubfolderpermissions [<Boolean>]]
-        [copytopfolderiheritedpermissions [<Boolean>]] [copysubfolderinheritedpermissions [<Boolean>]]
-        [synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
+        [copymergedtopfolderpermissions [<Boolean>]]
+        [copytopfolderpermissions [<Boolean>]]
+        [copytopfolderiheritedpermissions [<Boolean>]]
+        [copytopfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
+        [copymergedsubfolderpermissions [<Boolean>]]
+        [copysubfolderpermissions [<Boolean>]]
+        [copysubfolderinheritedpermissions [<Boolean>]]
+        [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
         [retainsourcefolders [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
 
@@ -5363,6 +5379,7 @@ gam <UserTypeEntity> [create|add] filter
         (<FilterCriteria>+ <FilterAction>+) |
         ((json [charset <Charset>] <String>) |
          (json file <FileName> [charset <Charset>]))
+        [buildpath [<Boolean>]]
 gam <UserTypeEntity> delete filters <FilterIDEntity>
 
 gam <UserTypeEntity> info filters <FilterIDEntity> [labelidsonly] [formatjson]
@@ -5394,7 +5411,8 @@ gam <UserTypeEntity> create labellist <LabelNameEntity>
         [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
         [backgroundcolor "<LabelColorHex>"] [textcolor "<LabelColorHex>"]
         [buildpath [<Boolean>]]
-gam <UserTypeEntity> update labelsettings <LabelName> [name <String>] [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
+gam <UserTypeEntity> update labelsettings <LabelName> [name <String>]
+        [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
         [backgroundcolor "<LabelColorHex>"] [textcolor "<LabelColorHex>"]
 gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [keepoldlabel]]
 gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
@@ -5918,10 +5936,11 @@ gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
-        [hide <Boolean>]
+        [hide|hidden <Boolean>]
 gam <UserTypeEntity> update teamdrive <SharedDriveEntity> [adminaccess|asadmin] [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
+        [hide|hidden <Boolean>]
 gam <UserTypeEntity> delete teamdrive <SharedDriveEntity>
 gam <UserTypeEntity> hide teamdrive <SharedDriveEntity>
 gam <UserTypeEntity> unhide teamdrive <SharedDriveEntity>
