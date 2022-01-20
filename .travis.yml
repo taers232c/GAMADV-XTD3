@@ -51,12 +51,14 @@ jobs:
       dist: trusty
       language: shell
       env:
+        - BUILD_PYTHON_VERSION=3.10.1
         - DIST_UPGRADE=true
     - os: linux
       name: "Linux 64-bit Precise"
       dist: precise
       language: shell
       env:
+        - BUILD_PYTHON_VERSION=3.10.1
         - DIST_UPGRADE=false
         - PATCHELF_VERSION=0.9
     - os: linux

@@ -67,11 +67,24 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   curl -O --silent "https://www.python.org/ftp/python/${BUILD_PYTHON_VERSION}/Python-${BUILD_PYTHON_VERSION}.tar.xz"
   echo "Extracting Python..."
   tar xf "Python-${BUILD_PYTHON_VERSION}.tar.xz"
-  cd Python-$BUILD_PYTHON_VERSION
-  echo "Compiling Python $BUILD_PYTHON_VERSION..."
-  export flags="--with-openssl=${HOME}/ssl --enable-shared --prefix=${HOME}/python --with-ensurepip=upgrade --enable-optimizations --with-lto"
- ./configure $flags > /dev/null
+  cd Python-${BUILD_PYTHON_VERSION}
+  echo "Compiling Python ${BUILD_PYTHON_VERSION}..."
+  safe_flags="--with-openssl=$HOME/ssl --enable-shared --prefix=${HOME}/python --with-ensurepip=upgrade"
+  unsafe_flags="--enable-optimizations --with-lto"
+  if [ ! -e Makefile ]; then
+    echo "running configure with safe and unsafe"
+    ./configure $safe_flags $unsafe_flags > /dev/null
+  fi
   make -j$cpucount -s
+  RESULT=$?
+  echo "First make exited with $RESULT"
+  if [ $RESULT != 0 ]; then
+    echo "Trying Python compile again without unsafe flags..."
+    make clean
+    ./configure $safe_flags > /dev/null
+    make -j$cpucount -s
+    echo "Sticking with safe Python for now..."
+  fi
   echo "Installing Python..."
   make install > /dev/null
   cd ~
@@ -101,7 +114,6 @@ fi
 $pip install --upgrade git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
 
 cd $mypath
-
 
 echo "Upgrading pip packages..."
 $pip install --upgrade pip
