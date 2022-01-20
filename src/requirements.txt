@@ -1,4 +1,4 @@
-lxml
+lxml==4.6.3
 cryptography
 distro; sys_platform == 'linux'
 filelock
