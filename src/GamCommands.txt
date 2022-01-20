@@ -4762,7 +4762,7 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|ret
 gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [newfilename <DriveFileName>] [stripnameprefix <String>]
         [excludetrashed] [returnidonly|returnlinkonly]
-        [summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
+        [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
         <DriveFileCopyAttribute>*
@@ -4786,7 +4786,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [sendemailifrequired [<Boolean>]]
 
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
-        [summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
+        [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent|mergewithparentretain [<Boolean>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]

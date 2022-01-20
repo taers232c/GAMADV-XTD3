@@ -1,3 +1,8 @@
+6.14.01
+
+Fixed bug `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>` where option `copymergewithparentfolderpermissions`
+was not recognized.
+
 6.14.00
 
 Added the following options to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`

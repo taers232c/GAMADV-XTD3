@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.14.00'
+__version__ = '6.14.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -46531,7 +46531,7 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
     copyMoveOptions['duplicateFiles'] = getChoice(DUPLICATE_FILE_CHOICES, mapChoice=True)
   elif myarg == 'duplicatefolders':
     copyMoveOptions['duplicateFolders'] = getChoice(DUPLICATE_FOLDER_CHOICES, mapChoice=True)
-  elif myarg == 'copymergewithparentfolderrpermissions':
+  elif myarg == 'copymergewithparentfolderpermissions':
     copyMoveOptions['copyMergeWithParentFolderPermissions'] = getBoolean()
   elif myarg == 'copymergedtopfolderpermissions':
     copyMoveOptions['copyMergedTopFolderPermissions'] = getBoolean()
@@ -56134,6 +56134,7 @@ def createFilter(users):
               result = callGAPI(gmail.users().labels(), 'create',
                                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
                                 userId='me', body=lbody, fields='id')
+              entityActionPerformed([Ent.USER, user, Ent.LABEL, labelPath], l, lcount)
               addLabelId = result['id']
               labels['labels'].append({'id': result['id'], 'name': addLabelName})
               retries = 0
