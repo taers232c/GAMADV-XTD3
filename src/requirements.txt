@@ -1,4 +1,6 @@
-lxml==4.6.3
+lxml==4.6.3; sys_platform == 'darwin' and platform_release < '16.*.*'
+lxml; sys_platform == 'darwin' and platform_release >= '16.*.*'
+lxml; sys_platform != 'darwin'
 cryptography
 distro; sys_platform == 'linux'
 filelock
