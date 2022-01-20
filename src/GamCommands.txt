@@ -4782,6 +4782,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [copysubfolderpermissions [<Boolean>]]
         [copysubfolderinheritedpermissions [<Boolean>]]
         [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
+        [excludepermissionsfromdomains <DomainNameList>]
         [copysheetprotectedranges [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
 
@@ -4801,6 +4802,7 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copysubfolderpermissions [<Boolean>]]
         [copysubfolderinheritedpermissions [<Boolean>]]
         [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
+        [excludepermissionsfromdomains <DomainNameList>]
         [retainsourcefolders [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
 

@@ -46490,6 +46490,7 @@ def initCopyMoveOptions(copyCmd):
     'copyTopFolderNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
     'copySubFolderNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
     'noCopyNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_NEVER,
+    'excludePermissionsFromDomains': [],
     'copySheetProtectedRanges': False,
     'copyInheritedSheetProtectedRanges': True,
     'copyNonInheritedSheetProtectedRanges': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
@@ -46549,6 +46550,8 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
     copyMoveOptions['copySubFolderInheritedPermissions'] = getBoolean()
   elif myarg == 'copysubfoldernoninheritedpermissions':
     copyMoveOptions['copySubFolderNonInheritedPermissions'] = getChoice(COPY_NONINHERITED_PERMISSIONS_CHOICES_MAP, mapChoice=True)
+  elif myarg == 'excludepermissionsfromdomains':
+    copyMoveOptions['excludePermissionsFromDomains'] = getString(Cmd.OB_DOMAIN_NAME_LIST).lower().replace(',', ' ').split()
   else:
     if not copyMoveOptions['copyCmd']:
       if myarg == 'retainsourcefolders':
@@ -46660,12 +46663,20 @@ def _copyPermissions(drive, user, i, count, j, jcount,
 
   def isPermissionCopyable(permission):
     role = permission['role']
+    domain = ''
+    if copyMoveOptions['excludePermissionsFromDomains']:
+      if 'emailAddress' in permission:
+        _, domain = permission['emailAddress'].split('@', 1)
+      elif 'domain' in permission:
+        domain = permission['domain']
     if permission['inherited'] and not copyMoveOptions[copyInherited]:
-      notCopiedMessage = "inherited not selected"
+      notCopiedMessage = 'inherited not selected'
     elif not permission['inherited'] and copyMoveOptions[copyNonInherited] == COPY_NONINHERITED_PERMISSIONS_NEVER:
-      notCopiedMessage = "noninherited not selected"
+      notCopiedMessage = 'noninherited not selected'
     elif role == 'owner':
-      notCopiedMessage = f"role {role} copy not required/appropriate"
+      notCopiedMessage = f'role {role} copy not required/appropriate'
+    elif domain and domain in copyMoveOptions['excludePermissionsFromDomains']:
+      notCopiedMessage = f'domain {domain} excluded'
     elif permission.pop('deleted', False):
       notCopiedMessage = f"{permission['type']} {permission['emailAddress']} deleted"
     elif ((copyInherited == 'copyInheritedSheetProtectedRanges' and copyMoveOptions[copyInherited]) or
@@ -46675,11 +46686,11 @@ def _copyPermissions(drive, user, i, count, j, jcount,
         permission['role'] = 'writer'
       return True
     elif role == 'organizer':
-      notCopiedMessage = f"role {role} not copyable to {Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER)}"
+      notCopiedMessage = f'role {role} not copyable to {Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER)}'
     elif role == 'fileOrganizer' and entityType == Ent.DRIVE_FILE:
-      notCopiedMessage = f"role {role} not copyable to {Ent.Plural(entityType)}"
+      notCopiedMessage = f'role {role} not copyable to {Ent.Plural(entityType)}'
     elif role == 'fileOrganizer' and not copyMoveOptions['destDriveId']:
-      notCopiedMessage = f"role {role} only copyable to {Ent.Singular(Ent.TEAMDRIVE)} {Ent.Plural(Ent.DRIVE_FOLDER)}"
+      notCopiedMessage = f'role {role} only copyable to {Ent.Singular(Ent.TEAMDRIVE)} {Ent.Plural(Ent.DRIVE_FOLDER)}'
     else:
       return True
     if copyMoveOptions['showPermissionMessages']:
@@ -46987,6 +46998,7 @@ def _getCopyFolderNonInheritedPermissions(copyMoveOptions, copyNonInherited, sou
 #	[copysubfolderpermissions [<Boolean>]]
 #	[copysubfolderinheritedpermissions [<Boolean>]]
 #	[copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
+#	[excludepermissionsfromdomains <DomainNameList>]
 #	[copysheetprotectedranges [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def copyDriveFile(users):
@@ -47418,6 +47430,7 @@ def copyDriveFile(users):
 #	[copysubfolderinheritedpermissions [<Boolean>]]
 #	[copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
 #	[synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
+#	[excludepermissionsfromdomains <DomainNameList>]
 #	[retainsourcefolders [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def moveDriveFile(users):
@@ -56134,7 +56147,7 @@ def createFilter(users):
               result = callGAPI(gmail.users().labels(), 'create',
                                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.DUPLICATE],
                                 userId='me', body=lbody, fields='id')
-              entityActionPerformed([Ent.USER, user, Ent.LABEL, labelPath], l, lcount)
+              entityActionPerformed([Ent.USER, user, Ent.LABEL, addLabelName], l, lcount)
               addLabelId = result['id']
               labels['labels'].append({'id': result['id'], 'name': addLabelName})
               retries = 0

@@ -1,5 +1,9 @@
 6.14.01
 
+Added the option `excludepermissionsfromdomains <DomainNameList>` to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`
+that excludes permissions that reference any domain in `<DomainNameList>` from being copied.
+* Thanks to Kevin Sanghvi for suggesting this enhancements.
+
 Fixed bug `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>` where option `copymergewithparentfolderpermissions`
 was not recognized.
 
@@ -7,6 +11,7 @@ was not recognized.
 
 Added the following options to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`
 that provide more flexibility in managing permissions when copying/moving folders.
+* Thanks to Kevin Sanghvi for suggesting these enhancements.
 ```
 copyfileinheritedpermissions [<Boolean>]
 copyfilenoninheritedpermissions [<Boolean>]
