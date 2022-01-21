@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.14.01'
+__version__ = '6.14.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -49846,17 +49846,21 @@ def _getDriveFileACLPrintKeysTimeObjects():
   return (printKeys, set(timeObjects))
 
 # DriveFileACL commands utilities
-def _showDriveFilePermissionJSON(user, fileId, fileName, permission, timeObjects):
+def _showDriveFilePermissionJSON(user, fileId, fileName, createdTime, permission, timeObjects):
   _mapDrivePermissionNames(permission)
   row = {'Owner': user, 'id': fileId, 'permission': permission}
+  if createdTime is not None:
+    row['createdTime'] = createdTime
   if fileId != fileName:
     row['name'] = fileName
   printLine(json.dumps(cleanJSON(row, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
 
-def _showDriveFilePermissionsJSON(user, fileId, fileName, permissions, timeObjects):
+def _showDriveFilePermissionsJSON(user, fileId, fileName, createdTime, permissions, timeObjects):
   for permission in permissions:
     _mapDrivePermissionNames(permission)
   row = {'Owner': user, 'id': fileId, 'permissions': permissions}
+  if createdTime is not None:
+    row['createdTime'] = createdTime
   if fileId != fileName:
     row['name'] = fileName
   printLine(json.dumps(cleanJSON(row, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
@@ -50617,7 +50621,7 @@ def infoDriveFileACLs(users, useDomainAdminAccess=False):
           _showDriveFilePermission(permission, printKeys, timeObjects, j, jcount)
           Ind.Decrement()
         else:
-          _showDriveFilePermissionJSON(user, fileId, fileName, permission, timeObjects)
+          _showDriveFilePermissionJSON(user, fileId, fileName, None, permission, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.badRequest, GAPI.insufficientAdministratorPrivileges) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
@@ -50760,9 +50764,9 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
         else:
           if oneItemPerRow:
             for permission in permissions:
-              _showDriveFilePermissionJSON(user, fileId, fileName, permission, timeObjects)
+              _showDriveFilePermissionJSON(user, fileId, fileName, None, permission, timeObjects)
           else:
-            _showDriveFilePermissionsJSON(user, fileId, fileName, permissions, timeObjects)
+            _showDriveFilePermissionsJSON(user, fileId, fileName, None, permissions, timeObjects)
       else:
         baserow = {'Owner': user, 'id': fileId}
         if showTitles or addTitle:
@@ -51473,7 +51477,7 @@ TEAMDRIVE_INDEXED_TITLES = ['permissions']
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	asadmin
 def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
-  csvPF = CSVPrintFile(['User', 'id', 'name'], 'sortall', TEAMDRIVE_INDEXED_TITLES) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'id', 'name', 'createdTime'], 'sortall', TEAMDRIVE_INDEXED_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   roles = set()
   checkGroups = oneItemPerRow = pmselect = False
@@ -51548,7 +51552,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
         try:
           feed = callGAPIpages(userdrive.drives(), 'list', 'drives',
                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               fields='nextPageToken,drives(id,name)', pageSize=100)
+                               fields='nextPageToken,drives(id,name,createdTime)', pageSize=100)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
           pass
     if feed is None:
@@ -51563,7 +51567,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
                                                                          GAPI.QUERY_REQUIRES_ADMIN_CREDENTIALS,
                                                                          GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
                              q=query, useDomainAdminAccess=useDomainAdminAccess,
-                             fields='nextPageToken,drives(id,name)', pageSize=100)
+                             fields='nextPageToken,drives(id,name,createdTime)', pageSize=100)
       except (GAPI.invalidQuery, GAPI.invalid, GAPI.queryRequiresAdminCredentials, GAPI.noListTeamDrivesAdministratorPrivilege) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE, None], str(e), i, count)
         continue
@@ -51578,6 +51582,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       if matchPattern is not None and matchPattern.match(teamdrive['name']) is None:
         continue
       printGettingAllEntityItemsForWhom(Ent.PERMISSION, teamdrive['name'], j, jcount)
+      teamdrive['createdTime'] = formatLocalTime(teamdrive['createdTime'])
       teamdrive['permissions'] = []
       try:
         permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
@@ -51615,19 +51620,19 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       for teamdrive in matchFeed:
         j += 1
         if not FJQC.formatJSON:
-          _showDriveFilePermissions(Ent.TEAMDRIVE, f'{teamdrive["name"]} ({teamdrive["id"]})',
+          _showDriveFilePermissions(Ent.TEAMDRIVE, f'{teamdrive["name"]} ({teamdrive["id"]}) - {teamdrive["createdTime"]}',
                                     teamdrive['permissions'], printKeys, timeObjects, j, jcount)
         else:
           if oneItemPerRow:
             for permission in teamdrive['permissions']:
-              _showDriveFilePermissionJSON(user, teamdrive['id'], teamdrive['name'], permission, timeObjects)
+              _showDriveFilePermissionJSON(user, teamdrive['id'], teamdrive['name'], teamdrive['createdTime'], permission, timeObjects)
           else:
-            _showDriveFilePermissionsJSON(user, teamdrive['id'], teamdrive['name'], teamdrive['permissions'], timeObjects)
+            _showDriveFilePermissionsJSON(user, teamdrive['id'], teamdrive['name'], teamdrive['createdTime'], teamdrive['permissions'], timeObjects)
       Ind.Decrement()
     elif matchFeed:
       if oneItemPerRow:
         for teamdrive in matchFeed:
-          baserow = {'User': user, 'id': teamdrive['id'], 'name': teamdrive['name']}
+          baserow = {'User': user, 'id': teamdrive['id'], 'name': teamdrive['name'], 'createdTime': teamdrive['createdTime']}
           for permission in teamdrive['permissions']:
             row = baserow.copy()
             _mapDrivePermissionNames(permission)
@@ -51641,7 +51646,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
               csvPF.WriteRowNoFilter(row)
       else:
         for teamdrive in matchFeed:
-          baserow = {'User': user, 'id': teamdrive['id'], 'name': teamdrive['name']}
+          baserow = {'User': user, 'id': teamdrive['id'], 'name': teamdrive['name'], 'createdTime': teamdrive['createdTime']}
           row = baserow.copy()
           for permission in teamdrive['permissions']:
             _mapDrivePermissionNames(permission)

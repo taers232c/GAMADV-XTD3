@@ -1,8 +1,12 @@
+6.14.02
+
+Updated `gam print|show teamdriveacls` to display the creation time of the Team/Shared drives.
+
 6.14.01
 
 Added the option `excludepermissionsfromdomains <DomainNameList>` to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`
 that excludes permissions that reference any domain in `<DomainNameList>` from being copied.
-* Thanks to Kevin Sanghvi for suggesting this enhancements.
+* Thanks to Kevin Sanghvi for suggesting this enhancement.
 
 Fixed bug `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>` where option `copymergewithparentfolderpermissions`
 was not recognized.
