@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.14.02'
+__version__ = '6.14.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17428,7 +17428,8 @@ def _clearUpdatePeopleContacts(users, updateContacts):
 def clearUserPeopleContacts(users):
   _clearUpdatePeopleContacts(users, False)
 
-# gam <UserTypeEntity> update contacts <PeopleResourceNameEntity>|(<PeopleUserContactSelection> endquery) <PeopleContactAttribute>+
+# gam <UserTypeEntity> update contacts <PeopleResourceNameEntity>|(<PeopleUserContactSelection> endquery)
+#	<PeopleContactAttribute>+
 #	(contactgroup <ContactGroupItem>)*|((addcontactgroup <ContactGroupItem>)* (removecontactgroup <ContactGroupItem>)*)
 # gam <UserTypeEntity> update contacts
 def updateUserPeopleContacts(users):
@@ -17962,7 +17963,7 @@ def printShowUserPeopleContacts(users):
   if csvPF:
     csvPF.writeCSVfile(CSVTitle)
 
-# gam <UserTypeEntity> copy othercontacts <PeopleResourceNameEntity>|<PeopleUserOtherContactSelection>
+# gam <UserTypeEntity> copy othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
 def copyUserPeopleOtherContacts(users):
   entityType = Ent.USER
   peopleEntityType = Ent.OTHER_CONTACT
@@ -18009,11 +18010,159 @@ def copyUserPeopleOtherContacts(users):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
 
-# gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <PeopleUserOtherContactSelection>
-#	[countsonly|allfields|(fields <PeopleOtherContactFieldNameList>)] [showmetadata]
+# gam <UserTypeEntity> delete othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
+def deleteUserPeopleOtherContacts(users):
+  entityType = Ent.USER
+  peopleEntityType = Ent.OTHER_CONTACT
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleOtherContactEntityList(-1)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
+    if not people:
+      continue
+    _, upeople = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not upeople:
+      continue
+    if queriedContacts:
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      if entityList is None:
+        continue
+    else:
+      otherContacts = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      if otherContacts is None:
+        continue
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      if isinstance(contact, dict):
+        if not localPeopleContactSelects(contactQuery, contact):
+          continue
+        resourceName = contact['resourceName']
+      else:
+        resourceName = normalizeOtherContactsResourceName(contact)
+        for otherContact in otherContacts:
+          if resourceName == otherContact['resourceName']:
+            contact = otherContact
+            break
+        else:
+          entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
+          continue
+      peopleResourceName = resourceName.replace('otherContacts', 'people')
+      body = {'etag': contact['etag'], 'names': [{'unstructuredName': resourceName}]}
+      try:
+        callGAPI(upeople.people(), 'updateContact',
+                 throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                 resourceName=peopleResourceName,
+                 updatePersonFields='names', body=body, sources=sources)
+        callGAPI(upeople.people(), 'deleteContact',
+                 bailOnInternalError=True,
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 resourceName=peopleResourceName)
+        entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+      except GAPI.invalidArgument as e:
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
+      except (GAPI.notFound, GAPI.internalError):
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+    Ind.Decrement()
+
+# gam <UserTypeEntity> update othercontacts <OtherResourceNameEntity>|<OtherContactSelection>
+#	<PeopleContactAttribute>+
+#	(contactgroup <ContactGroupItem>)*
+def updateUserPeopleOtherContacts(users):
+  entityType = Ent.USER
+  peopleManager = PeopleManager()
+  peopleEntityType = Ent.OTHER_CONTACT
+  sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleOtherContactEntityList(1)
+  body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if resourceNameLists:
+      entityList = resourceNameLists[user]
+    user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
+    if not people:
+      continue
+    _, upeople = buildGAPIServiceObject(API.PEOPLE, user, i, count)
+    if not upeople:
+      continue
+    if queriedContacts:
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      if entityList is None:
+        continue
+    else:
+      otherContacts = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      if otherContacts is None:
+        continue
+    if contactGroupsLists[PEOPLE_GROUPS_LIST]:
+      result, validatedContactGroupsList = validatePeopleContactGroupsList(people, '',
+                                                                           contactGroupsLists[PEOPLE_GROUPS_LIST], entityType, user, i, count)
+      if not result:
+        continue
+    else:
+      validatedContactGroupsList = ['contactGroups/myContacts']
+    updatePersonFields.add(PEOPLE_MEMBERSHIPS)
+    j = 0
+    jcount = len(entityList)
+    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    Ind.Increment()
+    for contact in entityList:
+      j += 1
+      try:
+        if not queriedContacts:
+          resourceName = normalizeOtherContactsResourceName(contact)
+          for otherContact in otherContacts:
+            if resourceName == otherContact['resourceName']:
+              contact = otherContact
+              break
+          else:
+            entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
+            continue
+        else:
+          if not localPeopleContactSelects(contactQuery, contact):
+            continue
+          resourceName = contact['resourceName']
+        peopleResourceName = resourceName.replace('otherContacts', 'people')
+        body['etag'] = contact['etag']
+        if validatedContactGroupsList:
+          peopleManager.AddContactGroupsToContact(body, validatedContactGroupsList)
+        callGAPI(upeople.people(), 'updateContact',
+                 throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                 resourceName=peopleResourceName,
+                 updatePersonFields=','.join(updatePersonFields), body=body, sources=sources)
+        entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+      except GAPI.invalidArgument as e:
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
+        continue
+      except (GAPI.notFound, GAPI.internalError):
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
+        continue
+      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+        ClientAPIAccessDeniedExit()
+    Ind.Decrement()
+
+# gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <OtherContactSelection>
+#	[countsonly|allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
 #	[formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show othercontacts <PeopleUserOtherContactSelection>
-#	[countsonly|allfields|(fields <PeopleOtherContactFieldNameList>)] [showmetadata]
+# gam <UserTypeEntity> show othercontacts <OtherContactSelection>
+#	[countsonly|allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
 #	[formatjson]
 def printShowUserPeopleOtherContacts(users):
   entityType = Ent.USER
@@ -59089,6 +59238,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MESSAGE:		processMessages,
       Cmd.ARG_NOTE:		deleteInfoNotes,
       Cmd.ARG_NOTEACL:		deleteNotesACLs,
+      Cmd.ARG_OTHERCONTACT:	deleteUserPeopleOtherContacts,
       Cmd.ARG_PEOPLECONTACT:	deleteUserPeopleContacts,
       Cmd.ARG_PEOPLECONTACTGROUP:	deleteUserPeopleContactGroups,
       Cmd.ARG_PEOPLECONTACTPHOTO:	deleteUserPeopleContactPhoto,
@@ -59370,6 +59520,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		updateLabels,
       Cmd.ARG_LABELSETTINGS:	updateLabelSettings,
       Cmd.ARG_LICENSE:		updateLicense,
+      Cmd.ARG_OTHERCONTACT:	updateUserPeopleOtherContacts,
       Cmd.ARG_PEOPLECONTACT:	updateUserPeopleContacts,
       Cmd.ARG_PEOPLECONTACTGROUP:	updateUserPeopleContactGroup,
       Cmd.ARG_PEOPLECONTACTPHOTO:	updateUserPeopleContactPhoto,

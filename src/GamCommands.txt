@@ -407,6 +407,7 @@ If an item contains spaces, it should be surrounded by ".
 <OrgUnitID> ::= id:<String>
 <OrgUnitPath> ::= /|(/<String>)+
 <OrgUnitItem> ::= <OrgUnitID>|<OrgUnitPath>
+<OtherContactResourceName> ::= otherContacts/<String>
 <ParameterKey> ::= <String>
 <ParameterValue> ::= <String>
 <Password> ::= <String>
@@ -569,6 +570,7 @@ If an item contains spaces, it should be surrounded by ".
 <NamespaceList> ::= "<Namespace>(,<Namespace>)*"
 <NotesNameList> ::= "<NotesName>(,<NotesName)*"
 <OrgUnitList> ::= "<OrgUnitItem>(,<OrgUnitItem>)*"
+<OtherContactResourceNameList> ::= "<OtherContactResourceName>(,<OtherContactResourceName>)*"
 <PeopleResourceNameList> ::= "<PeopleResourceName>(,<PeopleResourceName>)*"
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
@@ -888,6 +890,8 @@ Specify a collection of items by directly specifying them; the item type is dete
         <NotesNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <OrgUnitEntity> ::=
         <OrgUnitList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+<OtherContactResourceNameEntity> ::=
+        <OtherContactResourceNameNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
 <PeopleResourceNameEntity> ::=
         <PeopleResourceNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
 <ProjectIDEntity> ::=
@@ -5787,7 +5791,8 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
 
 gam <UserTypeEntity> create contact <PeopleContactAttribute>+
         (contactgroup <ContactGroupItem>)*
-gam <UserTypeEntity> update contacts <PeopleResourceNameEntity>|(<PeopleUserContactSelection> endquery) <PeopleContactAttribute>+
+gam <UserTypeEntity> update contacts <PeopleResourceNameEntity>|(<PeopleUserContactSelection> endquery)
+        <PeopleContactAttribute>+
         (contactgroup <ContactGroupItem>)*|((addcontactgroup <ContactGroupItem>)* (removecontactgroup <ContactGroupItem>)*)
 gam <UserTypeEntity> delete contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
 
@@ -5821,27 +5826,30 @@ gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <PeoplePrintSh
         [countsonly|allfields|(fields <PeopleFieldNameList>)] [[showgroups|showgroupnameslist] showmetadata]
         [formatjson [quotechar <Character>]]
 
-<PeopleOtherContactFieldName> ::=
+<OtherContactFieldName> ::=
         emailaddresses|
         metadata|
         names|
         phonenumbers|
         photos
-<PeopleOtherContactFieldNameList> ::= "<PeopleOtherContactFieldName>(,<PeopleOtherContactFieldName>)*"
+<OtherContactFieldNameList> ::= "<OtherContactFieldName>(,<OtherContactFieldName>)*"
 
-<PeopleUserOtherContactSelection> ::=
+<therContactSelection> ::=
         [query <QueryContact>]
         [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
 
-gam <UserTypeEntity> show othercontacts <PeopleUserOtherContactSelection>
-        [countsonly|allfields|(fields <PeopleOtherContactFieldNameList>)] [showmetadata]
-        [formatjson]
-gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <PeopleUserOtherContactSelection>
-        [countsonly|allfields|(fields <PeopleOtherContactFieldNameList>)] [showmetadata]
-        [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> copy othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
+gam <UserTypeEntity> update othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
+        <PeopleContactAttribute>+
+        (contactgroup <ContactGroupItem>)*
+gam <UserTypeEntity> delete othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
 
-gam <UserTypeEntity> copy othercontacts
-        <PeopleResourceNameEntity>|<PeopleUserOtherContactSelection>
+gam <UserTypeEntity> show othercontacts <OtherContactSelection>
+        [countsonly|allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
+        [formatjson]
+gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <OtherContactSelection>
+        [countsonly|allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
+        [formatjson [quotechar <Character>]]
 
 <PeopleContactGroupAttribute> ::=
         (clientdata <String> <String>)|
