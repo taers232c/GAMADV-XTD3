@@ -17097,6 +17097,25 @@ def _getPeopleOtherContactEntityList(unknownAction):
       checkForExtraneousArguments()
   return (entityList, entityList if isinstance(entityList, dict) else None, contactQuery, queriedContacts)
 
+def _getPeopleOtherContacts(people, entityType, user, i=0, count=0):
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
+  try:
+    printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count)
+    pageMessage = getPageMessage()
+    results = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
+                            pageMessage=pageMessage,
+                            throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                            pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
+                            readMask='emailAddresses', fields='nextPageToken,otherContacts')
+    otherContacts = {}
+    for contact in results:
+      resourceName = contact.pop('resourceName')
+      otherContacts[resourceName] = contact
+    return otherContacts
+  except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+    entityUnknownWarning(entityType, user, i, count)
+  return None
+
 def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, user, i=0, count=0):
   sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['domaincontact' if entityType == Ent.DOMAIN else 'contact']]
   try:
@@ -18010,12 +18029,17 @@ def copyUserPeopleOtherContacts(users):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
 
-# gam <UserTypeEntity> delete othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
-def deleteUserPeopleOtherContacts(users):
+def deleteUpdateUserPeopleOtherContacts(users, updateCmd):
   entityType = Ent.USER
   peopleEntityType = Ent.OTHER_CONTACT
-  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
-  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleOtherContactEntityList(-1)
+  sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleOtherContactEntityList(1)
+  if updateCmd:
+    peopleManager = PeopleManager()
+    body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
+  else:
+    body = {PEOPLE_MEMBERSHIPS: [{'contactGroupMembership': {'contactGroupResourceName': 'contactGroups/myContacts'}}]}
+    updatePersonFields = [PEOPLE_MEMBERSHIPS]
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -18032,9 +18056,18 @@ def deleteUserPeopleOtherContacts(users):
       if entityList is None:
         continue
     else:
-      otherContacts = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      otherContacts = _getPeopleOtherContacts(people, entityType, user, i=0, count=0)
       if otherContacts is None:
         continue
+    if updateCmd:
+      if contactGroupsLists[PEOPLE_GROUPS_LIST]:
+        result, validatedContactGroupsList = validatePeopleContactGroupsList(people, '',
+                                                                             contactGroupsLists[PEOPLE_GROUPS_LIST], entityType, user, i, count)
+        if not result:
+          continue
+      else:
+        validatedContactGroupsList = ['contactGroups/myContacts']
+      updatePersonFields.add(PEOPLE_MEMBERSHIPS)
     j = 0
     jcount = len(entityList)
     entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
@@ -18050,103 +18083,25 @@ def deleteUserPeopleOtherContacts(users):
         resourceName = contact['resourceName']
       else:
         resourceName = normalizeOtherContactsResourceName(contact)
-        for otherContact in otherContacts:
-          if resourceName == otherContact['resourceName']:
-            contact = otherContact
-            break
-        else:
+        contact = otherContacts.get(resourceName)
+        if contact is None:
           entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
           continue
       peopleResourceName = resourceName.replace('otherContacts', 'people')
-      body = {'etag': contact['etag'], 'names': [{'unstructuredName': resourceName}]}
+      body['etag'] = contact['etag']
+      if updateCmd and validatedContactGroupsList:
+        peopleManager.AddContactGroupsToContact(body, validatedContactGroupsList)
       try:
-        callGAPI(upeople.people(), 'updateContact',
-                 throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                 resourceName=peopleResourceName,
-                 updatePersonFields='names', body=body, sources=sources)
-        callGAPI(upeople.people(), 'deleteContact',
-                 bailOnInternalError=True,
-                 throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                 resourceName=peopleResourceName)
-        entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
-      except GAPI.invalidArgument as e:
-        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
-      except (GAPI.notFound, GAPI.internalError):
-        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
-        ClientAPIAccessDeniedExit()
-    Ind.Decrement()
-
-# gam <UserTypeEntity> update othercontacts <OtherResourceNameEntity>|<OtherContactSelection>
-#	<PeopleContactAttribute>+
-#	(contactgroup <ContactGroupItem>)*
-def updateUserPeopleOtherContacts(users):
-  entityType = Ent.USER
-  peopleManager = PeopleManager()
-  peopleEntityType = Ent.OTHER_CONTACT
-  sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
-  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleOtherContactEntityList(1)
-  body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if resourceNameLists:
-      entityList = resourceNameLists[user]
-    user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
-    if not people:
-      continue
-    _, upeople = buildGAPIServiceObject(API.PEOPLE, user, i, count)
-    if not upeople:
-      continue
-    if queriedContacts:
-      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
-      if entityList is None:
-        continue
-    else:
-      otherContacts = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
-      if otherContacts is None:
-        continue
-    if contactGroupsLists[PEOPLE_GROUPS_LIST]:
-      result, validatedContactGroupsList = validatePeopleContactGroupsList(people, '',
-                                                                           contactGroupsLists[PEOPLE_GROUPS_LIST], entityType, user, i, count)
-      if not result:
-        continue
-    else:
-      validatedContactGroupsList = ['contactGroups/myContacts']
-    updatePersonFields.add(PEOPLE_MEMBERSHIPS)
-    j = 0
-    jcount = len(entityList)
-    entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
-    if jcount == 0:
-      setSysExitRC(NO_ENTITIES_FOUND_RC)
-      continue
-    Ind.Increment()
-    for contact in entityList:
-      j += 1
-      try:
-        if not queriedContacts:
-          resourceName = normalizeOtherContactsResourceName(contact)
-          for otherContact in otherContacts:
-            if resourceName == otherContact['resourceName']:
-              contact = otherContact
-              break
-          else:
-            entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
-            continue
-        else:
-          if not localPeopleContactSelects(contactQuery, contact):
-            continue
-          resourceName = contact['resourceName']
-        peopleResourceName = resourceName.replace('otherContacts', 'people')
-        body['etag'] = contact['etag']
-        if validatedContactGroupsList:
-          peopleManager.AddContactGroupsToContact(body, validatedContactGroupsList)
         callGAPI(upeople.people(), 'updateContact',
                  throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  resourceName=peopleResourceName,
                  updatePersonFields=','.join(updatePersonFields), body=body, sources=sources)
+        if not updateCmd:
+          callGAPI(upeople.people(), 'deleteContact',
+                   bailOnInternalError=True,
+                   throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                   resourceName=peopleResourceName)
         entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
       except GAPI.invalidArgument as e:
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
@@ -18157,6 +18112,16 @@ def updateUserPeopleOtherContacts(users):
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
+
+# gam <UserTypeEntity> delete othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
+def deleteUserPeopleOtherContacts(users):
+  deleteUpdateUserPeopleOtherContacts(users, False)
+
+# gam <UserTypeEntity> update othercontacts <OtherResourceNameEntity>|<OtherContactSelection>
+#	<PeopleContactAttribute>+
+#	(contactgroup <ContactGroupItem>)*
+def updateUserPeopleOtherContacts(users):
+  deleteUpdateUserPeopleOtherContacts(users, True)
 
 # gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <OtherContactSelection>
 #	[countsonly|allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
