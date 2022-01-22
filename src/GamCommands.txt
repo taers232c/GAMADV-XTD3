@@ -407,7 +407,7 @@ If an item contains spaces, it should be surrounded by ".
 <OrgUnitID> ::= id:<String>
 <OrgUnitPath> ::= /|(/<String>)+
 <OrgUnitItem> ::= <OrgUnitID>|<OrgUnitPath>
-<OtherContactResourceName> ::= otherContacts/<String>
+<OtherContactsResourceName> ::= otherContacts/<String>
 <ParameterKey> ::= <String>
 <ParameterValue> ::= <String>
 <Password> ::= <String>
@@ -570,7 +570,7 @@ If an item contains spaces, it should be surrounded by ".
 <NamespaceList> ::= "<Namespace>(,<Namespace>)*"
 <NotesNameList> ::= "<NotesName>(,<NotesName)*"
 <OrgUnitList> ::= "<OrgUnitItem>(,<OrgUnitItem>)*"
-<OtherContactResourceNameList> ::= "<OtherContactResourceName>(,<OtherContactResourceName>)*"
+<OtherContactsResourceNameList> ::= "<OtherContactsResourceName>(,<OtherContactsResourceName>)*"
 <PeopleResourceNameList> ::= "<PeopleResourceName>(,<PeopleResourceName>)*"
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
 <ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
@@ -890,8 +890,8 @@ Specify a collection of items by directly specifying them; the item type is dete
         <NotesNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <OrgUnitEntity> ::=
         <OrgUnitList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
-<OtherContactResourceNameEntity> ::=
-        <OtherContactResourceNameNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
+<OtherContactsResourceNameEntity> ::=
+        <OtherContactsResourceNameNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
 <PeopleResourceNameEntity> ::=
         <PeopleResourceNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
 <ProjectIDEntity> ::=
@@ -5826,29 +5826,31 @@ gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <PeoplePrintSh
         [countsonly|allfields|(fields <PeopleFieldNameList>)] [[showgroups|showgroupnameslist] showmetadata]
         [formatjson [quotechar <Character>]]
 
-<OtherContactFieldName> ::=
+<OtherContactsFieldName> ::=
         emailaddresses|
         metadata|
         names|
         phonenumbers|
         photos
-<OtherContactFieldNameList> ::= "<OtherContactFieldName>(,<OtherContactFieldName>)*"
+<OtherContactsFieldNameList> ::= "<OtherContactsFieldName>(,<OtherContactFieldName>)*"
 
-<therContactSelection> ::=
+<OtherContactsSelection> ::=
         [query <QueryContact>]
         [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
 
-gam <UserTypeEntity> copy othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
-gam <UserTypeEntity> update othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
-        <PeopleContactAttribute>+
+gam <UserTypeEntity> copy othercontacts <OtherContactsResourceNameEntity>|<OtherContactsSelection>
+gam <UserTypeEntity> update othercontacts <OtherContactsResourceNameEntity>|<OtherContactsSelection>
+        [<PeopleContactAttribute>+]
         (contactgroup <ContactGroupItem>)*
-gam <UserTypeEntity> delete othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
+gam <UserTypeEntity> delete othercontacts <OtherContactsResourceNameEntity>|<OtherContactsSelection>
 
-gam <UserTypeEntity> show othercontacts <OtherContactSelection>
-        [countsonly|allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
+gam <UserTypeEntity> show othercontacts
+        [<OtherContactsSelection>]
+        [countsonly|allfields|(fields <OtherContactsFieldNameList>)] [showmetadata]
         [formatjson]
-gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <OtherContactSelection>
-        [countsonly|allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
+gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
+        [<OtherContactsSelection>]
+        [countsonly|allfields|(fields <OtherContactsFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
 
 <PeopleContactGroupAttribute> ::=

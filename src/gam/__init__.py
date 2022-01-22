@@ -17098,7 +17098,6 @@ def _getPeopleOtherContactEntityList(unknownAction):
   return (entityList, entityList if isinstance(entityList, dict) else None, contactQuery, queriedContacts)
 
 def _getPeopleOtherContacts(people, entityType, user, i=0, count=0):
-  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
   try:
     printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count)
     pageMessage = getPageMessage()
@@ -18097,12 +18096,14 @@ def deleteUpdateUserPeopleOtherContacts(users, updateCmd):
                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  resourceName=peopleResourceName,
                  updatePersonFields=','.join(updatePersonFields), body=body, sources=sources)
-        if not updateCmd:
+        if updateCmd:
+          entityModifierNewValueActionPerformed([entityType, user, peopleEntityType, resourceName], Act.MODIFIER_TO, 'My Contacts', j, jcount)
+        else:
           callGAPI(upeople.people(), 'deleteContact',
                    bailOnInternalError=True,
                    throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                    resourceName=peopleResourceName)
-        entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+          entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
       except GAPI.invalidArgument as e:
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
         continue
