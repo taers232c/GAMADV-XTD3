@@ -5789,26 +5789,36 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
         [selectcontactgroup <ContactGroupItem>]
         [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
 
-gam <UserTypeEntity> create contact <PeopleContactAttribute>+
+gam <UserTypeEntity> create contact
+        [<PeopleContactAttribute>+]
         (contactgroup <ContactGroupItem>)*
-gam <UserTypeEntity> update contacts <PeopleResourceNameEntity>|(<PeopleUserContactSelection> endquery)
-        <PeopleContactAttribute>+
+gam <UserTypeEntity> update contacts
+        <PeopleResourceNameEntity>|(<PeopleUserContactSelection> endquery)
+        [<PeopleContactAttribute>+]
         (contactgroup <ContactGroupItem>)*|((addcontactgroup <ContactGroupItem>)* (removecontactgroup <ContactGroupItem>)*)
-gam <UserTypeEntity> delete contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+gam <UserTypeEntity> delete contacts
+        <PeopleResourceNameEntity>|<PeopleUserContactSelection>
 
-gam <UserTypeEntity> clear contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+gam <UserTypeEntity> clear contacts
+        <PeopleResourceNameEntity>|<PeopleUserContactSelection>
         [emailclearpattern <RegularExpression>] [emailcleartype work|home|other|<String>]
         [delete_cleared_contacts_with_no_emails]
 
-gam <UserTypeEntity> dedup contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection> [matchType [<Boolean>]]
+gam <UserTypeEntity> dedup contacts
+        <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+        [matchType [<Boolean>]]
 
-gam <UserTypeEntity> update contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+gam <UserTypeEntity> update contactphotos
+        <PeopleResourceNameEntity>|<PeopleUserContactSelection>
         [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
-gam <UserTypeEntity> get contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+gam <UserTypeEntity> get contactphotos
+        <PeopleResourceNameEntity>|<PeopleUserContactSelection>
         [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-gam <UserTypeEntity> delete contactphotos <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+gam <UserTypeEntity> delete contactphotos
+        <PeopleResourceNameEntity>|<PeopleUserContactSelection>
 
-gam <UserTypeEntity> info contacts <PeopleResourceNameEntity>
+gam <UserTypeEntity> info contacts
+        <PeopleResourceNameEntity>
         [allfields|(fields <PeopleFieldNameList>)] [showgroups] [showmetadata]
         [formatjson]
 
@@ -5817,11 +5827,13 @@ gam <UserTypeEntity> info contacts <PeopleResourceNameEntity>
         [(selectcontactgroup <ContactGroupItem>)|selectothercontacts]
         [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
 
-gam <UserTypeEntity> show contacts <PeoplePrintShowUserContactSelection>
+gam <UserTypeEntity> show contacts
+        <PeoplePrintShowUserContactSelection>
         [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
         [countsonly|allfields|(fields <PeopleFieldNameList>)] [showgroups] [showmetadata]
         [formatjson]
-gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <PeoplePrintShowUserContactSelection>
+gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*]
+        <PeoplePrintShowUserContactSelection>
         [orderby firstname|lastname|(lastmodified ascending)|(lastnodified descending)
         [countsonly|allfields|(fields <PeopleFieldNameList>)] [[showgroups|showgroupnameslist] showmetadata]
         [formatjson [quotechar <Character>]]
@@ -5838,11 +5850,16 @@ gam <UserTypeEntity> print contacts [todrive <ToDriveAttribute>*] <PeoplePrintSh
         [query <QueryContact>]
         [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
 
-gam <UserTypeEntity> copy othercontacts <OtherContactsResourceNameEntity>|<OtherContactsSelection>
-gam <UserTypeEntity> update othercontacts <OtherContactsResourceNameEntity>|<OtherContactsSelection>
+gam <UserTypeEntity> copy othercontacts
+        <OtherContactsResourceNameEntity>|<OtherContactsSelection>
+gam <UserTypeEntity> move othercontacts
+        <OtherContactsResourceNameEntity>|<OtherContactsSelection>
+gam <UserTypeEntity> update othercontacts
+        <OtherContactsResourceNameEntity>|<OtherContactsSelection>
         [<PeopleContactAttribute>+]
         (contactgroup <ContactGroupItem>)*
-gam <UserTypeEntity> delete othercontacts <OtherContactsResourceNameEntity>|<OtherContactsSelection>
+gam <UserTypeEntity> delete othercontacts
+        <OtherContactsResourceNameEntity>|<OtherContactsSelection>
 
 gam <UserTypeEntity> show othercontacts
         [<OtherContactsSelection>]

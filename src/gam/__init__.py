@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.14.03'
+__version__ = '6.14.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 import base64
@@ -17241,7 +17241,7 @@ def validatePeopleContactGroupsList(people, contactId,
         entityActionNotPerformedWarning([entityType, entityName, Ent.CONTACT, contactId],
                                         Ent.TypeNameMessage(Ent.CONTACT_GROUP, contactGroup, Msg.DOES_NOT_EXIST))
       result = False
-  return (result, validatedContactGroupsList)
+  return (result, validatedContactGroupsList, contactGroupIDs)
 
 # gam <UserTypeEntity> create contact <PeopleContactAttribute>+
 #	(contactgroup <ContactGroupItem>)*
@@ -17258,8 +17258,8 @@ def createUserPeopleContact(users):
     if not people:
       continue
     if contactGroupsLists[PEOPLE_GROUPS_LIST]:
-      result, validatedContactGroupsList = validatePeopleContactGroupsList(people, '',
-                                                                           contactGroupsLists[PEOPLE_GROUPS_LIST], entityType, user, i, count)
+      result, validatedContactGroupsList, _ = validatePeopleContactGroupsList(people, '',
+                                                                              contactGroupsLists[PEOPLE_GROUPS_LIST], entityType, user, i, count)
       if not result:
         continue
       peopleManager.AddContactGroupsToContact(body, validatedContactGroupsList)
@@ -17392,8 +17392,8 @@ def _clearUpdatePeopleContacts(users, updateContacts):
           groupError = False
           for field in [PEOPLE_GROUPS_LIST, PEOPLE_ADD_GROUPS_LIST, PEOPLE_REMOVE_GROUPS_LIST]:
             if contactGroupsLists[field] and not validatedContactGroupsLists[field]:
-              status, validatedContactGroupsLists[field] = validatePeopleContactGroupsList(people, resourceName,
-                                                                                           contactGroupsLists[field], entityType, user, i, count)
+              status, validatedContactGroupsLists[field], _ = validatePeopleContactGroupsList(people, resourceName,
+                                                                                              contactGroupsLists[field], entityType, user, i, count)
               if not status:
                 groupError = True
           if groupError:
@@ -17937,8 +17937,9 @@ def printShowUserPeopleContacts(users):
       if contactGroupNames is False:
         continue
     if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
-                                                                 contactGroupIDs, contactGroupNames, entityType, user, i, count)
+      groupId, _, contactGroupNames =\
+        validatePeopleContactGroup(people, contactQuery['contactGroup'],
+                                   contactGroupIDs, contactGroupNames, entityType, user, i, count)
       if not groupId:
         if contactGroupNames:
           entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
@@ -17981,13 +17982,18 @@ def printShowUserPeopleContacts(users):
   if csvPF:
     csvPF.writeCSVfile(CSVTitle)
 
-# gam <UserTypeEntity> copy othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
+CONTACTGROUPS_MYCONTACTS_ID = 'contactGroups/myContacts'
+CONTACTGROUPS_MYCONTACTS_NAME = 'My Contacts'
+
+# gam <UserTypeEntity> copy othercontacts
+#	<OtherContactResourceNameEntity>|<OtherContactSelection>
 def copyUserPeopleOtherContacts(users):
   entityType = Ent.USER
   peopleEntityType = Ent.OTHER_CONTACT
   sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
   copyMask = ['emailAddresses', 'names', 'phoneNumbers']
   entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleOtherContactEntityList(-1)
+  checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -18020,7 +18026,7 @@ def copyUserPeopleOtherContacts(users):
                  bailOnInternalError=True,
                  throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                  resourceName=resourceName, body={'copyMask': ','.join(copyMask), 'sources': sources})
-        entityModifierNewValueActionPerformed([entityType, user, peopleEntityType, resourceName], Act.MODIFIER_TO, 'My Contacts')
+        entityModifierNewValueActionPerformed([entityType, user, peopleEntityType, resourceName], Act.MODIFIER_TO, CONTACTGROUPS_MYCONTACTS_NAME)
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
@@ -18028,17 +18034,30 @@ def copyUserPeopleOtherContacts(users):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
 
-def deleteUpdateUserPeopleOtherContacts(users, updateCmd):
+# gam <UserTypeEntity> delete othercontacts
+#	<OtherContactResourceNameEntity>|<OtherContactSelection>
+# gam <UserTypeEntity> move othercontacts
+#	<OtherContactResourceNameEntity>|<OtherContactSelection>
+# gam <UserTypeEntity> update othercontacts
+#	<OtherResourceNameEntity>|<OtherContactSelection>
+#	<PeopleContactAttribute>*
+#	(contactgroup <ContactGroupItem>)*
+def processUserPeopleOtherContacts(users):
+  action = Act.Get()
   entityType = Ent.USER
   peopleEntityType = Ent.OTHER_CONTACT
   sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
   entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleOtherContactEntityList(1)
-  if updateCmd:
+  if action == Act.UPDATE:
+    Act.Set(Act.UPDATE_MOVE)
     peopleManager = PeopleManager()
     body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
   else:
-    body = {PEOPLE_MEMBERSHIPS: [{'contactGroupMembership': {'contactGroupResourceName': 'contactGroups/myContacts'}}]}
+    body = {PEOPLE_MEMBERSHIPS: [{'contactGroupMembership': {'contactGroupResourceName': CONTACTGROUPS_MYCONTACTS_ID}}]}
     updatePersonFields = [PEOPLE_MEMBERSHIPS]
+    checkForExtraneousArguments()
+  validatedContactGroupsList = [CONTACTGROUPS_MYCONTACTS_ID]
+  contactGroupIDs = {CONTACTGROUPS_MYCONTACTS_ID: CONTACTGROUPS_MYCONTACTS_NAME}
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -18058,15 +18077,19 @@ def deleteUpdateUserPeopleOtherContacts(users, updateCmd):
       otherContacts = _getPeopleOtherContacts(people, entityType, user, i=0, count=0)
       if otherContacts is None:
         continue
-    if updateCmd:
+    if action == Act.UPDATE:
       if contactGroupsLists[PEOPLE_GROUPS_LIST]:
-        result, validatedContactGroupsList = validatePeopleContactGroupsList(people, '',
-                                                                             contactGroupsLists[PEOPLE_GROUPS_LIST], entityType, user, i, count)
+        result, validatedContactGroupsList, contactGroupIDs =\
+          validatePeopleContactGroupsList(people, '', contactGroupsLists[PEOPLE_GROUPS_LIST], entityType, user, i, count)
         if not result:
           continue
-      else:
-        validatedContactGroupsList = ['contactGroups/myContacts']
+      if CONTACTGROUPS_MYCONTACTS_ID not in validatedContactGroupsList:
+        validatedContactGroupsList.insert(0, CONTACTGROUPS_MYCONTACTS_ID)
       updatePersonFields.add(PEOPLE_MEMBERSHIPS)
+    contactGroupNamesList = []
+    for resourceName in validatedContactGroupsList:
+      contactGroupNamesList.append(contactGroupIDs[resourceName])
+    contactGroupNames = ','.join(contactGroupNamesList)
     j = 0
     jcount = len(entityList)
     entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
@@ -18088,7 +18111,7 @@ def deleteUpdateUserPeopleOtherContacts(users, updateCmd):
           continue
       peopleResourceName = resourceName.replace('otherContacts', 'people')
       body['etag'] = contact['etag']
-      if updateCmd and validatedContactGroupsList:
+      if action == Act.UPDATE and validatedContactGroupsList:
         peopleManager.AddContactGroupsToContact(body, validatedContactGroupsList)
       try:
         callGAPI(upeople.people(), 'updateContact',
@@ -18096,8 +18119,9 @@ def deleteUpdateUserPeopleOtherContacts(users, updateCmd):
                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  resourceName=peopleResourceName,
                  updatePersonFields=','.join(updatePersonFields), body=body, sources=sources)
-        if updateCmd:
-          entityModifierNewValueActionPerformed([entityType, user, peopleEntityType, resourceName], Act.MODIFIER_TO, 'My Contacts', j, jcount)
+        if action != Act.DELETE:
+          entityModifierNewValueActionPerformed([entityType, user, peopleEntityType, resourceName],
+                                                Act.MODIFIER_TO, contactGroupNames, j, jcount)
         else:
           callGAPI(upeople.people(), 'deleteContact',
                    bailOnInternalError=True,
@@ -18113,16 +18137,6 @@ def deleteUpdateUserPeopleOtherContacts(users, updateCmd):
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
-
-# gam <UserTypeEntity> delete othercontacts <OtherContactResourceNameEntity>|<OtherContactSelection>
-def deleteUserPeopleOtherContacts(users):
-  deleteUpdateUserPeopleOtherContacts(users, False)
-
-# gam <UserTypeEntity> update othercontacts <OtherResourceNameEntity>|<OtherContactSelection>
-#	<PeopleContactAttribute>+
-#	(contactgroup <ContactGroupItem>)*
-def updateUserPeopleOtherContacts(users):
-  deleteUpdateUserPeopleOtherContacts(users, True)
 
 # gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*] <OtherContactSelection>
 #	[countsonly|allfields|(fields <OtherContactFieldNameList>)] [showmetadata]
@@ -59164,7 +59178,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'copy':
     (Act.COPY,
      {Cmd.ARG_DRIVEFILE:	copyDriveFile,
-      Cmd.ARG_OTHERCONTACT:	copyUserPeopleOtherContacts,
+      Cmd.ARG_OTHERCONTACT:	processUserPeopleOtherContacts,
      }
     ),
   'create':
@@ -59204,7 +59218,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MESSAGE:		processMessages,
       Cmd.ARG_NOTE:		deleteInfoNotes,
       Cmd.ARG_NOTEACL:		deleteNotesACLs,
-      Cmd.ARG_OTHERCONTACT:	deleteUserPeopleOtherContacts,
+      Cmd.ARG_OTHERCONTACT:	processUserPeopleOtherContacts,
       Cmd.ARG_PEOPLECONTACT:	deleteUserPeopleContacts,
       Cmd.ARG_PEOPLECONTACTGROUP:	deleteUserPeopleContactGroups,
       Cmd.ARG_PEOPLECONTACTPHOTO:	deleteUserPeopleContactPhoto,
@@ -59288,6 +59302,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.MOVE,
      {Cmd.ARG_DRIVEFILE:	moveDriveFile,
       Cmd.ARG_EVENT:		moveCalendarEvents,
+      Cmd.ARG_OTHERCONTACT:	processUserPeopleOtherContacts,
      }
     ),
   'purge':
@@ -59486,7 +59501,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_LABEL:		updateLabels,
       Cmd.ARG_LABELSETTINGS:	updateLabelSettings,
       Cmd.ARG_LICENSE:		updateLicense,
-      Cmd.ARG_OTHERCONTACT:	updateUserPeopleOtherContacts,
+      Cmd.ARG_OTHERCONTACT:	processUserPeopleOtherContacts,
       Cmd.ARG_PEOPLECONTACT:	updateUserPeopleContacts,
       Cmd.ARG_PEOPLECONTACTGROUP:	updateUserPeopleContactGroup,
       Cmd.ARG_PEOPLECONTACTPHOTO:	updateUserPeopleContactPhoto,

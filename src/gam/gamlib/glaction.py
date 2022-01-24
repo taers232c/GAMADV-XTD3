@@ -112,6 +112,7 @@ class GamAction():
   UNSUSPEND = 'unsu'
   UNTRASH = 'untr'
   UPDATE = 'upda'
+  UPDATE_MOVE = 'upmo'
   UPDATE_OWNER = 'updo'
   UPDATE_PREVIEW = 'updp'
   UPLOAD = 'uplo'
@@ -216,6 +217,7 @@ class GamAction():
     UNTRASH: ['Untrashed', 'Untrash'],
     UNZIP: ['Unzipped', 'Unzip'],
     UPDATE: ['Updated', 'Update'],
+    UPDATE_MOVE: ['Updated/Moved', 'Update/Move'],
     UPDATE_OWNER: ['Updated to Owner', 'Update to Owner'],
     UPDATE_PREVIEW: ['Updated (Preview)', 'Update (Preview)'],
     UPLOAD: ['Uploaded', 'Upload'],
