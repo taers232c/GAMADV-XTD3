@@ -25,9 +25,10 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.14.04'
+__version__ = '6.14.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
+#pylint: disable=wrong-import-position
 import base64
 import calendar as calendarlib
 import codecs
@@ -44879,13 +44880,14 @@ def printFileList(users):
       if childEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
         _printChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
 
-  def writeMimeTypeCountsRow(user, source, mimeTypeCounts, sizeTotal):
+  def writeMimeTypeCountsRow(user, sourceId, sourceName, mimeTypeCounts, sizeTotal):
     total = 0
     for mimeTypeCount in iter(mimeTypeCounts.values()):
       total += mimeTypeCount
     row = {'Owner': user, 'Total': total}
     if showSource:
-      row['Source'] = source
+      row['Source'] = sourceId
+      row['Name'] = sourceName
     if showSize:
       row['Size'] = sizeTotal
     row.update(mimeTypeCounts)
@@ -44902,6 +44904,8 @@ def printFileList(users):
   FJQC = FormatJSONQuoteChar(csvPF)
   addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = getPermissionsForTeamDrives = \
     noRecursion = showParentsIdsAsList = showDepth = showParent = showSize = showSource = stripCRsFromName = False
+  rootFolderId = ROOT
+  rootFolderName = MY_DRIVE
   maxdepth = -1
   nodataFields = []
   simpleLists = ['permissionIds', 'spaces']
@@ -44963,9 +44967,9 @@ def printFileList(users):
       showSource = True
       if countsOnly:
         if not showSize:
-          csvPFco.SetTitles(['Owner', 'Source', 'Total'])
+          csvPFco.SetTitles(['Owner', 'Source', 'Name', 'Total'])
         else:
-          csvPFco.SetTitles(['Owner', 'Source', 'Size', 'Total'])
+          csvPFco.SetTitles(['Owner', 'Source', 'Name', 'Size', 'Total'])
         csvPFco.SetSortAllTitles()
     elif myarg == 'showsize':
       showSize = True
@@ -44973,7 +44977,7 @@ def printFileList(users):
         if not showSource:
           csvPFco.SetTitles(['Owner', 'Size', 'Total'])
         else:
-          csvPFco.SetTitles(['Owner', 'Source', 'Size', 'Total'])
+          csvPFco.SetTitles(['Owner', 'Source', 'Name', 'Size', 'Total'])
         csvPFco.SetSortAllTitles()
     elif myarg == 'delimiter':
       delimiter = getCharacter()
@@ -45070,11 +45074,27 @@ def printFileList(users):
     user, drive = _validateUserTeamDrive(user, i, count, fileIdEntity)
     if not drive:
       continue
-    if not showParentsIdsAsList and DFF.parentsSubFields['isRoot']:
+    if ((incrementalPrint and countsOnly) or
+        (not showParentsIdsAsList and DFF.parentsSubFields['isRoot'])):
       try:
-        DFF.parentsSubFields['rootFolderId'] = callGAPI(drive.files(), 'get',
-                                                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
-                                                        fileId=ROOT, fields='id')['id']
+        if not fileIdEntity['teamdrive']:
+          result = callGAPI(drive.files(), 'get',
+                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
+                            fileId=ROOT, fields='id,name')
+          rootFolderId = result['id']
+          rootFolderName = result['name']
+        else:
+          rootFolderId = fileIdEntity['teamdrive']['driveId']
+          if not fileIdEntity['teamdrivename']:
+            fileIdEntity['teamdrivename'] = callGAPI(drive.drives(), 'get',
+                                                     throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
+                                                     driveId=rootFolderId, fields='name')['name']
+          rootFolderName = fileIdEntity['teamdrivename']
+        if not showParentsIdsAsList and DFF.parentsSubFields['isRoot']:
+          DFF.parentsSubFields['rootFolderId'] = rootFolderId
+      except GAPI.fileNotFound as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_ID, fileIdEntity['teamdrive']['driveId']], str(e), i, count)
+        continue
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
@@ -45144,7 +45164,7 @@ def printFileList(users):
               summaryMimeTypeCounts.setdefault(mimeType, 0)
               summaryMimeTypeCounts[mimeType] += mtcount
           if summary != FILECOUNT_SUMMARY_ONLY:
-            writeMimeTypeCountsRow(user, fileIdEntity.get('teamdrive', {}).get('driveId', 'root'), mimeTypeCounts, sizeTotals['User'])
+            writeMimeTypeCountsRow(user, rootFolderId, rootFolderName, mimeTypeCounts, sizeTotals['User'])
           incrementSizeSummary()
         continue
       extendFileTreeParents(drive, fileTree, fields)
@@ -45198,7 +45218,7 @@ def printFileList(users):
               summaryMimeTypeCounts.setdefault(mimeType, 0)
               summaryMimeTypeCounts[mimeType] += mtcount
           if summary != FILECOUNT_SUMMARY_ONLY:
-            writeMimeTypeCountsRow(user, fileId, mimeTypeCounts, sizeTotals['User'])
+            writeMimeTypeCountsRow(user, fileId, fileEntryInfo['name'], mimeTypeCounts, sizeTotals['User'])
           incrementSizeSummary()
     if countsOnly:
       if not showSource:
@@ -45207,7 +45227,7 @@ def printFileList(users):
             summaryMimeTypeCounts.setdefault(mimeType, 0)
             summaryMimeTypeCounts[mimeType] += mtcount
         if summary != FILECOUNT_SUMMARY_ONLY:
-          writeMimeTypeCountsRow(user, 'Various', mimeTypeCounts, sizeTotals['User'])
+          writeMimeTypeCountsRow(user, 'Various', 'Various', mimeTypeCounts, sizeTotals['User'])
         incrementSizeSummary()
   if not countsOnly:
     if not csvPF.rows:
@@ -45272,7 +45292,7 @@ def printFileList(users):
     if not csvPFco.rows:
       setSysExitRC(NO_ENTITIES_FOUND_RC)
     if summary != FILECOUNT_SUMMARY_NONE:
-      writeMimeTypeCountsRow(summaryUser, 'Various', summaryMimeTypeCounts, sizeTotals['Summary'])
+      writeMimeTypeCountsRow(summaryUser, 'Various', 'Various', summaryMimeTypeCounts, sizeTotals['Summary'])
     csvPFco.todrive = csvPF.todrive
     if not countsRowFilter:
       csvPFco.SetRowFilter([])
