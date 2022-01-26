@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.14.05'
+__version__ = '6.14.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -22309,7 +22309,7 @@ def doSyncCIDevices():
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
     elif myarg == 'csvfile':
       filename = getString(Cmd.OB_STRING)
-    elif myarg == 'serialNumberColumn':
+    elif myarg == 'serialnumbercolumn':
       serialNumberColumn = getString(Cmd.OB_STRING)
     elif myarg == 'devicetypecolumn':
       deviceTypeColumn = getString(Cmd.OB_STRING)
