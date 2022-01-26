@@ -22299,7 +22299,7 @@ def doSyncCIDevices():
   staticDeviceType = None
   fieldsList = ['serialNumber', 'deviceType', 'lastSyncTime', 'name']
   unassignedMissingAction = 'delete'
-  assignedMissingAction = 'donothing'
+  assignedMissingAction = 'none'
   preview = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()

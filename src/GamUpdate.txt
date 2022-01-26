@@ -2,6 +2,8 @@
 
 Fixed bug in `gam sync devices` where option `serialnumber_column` was not recognized.
 
+Fixed bug in `gam sync devices` where a trap occurred when option `assigned_missing_action` was not specified.
+
 6.14.05
 
 Upgraded the `countsonly` suboption `showsource` in `gam <UserTypeEntity> print filelist` to display
