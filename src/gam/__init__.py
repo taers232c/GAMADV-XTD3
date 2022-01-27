@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.14.06'
+__version__ = '6.14.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3514,6 +3514,11 @@ def SetGlobalVariables():
     value = GM.Globals[GM.PARSER].get(section, GC.TODRIVE_SHEET_TIMEFORMAT)
     if value == 'copy':
       GM.Globals[GM.PARSER].set(section, GC.TODRIVE_SHEET_TIMEFORMAT, _getCfgString(section, GC.TODRIVE_TIMEFORMAT))
+# Fix mistyped keyword cmdlog_max__backups
+  for section in [configparser.DEFAULTSECT, sectionName]:
+    if GM.Globals[GM.PARSER].has_option(section, GC.CMDLOG_MAX__BACKUPS):
+      GM.Globals[GM.PARSER].set(section, GC.CMDLOG_MAX_BACKUPS, GM.Globals[GM.PARSER].get(section, GC.CMDLOG_MAX__BACKUPS))
+      GM.Globals[GM.PARSER].remove_option(section, GC.CMDLOG_MAX__BACKUPS)
 # config (<VariableName> [=] <Value>)* [save] [verify]
   if checkArgumentPresent(Cmd.CONFIG_CMD):
     while Cmd.ArgumentsRemaining():

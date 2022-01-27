@@ -73,8 +73,10 @@ CLASSROOM_MAX_RESULTS = 'classroom_max_results'
 CLIENT_SECRETS_JSON = 'client_secrets_json'
 # Command logging filename
 CMDLOG = 'cmdlog'
+# Bogus Command logging maximum number of backup log files
+CMDLOG_MAX__BACKUPS = 'cmdlog_max__backups'
 # Command logging maximum number of backup log files
-CMDLOG_MAX_BACKUPS = 'cmdlog_max__backups'
+CMDLOG_MAX_BACKUPS = 'cmdlog_max_backups'
 # Command logging max kilo bytes per log file
 CMDLOG_MAX_KILO_BYTES = 'cmdlog_max_kilo_bytes'
 # GAM config directory containing client_secrets.json, oauth2.txt, oauth2service.json, extra_args.txt
