@@ -3641,13 +3641,13 @@ gam create|add teamdrive <Name>
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide|hidden <Boolean>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
-gam delete teamdrive <SharedDriveEntity>
-gam hide teamdrive <SharedDriveEntity>
-gam unhide teamdrive <SharedDriveEntity>
 gam update teamdrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsFieldName> <Boolean>)*
         [hide|hidden <Boolean>]
+gam delete teamdrive <SharedDriveEntity>
+gam hide teamdrive <SharedDriveEntity>
+gam unhide teamdrive <SharedDriveEntity>
 gam info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
         [formatjson]
 gam show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
@@ -3776,6 +3776,17 @@ gam <UserTypeEntity> delete permissions <SharedDriveEntityAdmin> <DriveFilePermi
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
+gam copy teamdriveacls <SharedDriveEntity> to <SharedDriveEntity>
+        [adminaccess|asadmin]
+        [showpermissionsmessages [<Boolean>]]
+        [excludepermissionsfromdomains <DomainNameList>]
+        (mappermissionsdomain <DomainName> <DomainName>)*
+gam sync teamdriveacls <SharedDriveEntity> with <SharedDriveEntity>
+        [adminaccess|asadmin]
+        [showpermissionsmessages [<Boolean>]]
+        [excludepermissionsfromdomains <DomainNameList>]
+        (mappermissionsdomain <DomainName> <DomainName>)*
+
 gam print teamdriveacls [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
@@ -3791,18 +3802,33 @@ gam show teamdriveacls
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
+gam <UserTypeEntity> copy teamdriveacls <SharedDriveEntity> to <SharedDriveEntity>
+        [adminaccess|asadmin]
+        [showpermissionsmessages [<Boolean>]]
+        [excludepermissionsfromdomains <DomainNameList>]
+        (mappermissionsdomain <DomainName> <DomainName>)*
+gam <UserTypeEntity> sync teamdriveacls <SharedDriveEntity> with <SharedDriveEntity>
+        [adminaccess|asadmin]
+        [showpermissionsmessages [<Boolean>]]
+        [excludepermissionsfromdomains <DomainNameList>]
+        (mappermissionsdomain <DomainName> <DomainName>)*
+
 gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
+        [adminaccess|asadmin]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        [formatjson [quotechar <Character>]] asadmin
+        [shownopermissionsdrives false|true|only]
+        [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdriveacls
+        [adminaccess|asadmin]
         [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-        [formatjson [quotechar <Character>]] asadmin
+        [shownopermissionsdrives false|true|only]
+        [formatjson [quotechar <Character>]]
 
 # Tag Replace
 <AddressSubfieldName> ::=
@@ -4787,6 +4813,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [copysubfolderinheritedpermissions [<Boolean>]]
         [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
         [excludepermissionsfromdomains <DomainNameList>]
+        (mappermissionsdomain <DomainName> <DomainName>)*
         [copysheetprotectedranges [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
 
@@ -4807,6 +4834,7 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copysubfolderinheritedpermissions [<Boolean>]]
         [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
         [excludepermissionsfromdomains <DomainNameList>]
+        (mappermissionsdomain <DomainName> <DomainName>)*
         [retainsourcefolders [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
 

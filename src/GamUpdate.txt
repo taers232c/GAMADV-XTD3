@@ -1,3 +1,57 @@
+6.15.00
+
+Updated processing of `teamdrive <SharedDriveName>` in the following commands.
+Previously, if there were multiple Shared Drives with the same `<SharedDriveName>`, GAM silently processed
+the first one which may not have been the desired action. Now, a message is issued listing the multiple `<DriveFileIDs>` and
+no processing is performed. Determine which Shared Drive ID is desired and reissue the command with `teamdriveid <DriveFileID>`.
+```
+gam <UserTypeEntity> print filelist select teamdrive <SharedDriveName>
+gam <UserTypeEntity> print|show filecounts select teamdrive <SharedDriveName>
+gam <UserTypeEntity> print|show filetree select teamdrive <SharedDriveName>
+gam <UserTypeEntity> update teamdrive teamdrive <SharedDriveName>
+gam <UserTypeEntity> delete teamdrive teamdrive <SharedDriveName>
+gam <UserTypeEntity> hide teamdrive teamdrive <SharedDriveName>
+gam <UserTypeEntity> unhide teamdrive teamdrive <SharedDriveName>
+gam <UserTypeEntity> info teamdrive teamdrive <SharedDriveName>
+gam <UserTypeEntity> print emptydrivefolders teamdrive <SharedDriveName>
+gam <UserTypeEntity> delete emptydrivefolders teamdrive <SharedDriveName>
+gam <UserTypeEntity> empty drivetrash teamdrive <SharedDriveName>
+```
+
+Added the following commands to transfer top level ACLs from one Shared Drive to another.
+```
+gam [<UserTypeEntity>] copy teamdriveacls <SharedDriveEntity> to <SharedDriveEntity>
+        [adminaccess|asadmin]
+        [showpermissionsmessages [<Boolean>]]
+        [excludepermissionsfromdomains <DomainNameList>]
+        (mappermissionsdomain <DomainName> <DomainName>)*
+gam [<UserTypeEntity>] sync teamdriveacls <SharedDriveEntity> with <SharedDriveEntity>
+        [adminaccess|asadmin]
+        [showpermissionsmessages [<Boolean>]]
+        [excludepermissionsfromdomains <DomainNameList>]
+        (mappermissionsdomain <DomainName> <DomainName>)*
+```
+
+Added option `shownopermissionsdrives false|true|only` to `gam <UserTypeEntity> print|show teamdriveacls` that
+controls whether Shared Drives with no permissions are displayed.
+* `false` - Do not display Shared Drives with no permissions; this is the default
+* `true` - Display Shared Drives with no permissions in addition to Shared Drives with permissions
+* `only` - Display only Shared Drives with no permissions
+
+Added the option `mappermissionsdomain <DomainName1> <DomainName2>` to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`
+that maps `<DomainName1>` to `<DomainName2>` in any non-inherited permissions that are copied. The option can be specfied multiple times
+to provide different mappings.
+* Thanks to Kevin Sanghvi for suggesting this enhancement.
+
+Updated `gam <UserTypeEntity> delete othercontacts` to retry the delete step when
+`notFound` errors are returned after the update step.
+
+Fixed bug in `gam courses <CourseEntity> add|remove students|teachers` that caused API
+call retries to fail with the following error:
+```
+Temporary error: notFound - @CourseNotFound The course was not found.
+```
+
 6.14.07
 
 Corrected `gam.cfg` variable `cmdlog_max__backups` to be `cmdlog_max_backups`.

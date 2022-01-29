@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.14.07'
+__version__ = '6.15.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -18129,11 +18129,20 @@ def processUserPeopleOtherContacts(users):
           entityModifierNewValueActionPerformed([entityType, user, peopleEntityType, resourceName],
                                                 Act.MODIFIER_TO, contactGroupNames, j, jcount)
         else:
-          callGAPI(upeople.people(), 'deleteContact',
-                   bailOnInternalError=True,
-                   throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                   resourceName=peopleResourceName)
-          entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+          maxRetries = 5
+          for retry in range(1, maxRetries+1):
+            try:
+              callGAPI(upeople.people(), 'deleteContact',
+                       bailOnInternalError=True,
+                       throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                       resourceName=peopleResourceName)
+              entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
+              break
+            except (GAPI.notFound, GAPI.internalError):
+              if retry == maxRetries:
+                entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
+                break
+              time.sleep(retry*2)
       except GAPI.invalidArgument as e:
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
         continue
@@ -38789,7 +38798,7 @@ def _batchAddItemsToCourse(croom, courseId, i, count, addParticipants, role):
                                GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
                                GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE],
                  retryReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE], retries=10 if reason != GAPI.NOT_FOUND else 3,
-                 courseId=ri[RI_ENTITY],
+                 courseId=addCourseIdScope(ri[RI_ENTITY]),
                  body={attribute: ri[RI_ITEM] if ri[RI_ROLE] != Ent.COURSE_ALIAS else addCourseAliasScope(ri[RI_ITEM])},
                  fields='')
       except (GAPI.notFound, GAPI.backendError, GAPI.forbidden):
@@ -38866,7 +38875,7 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
                  throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED,
                                GAPI.QUOTA_EXCEEDED, GAPI.SERVICE_NOT_AVAILABLE],
                  retryReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE], retries=10 if reason != GAPI.NOT_FOUND else 3,
-                 courseId=ri[RI_ENTITY],
+                 courseId=addCourseIdScope(ri[RI_ENTITY]),
                  body={attribute: ri[RI_ITEM] if ri[RI_ROLE] != Ent.COURSE_ALIAS else addCourseAliasScope(ri[RI_ITEM])},
                  fields='')
       except GAPI.notFound:
@@ -41895,18 +41904,22 @@ def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAdmi
   try:
     feed = callGAPIpages(drive.drives(), 'list', 'drives',
                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
-                         #q=f"name = '{fileIdEntity['teamdrivename']}'",
                          useDomainAdminAccess=useDomainAdminAccess,
                          fields='nextPageToken,drives(id,name)', pageSize=100)
-    tddrivenamelower = fileIdEntity['teamdrivename'].lower()
-    for td in feed:
-      if td['name'].lower() == tddrivenamelower:
-        fileIdEntity['teamdrive']['driveId'] = td['id']
-#        fileIdEntity['teamdrivename'] = None
-        return True
-  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
-    pass
-  entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity['teamdrivename']], Msg.DOES_NOT_EXIST, i, count)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+    entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity['teamdrivename']], Msg.DOES_NOT_EXIST, i, count)
+    return False
+  tddrivenamelower = fileIdEntity['teamdrivename'].lower()
+  tdlist = [td['id'] for td in feed if td['name'].lower() == tddrivenamelower]
+  jcount = len(tdlist)
+  if jcount == 1:
+    fileIdEntity['teamdrive']['driveId'] = tdlist[0]
+    return True
+  if jcount == 0:
+    entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity['teamdrivename']], Msg.DOES_NOT_EXIST, i, count)
+  else:
+    entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity['teamdrivename']],
+                              Msg.MULTIPLE_ENTITIES_FOUND.format(Ent.Plural(Ent.TEAMDRIVE_ID), jcount, ','.join(tdlist)), i, count)
   return False
 
 def _getTeamDriveNameFromId(drive, teamDriveId):
@@ -45372,7 +45385,7 @@ def printShowFilePaths(users):
 # gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) (querytime.* <Time>)*]
 #	[corpora <CorporaAttribute>]
-#	[select <TeamDriveEntity>]
+#	[select <SharedDriveEntity>]
 #	[anyowner|(showownedby any|me|others)]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
@@ -45382,7 +45395,7 @@ def printShowFilePaths(users):
 # gam <UserTypeEntity> show filecounts
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) (querytime.* <Time>)*]
 #	[corpora <CorporaAttribute>]
-#	[select <TeamDriveEntity>]
+#	[select <SharedDriveEntity>]
 #	[anyowner|(showownedby any|me|others)]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
@@ -46625,6 +46638,7 @@ def initCopyMoveOptions(copyCmd):
     'retainSourceFolders': False,
     'showPermissionMessages': False,
     'sendEmailIfRequired': False,
+    'useDomainAdminAccess': False,
     'duplicateFiles': DUPLICATE_FILE_OVERWRITE_OLDER,
     'duplicateFolders': DUPLICATE_FOLDER_MERGE,
     'copyTopFileParents': COPY_NO_PARENTS,
@@ -46645,6 +46659,7 @@ def initCopyMoveOptions(copyCmd):
     'copySubFolderNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
     'noCopyNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_NEVER,
     'excludePermissionsFromDomains': [],
+    'mapPermissionsDomains': {},
     'copySheetProtectedRanges': False,
     'copyInheritedSheetProtectedRanges': True,
     'copyNonInheritedSheetProtectedRanges': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
@@ -46706,6 +46721,9 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
     copyMoveOptions['copySubFolderNonInheritedPermissions'] = getChoice(COPY_NONINHERITED_PERMISSIONS_CHOICES_MAP, mapChoice=True)
   elif myarg == 'excludepermissionsfromdomains':
     copyMoveOptions['excludePermissionsFromDomains'] = getString(Cmd.OB_DOMAIN_NAME_LIST).lower().replace(',', ' ').split()
+  elif myarg == 'mappermissionsdomain':
+    oldDomain = getString(Cmd.OB_DOMAIN_NAME).lower()
+    copyMoveOptions['mapPermissionsDomains'][oldDomain] = getString(Cmd.OB_DOMAIN_NAME).lower()
   else:
     if not copyMoveOptions['copyCmd']:
       if myarg == 'retainsourcefolders':
@@ -46791,7 +46809,7 @@ def _getUniqueFilename(destFilename, mimeType, targetChildren):
 
 def _copyPermissions(drive, user, i, count, j, jcount,
                      entityType, fileId, fileTitle, newFileId, newFileTitle,
-                     statistics, stat, copyMoveOptions, copyInherited, copyNonInherited):
+                     statistics, stat, copyMoveOptions, atTop, copyInherited, copyNonInherited):
   def getPermissions(fid):
     permissions = {}
     try:
@@ -46800,7 +46818,7 @@ def _copyPermissions(drive, user, i, count, j, jcount,
                              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                              fileId=fid,
                              fields='nextPageToken,permissions(allowFileDiscovery,domain,emailAddress,expirationTime,id,role,type,deleted,view,pendingOwner,permissionDetails)',
-                             supportsAllDrives=True)
+                             useDomainAdminAccess=copyMoveOptions['useDomainAdminAccess'], supportsAllDrives=True)
       for permission in result:
         permission['inherited'] = permission.pop('permissionDetails', [{'inherited': False}])[0]['inherited']
         permissions[permission['id']] = permission
@@ -46815,7 +46833,15 @@ def _copyPermissions(drive, user, i, count, j, jcount,
       _incrStatistic(statistics, stat)
     return None
 
-  def isPermissionCopyable(permission):
+  def permissionKVList(user, entityType, title, permission):
+    permstr = f"{['noninherited', 'inherited'][permission['inherited']]}/{permission['role']}/{permission['type']}"
+    if permission['type'] in {'group', 'user'}:
+      permstr += f"/{permission['emailAddress']}"
+    elif permission['type'] == 'domain':
+      permstr += f"/{permission['domain']}"
+    return [Ent.USER, user, entityType, title, Ent.PERMISSION, permstr]
+
+  def isPermissionCopyable(kvList, permission):
     role = permission['role']
     domain = ''
     if copyMoveOptions['excludePermissionsFromDomains']:
@@ -46839,7 +46865,7 @@ def _copyPermissions(drive, user, i, count, j, jcount,
       if role in {'organizer', 'fileOrganizer'}:
         permission['role'] = 'writer'
       return True
-    elif role == 'organizer':
+    elif role == 'organizer' and (not atTop or copyMoveOptions['destParentType'] != DEST_PARENT_SHAREDDRIVE_ROOT):
       notCopiedMessage = f'role {role} not copyable to {Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER)}'
     elif role == 'fileOrganizer' and entityType == Ent.DRIVE_FILE:
       notCopiedMessage = f'role {role} not copyable to {Ent.Plural(entityType)}'
@@ -46848,7 +46874,7 @@ def _copyPermissions(drive, user, i, count, j, jcount,
     else:
       return True
     if copyMoveOptions['showPermissionMessages']:
-      entityActionNotPerformedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permission['id']], notCopiedMessage, 0, 0)
+      entityActionNotPerformedWarning(kvList, notCopiedMessage, 0, 0)
     return False
 
   def getNonInheritedPermissions(permissions):
@@ -46858,6 +46884,19 @@ def _copyPermissions(drive, user, i, count, j, jcount,
         nonInheritedPermIds.add(permissionId)
     return nonInheritedPermIds
 
+  def mapPermissionsDomains(srcPerm):
+    if 'emailAddress' in srcPerm:
+      email, domain = srcPerm['emailAddress'].lower().split('@', 1)
+      if domain in copyMoveOptions['mapPermissionsDomains']:
+        srcPerm['emailAddress'] = f"{email}@{copyMoveOptions['mapPermissionsDomains'][domain]}"
+        return True
+    elif 'domain' in srcPerm:
+      domain = srcPerm['domain'].lower()
+      if domain in copyMoveOptions['mapPermissionsDomains']:
+        srcPerm['domain'] = copyMoveOptions['mapPermissionsDomains'][domain]
+        return True
+    return False
+
   sourcePerms = getPermissions(fileId)
   if sourcePerms is None:
     return
@@ -46865,38 +46904,59 @@ def _copyPermissions(drive, user, i, count, j, jcount,
   deleteTargetPermIds = set()
   updateTargetPerms = {}
   for permissionId, permission in iter(sourcePerms.items()):
-    if isPermissionCopyable(permission):
+    kvList = permissionKVList(user, entityType, newFileTitle, permission)
+    if isPermissionCopyable(kvList, permission):
       copySourcePerms[permissionId] = permission
-  if copyMoveOptions[copyNonInherited] in {COPY_NONINHERITED_PERMISSIONS_SYNC_ALL_FOLDERS,
-                                           COPY_NONINHERITED_PERMISSIONS_SYNC_UPDATED_FOLDERS}:
+  if copyMoveOptions[copyNonInherited] == COPY_NONINHERITED_PERMISSIONS_ALWAYS:
+    if copyMoveOptions['mapPermissionsDomains']:
+      for permissionId in getNonInheritedPermissions(copySourcePerms):
+        mapPermissionsDomains(copySourcePerms[permissionId])
+  elif copyMoveOptions[copyNonInherited] in {COPY_NONINHERITED_PERMISSIONS_SYNC_ALL_FOLDERS,
+                                             COPY_NONINHERITED_PERMISSIONS_SYNC_UPDATED_FOLDERS}:
     targetPerms = getPermissions(newFileId)
     if targetPerms is None:
       return
-    targetNotInheritedPermIDs = getNonInheritedPermissions(targetPerms)
     sourceNonInheritedPermIDs = getNonInheritedPermissions(copySourcePerms)
-    deleteTargetPermIds = targetNotInheritedPermIDs-sourceNonInheritedPermIDs
-    for permissionId in targetNotInheritedPermIDs&sourceNonInheritedPermIDs:
+    targetNonInheritedPermIDs = getNonInheritedPermissions(targetPerms)
+# Permissions in Source only
+    if copyMoveOptions['mapPermissionsDomains']:
+      for permissionId in sourceNonInheritedPermIDs-targetNonInheritedPermIDs:
+        mapPermissionsDomains(copySourcePerms[permissionId])
+# Permissions in Target only
+    deleteTargetPermIds = targetNonInheritedPermIDs-sourceNonInheritedPermIDs
+# Permissions in Source and Target
+    for permissionId in targetNonInheritedPermIDs&sourceNonInheritedPermIDs:
+      srcPerm = copySourcePerms[permissionId]
+      if copyMoveOptions['mapPermissionsDomains'] and mapPermissionsDomains(srcPerm):
+        deleteTargetPermIds.add(permissionId)
+        continue
+      tgtPerm = targetPerms[permissionId]
       updatePerm = {}
       for field in ['expirationTime', 'role', 'view', 'pendingOwner']:
-        if field in copySourcePerms[permissionId]:
-          if field not in targetPerms[permissionId]:
-            if field != 'pendingOwner' or copySourcePerms[permissionId][field]:
-              updatePerm[field] = copySourcePerms[permissionId][field]
-          elif copySourcePerms[permissionId][field] != targetPerms[permissionId][field]:
-            updatePerm[field] = copySourcePerms[permissionId][field]
-        elif field in targetPerms[permissionId]:
+        if field in srcPerm:
+          if field not in tgtPerm:
+            if field != 'pendingOwner' or srcPerm[field]:
+              updatePerm[field] = srcPerm[field]
+          elif srcPerm[field] != tgtPerm[field]:
+            updatePerm[field] = srcPerm[field]
+        elif field in tgtPerm:
           if field == 'expirationTime':
             updatePerm['removeExpiration'] = True
           elif field == 'pendingOwner':
             updatePerm[field] = False
       if updatePerm:
-        updateTargetPerms[permissionId] = updatePerm
-        copySourcePerms.pop(permissionId)
+        updateTargetPerms[permissionId] = targetPerms[permissionId]
+        updateTargetPerms[permissionId].update(updatePerm)
+        updateTargetPerms[permissionId]['updates'] = updatePerm
+      copySourcePerms.pop(permissionId)
   Ind.Increment()
+  action = Act.Get()
+  Act.Set(Act.COPY)
   kcount = len(copySourcePerms)
   k = 0
   for permissionId, permission in iter(copySourcePerms.items()):
     k += 1
+    kvList = permissionKVList(user, entityType, newFileTitle, permission)
     permission.pop('id')
     permission.pop('inherited')
     if copyMoveOptions['destDriveId']:
@@ -46908,9 +46968,9 @@ def _copyPermissions(drive, user, i, count, j, jcount,
                  throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
 #                 retryReasons=[GAPI.INVALID_SHARING_REQUEST],
                  fileId=newFileId, sendNotificationEmail=sendNotificationEmail, emailMessage=None,
-                 body=permission, fields='', supportsAllDrives=True)
+                 body=permission, fields='', useDomainAdminAccess=copyMoveOptions['useDomainAdminAccess'], supportsAllDrives=True)
         if copyMoveOptions['showPermissionMessages']:
-          entityActionPerformed([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], k, kcount)
+          entityActionPerformed(kvList, k, kcount)
         break
       except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
               GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
@@ -46923,62 +46983,68 @@ def _copyPermissions(drive, user, i, count, j, jcount,
               GAPI.fileOrganizerOnNonTeamDriveNotSupported, GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), k, kcount)
+        entityActionFailedWarning(kvList, str(e), k, kcount)
         break
       except GAPI.invalidSharingRequest as e:
         if not copyMoveOptions['sendEmailIfRequired'] or sendNotificationEmail or 'You are trying to invite' not in str(e):
-          entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), k, kcount)
+          entityActionFailedWarning(kvList, str(e), k, kcount)
           break
         sendNotificationEmail = True
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         _incrStatistic(statistics, stat)
         Ind.Decrement()
+        Act.Set(action)
         return
-  action = Act.Get()
   Act.Set(Act.DELETE)
   kcount = len(deleteTargetPermIds)
   k = 0
   for permissionId in deleteTargetPermIds:
     k += 1
+    kvList = permissionKVList(user, entityType, newFileTitle, targetPerms[permissionId])
     try:
       callGAPI(drive.permissions(), 'delete',
                throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_DELETE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
-               fileId=newFileId, permissionId=permissionId, supportsAllDrives=True)
+               fileId=newFileId, permissionId=permissionId, useDomainAdminAccess=copyMoveOptions['useDomainAdminAccess'], supportsAllDrives=True)
       if copyMoveOptions['showPermissionMessages']:
-        entityActionPerformed([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], k, kcount)
+        entityActionPerformed(kvList, k, kcount)
     except (GAPI.notFound, GAPI.permissionNotFound,
             GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
             GAPI.fileNeverWritable, GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
             GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded) as e:
-      entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), k, kcount)
+      entityActionFailedWarning(kvList, str(e), k, kcount)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       _incrStatistic(statistics, stat)
-      break
+      Ind.Decrement()
+      Act.Set(action)
+      return
   Act.Set(Act.UPDATE)
   kcount = len(updateTargetPerms)
   k = 0
   for permissionId, permission in iter(updateTargetPerms.items()):
     k += 1
-    removeExpiration = permission.pop('removeExpiration', False)
+    kvList = permissionKVList(user, entityType, newFileTitle, permission)
+    removeExpiration = permission['updates'].pop('removeExpiration', False)
     try:
       callGAPI(drive.permissions(), 'update',
                bailOnInternalError=True,
                throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                fileId=newFileId, permissionId=permissionId, removeExpiration=removeExpiration,
-               body=permission, supportsAllDrives=True)
+               body=permission['updates'], useDomainAdminAccess=copyMoveOptions['useDomainAdminAccess'], supportsAllDrives=True)
       if copyMoveOptions['showPermissionMessages']:
-        entityActionPerformed([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], k, kcount)
+        entityActionPerformed(kvList, k, kcount)
     except (GAPI.notFound, GAPI.permissionNotFound,
             GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
             GAPI.fileNeverWritable, GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
             GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded) as e:
-      entityActionFailedWarning([Ent.USER, user, entityType, newFileTitle, Ent.PERMISSION_ID, permissionId], str(e), k, kcount)
+      entityActionFailedWarning(kvList, str(e), k, kcount)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       _incrStatistic(statistics, stat)
-      break
+      Ind.Decrement()
+      Act.Set(action)
+      return
   Act.Set(action)
   Ind.Decrement()
 
@@ -47153,6 +47219,7 @@ def _getCopyFolderNonInheritedPermissions(copyMoveOptions, copyNonInherited, sou
 #	[copysubfolderinheritedpermissions [<Boolean>]]
 #	[copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
 #	[excludepermissionsfromdomains <DomainNameList>]
+#	(mappermissionsdomain <DomainName> <DomainName>)*
 #	[copysheetprotectedranges [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def copyDriveFile(users):
@@ -47178,7 +47245,7 @@ def copyDriveFile(users):
         _copyPermissions(drive, user, i, count, j, jcount,
                          Ent.DRIVE_FOLDER, folderId, folderTitle, newParentId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                         copyMoveOptions,
+                         copyMoveOptions, True,
                          'copyTopFolderInheritedPermissions',
                          copyFolderNonInheritedPermissions)
       source.pop('oldparents', None)
@@ -47208,7 +47275,7 @@ def copyDriveFile(users):
               _copyPermissions(drive, user, i, count, j, jcount,
                                Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                                statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                               copyMoveOptions,
+                               copyMoveOptions, atTop,
                                ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
                                copyFolderNonInheritedPermissions)
             return (newFolderId, True)
@@ -47249,7 +47316,7 @@ def copyDriveFile(users):
         _copyPermissions(drive, user, i, count, j, jcount,
                          Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                         copyMoveOptions,
+                         copyMoveOptions, False,
                          ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
                          ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop])
       return (newFolderId, False)
@@ -47348,7 +47415,7 @@ def copyDriveFile(users):
               _copyPermissions(drive, user, i, count, k, kcount,
                                Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED,
-                               copyMoveOptions,
+                               copyMoveOptions, False,
                                'copyInheritedSheetProtectedRanges',
                                'copyNonInheritedSheetProtectedRanges')
               _updateSheetProtectedRanges(sheet, user, i, count, k, kcount, result['id'], result['name'], protectedSheetRanges,
@@ -47357,7 +47424,7 @@ def copyDriveFile(users):
               _copyPermissions(drive, user, i, count, k, kcount,
                                Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED,
-                               copyMoveOptions,
+                               copyMoveOptions, False,
                                'copyFileInheritedPermissions',
                                'copyFileNonInheritedPermissions')
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
@@ -47548,7 +47615,7 @@ def copyDriveFile(users):
             _copyPermissions(drive, user, i, count, j, jcount,
                              Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
                              statistics, STAT_FILE_PERMISSIONS_FAILED,
-                             copyMoveOptions,
+                             copyMoveOptions, False,
                              'copyFileInheritedPermissions',
                              'copyFileNonInheritedPermissions')
             if copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET and protectedSheetRanges:
@@ -47585,6 +47652,7 @@ def copyDriveFile(users):
 #	[copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
 #	[synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
 #	[excludepermissionsfromdomains <DomainNameList>]
+#	(mappermissionsdomain <DomainName> <DomainName>)*
 #	[retainsourcefolders [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def moveDriveFile(users):
@@ -47610,7 +47678,7 @@ def moveDriveFile(users):
         _copyPermissions(drive, user, i, count, j, jcount,
                          Ent.DRIVE_FOLDER, folderId, folderTitle, newParentId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                         copyMoveOptions,
+                         copyMoveOptions, True,
                          'copyTopFolderInheritedPermissions',
                          copyFolderNonInheritedPermissions)
       source.pop('oldparents', None)
@@ -47638,7 +47706,7 @@ def moveDriveFile(users):
               _copyPermissions(drive, user, i, count, j, jcount,
                                Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                                statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                               copyMoveOptions,
+                               copyMoveOptions, atTop,
                                ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
                                copyFolderNonInheritedPermissions)
             return (newFolderId, True)
@@ -47707,7 +47775,7 @@ def moveDriveFile(users):
         _copyPermissions(drive, user, i, count, j, jcount,
                          Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
-                         copyMoveOptions,
+                         copyMoveOptions, False,
                          ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
                          ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop])
       return (newFolderId, False)
@@ -49801,7 +49869,7 @@ def claimOwnership(users):
     csvPF.writeCSVfile('Files to Claim Ownership')
 
 # gam <UserTypeEntity> print emptydrivefolders [todrive <ToDriveAttribute>*]
-#	[select <TeamDriveEntity>]
+#	[select <SharedDriveEntity>]
 def printEmptyDriveFolders(users):
   csvPF = CSVPrintFile(['User', 'id', 'name'], 'sortall') if Act.csvFormat() else None
   fileIdEntity = {}
@@ -49861,7 +49929,7 @@ def printEmptyDriveFolders(users):
   if csvPF:
     csvPF.writeCSVfile('Empty Folders')
 
-# gam <UserTypeEntity> delete emptydrivefolders [<TeamDriveEntity>]
+# gam <UserTypeEntity> delete emptydrivefolders [<SharedDriveEntity>]
 def deleteEmptyDriveFolders(users):
   Act.Set(Act.DELETE_EMPTY)
   if Cmd.ArgumentsRemaining():
@@ -49944,7 +50012,7 @@ def deleteEmptyDriveFolders(users):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     Ind.Decrement()
 
-# gam <UserTypeEntity> empty drivetrash [<TeamDriveEntity>]
+# gam <UserTypeEntity> empty drivetrash [<SharedDriveEntity>]
 def emptyDriveTrash(users):
   if Cmd.ArgumentsRemaining():
     fileIdEntity = getTeamDriveEntity()
@@ -51253,7 +51321,7 @@ def createTeamDrive(users, useDomainAdminAccess=False):
 def doCreateTeamDrive():
   createTeamDrive([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> update teamdrive <TeamDriveEntity> [adminaccess|asadmin] [name <Name>]
+# gam <UserTypeEntity> update teamdrive <SharedDriveEntity> [adminaccess|asadmin] [name <Name>]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<TeamDriveRestrictionsFieldName> <Boolean>)*
 #	[hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
@@ -51319,7 +51387,7 @@ def updateTeamDrive(users, useDomainAdminAccess=False):
 def doUpdateTeamDrive():
   updateTeamDrive([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> delete teamdrive <TeamDriveEntity>
+# gam <UserTypeEntity> delete teamdrive <SharedDriveEntity>
 def deleteTeamDrive(users):
   fileIdEntity = getTeamDriveEntity()
   checkForExtraneousArguments()
@@ -51342,11 +51410,11 @@ def deleteTeamDrive(users):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
-# gam delete teamdrive <TeamDriveEntity>
+# gam delete teamdrive <SharedDriveEntity>
 def doDeleteTeamDrive():
   deleteTeamDrive([_getAdminEmail()])
 
-# gam <UserTypeEntity> hide/unhide teamdrive <TeamDriveEntity>
+# gam <UserTypeEntity> hide/unhide teamdrive <SharedDriveEntity>
 def hideUnhideTeamDrive(users):
   fileIdEntity = getTeamDriveEntity()
   checkForExtraneousArguments()
@@ -51368,7 +51436,7 @@ def hideUnhideTeamDrive(users):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
-# gam hide/unhide teamdrive <TeamDriveEntity>
+# gam hide/unhide teamdrive <SharedDriveEntity>
 def doHideUnhideTeamDrive():
   hideUnhideTeamDrive([_getAdminEmail()])
 
@@ -51422,7 +51490,7 @@ def _showTeamDrive(user, teamdrive, j, jcount, FJQC):
   _showCapabilitiesRestrictions('restrictions')
   Ind.Decrement()
 
-# gam <UserTypeEntity> info teamdrive <TeamDriveEntity> [adminaccess|asadmin] [fields <TeamDriveFieldNameList>] [formatjson]
+# gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [adminaccess|asadmin] [fields <TeamDriveFieldNameList>] [formatjson]
 def infoTeamDrive(users, useDomainAdminAccess=False):
   fileIdEntity = getTeamDriveEntity()
   fieldsList = []
@@ -51615,26 +51683,91 @@ def printShowTeamDrives(users, useDomainAdminAccess=False):
 def doPrintShowTeamDrives():
   printShowTeamDrives([_getAdminEmail()], True)
 
+# gam [<UserTypeEntity>] copy teamdriveacls <SharedDriveEntity> to <SharedDriveEntity>
+# gam [<UserTypeEntity>] sync teamdriveacls <SharedDriveEntity> with <SharedDriveEntity>
+#	[adminaccess|asadmin]
+#	[showpermissionsmessages [<Boolean>]]
+#	[excludepermissionsfromdomains <DomainNameList>]
+#	(mappermissionsdomain <DomainName> <DomainName>)*
+def copySyncTeamDriveACLs(users, useDomainAdminAccess=False):
+  copyMoveOptions = initCopyMoveOptions(True)
+  srcFileIdEntity = getTeamDriveEntity()
+  checkArgumentPresent(['to', 'with'], True)
+  tgtFileIdEntity = getTeamDriveEntity()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if getCopyMoveOptions(myarg, copyMoveOptions):
+      pass
+    elif myarg in ADMIN_ACCESS_OPTIONS:
+      useDomainAdminAccess = True
+    else:
+      unknownArgumentExit()
+  copyMoveOptions['useDomainAdminAccess'] = useDomainAdminAccess
+  copyMoveOptions['copyTopFolderNonInheritedPermissions'] =\
+    COPY_NONINHERITED_PERMISSIONS_ALWAYS if Act.Get() == Act.COPY else COPY_NONINHERITED_PERMISSIONS_SYNC_ALL_FOLDERS
+  copyMoveOptions['copyMergeWithParentFolderPermissions'] = True
+  copyMoveOptions['copyTopFolderInheritedPermissions'] = False
+  copyMoveOptions['destParentType'] = DEST_PARENT_SHAREDDRIVE_ROOT
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = _validateUserTeamDrive(user, i, count, srcFileIdEntity)
+    if not drive:
+      continue
+    if not srcFileIdEntity.get('teamdrivename'):
+      srcFileIdEntity['teamdrivename'] = _getTeamDriveNameFromId(drive, srcFileIdEntity['teamdrive']['driveId'])
+    if tgtFileIdEntity.get('teamdrivename'):
+      if not _convertTeamDriveNameToId(drive, user, i, count, tgtFileIdEntity, useDomainAdminAccess):
+        continue
+      tgtFileIdEntity['teamdrive']['corpora'] = 'drive'
+    else:
+      tgtFileIdEntity['teamdrivename'] = _getTeamDriveNameFromId(drive, tgtFileIdEntity['teamdrive']['driveId'])
+    statistics = _initStatistics()
+    copyMoveOptions['sourceDriveId'] = srcFileIdEntity['teamdrive']['driveId']
+    copyMoveOptions['destDriveId'] = tgtFileIdEntity['teamdrive']['driveId']
+    entityPerformActionModifierItemValueList([Ent.USER, user, Ent.TEAMDRIVE, srcFileIdEntity['teamdrivename']],
+                                             f"{Ent.Plural(Ent.PERMISSION)} {Act.MODIFIER_TO}",
+                                             [Ent.TEAMDRIVE, tgtFileIdEntity['teamdrivename']], i, count)
+    _copyPermissions(drive, user, i, count, 0, 0,
+                     Ent.TEAMDRIVE, srcFileIdEntity['teamdrive']['driveId'], srcFileIdEntity['teamdrivename'],
+                     tgtFileIdEntity['teamdrive']['driveId'], tgtFileIdEntity['teamdrivename'],
+                     statistics, STAT_FOLDER_PERMISSIONS_FAILED,
+                     copyMoveOptions, True,
+                     'copyTopFolderInheritedPermissions',
+                     'copyTopFolderNonInheritedPermissions')
+
+def doCopySyncTeamDriveACLs():
+  copySyncTeamDriveACLs([_getAdminEmail()], True)
+
+SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP = {
+  'true': 1,
+  'false': 0,
+  'only': -1,
+  }
 TEAMDRIVE_INDEXED_TITLES = ['permissions']
 
 # gam [<UserTypeEntity>] print teamdriveacls [todrive <ToDriveAttribute>*]
+#	[adminaccess|asadmin]
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-#	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
+#	[user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+#	[shownopermissionsdrives false|true|only]
 #	[formatjson [quotechar <Character>]]
-#	asadmin
 # gam [<UserTypeEntity>] show teamdriveacls
+#	[adminaccess|asadmin]
 #	[teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-#	[user|group <EmailAddress> [checkgroups]] (role|roles <TeamDriveACLRoleList>)*
+#	[user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
-#	asadmin
+#	[shownopermissionsdrives false|true|only]
+#	[formatjsn]
 def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
   csvPF = CSVPrintFile(['User', 'id', 'name', 'createdTime'], 'sortall', TEAMDRIVE_INDEXED_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   roles = set()
   checkGroups = oneItemPerRow = pmselect = False
+  showNoPermissionsDrives = SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP['false']
   fieldsList = []
   emailAddress = query = matchPattern = permtype = None
   PM = PermissionMatch()
@@ -51666,6 +51799,8 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
       pass
     elif myarg == 'pmselect':
       pmselect = True
+    elif myarg == 'shownopermissionsdrives':
+      showNoPermissionsDrives = getChoice(SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP, mapChoice=True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if query and not useDomainAdminAccess:
@@ -51744,6 +51879,12 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
                                     retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     useDomainAdminAccess=useDomainAdminAccess,
                                     fileId=teamdrive['id'], fields=fields, supportsAllDrives=True)
+        if not permissions:
+          if showNoPermissionsDrives == 0:
+            continue
+          matchFeed.append(teamdrive)
+        elif showNoPermissionsDrives < 0:
+          continue
         if pmselect:
           if not PM.CheckPermissionMatches(permissions):
             continue
@@ -58317,6 +58458,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_VAULTMATTER:	doCloseVaultMatter,
      }
     ),
+  'copy':
+    (Act.COPY,
+     {Cmd.ARG_TEAMDRIVEACLS:	doCopySyncTeamDriveACLs,
+     }
+    ),
   'create':
     (Act.CREATE,
      MAIN_ADD_CREATE_FUNCTIONS
@@ -58640,6 +58786,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'sync':
     (Act.SYNC,
      {Cmd.ARG_DEVICE:		doSyncCIDevices,
+      Cmd.ARG_TEAMDRIVEACLS:	copySyncTeamDriveACLs,
      }
     ),
   'unhide':
@@ -59203,6 +59350,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'copy':
     (Act.COPY,
      {Cmd.ARG_DRIVEFILE:	copyDriveFile,
+      Cmd.ARG_TEAMDRIVEACLS:	copySyncTeamDriveACLs,
       Cmd.ARG_OTHERCONTACT:	processUserPeopleOtherContacts,
      }
     ),
@@ -59472,6 +59620,7 @@ USER_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_GROUP:		syncUserWithGroups,
       Cmd.ARG_GUARDIAN:		syncGuardians,
       Cmd.ARG_LICENSE:		syncLicense,
+      Cmd.ARG_TEAMDRIVEACLS:	copySyncTeamDriveACLs,
      }
     ),
   'transfer':
