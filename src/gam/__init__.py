@@ -41902,24 +41902,37 @@ def getTeamDriveEntity():
 
 def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAdminAccess=False):
   try:
-    feed = callGAPIpages(drive.drives(), 'list', 'drives',
-                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
-                         useDomainAdminAccess=useDomainAdminAccess,
-                         fields='nextPageToken,drives(id,name)', pageSize=100)
+    if "\\'" in fileIdEntity['teamdrivename']:
+      name = fileIdEntity['teamdrivename']
+    else:
+      name = fileIdEntity['teamdrivename'].replace("'", "\\'")
+    tdlist = callGAPIpages(drive.drives(), 'list', 'drives',
+                           throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
+                           useDomainAdminAccess=useDomainAdminAccess,
+                           q=f"name='{name}'", 
+                           fields='nextPageToken,drives(id,name)', pageSize=100)
+    if "\\'" in fileIdEntity['teamdrivename']:
+      fileIdEntity['teamdrivename'] = fileIdEntity['teamdrivename'].replace("\\'", "'")
+    if not tdlist:
+      name = fileIdEntity['teamdrivename'].lower()
+      feed = callGAPIpages(drive.drives(), 'list', 'drives',
+                           throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
+                           useDomainAdminAccess=useDomainAdminAccess,
+                           fields='nextPageToken,drives(id,name)', pageSize=100)
+      tdlist = [td for td in feed if td['name'].lower() == name]
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity['teamdrivename']], Msg.DOES_NOT_EXIST, i, count)
     return False
-  tddrivenamelower = fileIdEntity['teamdrivename'].lower()
-  tdlist = [td['id'] for td in feed if td['name'].lower() == tddrivenamelower]
   jcount = len(tdlist)
   if jcount == 1:
-    fileIdEntity['teamdrive']['driveId'] = tdlist[0]
+    fileIdEntity['teamdrive']['driveId'] = tdlist[0]['id']
     return True
   if jcount == 0:
     entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity['teamdrivename']], Msg.DOES_NOT_EXIST, i, count)
   else:
     entityActionFailedWarning([Ent.USER, user, Ent.TEAMDRIVE_NAME, fileIdEntity['teamdrivename']],
-                              Msg.MULTIPLE_ENTITIES_FOUND.format(Ent.Plural(Ent.TEAMDRIVE_ID), jcount, ','.join(tdlist)), i, count)
+                              Msg.MULTIPLE_ENTITIES_FOUND.format(Ent.Plural(Ent.TEAMDRIVE_ID), jcount,
+                                                                 ','.join([td['id'] for td in tdlist])), i, count)
   return False
 
 def _getTeamDriveNameFromId(drive, teamDriveId):

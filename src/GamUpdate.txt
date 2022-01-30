@@ -52,6 +52,10 @@ call retries to fail with the following error:
 Temporary error: notFound - @CourseNotFound The course was not found.
 ```
 
+Improved performance when converting Shared Drive names to IDs.
+
+Updated code to handle Shared Drive names that contain single quotes.
+
 6.14.07
 
 Corrected `gam.cfg` variable `cmdlog_max__backups` to be `cmdlog_max_backups`.
