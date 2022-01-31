@@ -1,3 +1,9 @@
+6.15.01
+
+Fixed bug in `gam <UserTypeEntity> print|show messages ... showattachments|saveattachments` where
+some attachments were not recognized.
+* Thanks to Craig Millsap for spending the time with me to find the solution.
+
 6.15.00
 
 Updated processing of `teamdrive <SharedDriveName>` in the following commands.

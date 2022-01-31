@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.00'
+__version__ = '6.15.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -55446,7 +55446,7 @@ def printShowMessagesThreads(users, entityType):
       return data
     return 'Body not available'
 
-  ATTACHMENT_NAME_PATTERN = re.compile(r'^.*name="(.*?)".*$')
+  ATTACHMENT_NAME_PATTERN = re.compile(r'^.*name="?(.*?)(?:"|;|$)')
 
   def _showSaveAttachments(messageId, payload, attachmentNamePattern):
     for part in payload.get('parts', []):
