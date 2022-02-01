@@ -47499,7 +47499,8 @@ def copyDriveFile(users):
       continue
     if not _getDriveFileParentInfo(drive, user, i, count, parentBody, parentParms):
       continue
-    if copyMoveOptions['copySheetProtectedRanges']:
+    if (copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] or
+        copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] != COPY_NONINHERITED_PERMISSIONS_NEVER):
       _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
       if not sheet:
         continue
