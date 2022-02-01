@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.01'
+__version__ = '6.15.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -41909,7 +41909,7 @@ def _convertTeamDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAdmi
     tdlist = callGAPIpages(drive.drives(), 'list', 'drives',
                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                            useDomainAdminAccess=useDomainAdminAccess,
-                           q=f"name='{name}'", 
+                           q=f"name='{name}'",
                            fields='nextPageToken,drives(id,name)', pageSize=100)
     if "\\'" in fileIdEntity['teamdrivename']:
       fileIdEntity['teamdrivename'] = fileIdEntity['teamdrivename'].replace("\\'", "'")
@@ -46673,9 +46673,8 @@ def initCopyMoveOptions(copyCmd):
     'noCopyNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_NEVER,
     'excludePermissionsFromDomains': [],
     'mapPermissionsDomains': {},
-    'copySheetProtectedRanges': False,
-    'copyInheritedSheetProtectedRanges': True,
-    'copyNonInheritedSheetProtectedRanges': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
+    'copySheetProtectedRangesInheritedPermissions': False,
+    'copySheetProtectedRangesNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_NEVER,
     }
 
 DUPLICATE_FILE_CHOICES = {
@@ -46765,9 +46764,18 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
       elif myarg == 'copyfileinheritedpermissions':
         copyMoveOptions['copyFileInheritedPermissions'] = getBoolean()
       elif myarg == 'copyfilenoninheritedpermissions':
-        copyMoveOptions['copyFileNonInheritedPermissions'] = COPY_NONINHERITED_PERMISSIONS_ALWAYS if getBoolean() else COPY_NONINHERITED_PERMISSIONS_ALWAYS
+        copyMoveOptions['copyFileNonInheritedPermissions'] = COPY_NONINHERITED_PERMISSIONS_ALWAYS if getBoolean() else COPY_NONINHERITED_PERMISSIONS_NEVER
       elif myarg == 'copysheetprotectedranges':
-        copyMoveOptions['copySheetProtectedRanges'] = getBoolean()
+        if getBoolean():
+          copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] = True
+          copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] = COPY_NONINHERITED_PERMISSIONS_ALWAYS
+        else:
+          copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] = False
+          copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] = COPY_NONINHERITED_PERMISSIONS_NEVER
+      elif myarg == 'copysheetprotectedrangesinheritedpermissions':
+        copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] = getBoolean()
+      elif myarg == 'copysheetprotectedrangesnoninheritedpermissions':
+        copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] = COPY_NONINHERITED_PERMISSIONS_ALWAYS if getBoolean() else COPY_NONINHERITED_PERMISSIONS_NEVER
       else:
         return False
   return True
@@ -46872,8 +46880,8 @@ def _copyPermissions(drive, user, i, count, j, jcount,
       notCopiedMessage = f'domain {domain} excluded'
     elif permission.pop('deleted', False):
       notCopiedMessage = f"{permission['type']} {permission['emailAddress']} deleted"
-    elif ((copyInherited == 'copyInheritedSheetProtectedRanges' and copyMoveOptions[copyInherited]) or
-          (copyNonInherited == 'copyNonInheritedSheetProtectedRanges' and
+    elif ((copyInherited == 'copySheetProtectedRangesInheritedPermissions' and copyMoveOptions[copyInherited]) or
+          (copyNonInherited == 'copySheetProtectedRangesNonInheritedPermissions' and
            copyMoveOptions[copyNonInherited] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
       if role in {'organizer', 'fileOrganizer'}:
         permission['role'] = 'writer'
@@ -47234,6 +47242,8 @@ def _getCopyFolderNonInheritedPermissions(copyMoveOptions, copyNonInherited, sou
 #	[excludepermissionsfromdomains <DomainNameList>]
 #	(mappermissionsdomain <DomainName> <DomainName>)*
 #	[copysheetprotectedranges [<Boolean>]]
+#	[copysheetprotectedrangesinheritedpermissions [<Boolean>]]
+#	[copysheetprotectedrangesnoninheritedpermissions [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def copyDriveFile(users):
   def _cloneFolderCopy(drive, user, i, count, j, jcount,
@@ -47422,15 +47432,17 @@ def copyDriveFile(users):
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], k, kcount)
             _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
             copiedFiles[result['id']] = 1
-            if (copyMoveOptions['copySheetProtectedRanges'] and child['mimeType'] == MIMETYPE_GA_SPREADSHEET):
+            if (child['mimeType'] == MIMETYPE_GA_SPREADSHEET and
+                (copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] or
+                 copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
               protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, k, kcount, childId, childTitle,
                                                               statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
               _copyPermissions(drive, user, i, count, k, kcount,
                                Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED,
                                copyMoveOptions, False,
-                               'copyInheritedSheetProtectedRanges',
-                               'copyNonInheritedSheetProtectedRanges')
+                               'copySheetProtectedRangesInheritedPermissions',
+                               'copySheetProtectedRangesNonInheritedPermissions')
               _updateSheetProtectedRanges(sheet, user, i, count, k, kcount, result['id'], result['name'], protectedSheetRanges,
                                           statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
             elif copyMoveOptions['copyFilePermissions']:
@@ -47621,19 +47633,26 @@ def copyDriveFile(users):
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename],
                                                                Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
           _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
-          if copyMoveOptions['copyFilePermissions'] or (copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET):
-            if copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET:
-              protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, j, jcount, sourceId, sourceFilename,
-                                                              statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
+          if (source['mimeType'] == MIMETYPE_GA_SPREADSHEET and
+              (copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] or
+               copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
+            protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, j, jcount, sourceId, sourceFilename,
+                                                            statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
+            _copyPermissions(drive, user, i, count, j, jcount,
+                             Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
+                             statistics, STAT_FILE_PERMISSIONS_FAILED,
+                             copyMoveOptions, False,
+                             'copySheetProtectedRangesInheritedPermissions',
+                             'copySheetProtectedRangesNonInheritedPermissions')
+            _updateSheetProtectedRanges(sheet, user, i, count, j, jcount, result['id'], result['name'], protectedSheetRanges,
+                                        statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
+          elif copyMoveOptions['copyFilePermissions']:
             _copyPermissions(drive, user, i, count, j, jcount,
                              Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
                              statistics, STAT_FILE_PERMISSIONS_FAILED,
                              copyMoveOptions, False,
                              'copyFileInheritedPermissions',
                              'copyFileNonInheritedPermissions')
-            if copyMoveOptions['copySheetProtectedRanges'] and source['mimeType'] == MIMETYPE_GA_SPREADSHEET and protectedSheetRanges:
-              _updateSheetProtectedRanges(sheet, user, i, count, j, jcount, result['id'], result['name'], protectedSheetRanges,
-                                          statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
               GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:

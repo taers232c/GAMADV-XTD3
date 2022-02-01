@@ -1,3 +1,14 @@
+6.15.02
+
+Added the following options to `gam <UserTypeEntity> copy drivefile <DriveFileEntity>`
+that provide more flexibility in managing permissions when copying/moving folders.
+* Thanks to Kevin Sanghvi for suggesting these enhancements.
+```
+copysheetprotectedrangesinheritedpermissions [<Boolean>]
+copysheetprotectedrangesnoninheritedpermissions [<Boolean>]
+```
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Copy-Move#copy-permissions
+
 6.15.01
 
 Fixed bug in `gam <UserTypeEntity> print|show messages ... showattachments|saveattachments` where
@@ -45,7 +56,7 @@ controls whether Shared Drives with no permissions are displayed.
 * `only` - Display only Shared Drives with no permissions
 
 Added the option `mappermissionsdomain <DomainName1> <DomainName2>` to `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>`
-that maps `<DomainName1>` to `<DomainName2>` in any non-inherited permissions that are copied. The option can be specfied multiple times
+that maps `<DomainName1>` to `<DomainName2>` in any non-inherited permissions that are copied. The option can be specified multiple times
 to provide different mappings.
 * Thanks to Kevin Sanghvi for suggesting this enhancement.
 

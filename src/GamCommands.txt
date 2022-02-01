@@ -4815,6 +4815,8 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [excludepermissionsfromdomains <DomainNameList>]
         (mappermissionsdomain <DomainName> <DomainName>)*
         [copysheetprotectedranges [<Boolean>]]
+        [copysheetprotectedrangesinheritedpermissions [<Boolean>]]
+        [copysheetprotectedrangesnoninheritedpermissions [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
 
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
