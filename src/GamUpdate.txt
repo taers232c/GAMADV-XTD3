@@ -1,3 +1,7 @@
+6.15.04
+
+Fixed bug in `gam <UserTypeEntity> copy drivefile <DriveFileEntity> ... excludepermissionsfromdomains <DomainNameList>` thatb caused a trap.
+
 6.15.03
 
 Updated `<CourseAttribute>` and `<CourseFieldName>` to use `descriptionheading` and `heading` synonymously.

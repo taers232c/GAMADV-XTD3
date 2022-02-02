@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.03'
+__version__ = '6.15.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -46867,10 +46867,12 @@ def _copyPermissions(drive, user, i, count, j, jcount,
     role = permission['role']
     domain = ''
     if copyMoveOptions['excludePermissionsFromDomains']:
-      if 'emailAddress' in permission:
-        _, domain = permission['emailAddress'].split('@', 1)
-      elif 'domain' in permission:
-        domain = permission['domain']
+      if permission['type'] in {'group', 'user'}:
+        atLoc = permission.get('emailAddress', '').find('@')
+        if atLoc > 0:
+          domain = permission['emailAddress'][atLoc+1:]
+      elif permission['type'] == 'domain':
+        domain = permission.get('domain', '')
     if permission['inherited'] and not copyMoveOptions[copyInherited]:
       notCopiedMessage = 'inherited not selected'
     elif not permission['inherited'] and copyMoveOptions[copyNonInherited] == COPY_NONINHERITED_PERMISSIONS_NEVER:
