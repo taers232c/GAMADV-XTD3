@@ -8,6 +8,7 @@ google-auth-oauthlib
 google-auth
 httplib2
 importlib.metadata; python_version < '3.8'
+jaraco.packaging
 passlib
 python-dateutil
 pathvalidate
