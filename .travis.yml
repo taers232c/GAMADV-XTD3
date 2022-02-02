@@ -17,8 +17,8 @@ env:
     - MIN_OPENSSL_VERSION=$LINUX_MIN_OPENSSL_VERSION
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.20
-    - PYINSTALLER_VERSION=86eeca8b4ba8012ab2df19ca206cafbe263b6a81
-
+#    - PYINSTALLER_VERSION=86eeca8b4ba8012ab2df19ca206cafbe263b6a81
+    - PYINSTALLER_VERSION=fcff15e6e7ab6fad135c584c2b6cc5e0f7809319
 cache:
   directories:
     - $HOME/.cache/pip
