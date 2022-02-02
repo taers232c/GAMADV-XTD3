@@ -18,7 +18,8 @@ env:
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.20
 #    - PYINSTALLER_VERSION=86eeca8b4ba8012ab2df19ca206cafbe263b6a81
-    - PYINSTALLER_VERSION=fcff15e6e7ab6fad135c584c2b6cc5e0f7809319
+#    - PYINSTALLER_VERSION=fcff15e6e7ab6fad135c584c2b6cc5e0f7809319
+    - PYINSTALLER_VERSION=51df14045b92ecfe2b175bf1161b53d3b605d415
 cache:
   directories:
     - $HOME/.cache/pip
