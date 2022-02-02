@@ -1,3 +1,7 @@
+6.15.03
+
+Updated `<CourseAttribute>` and `<CourseFieldName>` to use `descriptionheading` and `heading` synonymously.
+
 6.15.02
 
 Added the following options to `gam <UserTypeEntity> copy drivefile <DriveFileEntity>`

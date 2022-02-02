@@ -2053,7 +2053,7 @@ gam <UserTypeEntity> show contactdelegates [shownames] [csv]
 
 <CourseAttribute> ::=
         (description <String>)|
-        (heading <String>)|
+        (descriptionheading|heading <String>)|
         (name <String>)|
         (room <String>)|
         (section <string>)|
@@ -2069,7 +2069,7 @@ gam <UserTypeEntity> show contactdelegates [shownames] [csv]
         coursestate|
         creationtime|
         description|
-        descriptionheading|
+        descriptionheading|heading|
         enrollmentcode|
         guardiansenabled|
         id|

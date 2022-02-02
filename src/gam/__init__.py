@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.02'
+__version__ = '6.15.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -36970,7 +36970,7 @@ class CourseAttributes():
         self.body['name'] = getString(Cmd.OB_STRING)
       elif myarg == 'section':
         self.body['section'] = getString(Cmd.OB_STRING, minLen=0)
-      elif myarg == 'heading':
+      elif myarg in {'heading', 'descriptionheading'}:
         self.body['descriptionHeading'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'description':
         self.body['description'] = getStringWithCRsNLs()
@@ -37521,6 +37521,7 @@ COURSE_FIELDS_CHOICE_MAP = {
   'descriptionheading': 'descriptionHeading',
   'enrollmentcode': 'enrollmentCode',
   'guardiansenabled': 'guardiansEnabled',
+  'heading': 'descriptionHeading',
   'id': 'id',
   'name': 'name',
   'owneremail': 'ownerId',
