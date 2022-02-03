@@ -1,6 +1,13 @@
+6.15.05
+
+Added option `dateheaderformat <String>` to gam <UserTypeEntity> print|show messages|threads` that allows
+reformatting of the message `Date` header value from RFC2822 format to the format specified by `<String>`.
+If `<String>` is 'iso`, then ISO 8601 format is used, otherwise see: https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+If the `Date` header value can't be parsed as RFC2822, it is left unchanged.
+
 6.15.04
 
-Fixed bug in `gam <UserTypeEntity> copy drivefile <DriveFileEntity> ... excludepermissionsfromdomains <DomainNameList>` thatb caused a trap.
+Fixed bug in `gam <UserTypeEntity> copy drivefile <DriveFileEntity> ... excludepermissionsfromdomains <DomainNameList>` that caused a trap.
 
 6.15.03
 

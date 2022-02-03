@@ -5600,7 +5600,7 @@ gam <UserTypeEntity> show messages|threads
          [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
         [labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
         [countsonly|positivecountsonly] [useronly]
-        [headers all|<SMTPHeaderList>]
+        [headers all|<SMTPHeaderList>] [dateheaderformat <String>]
         [showlabels] [showbody] [showsize] [showsnippet]
         [showattachments [attachmentnamepattern <RegularExpression>]]
         [saveattachments [attachmentnamepattern <RegularExpression>]]
@@ -5610,7 +5610,7 @@ gam <UserTypeEntity> print messages|threads [todrive <ToDriveAttribute>*]
          [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
         [labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
         [countsonly|positivecountsonly] [useronly]
-        [headers all|<SMTPHeaderList>]
+        [headers all|<SMTPHeaderList>] [dateheaderformat <String>]
         [showlabels] [showbody] [showsize] [showsnippet]
         [showattachments [attachmentnamepattern <RegularExpression>]]
         [convertcrnl] [delimiter <Character>]

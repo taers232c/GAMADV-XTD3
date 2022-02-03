@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.04'
+__version__ = '6.15.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -55578,6 +55578,20 @@ def printShowMessagesThreads(users, entityType):
       return (True, messageLabels)
     return (True, None)
 
+  def _convertDateTime(headerValue):
+    dateTimeValue = headerValue.replace('GMT', '+0000')
+    dateTimeValue = dateTimeValue.replace('UT', '+0000')
+    pLoc = dateTimeValue.find(' (')
+    if pLoc > 0:
+      dateTimeValue = dateTimeValue[:pLoc]
+    try:
+      dateTimeValue = datetime.datetime.strptime(dateTimeValue, '%a, %d %b %Y %H:%M:%S %z')
+      if dateHeaderFormat != 'iso':
+        return dateTimeValue.strftime(dateHeaderFormat)
+      return dateTimeValue.isoformat('T', 'seconds')
+    except ValueError:
+      return headerValue
+
   def _showMessage(user, result, j, jcount):
     status, messageLabels = _qualifyMessage(user, result)
     if not status:
@@ -55588,12 +55602,18 @@ def printShowMessagesThreads(users, entityType):
       printKeyValueList(['Snippet', dehtml(result['snippet']).replace('\n', ' ')])
     if show_all_headers:
       for header in result['payload'].get('headers', []):
-        printKeyValueList([header['name'], _decodeHeader(header['value'])])
+        headerValue = _decodeHeader(header['value'])
+        if dateHeaderFormat and header['name'].lower() == 'date':
+          headerValue = _convertDateTime(headerValue)
+        printKeyValueList([header['name'], headerValue])
     else:
       for name in headersToShow:
         for header in result['payload'].get('headers', []):
           if name == header['name'].lower():
-            printKeyValueList([SMTP_HEADERS_MAP.get(name, header['name']), _decodeHeader(header['value'])])
+            headerValue = _decodeHeader(header['value'])
+            if dateHeaderFormat and name == 'date':
+              headerValue = _convertDateTime(headerValue)
+            printKeyValueList([SMTP_HEADERS_MAP.get(name, header['name']), headerValue])
     if show_size:
       printKeyValueList(['SizeEstimate', result['sizeEstimate']])
     if show_labels:
@@ -55634,20 +55654,26 @@ def printShowMessagesThreads(users, entityType):
       headerCounts = {}
       for header in result['payload'].get('headers', []):
         headerCounts.setdefault(header['name'], 0)
+        headerValue = _decodeHeader(header['value'])
+        if dateHeaderFormat and header['name'].lower() == 'date':
+          headerValue = _convertDateTime(headerValue)
         if headerCounts[header['name']] == 0:
-          row[header['name']] = _decodeHeader(header['value'])
+          row[header['name']] = headerValue
         else:
-          row[f'{header["name"]} {headerCounts[header["name"]]}'] = _decodeHeader(header['value'])
+          row[f'{header["name"]} {headerCounts[header["name"]]}'] = headerValue
         headerCounts[header['name']] += 1
     else:
       for name in headersToShow:
         j = 0
         for header in result['payload'].get('headers', []):
           if name == header['name'].lower():
+            headerValue = _decodeHeader(header['value'])
+            if dateHeaderFormat and name == 'date':
+              headerValue = _convertDateTime(headerValue)
             if j == 0:
-              row[SMTP_HEADERS_MAP.get(name, header['name'])] = _decodeHeader(header['value'])
+              row[SMTP_HEADERS_MAP.get(name, header['name'])] = headerValue
             else:
-              row[f'{SMTP_HEADERS_MAP.get(name, header["name"])} {j}'] = _decodeHeader(header['value'])
+              row[f'{SMTP_HEADERS_MAP.get(name, header["name"])} {j}'] = headerValue
             j += 1
     if show_size:
       row['SizeEstimate'] = result['sizeEstimate']
@@ -55827,6 +55853,7 @@ def printShowMessagesThreads(users, entityType):
   headersToShow = [header.lower() for header in defaultHeaders]
   csvPF = CSVPrintFile() if Act.csvFormat() else None
   showMode = Act.Get() == Act.SHOW
+  dateHeaderFormat = ''
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -55866,6 +55893,8 @@ def printShowMessagesThreads(users, entityType):
       countsOnly = positiveCountsOnly = True
     elif myarg in {'onlyuser', 'useronly'}:
       onlyUser = getBoolean()
+    elif myarg == 'dateheaderformat':
+      dateHeaderFormat = getString(Cmd.OB_STRING, minLen=0)
     else:
       unknownArgumentExit()
   labelMatchPattern = parameters['labelMatchPattern']
@@ -56036,14 +56065,16 @@ def printShowMessagesThreads(users, entityType):
 # gam <UserTypeEntity> print message|messages
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
-#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet]
+#	[headers all|<SMTPHeaderList>] [dateheaderformat <String>]
+#	[showlabels] [showbody] [showsize] [showsnippet]
 #	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
 #	[countsonly|positivecountsonly] [useronly]
 # gam <UserTypeEntity> show message|messages
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
-#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet]
+#	[headers all|<SMTPHeaderList>] [dateheaderformat <String>]
+#	[showlabels] [showbody] [showsize] [showsnippet]
 #	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
@@ -56053,14 +56084,16 @@ def printShowMessages(users):
 # gam <UserTypeEntity> print thread|threads
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[labelmatchpattern <RegularExpression>]
-#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet]
+#	[headers all|<SMTPHeaderList>] [dateheaderformat <String>]
+#	[showlabels] [showbody] [showsize] [showsnippet]
 #	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
 #	[countsonly|positivecountsonly] [useronly]
 # gam <UserTypeEntity> show thread|threads
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[labelmatchpattern <RegularExpression>]
-#	[headers all|<SMTPHeaderList>] [showlabels] [showbody] [showsize] [showsnippet]
+#	[headers all|<SMTPHeaderList>] [dateheaderformat <String>]
+#	[showlabels] [showbody] [showsize] [showsnippet]
 #	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
