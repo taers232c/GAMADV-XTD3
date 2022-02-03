@@ -1,3 +1,7 @@
+6.15.07
+
+Updated code in `gam print cros` to handle a missing data field that caused a trap.
+
 6.15.06
 
 Added option `dateheaderconverttimezone [<Boolean>]>` to `gam <UserTypeEntity> print|show messages|threads` that
