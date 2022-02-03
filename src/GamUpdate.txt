@@ -1,9 +1,20 @@
+6.15.06
+
+Added option `dateheaderconverttimezone [<Boolean>]>` to `gam <UserTypeEntity> print|show messages|threads` that
+converts `<SMTPDateHeader>` values to the `gam.cfg timezone`.
+
+Updated option `dateheaderformat iso|rfc2822|<String>` to `gam <UserTypeEntity> print|show messages|threads` that allows
+reformatting of any `<SMTPDateHeader>` value from RFC2822 format to the the following:
+* `iso` - Format is `%Y-%m-%dT%H:%M:%S%z`
+* `rfc2822` - Format is `%a, %d %b %Y %H:%M:%S %z`
+* `<String>` - Format according to: https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+
 6.15.05
 
-Added option `dateheaderformat <String>` to gam <UserTypeEntity> print|show messages|threads` that allows
-reformatting of the message `Date` header value from RFC2822 format to the format specified by `<String>`.
-If `<String>` is 'iso`, then ISO 8601 format is used, otherwise see: https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
-If the `Date` header value can't be parsed as RFC2822, it is left unchanged.
+Added option `dateheaderformat <String>` to `gam <UserTypeEntity> print|show messages|threads` that allows
+reformatting of the message `Date` header from RFC2822 format to the format specified by `<String>`.
+If `<String>` is `iso`, then ISO 8601 format is used, otherwise see: https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+If the `Date` header can't be parsed as RFC2822, it is left unchanged.
 
 6.15.04
 
