@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.07'
+__version__ = '6.15.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13177,7 +13177,15 @@ def doPrintShowAdminRoles():
 
 ADMIN_SCOPE_TYPE_CHOICE_MAP = {'customer': 'CUSTOMER', 'orgunit': 'ORG_UNIT', 'org': 'ORG_UNIT', 'ou': 'ORG_UNIT'}
 
+SECURITY_GROUP_CONDITION = "api.getAttribute('cloudidentity.googleapis.com/groups.labels', []).hasAny(['groups.security']) && resource.type == 'cloudidentity.googleapis.com/Group'"
+NONSECURITY_GROUP_CONDITION = f'!{SECURITY_GROUP_CONDITION}'
+ADMIN_CONDITION_CHOICE_MAP = {
+  'securitygroup': SECURITY_GROUP_CONDITION,
+  'nonsecuritygroup': NONSECURITY_GROUP_CONDITION,
+  }
+
 # gam create admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
+#	[condition securitygroup|nonsecuritygroup]
 def doCreateAdmin():
   cd = buildGAPIObject(API.DIRECTORY)
   user = getEmailAddress(returnUIDprefix='uid:')
@@ -13191,7 +13199,13 @@ def doCreateAdmin():
     scope = f'ORG_UNIT {orgUnit}'
   else:
     scope = 'CUSTOMER'
-  checkForExtraneousArguments()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'condition':
+      body['condition'] = getChoice(ADMIN_CONDITION_CHOICE_MAP, mapChoice=True)
+      cd = buildGAPIObject(API.DIRECTORY_BETA)
+    else:
+      unknownArgumentExit()
   try:
     result = callGAPI(cd.roleAssignments(), 'insert',
                       throwReasons=[GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID_ORGUNIT, GAPI.DUPLICATE],
@@ -13200,8 +13214,10 @@ def doCreateAdmin():
                                  f'{Ent.Singular(Ent.USER)} {user}, {Ent.Singular(Ent.ROLE)} {role}, {Ent.Singular(Ent.SCOPE)} {scope}')
   except GAPI.internalError:
     pass
-  except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
+  except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
+  except GAPI.forbidden as e:
+    entityActionFailedWarning([Ent.ADMINISTRATOR, user, Ent.ROLE, role], str(e))
   except GAPI.invalidOrgunit:
     entityActionFailedWarning([Ent.ADMINISTRATOR, user], Msg.INVALID_ORGUNIT)
   except GAPI.duplicate:
@@ -13222,23 +13238,29 @@ def doDeleteAdmin():
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
-PRINT_ADMIN_FIELDS = 'nextPageToken,items(roleAssignmentId,roleId,assignedTo,scopeType,orgUnitId)'
+PRINT_ADMIN_FIELDS = ['roleAssignmentId', 'roleId', 'assignedTo', 'scopeType', 'orgUnitId']
 PRINT_ADMIN_TITLES = ['roleAssignmentId', 'roleId', 'role', 'assignedTo', 'assignedToUser', 'scopeType', 'orgUnitId', 'orgUnit']
 
-# gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>]
-# gam show admins [user <UserItem>] [role <RoleItem>]
+# gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition]
+# gam show admins [user <UserItem>] [role <RoleItem>] [condition]
 def doPrintShowAdmins():
   def _setNamesFromIds(admin):
     admin['assignedToUser'] = convertUserIDtoEmail(admin['assignedTo'], cd)
     admin['role'] = role_from_roleid(admin['roleId'])
     if 'orgUnitId' in admin:
       admin['orgUnit'] = convertOrgUnitIDtoPath(cd, f'id:{admin["orgUnitId"]}')
+    if 'condition' in admin:
+      if admin['condition'] == SECURITY_GROUP_CONDITION:
+        admin['condition'] = 'securitygroup'
+      elif admin['condition'] == NONSECURITY_GROUP_CONDITION:
+        admin['condition'] = 'nonsecuritygroup'
 
   cd = buildGAPIObject(API.DIRECTORY)
   roleId = None
   userKey = None
   kwargs = {}
-  csvPF = CSVPrintFile(PRINT_ADMIN_TITLES) if Act.csvFormat() else None
+  fieldsList = PRINT_ADMIN_FIELDS
+  csvPF = CSVPrintFile() if Act.csvFormat() else None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -13247,15 +13269,22 @@ def doPrintShowAdmins():
       userKey = kwargs['userKey'] = getEmailAddress()
     elif myarg == 'role':
       _, roleId = getRoleId()
+    elif myarg == 'condition':
+      fieldsList.append('condition')
+      PRINT_ADMIN_TITLES.append('condition')
+      cd = buildGAPIObject(API.DIRECTORY_BETA)
     else:
       unknownArgumentExit()
   if roleId and not kwargs:
     kwargs['roleId'] = roleId
     roleId = None
+  fields = getItemFieldsFromFieldsList('items', fieldsList)
+  if csvPF:
+    csvPF.SetTitles(PRINT_ADMIN_TITLES)
   try:
     admins = callGAPIpages(cd.roleAssignments(), 'list', 'items',
                            throwReasons=[GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
-                           customer=GC.Values[GC.CUSTOMER_ID], fields=PRINT_ADMIN_FIELDS, **kwargs)
+                           customer=GC.Values[GC.CUSTOMER_ID], fields=fields, **kwargs)
   except (GAPI.invalid, GAPI.userNotFound):
     entityUnknownWarning(Ent.USER, userKey)
     return

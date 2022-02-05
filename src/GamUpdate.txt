@@ -1,3 +1,9 @@
+6.15.08
+
+Following Jay's lead, added option `condition securitygroup|nonsecuritygroup` to `gam create admin`
+and option `condition` to `gam print|show admins`.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Administrators
+
 6.15.07
 
 Updated code in `gam print cros` to handle a missing data field that caused a trap.

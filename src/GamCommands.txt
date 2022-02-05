@@ -1113,10 +1113,11 @@ gam print adminroles|roles [todrive <ToDriveAttribute>*] [privileges]
 gam show adminroles|roles [privileges]
 
 gam create|add admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
+        [condition securitygroup|nonsecuritygroup]
 gam delete admin <RoleAssignmentId>
 
-gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>]
-gam show admins [user <UserItem>] [role <RoleItem>]
+gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition]
+gam show admins [user <UserItem>] [role <RoleItem>]  [condition]
 
 # Alert Center
 
