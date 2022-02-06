@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.08'
+__version__ = '6.15.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -32073,6 +32073,10 @@ VAULT_CORPUS_ARGUMENT_MAP = {
   'hangoutschat': 'HANGOUTS_CHAT',
   'voice': 'VOICE',
   }
+VAULT_COUNTS_CORPUS_ARGUMENT_MAP = {
+  'mail': 'MAIL',
+  'groups': 'GROUPS',
+  }
 VAULT_VOICE_COVERED_DATA_MAP = {
   'calllogs': 'CALL_LOGS',
   'textmessages': 'TEXT_MESSAGES',
@@ -32653,7 +32657,7 @@ def _setHoldQuery(body, queryParameters):
     if queryParameters.get('coveredData'):
       body['query'][queryType]['coveredData'] = queryParameters['coveredData']
 
-# gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
+# gam create vaulthold|hold matter <MatterItem> [name <String>] corpus mail|groups
 #	[(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
 #	[query <QueryVaultCorpus>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
@@ -32675,7 +32679,7 @@ def doCreateVaultHold():
     elif myarg == 'name':
       body['name'] = getString(Cmd.OB_STRING)
     elif myarg == 'corpus':
-      body['corpus'] = getChoice(VAULT_CORPUS_ARGUMENT_MAP, mapChoice=True)
+      body['corpus'] = getChoice(VAULT_COUNTS_CORPUS_ARGUMENT_MAP, mapChoice=True)
     elif myarg in {'accounts', 'users', 'groups'}:
       accountsLocation = Cmd.Location()
       accounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
@@ -33441,8 +33445,12 @@ def doPrintVaultCounts():
   else:
     _validateVaultQuery(query)
     body['query'] = query
-    operation = callGAPI(v.matters(), 'count',
-                         matterId=matterId, body=body)
+    try:
+      operation = callGAPI(v.matters(), 'count',
+                           throwReasons=[GAPI.INVALID_ARGUMENT],
+                           matterId=matterId, body=body)
+    except GAPI.invalidArgument as e:
+      entityActionFailedExit([Ent.VAULT_MATTER, matterId], str(e))
     doWait = True
   printGettingAllAccountEntities(Ent.VAULT_MATTER_ARTIFACT, qualifier=f' for {Ent.Singular(Ent.VAULT_OPERATION)}: {operation["name"]}',
                                  accountType=Ent.VAULT_MATTER)

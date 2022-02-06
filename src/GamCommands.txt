@@ -3941,7 +3941,7 @@ gam show vaultmatters|matters [matterstate <MatterStateList>]
         [basic|full|(fields <VaultMatterFieldNameList>)]
 
 gam print vaultcounts [todrive <ToDriveAttributes>*]
-        matter <MatterItem> corpus drive|mail|groups|hangouts_chat|voice
+        matter <MatterItem> corpus mail|groups
         (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
         (shareddrives|teamdrives <SharedDriveIDList>) | (rooms <RoomList>)
         [scope <all_data|held_data|unprocessed_data>]
