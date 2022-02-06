@@ -32115,11 +32115,11 @@ VAULT_QUERY_ARGS = [
   'includerooms', 'excludedrafts',
   'driveversiondate', 'includeshareddrives', 'includeteamdrives'] + list(VAULT_SEARCH_METHODS_MAP.keys())
 
-def _buildVaultQuery(myarg, query):
+def _buildVaultQuery(myarg, query, corpusArgumentMap):
   if not query:
     query['dataScope'] = 'ALL_DATA'
   if myarg == 'corpus':
-    query['corpus'] = getChoice(VAULT_CORPUS_ARGUMENT_MAP, mapChoice=True)
+    query['corpus'] = getChoice(corpusArgumentMap, mapChoice=True)
   elif myarg in VAULT_SEARCH_METHODS_MAP:
     if query.get('searchMethod'):
       Cmd.Backup()
@@ -32184,7 +32184,7 @@ def doCreateVaultExport():
     elif myarg == 'name':
       body['name'] = getString(Cmd.OB_STRING)
     elif myarg in VAULT_QUERY_ARGS:
-      _buildVaultQuery(myarg, body['query'])
+      _buildVaultQuery(myarg, body['query'], VAULT_CORPUS_ARGUMENT_MAP)
     elif myarg == 'format':
       exportFormat = getChoice(VAULT_EXPORT_FORMAT_MAP, mapChoice=True)
     elif myarg == 'showconfidentialmodecontent':
@@ -32679,7 +32679,7 @@ def doCreateVaultHold():
     elif myarg == 'name':
       body['name'] = getString(Cmd.OB_STRING)
     elif myarg == 'corpus':
-      body['corpus'] = getChoice(VAULT_COUNTS_CORPUS_ARGUMENT_MAP, mapChoice=True)
+      body['corpus'] = getChoice(VAULT_CORPUS_ARGUMENT_MAP, mapChoice=True)
     elif myarg in {'accounts', 'users', 'groups'}:
       accountsLocation = Cmd.Location()
       accounts = getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY)
@@ -33432,7 +33432,7 @@ def doPrintVaultCounts():
     elif myarg == 'operation':
       name = getString(Cmd.OB_STRING)
     elif myarg in VAULT_QUERY_ARGS:
-      _buildVaultQuery(myarg, query)
+      _buildVaultQuery(myarg, query, VAULT_COUNTS_CORPUS_ARGUMENT_MAP)
     elif myarg == 'wait':
       operationWait = getInteger(minVal=1)
     else:

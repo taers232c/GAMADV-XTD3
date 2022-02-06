@@ -1,6 +1,6 @@
 6.15.09
 
-Updated option `corpus` in `gam print vaultcounts` to only allow `mail` and 'groups` as
+Updated option `corpus` in `gam print vaultcounts` to only allow `mail` and `groups` as
 required by the API.
 
 6.15.08
