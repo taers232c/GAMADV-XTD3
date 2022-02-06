@@ -1,3 +1,10 @@
+6.15.10
+
+Fixed bug in `gam update ou / add|move ...` that caused the following error:
+```
+ERROR: 400: invalid - Invalid field selection orgUnitPath
+```
+
 6.15.09
 
 Updated option `corpus` in `gam print vaultcounts` to only allow `mail` and `groups` as

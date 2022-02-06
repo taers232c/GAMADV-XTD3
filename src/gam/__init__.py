@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.09'
+__version__ = '6.15.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13659,6 +13659,9 @@ def doCreateOrg():
       checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, fullPath)
 
 def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0, showError=False):
+  if orgUnitPath == '/':
+    _, orgUnitId = getOrgUnitId(cd, orgUnitPath)
+    return (True, orgUnitPath, orgUnitId)
   try:
     orgUnit = callGAPI(cd.orgunits(), 'get',
                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
@@ -13802,6 +13805,7 @@ def _doUpdateOrgs(entityList):
     if orgItemLists is None:
       syncMembersSet = set(syncMembers)
     removeToOrgUnitPath = '/'
+    removeToOrgUnitId = None
     quickCrOSMove = False
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -13813,6 +13817,8 @@ def _doUpdateOrgs(entityList):
           entityDoesNotExistExit(Ent.ORGANIZATIONAL_UNIT, removeToOrgUnitPath)
       else:
         unknownArgumentExit()
+    if entityType == Cmd.ENTITY_CROS and not removeToOrgUnitId:
+      _, removeToOrgUnitPath, removeToOrgUnitId = checkOrgUnitPathExists(cd, removeToOrgUnitPath)
     Act.Set(Act.ADD)
     i = 0
     count = len(entityList)
@@ -13942,16 +13948,7 @@ def _doInfoOrgs(entityList):
     i += 1
     try:
       if orgUnitPath == '/':
-        orgs = callGAPI(cd.orgunits(), 'list',
-                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
-                        customerId=GC.Values[GC.CUSTOMER_ID], type='children',
-                        fields='organizationUnits(parentOrgUnitId)')
-        if orgs.get('organizationUnits', []):
-          orgUnitPath = orgs['organizationUnits'][0]['parentOrgUnitId']
-        else:
-          topLevelOrgId = getTopLevelOrgId(cd, '/')
-          if topLevelOrgId:
-            orgUnitPath = topLevelOrgId
+        _, orgUnitPath = getOrgUnitId(cd, orgUnitPath)
       else:
         orgUnitPath = makeOrgUnitPathRelative(orgUnitPath)
       result = callGAPI(cd.orgunits(), 'get',
