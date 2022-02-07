@@ -11,9 +11,9 @@ env:
     - LINUX_MIN_OPENSSL_VERSION="3.0.1"
     - WINDOWS_BUILD_OPENSSL_VERSION="3.0.1"
     - WINDOWS_MIN_OPENSSL_VERSION="3.0.1"
-    - WINDOWS_LIB_SSL_VERSION="3_0"
-    - MAC_BUILD_OPENSSL_VERSION="3.0.1"
-    - MAC_MIN_OPENSSL_VERSION="3.0.1"
+    - WINDOWS_LIB_SSL_VERSION="3"
+    - MACOS_BUILD_OPENSSL_VERSION="3.0.1"
+    - MACOS_MIN_OPENSSL_VERSION="3.0.1"
     - MIN_OPENSSL_VERSION=$LINUX_MIN_OPENSSL_VERSION
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.20
@@ -87,7 +87,7 @@ jobs:
       language: generic
       osx_image: xcode12.4
       env:
-        - MIN_OPENSSL_VERSION=$MAC_MIN_OPENSSL_VERSION
+        - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
     - os: windows
       name: "Windows 64-bit"
       language: shell
