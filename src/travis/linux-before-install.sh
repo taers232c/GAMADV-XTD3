@@ -69,7 +69,7 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   tar xf "Python-${BUILD_PYTHON_VERSION}.tar.xz"
   cd Python-${BUILD_PYTHON_VERSION}
   echo "Compiling Python ${BUILD_PYTHON_VERSION}..."
-  safe_flags="--with-openssl=$HOME/ssl --enable-shared --prefix=${HOME}/python --with-ensurepip=upgrade"
+  safe_flags="--with-openssl=$HOME/ssl --openssldir=$HOME/ssl --enable-shared --prefix=${HOME}/python --with-ensurepip=upgrade"
   unsafe_flags="--enable-optimizations --with-lto"
   if [ ! -e Makefile ]; then
     echo "running configure with safe and unsafe"

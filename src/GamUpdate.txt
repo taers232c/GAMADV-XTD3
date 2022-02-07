@@ -1,6 +1,9 @@
 6.15.11
 
-* Upgraded to OpenSSL 3.0.1
+Upgraded `gam create cigroup` to handle the following error:
+```
+ERROR: 403: permissionDenied - Error(3006): This feature (Dynamic Groups) requires a premium SKU.
+```
 
 6.15.10
 
