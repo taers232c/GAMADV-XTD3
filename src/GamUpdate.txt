@@ -1,3 +1,7 @@
+6.15.11
+
+* Upgraded to OpenSSL 3.0.1
+
 6.15.10
 
 Fixed bug in `gam update ou / add|move ...` that caused the following error:

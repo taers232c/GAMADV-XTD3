@@ -7,13 +7,13 @@ env:
   global:
     - BUILD_PYTHON_VERSION=3.10.2
     - MIN_PYTHON_VERSION=3.10.2
-    - LINUX_BUILD_OPENSSL_VERSION=1.1.1m
-    - LINUX_MIN_OPENSSL_VERSION=1.1.1m
-    - WINDOWS_BUILD_OPENSSL_VERSION=1.1.1M
-    - WINDOWS_MIN_OPENSSL_VERSION=1.1.1M
-    - WINDOWS_LIB_SSL_VERSION="1_1"
-    - MAC_BUILD_OPENSSL_VERSION=1.1.1m
-    - MAC_MIN_OPENSSL_VERSION=1.1.1l
+    - LINUX_BUILD_OPENSSL_VERSION="3.0.1"
+    - LINUX_MIN_OPENSSL_VERSION="3.0.1"
+    - WINDOWS_BUILD_OPENSSL_VERSION="3.0.1"
+    - WINDOWS_MIN_OPENSSL_VERSION="3.0.1"
+    - WINDOWS_LIB_SSL_VERSION="3_0"
+    - MAC_BUILD_OPENSSL_VERSION="3.0.1"
+    - MAC_MIN_OPENSSL_VERSION="3.0.1"
     - MIN_OPENSSL_VERSION=$LINUX_MIN_OPENSSL_VERSION
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.20
@@ -45,19 +45,19 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
-#    - os: linux
-#      name: "Linux 64-bit Trusty"
-#      dist: trusty
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=true
-#    - os: linux
-#      name: "Linux 64-bit Precise"
-#      dist: precise
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=false
-#        - PATCHELF_VERSION=0.9
+    - os: linux
+      name: "Linux 64-bit Trusty"
+      dist: trusty
+      language: shell
+      env:
+        - DIST_UPGRADE=true
+    - os: linux
+      name: "Linux 64-bit Precise"
+      dist: precise
+      language: shell
+      env:
+        - DIST_UPGRADE=false
+        - PATCHELF_VERSION=0.9
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal
