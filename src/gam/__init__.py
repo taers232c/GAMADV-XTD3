@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.12'
+__version__ = '6.15.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -35168,14 +35168,14 @@ def updateUsers(entityList):
               if 'primaryEmail' not in body:
                 body['primaryEmail'] = user
               body.update(notFoundBody)
+              Act.Set(Act.CREATE)
               try:
                 result = callGAPI(cd.users(), 'insert',
                                   throwReasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
                                                 GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
                                                 GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
                                   body=body, fields=fields)
-                Act.Set(Act.CREATE)
-                entityActionPerformed([Ent.USER, user], i, count)
+                entityActionPerformed([Ent.USER, body['primaryEmail']], i, count)
                 if PwdOpts.filename and PwdOpts.notFoundPassword:
                   writeFile(PwdOpts.filename, f'{user},{PwdOpts.notFoundPassword}\n', mode='a', continueOnError=True)
                 if addGroups:
@@ -35186,7 +35186,7 @@ def updateUsers(entityList):
                   notify['password'] = notify['notFoundPassword']
                   sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count)
               except GAPI.duplicate:
-                duplicateAliasGroupUserWarning(cd, [Ent.USER, user], i, count)
+                duplicateAliasGroupUserWarning(cd, [Ent.USER, body['primaryEmail']], i, count)
             else:
               entityActionFailedWarning([Ent.USER, user], Msg.UNABLE_TO_CREATE_NOT_FOUND_USER, i, count)
           else:

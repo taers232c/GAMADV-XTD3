@@ -1,13 +1,17 @@
+6.15.13
+
+Updated error messages in `gam <UserTypeEntity> update user createifnotfound`.
+
 6.15.12
 
 Added option `notifyonupdate [<Boolean>]` to `gam <UserTypeEntity> update user` that can be used
 to suppress the email notificaton when options `notify <EmailAddressList> notifypassword <String>`
-are specified for use in the case when the user must be created but the user does exist
+are specified for use in the case when the user must be created but not used when the user does exist
 and is simply updated.
 
 6.15.11
 
-Upgraded `gam create cigroup` to handle the following error:
+Updated `gam create cigroup` to handle the following error:
 ```
 ERROR: 403: permissionDenied - Error(3006): This feature (Dynamic Groups) requires a premium SKU.
 ```
