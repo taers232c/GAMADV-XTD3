@@ -1,3 +1,10 @@
+6.15.12
+
+Added option `notifyonupdate [<Boolean>]` to `gam <UserTypeEntity> update user` that can be used
+to suppress the email notificaton when options `notify <EmailAddressList> notifypassword <String>`
+are specified for use in the case when the user must be created but the user does exist
+and is simply updated.
+
 6.15.11
 
 Upgraded `gam create cigroup` to handle the following error:

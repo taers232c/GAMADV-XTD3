@@ -4197,6 +4197,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+        [notifyonupdate [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
         [verifynotinvitable]
@@ -4223,10 +4224,14 @@ gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactio
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+        [alias|aliases <EmailAddressList>]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
-            [message <String>|(file <FileName> [charset <CharSet>])] [html [<Boolean>]]|(gdoc <UserGoogleDoc>)
-            (replace <Tag> <UserReplacement>)*
+            [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
+             (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+        [notifyonupdate [<Boolean>]]
+        (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
+        [verifynotinvitable]
 gam delete users <UserTypeEntity> [noactionifalias]
 gam undelete users <UserEntity> [ou|org|orgunit <OrgUnitPath>]
 gam suspend users <UserTypeEntity> [noactionifalias]
@@ -4250,10 +4255,14 @@ gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactio
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+        [alias|aliases <EmailAddressList>]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
-            [message <String>|(file <FileName> [charset <CharSet>])]|(gdoc <UserGoogleDoc>)
-            (replace <Tag> <UserReplacement>)*
+            [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
+             (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+        [notifyonupdate [<Boolean>]]
+        (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
+        [verifynotinvitable]
 gam <UserTypeEntity> delete users [noactionifalias]
 gam <UserEntity> undelete users [ou|org|orgunit <OrgUnitPath>]
 gam <UserTypeEntity> suspend users [noactionifalias]

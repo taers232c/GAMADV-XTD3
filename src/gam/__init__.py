@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.11'
+__version__ = '6.15.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -34618,7 +34618,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   parameters = {
     'verifyNotInvitable': False,
     'createIfNotFound': False,
-    'noActionIfAlias': False
+    'noActionIfAlias': False,
+    'notifyOnUpdate': True,
     }
   if updateCmd:
     body = {}
@@ -34659,6 +34660,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       parameters['createIfNotFound'] = True
     elif updateCmd and myarg == 'noactionifalias':
       parameters['noActionIfAlias'] = True
+    elif updateCmd and myarg == 'notifyonupdate':
+      parameters['notifyOnUpdate'] = getBoolean()
     elif updateCmd and myarg == 'updateoufromgroup':
       groupOrgUnitMap = _getGroupOrgUnitMap()
     elif updateCmd and myarg == 'updateprimaryemail':
@@ -35086,6 +35089,7 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 #	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+#	[notifyonupdate [<Boolean>]]
 #	(replace <Tag> <String>)*
 #	[lograndompassword <FileName>] [ignorenullpassword]
 #	[verifynotinvitable]
@@ -35156,7 +35160,7 @@ def updateUsers(entityList):
           entityActionPerformed([Ent.USER, user], i, count)
           if PwdOpts.filename and PwdOpts.password:
             writeFile(PwdOpts.filename, f'{userKey},{PwdOpts.password}\n', mode='a', continueOnError=True)
-          if notify.get('recipients') and notify['password']:
+          if parameters['notifyOnUpdate'] and notify.get('recipients') and notify['password']:
             sendCreateUpdateUserNotification(result, notify, tagReplacements, i, count, createMessage=False)
         except GAPI.userNotFound:
           if parameters['createIfNotFound']:
