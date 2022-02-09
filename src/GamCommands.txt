@@ -4197,7 +4197,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
-        [notifyonupdate [<Boolean>]]
+        [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
         [verifynotinvitable]
@@ -4228,7 +4228,7 @@ gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactio
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
-        [notifyonupdate [<Boolean>]]
+        [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
         [verifynotinvitable]
@@ -4259,7 +4259,7 @@ gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactio
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
-        [notifyonupdate [<Boolean>]]
+        [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
         [verifynotinvitable]

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.13'
+__version__ = '6.15.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -34620,6 +34620,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     'createIfNotFound': False,
     'noActionIfAlias': False,
     'notifyOnUpdate': True,
+    'setChangePasswordOnCreate': False,
     }
   if updateCmd:
     body = {}
@@ -34662,6 +34663,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       parameters['noActionIfAlias'] = True
     elif updateCmd and myarg == 'notifyonupdate':
       parameters['notifyOnUpdate'] = getBoolean()
+    elif updateCmd and myarg == 'setchangepasswordoncreate':
+      parameters['setChangePasswordOnCreate'] = getBoolean()
     elif updateCmd and myarg == 'updateoufromgroup':
       groupOrgUnitMap = _getGroupOrgUnitMap()
     elif updateCmd and myarg == 'updateprimaryemail':
@@ -35168,6 +35171,8 @@ def updateUsers(entityList):
               if 'primaryEmail' not in body:
                 body['primaryEmail'] = user
               body.update(notFoundBody)
+              if parameters['setChangePasswordOnCreate']:
+                body['changePasswordAtNextLogin'] = True
               Act.Set(Act.CREATE)
               try:
                 result = callGAPI(cd.users(), 'insert',

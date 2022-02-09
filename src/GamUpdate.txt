@@ -1,3 +1,8 @@
+6.15.14
+
+Added option `setchangepasswordoncreate [<Boolean>]` to `gam <UserTypeEntity> update user` that can be used
+to force created (as opposed to updated) users to change their password at their next login.
+
 6.15.13
 
 Updated error messages in `gam <UserTypeEntity> update user createifnotfound`.
