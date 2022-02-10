@@ -1,3 +1,7 @@
+6.15.15
+
+Fixed bug in `gam print crosactivity recentusers oneuserperrow` that caused a trap.
+
 6.15.14
 
 Added option `setchangepasswordoncreate [<Boolean>]` to `gam <UserTypeEntity> update user` that can be used

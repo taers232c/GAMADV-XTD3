@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.14'
+__version__ = '6.15.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -20206,7 +20206,7 @@ def doPrintCrOSActivity(entityList=None):
       else:
         for recentUser in recentUsers:
           new_row = row.copy()
-          new_row['recentUsers{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}email'] = recentUser['email']
+          new_row[f'recentUsers{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}email'] = recentUser['email']
           csvPF.WriteRow(new_row)
     for deviceFile in _filterDeviceFiles(cros, selectedLists.get('deviceFiles', False), listLimit, startTime, endTime):
       new_row = row.copy()
