@@ -75,11 +75,6 @@ JWT_APIS = {
   CHAT: ['https://www.googleapis.com/auth/chat.bot'],
   }
 #
-GAM_SCOPES = 'gam'
-FAM1_SCOPES = 'fam1'
-FAM2_SCOPES = 'fam2'
-FAM_LIST = [FAM1_SCOPES, FAM2_SCOPES]
-#
 CHROMEVERSIONHISTORY_URL = 'https://versionhistory.googleapis.com/v1/chrome/platforms'
 DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
 GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'

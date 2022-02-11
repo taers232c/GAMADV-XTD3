@@ -1,3 +1,8 @@
+6.15.16
+
+Updated `gam <UserTypeEntity> deprovision` and `gam <UserTypeEntity> delete|update backupcodes`
+to give a more informative error message when a user is suspended and backup codes can't be deleted|updated.
+
 6.15.15
 
 Fixed bug in `gam print crosactivity recentusers oneuserperrow` that caused a trap.

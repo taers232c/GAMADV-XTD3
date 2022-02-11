@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.15'
+__version__ = '6.15.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3922,36 +3922,6 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
           GM.Globals[GM.DECODED_ID_TOKEN] = jsonDict['id_token']
         creds.expiry = datetime.datetime.strptime(token_expiry, YYYYMMDDTHHMMSSZ_FORMAT)
         return (True, creds)
-      if (jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and (API.GAM_SCOPES in jsonDict['credentials']):
-        if not jsonDict['credentials'][API.GAM_SCOPES]:
-          if exitOnError:
-            systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
-          return (None, None)
-        if not isinstance(jsonDict['credentials'][API.GAM_SCOPES], dict):
-          importCredentials = json.loads(base64.b64decode(jsonDict['credentials'][API.GAM_SCOPES]).decode('utf-8'))
-        else:
-          importCredentials = jsonDict['credentials'][API.GAM_SCOPES]
-        if importCredentials:
-          if not refreshOnly:
-            scopesList = importCredentials.get('scopes', API.REQUIRED_SCOPES)
-            if set(scopesList) == API.REQUIRED_SCOPES_SET:
-              if exitOnError:
-                systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
-              return (None, None)
-          else:
-            GM.Globals[GM.CREDENTIALS_SCOPES] = set(importCredentials.pop('scopes', API.REQUIRED_SCOPES))
-            scopesList = None
-          info = {
-            'client_id': importCredentials['client_id'],
-            'client_secret': importCredentials['client_secret'],
-            'refresh_token': importCredentials['refresh_token']
-            }
-          creds = google.oauth2.credentials.Credentials.from_authorized_user_info(info, scopesList)
-          creds.token = importCredentials['access_token']
-          creds._id_token = importCredentials['id_token_jwt']
-          GM.Globals[GM.DECODED_ID_TOKEN] = importCredentials['id_token']
-          creds.expiry = datetime.datetime.strptime(REFRESH_EXPIRY, YYYYMMDDTHHMMSSZ_FORMAT)
-          return (False, creds)
       if jsonDict and exitOnError:
         invalidOauth2TxtExit(Msg.INVALID)
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
@@ -6245,6 +6215,17 @@ def checkUserExists(cd, user, entityType=Ent.USER, i=0, count=0):
     return callGAPI(cd.users(), 'get',
                     throwReasons=GAPI.USER_GET_THROW_REASONS,
                     userKey=user, fields='primaryEmail')['primaryEmail']
+  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    entityUnknownWarning(entityType, user, i, count)
+    return None
+
+def checkUserSuspended(cd, user, entityType=Ent.USER, i=0, count=0):
+  user = normalizeEmailAddressOrUID(user)
+  try:
+    return callGAPI(cd.users(), 'get',
+                    throwReasons=GAPI.USER_GET_THROW_REASONS,
+                    userKey=user, fields='suspended')['suspended']
   except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.badRequest, GAPI.backendError, GAPI.systemError):
     entityUnknownWarning(entityType, user, i, count)
@@ -9144,26 +9125,6 @@ def doOAuthUpdate():
         currentScopes = jsonDict['scopes']
       else:
         currentScopes = API.getClientScopesURLs(GC.Values[GC.TODRIVE_CLIENTACCESS])
-    elif (jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and (API.GAM_SCOPES in jsonDict['credentials']):
-      if not jsonDict['credentials'][API.GAM_SCOPES]:
-        currentScopes = []
-      else:
-        if not isinstance(jsonDict['credentials'][API.GAM_SCOPES], dict):
-          importCredentials = json.loads(base64.b64decode(jsonDict['credentials'][API.GAM_SCOPES]).decode('utf-8'))
-        else:
-          importCredentials = jsonDict['credentials'][API.GAM_SCOPES]
-        if importCredentials:
-          currentScopes = list(importCredentials.get('scopes', []))
-        else:
-          currentScopes = []
-    elif ((jsonDict.get('file_version') == 2) and ('credentials' in jsonDict) and
-          (API.FAM1_SCOPES in jsonDict['credentials']) and (API.FAM2_SCOPES in jsonDict['credentials'])):
-      backup = GC.Values[GC.OAUTH2_TXT]+'.bak'
-      if not os.path.isfile(backup):
-        writeFile(backup, jsonData)
-      import1Credentials = json.loads(base64.b64decode(jsonDict['credentials'][API.FAM1_SCOPES]).decode('utf-8'))
-      import2Credentials = json.loads(base64.b64decode(jsonDict['credentials'][API.FAM2_SCOPES]).decode('utf-8'))
-      currentScopes = list(set(import1Credentials['scopes']).union(set(import2Credentials['scopes'])))
     else:
       currentScopes = []
   except (AttributeError, IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
@@ -40308,18 +40269,25 @@ def updateBackupCodes(users):
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
-    try:
-      callGAPI(cd.verificationCodes(), 'generate',
-               throwReasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
-               userKey=user)
-      codes = callGAPIitems(cd.verificationCodes(), 'list', 'items',
-                            throwReasons=[GAPI.USER_NOT_FOUND],
-                            userKey=user, fields='items(verificationCode)')
-      _showBackupCodes(user, codes, i, count)
-    except GAPI.userNotFound:
-      entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.invalid, GAPI.invalidInput) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
+    userSuspended = checkUserSuspended(cd, user, Ent.USER, i, count)
+    if userSuspended is None:
+      continue
+    if not userSuspended:
+      try:
+        callGAPI(cd.verificationCodes(), 'generate',
+                 throwReasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
+                 userKey=user)
+        codes = callGAPIitems(cd.verificationCodes(), 'list', 'items',
+                              throwReasons=[GAPI.USER_NOT_FOUND],
+                              userKey=user, fields='items(verificationCode)')
+        _showBackupCodes(user, codes, i, count)
+      except GAPI.userNotFound:
+        entityUnknownWarning(Ent.USER, user, i, count)
+      except (GAPI.invalid, GAPI.invalidInput) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
+    else:
+      entityActionNotPerformedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None],
+                                      Msg.IS_SUSPENDED_NO_BACKUPCODES, i, count)
 
 # gam <UserTypeEntity> delete backupcodes|verificationcodes
 def deleteBackupCodes(users):
@@ -40329,15 +40297,22 @@ def deleteBackupCodes(users):
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
-    try:
-      callGAPI(cd.verificationCodes(), 'invalidate',
-               throwReasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
-               userKey=user)
-      printEntityKVList([Ent.USER, user], [Ent.Plural(Ent.BACKUP_VERIFICATION_CODES), '', 'Invalidated'], i, count)
-    except GAPI.userNotFound:
-      entityUnknownWarning(Ent.USER, user, i, count)
-    except (GAPI.invalid, GAPI.invalidInput) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
+    userSuspended = checkUserSuspended(cd, user, Ent.USER, i, count)
+    if userSuspended is None:
+      continue
+    if not userSuspended:
+      try:
+        callGAPI(cd.verificationCodes(), 'invalidate',
+                 throwReasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
+                 userKey=user)
+        printEntityKVList([Ent.USER, user], [Ent.Plural(Ent.BACKUP_VERIFICATION_CODES), '', 'Invalidated'], i, count)
+      except GAPI.userNotFound:
+        entityUnknownWarning(Ent.USER, user, i, count)
+      except (GAPI.invalid, GAPI.invalidInput) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
+    else:
+      entityActionNotPerformedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None],
+                                      Msg.IS_SUSPENDED_NO_BACKUPCODES, i, count)
 
 # gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttribute>*] [delimiter <Character>]
 # gam <UserTypeEntity> show backupcodes|verificationcodes
@@ -53938,6 +53913,9 @@ def deprovisionUser(users):
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
+    userSuspended = checkUserSuspended(cd, user, Ent.USER, i, count)
+    if userSuspended is None:
+      continue
     try:
       printGettingEntityItemForWhom(Ent.APPLICATION_SPECIFIC_PASSWORD, user, i, count)
       asps = callGAPIitems(cd.asps(), 'list', 'items',
@@ -53968,10 +53946,14 @@ def deprovisionUser(users):
         jcount = len(codes)
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.BACKUP_VERIFICATION_CODES, i, count)
         if jcount > 0:
-          callGAPI(cd.verificationCodes(), 'invalidate',
-                   throwReasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
-                   userKey=user)
-          entityActionPerformed([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], i, count)
+          if not userSuspended:
+            callGAPI(cd.verificationCodes(), 'invalidate',
+                     throwReasons=[GAPI.USER_NOT_FOUND, GAPI.INVALID, GAPI.INVALID_INPUT],
+                     userKey=user)
+            entityActionPerformed([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], i, count)
+          else:
+            entityActionNotPerformedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None],
+                                            Msg.IS_SUSPENDED_NO_BACKUPCODES, i, count)
       except (GAPI.invalid, GAPI.invalidInput) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None], str(e), i, count)
 #
