@@ -1,3 +1,8 @@
+6.15.17
+
+Added option `verifytarget` to `gam create|update alias <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>`
+that causes Gam to verify that the target `<UniqueID>|<EmailAddress>` exists.
+
 6.15.16
 
 Updated `gam <UserTypeEntity> deprovision` and `gam <UserTypeEntity> delete|update backupcodes`

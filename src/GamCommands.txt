@@ -1138,10 +1138,13 @@ gam print alertfeedback [todrive <ToDriveAttribute>*] [alert <AlertID>] [filter 
 # Aliases
 
 gam create|add alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+        [verifynotinvitable] [verifytarget]
 gam update alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-        [verifynotinvitable]
+        [verifynotinvitable] [verifytarget]
 gam delete alias|aliases [user|group|target] <EmailAddressEntity>
 gam remove aliases|nicknames <EmailAddress> user|group <EmailAddressEntity>
+gam <UserTypeEntity> delete alias|aliases
+
 gam info alias|aliases <EmailAddressEntity>
 
 gam print alias|aliases [todrive <ToDriveAttribute>*]
@@ -4344,10 +4347,6 @@ gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]] [countsonly|countonly]
         [issuspended <Boolean>]
-
-# Users - Aliases
-
-gam <UserTypeEntity> delete alias|aliases
 
 # Users - Application Specific Passwords/backup Codes
 

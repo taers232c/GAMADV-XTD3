@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.16'
+__version__ = '6.15.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14307,8 +14307,28 @@ def doShowOrgTree():
 ALIAS_TARGET_TYPES = ['user', 'group', 'target']
 
 # gam create|update aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-#	[verifynotinvitable]
+#	[verifynotinvitable] [verifytarget]
 def doCreateUpdateAliases():
+  def verifyAliasTargetExists():
+    if targetType != 'group':
+      try:
+        callGAPI(cd.users(), 'get',
+                 throwReasons=GAPI.USER_GET_THROW_REASONS,
+                 userKey=targetEmail, fields='primaryEmail')
+        return'user'
+      except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+              GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+        if targetType == 'user':
+          return None
+    try:
+      callGAPI(cd.groups(), 'get',
+               throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+               groupKey=targetEmail, fields='email')
+      return 'group'
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.badRequest, GAPI.invalid, GAPI.systemError):
+      return None
+
   cd = buildGAPIObject(API.DIRECTORY)
   ci = None
   updateCmd = Act.Get() == Act.UPDATE
@@ -14316,8 +14336,15 @@ def doCreateUpdateAliases():
   targetType = getChoice(ALIAS_TARGET_TYPES)
   targetEmails = getEntityList(Cmd.OB_GROUP_ENTITY)
   entityLists = targetEmails if isinstance(targetEmails, dict) else None
-  verifyNotInvitable = checkArgumentPresent('verifynotinvitable')
-  checkForExtraneousArguments()
+  verifyNotInvitable = verifyTarget = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'verifynotinvitable':
+      verifyNotInvitable = True
+    elif myarg == 'verifytarget':
+      verifyTarget = True
+    else:
+      unknownArgumentExit()
   i = 0
   count = len(aliasList)
   for aliasEmail in aliasList:
@@ -14335,6 +14362,11 @@ def doCreateUpdateAliases():
     if jcount > 0:
 # Only process first target
       targetEmail = normalizeEmailAddressOrUID(targetEmails[0])
+      if verifyTarget:
+        targetType = verifyAliasTargetExists()
+        if targetType is None:
+          entityUnknownWarning(Ent.ALIAS_TARGET, targetEmail, i, count)
+          continue
       if updateCmd:
         try:
           callGAPI(cd.users().aliases(), 'delete',
@@ -14495,6 +14527,67 @@ def doRemoveAliases():
         entityActionPerformed([Ent.GROUP, targetEmail, Ent.GROUP_ALIAS, aliasEmail], i, count)
     except (GAPI.groupNotFound, GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.GROUP, targetEmail, Ent.GROUP_ALIAS, aliasEmail], str(e), i, count)
+
+def _addUserAliases(cd, user, aliasList, i, count):
+  jcount = len(aliasList)
+  entityPerformActionNumItems([Ent.USER, user], jcount, Ent.USER_ALIAS, i, count)
+  Ind.Increment()
+  j = 0
+  for aliasEmail in aliasList:
+    j += 1
+    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
+    body = {'alias': aliasEmail}
+    try:
+      callGAPI(cd.users().aliases(), 'insert',
+               throwReasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST,
+                             GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN, GAPI.DUPLICATE,
+                             GAPI.CONDITION_NOT_MET, GAPI.LIMIT_EXCEEDED],
+               userKey=user, body=body, fields='')
+      entityActionPerformed([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], j, jcount)
+    except (GAPI.conditionNotMet, GAPI.limitExceeded) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], str(e), j, jcount)
+    except GAPI.duplicate:
+      duplicateAliasGroupUserWarning(cd, [Ent.USER, user, Ent.USER_ALIAS, aliasEmail], j, jcount)
+    except (GAPI.invalid, GAPI.invalidInput):
+      entityActionFailedWarning([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], Msg.INVALID_ALIAS, j, jcount)
+    except (GAPI.userNotFound, GAPI.badRequest, GAPI.forbidden):
+      entityUnknownWarning(Ent.USER, user, i, count)
+  Ind.Decrement()
+
+# gam <UserTypeEntity> delete alias|aliases
+def deleteUsersAliases(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    try:
+      user_aliases = callGAPI(cd.users(), 'get',
+                              throwReasons=GAPI.USER_GET_THROW_REASONS,
+                              userKey=user, fields='id,primaryEmail,aliases')
+      user_id = user_aliases['id']
+      user_primary = user_aliases['primaryEmail']
+      jcount = len(user_aliases['aliases']) if ('aliases' in user_aliases) else 0
+      entityPerformActionNumItems([Ent.USER, user_primary], jcount, Ent.ALIAS, i, count)
+      if jcount == 0:
+        setSysExitRC(NO_ENTITIES_FOUND_RC)
+        continue
+      Ind.Increment()
+      j = 0
+      for an_alias in user_aliases['aliases']:
+        j += 1
+        try:
+          callGAPI(cd.users().aliases(), 'delete',
+                   throwReasons=[GAPI.RESOURCE_ID_NOT_FOUND],
+                   userKey=user_id, alias=an_alias)
+          entityActionPerformed([Ent.USER, user_primary, Ent.ALIAS, an_alias], j, jcount)
+        except GAPI.resourceIdNotFound:
+          entityActionFailedWarning([Ent.USER, user_primary, Ent.ALIAS, an_alias], Msg.DOES_NOT_EXIST, j, jcount)
+      Ind.Decrement()
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+      entityUnknownWarning(Ent.USER, user, i, count)
 
 def infoAliases(entityList):
 
@@ -52015,67 +52108,6 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
 
 def doPrintShowTeamDriveACLs():
   printShowTeamDriveACLs([_getAdminEmail()], True)
-
-def _addUserAliases(cd, user, aliasList, i, count):
-  jcount = len(aliasList)
-  entityPerformActionNumItems([Ent.USER, user], jcount, Ent.USER_ALIAS, i, count)
-  Ind.Increment()
-  j = 0
-  for aliasEmail in aliasList:
-    j += 1
-    aliasEmail = normalizeEmailAddressOrUID(aliasEmail, noUid=True, noLower=True)
-    body = {'alias': aliasEmail}
-    try:
-      callGAPI(cd.users().aliases(), 'insert',
-               throwReasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST,
-                             GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN, GAPI.DUPLICATE,
-                             GAPI.CONDITION_NOT_MET, GAPI.LIMIT_EXCEEDED],
-               userKey=user, body=body, fields='')
-      entityActionPerformed([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], j, jcount)
-    except (GAPI.conditionNotMet, GAPI.limitExceeded) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], str(e), j, jcount)
-    except GAPI.duplicate:
-      duplicateAliasGroupUserWarning(cd, [Ent.USER, user, Ent.USER_ALIAS, aliasEmail], j, jcount)
-    except (GAPI.invalid, GAPI.invalidInput):
-      entityActionFailedWarning([Ent.USER, user, Ent.USER_ALIAS, aliasEmail], Msg.INVALID_ALIAS, j, jcount)
-    except (GAPI.userNotFound, GAPI.badRequest, GAPI.forbidden):
-      entityUnknownWarning(Ent.USER, user, i, count)
-  Ind.Decrement()
-
-# gam <UserTypeEntity> delete alias|aliases
-def deleteUsersAliases(users):
-  cd = buildGAPIObject(API.DIRECTORY)
-  checkForExtraneousArguments()
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user = normalizeEmailAddressOrUID(user)
-    try:
-      user_aliases = callGAPI(cd.users(), 'get',
-                              throwReasons=GAPI.USER_GET_THROW_REASONS,
-                              userKey=user, fields='id,primaryEmail,aliases')
-      user_id = user_aliases['id']
-      user_primary = user_aliases['primaryEmail']
-      jcount = len(user_aliases['aliases']) if ('aliases' in user_aliases) else 0
-      entityPerformActionNumItems([Ent.USER, user_primary], jcount, Ent.ALIAS, i, count)
-      if jcount == 0:
-        setSysExitRC(NO_ENTITIES_FOUND_RC)
-        continue
-      Ind.Increment()
-      j = 0
-      for an_alias in user_aliases['aliases']:
-        j += 1
-        try:
-          callGAPI(cd.users().aliases(), 'delete',
-                   throwReasons=[GAPI.RESOURCE_ID_NOT_FOUND],
-                   userKey=user_id, alias=an_alias)
-          entityActionPerformed([Ent.USER, user_primary, Ent.ALIAS, an_alias], j, jcount)
-        except GAPI.resourceIdNotFound:
-          entityActionFailedWarning([Ent.USER, user_primary, Ent.ALIAS, an_alias], Msg.DOES_NOT_EXIST, j, jcount)
-      Ind.Decrement()
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-      entityUnknownWarning(Ent.USER, user, i, count)
 
 DATASTUDIO_ASSETTYPE_CHOICE_MAP = {
   'report': ['REPORT'],
