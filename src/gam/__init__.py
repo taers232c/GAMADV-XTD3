@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.18'
+__version__ = '6.15.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9613,9 +9613,9 @@ def doCreateProject():
     sys.stdout.write(Msg.CREATING_PROJECT.format(body['displayName']))
     try:
       create_operation = callGAPI(crm.projects(), 'create',
-                                  throwReasons=[GAPI.BAD_REQUEST, GAPI.ALREADY_EXISTS],
+                                  throwReasons=[GAPI.BAD_REQUEST, GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION],
                                   body=body)
-    except (GAPI.badRequest, GAPI.alreadyExists) as e:
+    except (GAPI.badRequest, GAPI.alreadyExists, GAPI.failedPrecondition) as e:
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], str(e))
     operation_name = create_operation['name']
     time.sleep(5) # Google recommends always waiting at least 5 seconds
@@ -14306,8 +14306,10 @@ def doShowOrgTree():
 
 ALIAS_TARGET_TYPES = ['user', 'group', 'target']
 
-# gam create|update aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-#	[verifynotinvitable] [notargetverify]
+# gam create aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+#	[verifynotinvitable]
+# gam update aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
+#	[notargetverify]
 def doCreateUpdateAliases():
   def verifyAliasTargetExists():
     if targetType != 'group':
@@ -14337,12 +14339,12 @@ def doCreateUpdateAliases():
   targetEmails = getEntityList(Cmd.OB_GROUP_ENTITY)
   entityLists = targetEmails if isinstance(targetEmails, dict) else None
   verifyNotInvitable = False
-  verifyTarget = True
+  verifyTarget = updateCmd
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'verifynotinvitable':
+    if (not updateCmd) and myarg == 'verifynotinvitable':
       verifyNotInvitable = True
-    elif myarg == 'notargetverify':
+    elif updateCmd and myarg == 'notargetverify':
       verifyTarget = False
     else:
       unknownArgumentExit()
