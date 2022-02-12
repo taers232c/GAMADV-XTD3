@@ -1138,9 +1138,9 @@ gam print alertfeedback [todrive <ToDriveAttribute>*] [alert <AlertID>] [filter 
 # Aliases
 
 gam create|add alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-        [verifynotinvitable] [verifytarget]
+        [verifynotinvitable] [notargetverify]
 gam update alias|aliases <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-        [verifynotinvitable] [verifytarget]
+        [verifynotinvitable] [notargetverify]
 gam delete alias|aliases [user|group|target] <EmailAddressEntity>
 gam remove aliases|nicknames <EmailAddress> user|group <EmailAddressEntity>
 gam <UserTypeEntity> delete alias|aliases

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.17'
+__version__ = '6.15.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14307,7 +14307,7 @@ def doShowOrgTree():
 ALIAS_TARGET_TYPES = ['user', 'group', 'target']
 
 # gam create|update aliases|nicknames <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>
-#	[verifynotinvitable] [verifytarget]
+#	[verifynotinvitable] [notargetverify]
 def doCreateUpdateAliases():
   def verifyAliasTargetExists():
     if targetType != 'group':
@@ -14336,13 +14336,14 @@ def doCreateUpdateAliases():
   targetType = getChoice(ALIAS_TARGET_TYPES)
   targetEmails = getEntityList(Cmd.OB_GROUP_ENTITY)
   entityLists = targetEmails if isinstance(targetEmails, dict) else None
-  verifyNotInvitable = verifyTarget = False
+  verifyNotInvitable = False
+  verifyTarget = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'verifynotinvitable':
       verifyNotInvitable = True
-    elif myarg == 'verifytarget':
-      verifyTarget = True
+    elif myarg == 'notargetverify':
+      verifyTarget = False
     else:
       unknownArgumentExit()
   i = 0

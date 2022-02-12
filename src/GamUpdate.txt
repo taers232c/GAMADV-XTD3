@@ -1,3 +1,9 @@
+6.15.18
+
+After discussions with Jay, the default for creating/updating aliases is to verify that
+the target `<UniqueID>|<EmailAddress>` exists by making extra API calls;
+if you know that the target exists, you can suppress the verification with `notargetverify`.
+
 6.15.17
 
 Added option `verifytarget` to `gam create|update alias <EmailAddressEntity> user|group|target <UniqueID>|<EmailAddress>`
