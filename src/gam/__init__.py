@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.19'
+__version__ = '6.15.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52424,7 +52424,9 @@ def printShowDataStudioPermissions(users):
   role = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if getDataStudioAssetSelectionParameters(myarg, parameters, assetTypes):
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif getDataStudioAssetSelectionParameters(myarg, parameters, assetTypes):
       pass
     elif myarg in {'assetid', 'assetids'}:
       assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)

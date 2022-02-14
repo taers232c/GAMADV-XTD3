@@ -1,3 +1,7 @@
+6.15.20
+
+Fixed bug in `gam <UserTypeEntity> print datastudiopermissions` where `todrive` was not recognized.
+
 6.15.19
 
 Further cleanup of `gam create|update alias`.
