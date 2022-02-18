@@ -1,3 +1,18 @@
+6.15.21
+
+Added email audit monitor commands that were deleted in 5.34.00.
+```
+gam audit monitor create <EmailAddress> <DestEmailAddress> [begin <DateTime>] [end <DateTime>]
+        [incoming_headers] [outgoing_headers] [nochats] [nodrafts] [chat_headers] [draft_headers]
+gam audit monitor delete <EmailAddress> <DestEmailAddress>
+gam audit monitor list <EmailAddress>
+```
+To use these commands, you should do:
+```
+gam update project
+gam oauth create
+```
+
 6.15.20
 
 Fixed bug in `gam <UserTypeEntity> print datastudiopermissions` where `todrive` was not recognized.

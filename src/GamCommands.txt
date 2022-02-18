@@ -2634,6 +2634,13 @@ gam show peopleprofile
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 
+# Email Audit Monitor
+
+gam audit monitor create <EmailAddress> <DestEmailAddress> [begin <DateTime>] [end <DateTime>]
+        [incoming_headers] [outgoing_headers] [nochats] [nodrafts] [chat_headers] [draft_headers]
+gam audit monitor delete <EmailAddress> <DestEmailAddress>
+gam audit monitor list <EmailAddress>
+
 # Groups
 
 <GroupSettingsAttribute> ::=

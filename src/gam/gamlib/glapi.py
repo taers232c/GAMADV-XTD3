@@ -46,6 +46,7 @@ DRIVE2 = 'drive2'
 DRIVE3 = 'drive3'
 DRIVETD = 'drivetd'
 DRIVEACTIVITY = 'driveactivity'
+EMAIL_AUDIT = 'email-audit'
 FORMS = 'forms'
 GMAIL = 'gmail'
 GROUPSMIGRATION = 'groupsmigration'
@@ -115,6 +116,7 @@ OAUTH2_UNAUTHORIZED_ERRORS = [
 PROJECT_APIS = [
   'admin.googleapis.com',
   'alertcenter.googleapis.com',
+  'audit.googleapis.com',
   'calendar-json.googleapis.com',
   'chat.googleapis.com',
   'chromemanagement.googleapis.com',
@@ -170,6 +172,7 @@ _INFO = {
   DRIVE3: {'name': 'Drive API v3', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVETD: {'name': 'Drive API v3 - todrive', 'version': 'v3', 'v2discovery': False, 'mappedAPI': 'drive'},
   DRIVEACTIVITY: {'name': 'Drive Activity API v2', 'version': 'v2', 'v2discovery': True},
+  EMAIL_AUDIT: {'name': 'Email Audit API', 'version': 'v1', 'v2discovery': False},
 #  FORMS: {'name': 'Forms API', 'version': 'v1beta', 'v2discovery': True},
   GMAIL: {'name': 'Gmail API', 'version': 'v1', 'v2discovery': True},
   GROUPSMIGRATION: {'name': 'Groups Migration API', 'version': 'v1', 'v2discovery': False},
@@ -332,7 +335,11 @@ _CLIENT_SCOPES = [
    'api': DIRECTORY,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/admin.directory.user'},
-#  {'name': 'Forms API',
+  {'name': 'Email Audit API',
+   'api': EMAIL_AUDIT,
+   'subscopes': [],
+   'scope': 'https://apps-apis.google.com/a/feeds/compliance/audit/'},
+  #  {'name': 'Forms API',
 #   'api': FORMS,
 #   'subscopes': [],
 #   'scope': 'https://www.googleapis.com/auth/forms.body'},
