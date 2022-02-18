@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.21'
+__version__ = '6.15.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10736,26 +10736,28 @@ def _adjustTryDate(errMsg, noDateChange):
     return None
   return match_date.group(1)
 
-def _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports):
+def _checkDataRequiredServices(result, tryDate, dataRequiredServices):
 # -1: Data not available:
 #  0: Backup to earlier date
 #  1: Data available
   oneDay = datetime.timedelta(days=1)
-  # move to day before if we don't have at least one usageReport
-  if not hasReports:
+  warnings = result.get('warnings', [])
+  usageReports = result.get('usageReports', [])
+  # move to day before if we don't have at least one usageReport with parameters
+  if not usageReports or not usageReports[0].get('parameters', []):
     tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
-    return (0, tryDateTime.strftime(YYYYMMDD_FORMAT))
+    return (0, tryDateTime.strftime(YYYYMMDD_FORMAT), None)
   for warning in warnings:
     if warning['code'] == 'PARTIAL_DATA_AVAILABLE':
       for app in warning['data']:
         if app['key'] == 'application' and app['value'] != 'docs' and ('all' in dataRequiredServices or app['value'] in dataRequiredServices):
           tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
-          return (0, tryDateTime.strftime(YYYYMMDD_FORMAT))
+          return (0, tryDateTime.strftime(YYYYMMDD_FORMAT), None)
     elif warning['code'] == 'DATA_NOT_AVAILABLE':
       for app in warning['data']:
         if app['key'] == 'application' and app['value'] != 'docs' and ('all' in dataRequiredServices or app['value'] in dataRequiredServices):
-          return (-1, tryDate)
-  return (1, tryDate)
+          return (-1, tryDate, None)
+  return (1, tryDate, usageReports)
 
 CUSTOMER_USER_CHOICES = {'customer', 'user'}
 
@@ -10782,15 +10784,12 @@ def doReportUsageParameters():
       result = callGAPI(service, 'get',
                         throwReasons=[GAPI.INVALID, GAPI.BAD_REQUEST],
                         date=tryDate, customerId=customerId, fields='warnings,usageReports(parameters(name))', **kwargs)
-      warnings = result.get('warnings', [])
-      usage = result.get('usageReports')
-      hasReports = bool(usage)
-      fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
+      fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate, dataRequiredServices)
       if fullData < 0:
         printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USAGE_PARAMETERS_DATA_AVAILABLE)
         return
-      if hasReports:
-        for parameter in usage[0]['parameters']:
+      if usageReports:
+        for parameter in usageReports[0]['parameters']:
           name = parameter.get('name')
           if name:
             allParameters.add(name)
@@ -11495,9 +11494,7 @@ def doReport():
                               throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                               userKey=user, date=tryDate, customerId=customerId,
                               orgUnitID=orgUnitId, fields='warnings,usageReports', maxResults=1)
-            warnings = result.get('warnings', [])
-            hasReports = bool(result.get('usageReports', []))
-            fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
+            fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate, dataRequiredServices)
             if fullData < 0:
               printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
               break
@@ -11570,9 +11567,7 @@ def doReport():
           result = callGAPI(rep.customerUsageReports(), 'get',
                             throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                             date=tryDate, customerId=customerId, fields='warnings,usageReports')
-          warnings = result.get('warnings', [])
-          hasReports = bool(result.get('usageReports', []))
-          fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
+          fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate, dataRequiredServices)
           if fullData < 0:
             printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
             break
@@ -12783,12 +12778,13 @@ CUSTOMER_LICENSE_MAP = {
   }
 
 def _showCustomerLicenseInfo(customerInfo, FJQC):
-  def numUsersAvailable(usage):
-    if usage and 'parameters' in usage[0]:
-      for item in usage[0]['parameters']:
+  def numUsersAvailable(result):
+    usageReports = result.get('usageReports', [])
+    if usageReports:
+      for item in usageReports[0].get('parameters', []):
         if item['name'] == 'accounts:num_users':
-          return True
-    return False
+          return usageReports
+    return None
 
   rep = buildGAPIObject(API.REPORTS)
   parameters = ','.join(CUSTOMER_LICENSE_MAP)
@@ -12799,12 +12795,10 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
       result = callGAPI(rep.customerUsageReports(), 'get',
                         throwReasons=[GAPI.INVALID, GAPI.FORBIDDEN],
                         date=tryDate, customerId=customerInfo['id'], fields='warnings,usageReports', parameters=parameters)
-      warnings = result.get('warnings', [])
-      usage = result.get('usageReports', [])
-      if numUsersAvailable(usage):
+      usageReports = numUsersAvailable(result)
+      if usageReports:
         break
-      hasReports = bool(usage)
-      fullData, tryDate = _checkDataRequiredServices(warnings, tryDate, dataRequiredServices, hasReports)
+      fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate, dataRequiredServices)
       if fullData < 0:
         printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_USER_COUNTS_DATA_AVAILABLE)
         return
@@ -12821,7 +12815,7 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
   if not FJQC.formatJSON:
     printKeyValueList([f'User counts as of {tryDate}:'])
     Ind.Increment()
-  for item in usage[0]['parameters']:
+  for item in usageReports[0]['parameters']:
     api_name = CUSTOMER_LICENSE_MAP.get(item['name'])
     api_value = int(item.get('intValue', '0'))
     if api_name and api_value:

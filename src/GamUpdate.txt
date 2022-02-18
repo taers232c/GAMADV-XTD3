@@ -1,3 +1,7 @@
+6.15.22
+
+Cleaned up `gam report` commands to improve verification that valid data has been received.
+
 6.15.21
 
 Added email audit monitor commands that were deleted in 5.34.00.
