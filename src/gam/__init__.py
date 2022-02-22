@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.22'
+__version__ = '6.15.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -42295,6 +42295,7 @@ DFA_LOCALFILEPATH = 'localFilepath'
 DFA_LOCALFILENAME = 'localFilename'
 DFA_LOCALMIMETYPE = 'localMimeType'
 DFA_STRIPNAMEPREFIX = 'stripNamePrefix'
+DFA_REPLACEFILENAME = 'replaceFileName'
 DFA_OCRLANGUAGE = 'ocrLanguage'
 DFA_ENFORCE_SINGLE_PARENT = 'enforceSingleParent'
 DFA_PARENTID = 'parentId'
@@ -42548,6 +42549,7 @@ def initDriveFileAttributes():
           DFA_LOCALFILENAME: None,
           DFA_LOCALMIMETYPE: None,
           DFA_STRIPNAMEPREFIX: None,
+          DFA_REPLACEFILENAME: [],
           DFA_OCRLANGUAGE: None,
           DFA_ENFORCE_SINGLE_PARENT: False,
           DFA_PARENTID: None,
@@ -42711,6 +42713,8 @@ def getDriveFileAttribute(myarg, body, parameters, updateCmd):
     parameters[DFA_LOCALMIMETYPE] = body['mimeType']
   elif myarg =='stripnameprefix':
     parameters[DFA_STRIPNAMEPREFIX] = getString(Cmd.OB_STRING, minLen=0)
+  elif myarg == 'replacefilename':
+    parameters[DFA_REPLACEFILENAME].append((getREPattern(re.IGNORECASE), getString(Cmd.OB_STRING, minLen=0)))
   elif myarg in {'convert', 'ocr'}:
     deprecatedArgument(myarg)
   elif myarg in DRIVE_LABEL_CHOICE_MAP:
@@ -46168,14 +46172,22 @@ def writeReturnIdLink(returnIdLink, mimeType, result):
         return
   writeStdout(f'https://drive.google.com/file/d/{result["id"]}/edit\n')
 
+def processFilenameReplacements(name, replacements):
+  for replacement in replacements:
+    name = re.sub(replacement[0], replacement[1], name)
+  return name
+
 returnItemMap = {
   'returnidonly': 'id',
   'returnlinkonly': 'webViewLink',
   'returneditlinkonly': 'editLink'
   }
 
-# gam <UserTypeEntity> create|add drivefile [drivefilename <DriveFileName>]
-#	<DriveFileCreateAttribute>* [stripnameprefix <String>]
+# gam <UserTypeEntity> create|add drivefile
+#	[localfile <FileName>|-]
+#	[(drivefilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
+#	[stripnameprefix <String>]
+#	<DriveFileCreateAttribute>*
 #	[enforcesingleparent <Boolean>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
 #	(addcsvdata <FieldName> <String>)*
@@ -46184,12 +46196,15 @@ def createDriveFile(users):
   returnIdLink = None
   showDetails = False
   body = {}
+  newName = None
+  assignLocalName = True
   addCSVData = {}
   parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'drivefilename':
-      body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
+      newName = getString(Cmd.OB_DRIVE_FILE_NAME)
+      assignLocalName = False
     elif myarg in returnItemMap:
       returnIdLink = returnItemMap[myarg]
       showDetails = False
@@ -46205,8 +46220,17 @@ def createDriveFile(users):
       addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     else:
       getDriveFileAttribute(myarg, body, parameters, False)
-  if 'name' in body and parameters[DFA_STRIPNAMEPREFIX] and body['name'].startswith(parameters[DFA_STRIPNAMEPREFIX]):
-    body['name'] = body['name'][len(parameters[DFA_STRIPNAMEPREFIX]):]
+  if assignLocalName and parameters[DFA_LOCALFILENAME] and parameters[DFA_LOCALFILENAME] != '-':
+    newName = parameters[DFA_LOCALFILENAME]
+  if newName:
+    if parameters[DFA_STRIPNAMEPREFIX] and newName.startswith(parameters[DFA_STRIPNAMEPREFIX]):
+      newName = newName[len(parameters[DFA_STRIPNAMEPREFIX]):]
+    if parameters[DFA_REPLACEFILENAME]:
+      body['name'] = processFilenameReplacements(newName, parameters[DFA_REPLACEFILENAME])
+    else:
+      body['name'] = newName
+  else:
+    body['name'] = 'Untitled'
   if parameters[DFA_LOCALFILEPATH]:
     if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, False)
@@ -46218,7 +46242,6 @@ def createDriveFile(users):
       csvPF.AddTitles(['parentId', 'mimeType'])
     if addCSVData:
       csvPF.AddTitles(sorted(addCSVData.keys()))
-  body.setdefault('name', 'Untitled')
   Act.Set(Act.CREATE)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -46523,13 +46546,17 @@ def checkDriveFileShortcut(users):
     csvPF.writeCSVfile('Check Shortcuts')
 
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
-#	[retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
+#	[localfile <FileName>|-]
+#	[retainname | (newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
+#	[stripnameprefix <String>]
 #	<DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
 #	[(gsheet|csvsheet <SheetEntity> [clearfilter])|(addsheet <String>)]
 #	[charset <String>] [columndelimiter <Character>]
 def updateDriveFile(users):
   fileIdEntity = getDriveFileEntity()
   body = {}
+  newName = None
+  assignLocalName = True
   parameters = initDriveFileAttributes()
   media_body = None
   addSheetEntity = None
@@ -46537,7 +46564,6 @@ def updateDriveFile(users):
   clearFilter = False
   encoding = GC.Values[GC.CHARSET]
   columnDelimiter = GC.Values[GC.CSV_INPUT_COLUMN_DELIMITER]
-  assignLocalName = True
   returnIdLink = None
   operation = 'update'
   while Cmd.ArgumentsRemaining():
@@ -46552,7 +46578,7 @@ def updateDriveFile(users):
     elif myarg == 'retainname':
       assignLocalName = False
     elif myarg == 'newfilename':
-      body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
+      newName = getString(Cmd.OB_DRIVE_FILE_NAME)
       assignLocalName = False
     elif getDriveFileAddRemoveParentAttribute(myarg, parameters):
       pass
@@ -46575,9 +46601,10 @@ def updateDriveFile(users):
     else:
       getDriveFileAttribute(myarg, body, parameters, True)
   if assignLocalName and parameters[DFA_LOCALFILENAME] and parameters[DFA_LOCALFILENAME] != '-':
-    body['name'] = parameters[DFA_LOCALFILENAME]
-  if 'name' in body and parameters[DFA_STRIPNAMEPREFIX] and body['name'].startswith(parameters[DFA_STRIPNAMEPREFIX]):
-    body['name'] = body['name'][len(parameters[DFA_STRIPNAMEPREFIX]):]
+    newName = parameters[DFA_LOCALFILENAME]
+  if newName:
+    if parameters[DFA_STRIPNAMEPREFIX] and newName.startswith(parameters[DFA_STRIPNAMEPREFIX]):
+      newName = newName[len(parameters[DFA_STRIPNAMEPREFIX]):]
   if operation == 'update' and parameters[DFA_LOCALFILEPATH]:
     if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, True)
@@ -46604,12 +46631,20 @@ def updateDriveFile(users):
         try:
           addParents = addParentsBase[:]
           removeParents = removeParentsBase[:]
-          if newParents:
+          if newParents or (not newName and parameters[DFA_REPLACEFILENAME]):
             result = callGAPI(drive.files(), 'get',
                               throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
-                              fileId=fileId, fields='parents', supportsAllDrives=True)
-            addParents.extend(newParents)
-            removeParents.extend(result.get('parents', []))
+                              fileId=fileId, fields='name,parents', supportsAllDrives=True)
+            if newParents:
+              addParents.extend(newParents)
+              removeParents.extend(result.get('parents', []))
+            if not newName and parameters[DFA_REPLACEFILENAME]:
+              body['name'] = processFilenameReplacements(result['name'], parameters[DFA_REPLACEFILENAME])
+          elif newName:
+            if parameters[DFA_REPLACEFILENAME]:
+              body['name'] = processFilenameReplacements(newName, parameters[DFA_REPLACEFILENAME])
+            else:
+              body['name'] = newName
           if addSheetEntity or updateSheetEntity:
             entityValueList = [Ent.USER, user, Ent.DRIVE_FILE_ID, fileId]
             try:
@@ -46684,24 +46719,6 @@ def updateDriveFile(users):
             except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
               userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
               break
-          elif media_body:
-            result = callGAPI(drive.files(), 'update',
-                              throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
-                                                                            GAPI.FILE_NEVER_WRITABLE, GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
-                                                                            GAPI.SHARE_OUT_NOT_PERMITTED, GAPI.SHARE_OUT_NOT_PERMITTED_TO_USER,
-                                                                            GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
-                                                                            GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
-                              fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
-                              ocrLanguage=parameters[DFA_OCRLANGUAGE],
-                              keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
-                              useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
-                              addParents=','.join(addParents), removeParents=','.join(removeParents),
-                              media_body=media_body, body=body, fields='id,name,mimeType,webViewLink',
-                              supportsAllDrives=True)
-            if returnIdLink:
-              writeStdout(f'{result[returnIdLink]}\n')
-            else:
-              entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name']], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
           else:
             result = callGAPI(drive.files(), 'update',
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
@@ -46715,11 +46732,13 @@ def updateDriveFile(users):
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                               addParents=','.join(addParents), removeParents=','.join(removeParents),
-                              body=body, fields='id,name,mimeType,webViewLink',
+                              media_body=media_body, body=body, fields='id,name,mimeType,webViewLink',
                               supportsAllDrives=True)
             if result:
               if returnIdLink:
                 writeStdout(f'{result[returnIdLink]}\n')
+              elif media_body:
+                entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name']], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
               else:
                 entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), result['name']], j, jcount)
             else:
@@ -46739,6 +46758,11 @@ def updateDriveFile(users):
           break
       Ind.Decrement()
     else:
+      if newName:
+        if parameters[DFA_REPLACEFILENAME]:
+          body['name'] = processFilenameReplacements(newName, parameters[DFA_REPLACEFILENAME])
+        else:
+          body['name'] = newName
       Ind.Increment()
       j = 0
       for fileId in fileIdEntity['list']:
@@ -46882,6 +46906,7 @@ def initCopyMoveOptions(copyCmd):
     'destParentType': False,
     'newFilename': None,
     'stripNamePrefix': None,
+    'replaceFilename': [],
     'summary': False,
     'mergeWithParent': False,
     'mergeWithParentRetain': False,
@@ -46936,6 +46961,8 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
     copyMoveOptions['newFilename'] = getString(Cmd.OB_DRIVE_FILE_NAME)
   elif myarg =='stripnameprefix':
     copyMoveOptions['stripNamePrefix'] = getString(Cmd.OB_STRING, minLen=0)
+  elif myarg == 'replacefilename':
+    copyMoveOptions['replaceFilename'].append((getREPattern(re.IGNORECASE), getString(Cmd.OB_STRING, minLen=0)))
   elif myarg == 'showpermissionmessages':
     copyMoveOptions['showPermissionMessages'] = getBoolean()
   elif myarg == 'sendemailifrequired':
@@ -47456,7 +47483,8 @@ def _getCopyFolderNonInheritedPermissions(copyMoveOptions, copyNonInherited, sou
   return copyNonInherited
 
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity>
-#	[newfilename <DriveFileName>] [stripnameprefix <String>]
+#	[newfilename <DriveFileName>] (replacefilename <RegularExpression> <String>)*
+#	[stripnameprefix <String>]
 #	[excludetrashed] [returnidonly|returnlinkonly]
 #	[summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
 #	[<DriveFileParentAttribute>]
@@ -47644,17 +47672,24 @@ def copyDriveFile(users):
           continue
         child.pop('parents', [])
         child['parents'] = [newFolderId]
+        if copyMoveOptions['replaceFilename']:
+          newChildTitle = processFilenameReplacements(childTitle, copyMoveOptions['replaceFilename'])
+        else:
+          newChildTitle = childTitle
         if child['mimeType'] == MIMETYPE_GA_FOLDER:
           _recursiveFolderCopy(drive, user, i, count, k, kcount,
-                               child, subTargetChildren, newFolderId, childTitle, child['modifiedTime'],
+                               child, subTargetChildren, newFolderId, newChildTitle, child['modifiedTime'],
                                False, depth)
         else:
           if not child.pop('capabilities')['canCopy']:
             entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
             _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
             continue
-          if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, child['name'], subTargetChildren, copyMoveOptions, statistics):
-            continue
+          if existingTargetFolder:
+            if _checkForDuplicateTargetFile(drive, user, k, kcount, child, newChildTitle, subTargetChildren, copyMoveOptions, statistics):
+              continue
+          else:
+            child['name'] = newChildTitle
           child.pop('id')
           if copyMoveOptions['destDriveId']:
             child.pop('copyRequiresWriterPermission', None)
@@ -47808,7 +47843,12 @@ def copyDriveFile(users):
               ((newParentId in sourceParents and
                 (source['mimeType'] == MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFolders'] != DUPLICATE_FOLDER_MERGE) or
                 (source['mimeType'] != MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])))):
-          destFilename = sourceFilename
+          if copyMoveOptions['replaceFilename']:
+            destFilename = processFilenameReplacements(sourceFilename, copyMoveOptions['replaceFilename'])
+          else:
+            destFilename = sourceFilename
+        elif copyMoveOptions['replaceFilename']:
+          destFilename = processFilenameReplacements(sourceFilename, copyMoveOptions['replaceFilename'])
         else:
           destFilename = f'Copy of {sourceFilename}'
         if copyMoveOptions['stripNamePrefix'] and destFilename.startswith(copyMoveOptions['stripNamePrefix']):

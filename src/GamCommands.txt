@@ -267,7 +267,7 @@ If an item contains spaces, it should be surrounded by ".
         never|
         now|today
 <RegularExpression> ::= <String>
-        See: https://docs.python.org/3.9/library/re.html
+        See: https://docs.python.org/3/library/re.html
 <ProjectID> ::= <String>
         Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
 <ServiceAccountName> ::= <String>
@@ -4764,7 +4764,9 @@ gam <UserTypeEntity> show datastudiopermissions
         usecontentasindexabletext
 
 gam <UserTypeEntity> create|add drivefile
-        [localfile <FileName>|-] [drivefilename <DriveFileName>] [stripnameprefix <String>]
+        [localfile <FileName>|-]
+        [(drivefilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
+        [stripnameprefix <String>]
         <DriveFileCreateAttribute>*
         [enforcesingleparent <Boolean>]
         [csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> currenttime|<String>)*]
@@ -4783,7 +4785,9 @@ gam <UserTypeEntity> create|add drivefile
          (removeanyownerparentname <DriveFolderName>))
 
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
-        [localfile <FileName>|-] [retainname | (newfilename <DriveFileName>)] [stripnameprefix <String>]
+        [localfile <FileName>|-]
+        [retainname | (newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
+        [stripnameprefix <String>]
         <DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
         [(gsheet|csvsheet <SheetEntity> [clearfilter])|(addsheet <String>)]
         [charset <CharSet>] [columndelimiter <Character>]
@@ -4806,7 +4810,8 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|ret
         (writerscanshare|writerscantshare [<Boolean>])
 
 gam <UserTypeEntity> copy drivefile <DriveFileEntity>
-        [newfilename <DriveFileName>] [stripnameprefix <String>]
+        [newfilename <DriveFileName>] (replacefilename <RegularExpression> <String>)*
+        [stripnameprefix <String>]
         [excludetrashed] [returnidonly|returnlinkonly]
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]

@@ -1,3 +1,14 @@
+6.15.23
+
+Added option `replacefilename <RegularExpression> <String>` to `gam <UserTypeEntity> copy|create|update drivefile`
+that allows using regular expressions to modify the copied/updated file name.
+```
+gam user user@domain.com update drivefile query "name contains '2020-2021'" replacefilename "2020-2021" "2021-2022"
+gam user user@domain.com copy drivefile name Template parentid root recursive replacefilename Template NewCustomer
+```
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Manage#update-files
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Copy-Move#copy-files-and-folders
+
 6.15.22
 
 Cleaned up `gam report` commands to improve verification that valid data has been received.
