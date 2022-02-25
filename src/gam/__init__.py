@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.23'
+__version__ = '6.15.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10736,7 +10736,7 @@ def _adjustTryDate(errMsg, noDateChange):
     return None
   return match_date.group(1)
 
-def _checkDataRequiredServices(result, tryDate, dataRequiredServices):
+def _checkDataRequiredServices(result, tryDate, dataRequiredServices, parameterServices=None):
 # -1: Data not available:
 #  0: Backup to earlier date
 #  1: Data available
@@ -10757,7 +10757,45 @@ def _checkDataRequiredServices(result, tryDate, dataRequiredServices):
       for app in warning['data']:
         if app['key'] == 'application' and app['value'] != 'docs' and ('all' in dataRequiredServices or app['value'] in dataRequiredServices):
           return (-1, tryDate, None)
+  if parameterServices:
+    requiredServices = parameterServices.copy()
+    for item in usageReports[0].get('parameters', []):
+      if 'name' not in item:
+        continue
+      service, _ = item['name'].split(':', 1)
+      if service in requiredServices:
+        requiredServices.remove(service)
+        if not requiredServices:
+          break
+    else:
+      tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
+      return (0, tryDateTime.strftime(YYYYMMDD_FORMAT), None)
   return (1, tryDate, usageReports)
+
+CUSTOMER_REPORT_SERVICES = {
+  'accounts',
+  'app_maker',
+  'apps_scripts',
+  'calendar',
+  'classroom',
+  'cros',
+  'device_management',
+  'docs',
+  'drive',
+  'gmail',
+  'gplus',
+  'meet',
+  'sites',
+  }
+
+USER_REPORT_SERVICES = {
+  'accounts',
+  'classroom',
+  'docs',
+  'drive',
+  'gmail',
+  'gplus',
+  }
 
 CUSTOMER_USER_CHOICES = {'customer', 'user'}
 
@@ -10769,16 +10807,17 @@ def doReportUsageParameters():
   rep = buildGAPIObject(API.REPORTS)
   if report == 'customer':
     service = rep.customerUsageReports()
+    dataRequiredServices = CUSTOMER_REPORT_SERVICES
     kwargs = {}
   else: # 'user'
     service = rep.userUsageReport()
+    dataRequiredServices = USER_REPORT_SERVICES
     kwargs = {'userKey': _getAdminEmail()}
   customerId = GC.Values[GC.CUSTOMER_ID]
   if customerId == GC.MY_CUSTOMER:
     customerId = None
   tryDate = todaysDate().strftime(YYYYMMDD_FORMAT)
   allParameters = set()
-  dataRequiredServices = {'all'}
   while True:
     try:
       result = callGAPI(service, 'get',
@@ -10868,10 +10907,12 @@ def doReportUsage():
   rep = buildGAPIObject(API.REPORTS)
   titles = ['date']
   if report == 'customer':
+    fullDataServices = CUSTOMER_REPORT_SERVICES
     userReports = False
     service = rep.customerUsageReports()
     kwargs = [{}]
   else: # 'user'
+    fullDataServices = USER_REPORT_SERVICES
     userReports = True
     service = rep.userUsageReport()
     kwargs = [{'userKey': 'all'}]
@@ -10903,7 +10944,16 @@ def doReportUsage():
     elif userReports and myarg == 'showorgunit':
       showOrgUnit = True
     elif myarg in {'fields', 'parameters'}:
-      parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
+      for field in getString(Cmd.OB_STRING).replace(',', ' ').split():
+        if ':' in field:
+          repsvc, _ = field.split(':', 1)
+          if repsvc in fullDataServices:
+            parameters.add(field)
+          else:
+            invalidChoiceExit(repsvc, fullDataServices, True)
+        else:
+          Cmd.Backup()
+          invalidArgumentExit('service:parameter')
     elif myarg == 'skipdates':
       for skip in getString(Cmd.OB_STRING).upper().split(','):
         if skip.find(':') == -1:
@@ -11076,31 +11126,6 @@ REPORT_CHOICE_MAP = {
   'useraccounts': 'user_accounts',
   }
 
-CUSTOMER_REPORT_SERVICES = [
-  'accounts',
-  'app_maker',
-  'apps_scripts',
-  'calendar',
-  'classroom',
-  'cros',
-  'device_management',
-  'docs',
-  'drive',
-  'gmail',
-  'gplus',
-  'meet',
-  'sites',
-  ]
-
-USER_REPORT_SERVICES = [
-  'accounts',
-  'classroom',
-  'docs',
-  'drive',
-  'gmail',
-  'gplus',
-  ]
-
 REPORT_ACTIVITIES_UPPERCASE_EVENTS = {
   'access_transparency',
   'admin',
@@ -11125,6 +11150,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[countsonly [summary] [eventrowfilter]]
 # gam report users|user [todrive <ToDriveAttribute>*]
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
+#	[allverifyuser <UserItem>]
 #	[(date <Date>)|(range <Date> <Date>)|
 #	 yesterday|thismonth|(previousmonths <Integer>)]
 #	[nodatechange | (fulldatarequired all|<UserServiceNameList>)]
@@ -11154,8 +11180,8 @@ def doReport():
         if 'name' not in item:
           continue
         name = item['name']
-        service, _ = name.split(':', 1)
-        if service not in includeServices:
+        repsvc, _ = name.split(':', 1)
+        if repsvc not in includeServices:
           continue
         if name == 'accounts:disabled_reason':
           mg = DISABLED_REASON_TIME_PATTERN.match(item['stringValue'])
@@ -11192,8 +11218,8 @@ def doReport():
         if 'name' not in item:
           continue
         name = item['name']
-        service, _ = name.split(':', 1)
-        if service not in includeServices:
+        repsvc, _ = name.split(':', 1)
+        if repsvc not in includeServices:
           continue
         if 'intValue' in item:
           csvPF.AddTitles(name)
@@ -11213,8 +11239,8 @@ def doReport():
       if 'name' not in item:
         continue
       name = item['name']
-      service, _ = name.split(':', 1)
-      if service not in includeServices:
+      repsvc, _ = name.split(':', 1)
+      if repsvc not in includeServices:
         continue
       for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
         if ptype in item:
@@ -11276,8 +11302,8 @@ def doReport():
       if 'name' not in item:
         continue
       name = item['name']
-      service, _ = name.split(':', 1)
-      if service not in includeServices:
+      repsvc, _ = name.split(':', 1)
+      if repsvc not in includeServices:
         continue
       for ptype in REPORTS_PARAMETERS_SIMPLE_TYPES:
         if ptype in item:
@@ -11343,6 +11369,7 @@ def doReport():
   filters = actorIpAddress = groupIdFilter = orgUnit = orgUnitId = None
   showOrgUnit = False
   parameters = set()
+  parameterServices = set()
   eventCounts = {}
   eventNames = []
   startEndTime = StartEndTime('start', 'end')
@@ -11351,16 +11378,24 @@ def doReport():
   maxActivities = 0
   maxResults = 1000
   aggregateUserUsage = countsOnly = eventRowFilter = exitUserLoop = noAuthorizedApps = noDateChange = normalizeUsers = select = summary = userCustomerRange = False
-  userKey = 'all'
+  allVerifyUser = userKey = 'all'
   cd = orgUnit = orgUnitId = None
   userOrgUnits = {}
-  customerReports = report == 'customer'
-  userReports = report == 'user'
+  customerReports = userReports = False
+  if report == 'customer':
+    customerReports = True
+    service = rep.customerUsageReports()
+    fullDataServices = CUSTOMER_REPORT_SERVICES
+  elif report == 'user':
+    userReports = True
+    service = rep.userUsageReport()
+    fullDataServices = USER_REPORT_SERVICES
+  else:
+    service = rep.activities()
   usageReports = customerReports or userReports
   activityReports = not usageReports
   dataRequiredServices = set()
   if usageReports:
-    fullDataServices = CUSTOMER_REPORT_SERVICES if customerReports else USER_REPORT_SERVICES
     includeServices = set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -11383,24 +11418,36 @@ def doReport():
     elif usageReports and myarg == 'nodatechange':
       noDateChange = True
     elif usageReports and myarg in {'fields', 'parameters'}:
-      parameters = parameters.union(getString(Cmd.OB_STRING).replace(',', ' ').split())
+      for field in getString(Cmd.OB_STRING).replace(',', ' ').split():
+        if ':' in field:
+          repsvc, _ = field.split(':', 1)
+          if repsvc in fullDataServices:
+            parameters.add(field)
+            parameterServices.add(repsvc)
+            includeServices.add(repsvc)
+          else:
+            invalidChoiceExit(repsvc, fullDataServices, True)
+        else:
+          Cmd.Backup()
+          invalidArgumentExit('service:parameter')
     elif usageReports and myarg == 'fulldatarequired':
       fdr = getString(Cmd.OB_SERVICE_NAME_LIST, minLen=0).lower()
       if fdr:
         if fdr != 'all':
-          for field in fdr.replace(',', ' ').split():
-            if field in fullDataServices:
-              dataRequiredServices.add(field)
+          for repsvc in fdr.replace(',', ' ').split():
+            if repsvc in fullDataServices:
+              dataRequiredServices.add(repsvc)
             else:
-              invalidChoiceExit(field, fullDataServices, True)
+              invalidChoiceExit(repsvc, fullDataServices, True)
         else:
-          dataRequiredServices = {'all'}
+          dataRequiredServices = fullDataServices
     elif usageReports and myarg in {'service', 'services'}:
-      for field in getString(Cmd.OB_SERVICE_NAME_LIST).lower().replace(',', ' ').split():
-        if field in fullDataServices:
-          includeServices.add(field)
+      for repsvc in getString(Cmd.OB_SERVICE_NAME_LIST).lower().replace(',', ' ').split():
+        if repsvc in fullDataServices:
+          parameterServices.add(repsvc)
+          includeServices.add(repsvc)
         else:
-          invalidChoiceExit(field, fullDataServices, True)
+          invalidChoiceExit(repsvc, fullDataServices, True)
     elif customerReports and myarg == 'noauthorizedapps':
       noAuthorizedApps = True
     elif activityReports and myarg == 'maxactivities':
@@ -11438,6 +11485,8 @@ def doReport():
       select = True
     elif userReports and myarg == 'aggregatebydate':
       aggregateUserUsage = getBoolean()
+    elif userReports and myarg == 'allverifyuser':
+      allVerifyUser = getEmailAddress()
     else:
       unknownArgumentExit()
   parameters = ','.join(parameters) if parameters else None
@@ -11483,6 +11532,9 @@ def doReport():
         user = normalizeEmailAddressOrUID(user)
       if user != 'all':
         printGettingEntityItemForWhom(Ent.REPORT, user, i, count)
+        verifyUser = user
+      else:
+        verifyUser = allVerifyUser
       startDateTime = startEndTime.startDateTime
       endDateTime = startEndTime.endDateTime
       lastDate = None
@@ -11490,11 +11542,13 @@ def doReport():
         tryDate = startDateTime.strftime(YYYYMMDD_FORMAT)
         try:
           if not userCustomerRange:
-            result = callGAPI(rep.userUsageReport(), 'get',
+            result = callGAPI(service, 'get',
                               throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                              userKey=user, date=tryDate, customerId=customerId,
-                              orgUnitID=orgUnitId, fields='warnings,usageReports', maxResults=1)
-            fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate, dataRequiredServices)
+                              userKey=verifyUser, date=tryDate, customerId=customerId,
+                              orgUnitID=orgUnitId, parameters=parameters,
+                              fields='warnings,usageReports', maxResults=1)
+            fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate,
+                                                                         dataRequiredServices, parameterServices)
             if fullData < 0:
               printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
               break
@@ -11507,7 +11561,7 @@ def doReport():
             pageMessage = getPageMessageForWhom(forWhom, showDate=tryDate)
           else:
             pageMessage = getPageMessageForWhom(user, showDate=tryDate)
-          usage = callGAPIpages(rep.userUsageReport(), 'get', 'usageReports',
+          usage = callGAPIpages(service, 'get', 'usageReports',
                                 pageMessage=pageMessage,
                                 throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                                 userKey=user, date=tryDate, customerId=customerId,
@@ -11564,10 +11618,11 @@ def doReport():
       tryDate = startDateTime.strftime(YYYYMMDD_FORMAT)
       try:
         if not userCustomerRange:
-          result = callGAPI(rep.customerUsageReports(), 'get',
+          result = callGAPI(service, 'get',
                             throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                            date=tryDate, customerId=customerId, fields='warnings,usageReports')
-          fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate, dataRequiredServices)
+                            date=tryDate, customerId=customerId, parameters=parameters, fields='warnings,usageReports')
+          fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate,
+                                                                       dataRequiredServices, parameterServices)
           if fullData < 0:
             printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
             break
@@ -11576,7 +11631,7 @@ def doReport():
               break
             startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
             continue
-        usage = callGAPIpages(rep.customerUsageReports(), 'get', 'usageReports',
+        usage = callGAPIpages(service, 'get', 'usageReports',
                               throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN],
                               date=tryDate, customerId=customerId, parameters=parameters)
         if userCustomerRange:
@@ -11627,7 +11682,7 @@ def doReport():
         printGettingEntityItemForWhom(Ent.ACTIVITY, user, i, count)
       for eventName in eventNames:
         try:
-          feed = callGAPIpages(rep.activities(), 'list', 'items',
+          feed = callGAPIpages(service, 'list', 'items',
                                pageMessage=pageMessage, maxItems=maxActivities,
                                throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.AUTH_ERROR],
                                applicationName=report, userKey=user, customerId=customerId,
@@ -12794,7 +12849,8 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
     try:
       result = callGAPI(rep.customerUsageReports(), 'get',
                         throwReasons=[GAPI.INVALID, GAPI.FORBIDDEN],
-                        date=tryDate, customerId=customerInfo['id'], fields='warnings,usageReports', parameters=parameters)
+                        date=tryDate, customerId=customerInfo['id'],
+                        fields='warnings,usageReports', parameters=parameters)
       usageReports = numUsersAvailable(result)
       if usageReports:
         break
@@ -16126,7 +16182,7 @@ def _dedupContacts():
       break
   Ind.Decrement()
 
-# gam dedup contacts <ContactEntity>|<ContactSeleciotn> [matchType [<Boolean>]]
+# gam dedup contacts <ContactEntity>|<ContactSelection> [matchType [<Boolean>]]
 def doDedupDomainContacts():
   _dedupContacts()
 
@@ -17252,9 +17308,13 @@ PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS = {
   'orderby', 'basic', 'thin', 'full', 'showdeleted',
   }
 
-def _getPeopleContactEntityList(entityType, unknownAction):
+def _getPeopleContactEntityList(entityType, unknownAction, dedupCommand=False):
   contactQuery = _initPeopleContactQueryAttributes()
-  if Cmd.PeekArgumentPresent(PEOPLE_CONTACT_SELECT_ARGUMENTS.union(PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS)):
+  if dedupCommand and (not Cmd.ArgumentsRemaining() or Cmd.PeekArgumentPresent('matchtype')):
+    # <PeopleResourceNameEntity>|<PeopleUserContactSelection> are optional in dedup contacts
+    entityList = None
+    queriedContacts = True
+  elif Cmd.PeekArgumentPresent(PEOPLE_CONTACT_SELECT_ARGUMENTS.union(PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS)):
     entityList = None
     queriedContacts = True
     while Cmd.ArgumentsRemaining():
@@ -17684,13 +17744,14 @@ def dedupPeopleEmailAddressMatches(emailMatchType, contact):
     contact[PEOPLE_EMAIL_ADDRESSES] = savedAddresses
   return updateRequired
 
-# gam <UserTypeEntity> dedup contacts <PeopleResourceNameEntity>|<PeopleUserContactSelection>
+# gam <UserTypeEntity> dedup contacts
+#	[<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
 #	[matchType [<Boolean>]]
 def dedupUserPeopleContacts(users):
   entityType = Ent.USER
   peopleEntityType = Ent.PEOPLE_CONTACT
   sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
-  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1)
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1, True)
   emailMatchType = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()

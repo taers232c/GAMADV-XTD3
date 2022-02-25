@@ -1,3 +1,10 @@
+6.15.24
+
+Cleaned up `gam report` commands again to improve verification that valid data has been received.
+
+Fixed bug in `gam <UserTypeEntity> dedup contacts` where `<PeopleResourceNameEntity>|<PeopleUserContactSelection>`
+was not optional as documented.
+
 6.15.23
 
 Added option `replacefilename <RegularExpression> <String>` to `gam <UserTypeEntity> copy|create|update drivefile`
