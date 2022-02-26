@@ -9309,7 +9309,7 @@ def doOAuthRequest(currentScopes, login_hint, verifyScopes=False, oldFlow=False)
   login_hint = _getValidateLoginHint(login_hint)
 # Needs to be set so oauthlib doesn't puke when Google changes our scopes
   os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
-  if not oldFlow
+  if not oldFlow:
     credentials = Credentials.from_client_secrets(
       client_id,
       client_secret,
