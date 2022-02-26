@@ -180,6 +180,7 @@ EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT = 'The email address is an ummanaged account'
 ENTER_GSUITE_ADMIN_EMAIL_ADDRESS = '\nEnter your Google Workspace admin email address? '
 ENTER_MANAGE_GCP_PROJECT_EMAIL_ADDRESS = '\nEnter your Google Workspace admin or GCP project manager email address authorized to manage project(s): {0}? '
 ENTER_VERIFICATION_CODE = 'Enter verification code: '
+ENTER_VERIFICATION_CODE_TO_SCOPE = 'Enter data up to &scope from "Unable to connect" URL on other computer: '
 ENTITY_DOES_NOT_EXIST = '{0} does not exist'
 ENTITY_NAME_NOT_VALID = 'Entity Name Not Valid'
 ERROR = 'error'
@@ -335,7 +336,7 @@ If your browser is on a different machine then press CTRL+C,
 set no_browser = true in gam.cfg and re-run this command.
 """
 OAUTH2_GO_TO_LINK_MESSAGE = """
-Go to the following link in your browser:
+Go to the following link in a browser on this computer or other computer:
 
     {url}
 """

@@ -1,3 +1,10 @@
+6.16.00
+
+With many thanks to Jay, updated `gam oauth create` to use a new client access authentication flow
+as required by Google for headless computers/cloud shells; this is required as of February 28, 2022.
+* See: https://developers.googleblog.com/2022/02/making-oauth-flows-safer.html
+  * OAuth out-of-band (oob) flow will be deprecated
+
 6.15.24
 
 Cleaned up `gam report` commands again to improve verification that valid data has been received.

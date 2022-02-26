@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.15.24'
+__version__ = '6.16.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -55,6 +55,7 @@ try:
 except ImportError:
   from importlib_metadata import version as lib_version
 import io
+import ipaddress
 import json
 import logging
 from logging.handlers import RotatingFileHandler
@@ -69,6 +70,7 @@ from secrets import SystemRandom
 import shlex
 import signal
 import smtplib
+from socket import gethostbyname
 import ssl
 import string
 import struct
@@ -78,9 +80,11 @@ from tempfile import TemporaryFile
 import threading
 import time
 from traceback import print_exc
-from urllib.parse import quote, quote_plus, unquote, urlencode, urlparse
+from urllib.parse import quote, quote_plus, unquote, urlencode, urlparse, parse_qs
 import uuid
 import webbrowser
+import wsgiref.simple_server
+import wsgiref.util
 import zipfile
 
 from cryptography import x509
@@ -8923,15 +8927,335 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       break
   return selectedScopes
 
-def writeGAMOauthURLfile(oauthURL):
-  writeFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], oauthURL, mode='w', continueOnError=True, displayError=True)
+def _localhost_to_ip():
+  '''returns IPv4 or IPv6 loopback address which localhost resolves to.
+     If localhost does not resolve to valid loopback IP address then returns
+     127.0.0.1'''
+  # TODO gethostbyname() will only ever return ipv4
+  # find a way to support IPv6 here and get preferred IP
+  # note that IPv6 may be broken on some systems also :-(
+  # for now IPv4 should do.
+  local_ip = gethostbyname('localhost')
+  local_ipaddress = ipaddress.ip_address(local_ip)
+  ip4_local_range = ipaddress.ip_network('127.0.0.0/8')
+  ip6_local_range = ipaddress.ip_network('::1/128')
+  if local_ipaddress not in ip4_local_range and local_ipaddress not in ip6_local_range:
+    local_ip = '127.0.0.1'
+  return local_ip
+
+def _waitForHttpClient(d):
+  wsgi_app = google_auth_oauthlib.flow._RedirectWSGIApp(Msg.AUTHENTICATION_FLOW_COMPLETE)
+  wsgiref.simple_server.WSGIServer.allow_reuse_address = False
+  # Convert hostname to IP since apparently binding to the IP
+  # reduces odds of firewall blocking us
+  local_ip = _localhost_to_ip()
+  for port in range(8080, 8099):
+    try:
+      local_server = wsgiref.simple_server.make_server(
+        local_ip,
+        port,
+        wsgi_app,
+        handler_class=wsgiref.simple_server.WSGIRequestHandler
+        )
+      break
+    except OSError:
+      pass
+  redirect_uri_format = (
+      "http://{}:{}/" if d['trailing_slash'] else "http://{}:{}"
+  )
+  # provide redirect_uri to main process so it can formulate auth_url
+  d['redirect_uri'] = redirect_uri_format.format(*local_server.server_address)
+  # wait until main process provides auth_url
+  # so we can open it in web browser.
+  while 'auth_url' not in d:
+    time.sleep(0.1)
+  if d['open_browser']:
+    webbrowser.open(d['auth_url'], new=1, autoraise=True)
+  local_server.handle_request()
+  authorization_response = wsgi_app.last_request_uri.replace("http", "https")
+  d['code'] = authorization_response
+  local_server.server_close()
+
+def _waitForUserInput(d):
+  sys.stdin = open(0, DEFAULT_FILE_READ_MODE, )
+  d['code'] = input(Msg.ENTER_VERIFICATION_CODE_TO_SCOPE)
+
+class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
+  def run_dual(self, **kwargs):
+    mgr = multiprocessing.Manager()
+    d = mgr.dict()
+    d['trailing_slash'] = True
+    d['open_browser'] = not GC.Values[GC.NO_BROWSER]
+    httpClientProcess = multiprocessing.Process(target=_waitForHttpClient, args=(d,))
+    if GC.Values[GC.NO_BROWSER]:
+      userInputProcess = multiprocessing.Process(target=_waitForUserInput, args=(d,))
+    httpClientProcess.start()
+    # we need to wait until web server starts on avail port
+    # so we know redirect_uri to use
+    while 'redirect_uri' not in d:
+      time.sleep(0.1)
+    self.redirect_uri = d['redirect_uri']
+    d['auth_url'], _ = super().authorization_url(**kwargs)
+    if GC.Values[GC.NO_BROWSER]:
+      print(Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(url=d['auth_url']))
+      userInputProcess.start()
+    else:
+      print(Msg.OAUTH2_BROWSER_OPENED_MESSAGE.format(url=d['auth_url']))
+    while True:
+      time.sleep(0.1)
+      if not httpClientProcess.is_alive():
+        if GC.Values[GC.NO_BROWSER]:
+          userInputProcess.terminate()
+        break
+      if GC.Values[GC.NO_BROWSER] and not userInputProcess.is_alive():
+        httpClientProcess.terminate()
+        break
+    code = d['code']
+    if code.startswith('http'):
+      parsed_url = urlparse(code)
+      parsed_params = parse_qs(parsed_url.query)
+      code = parsed_params.get('code', [None])[0]
+    try:
+      self.fetch_token(code=code)
+    except Exception as e:
+      systemErrorExit(INVALID_TOKEN_RC, str(e))
+    print(Msg.AUTHENTICATION_FLOW_COMPLETE)
+    return self.credentials
+
+class Credentials(google.oauth2.credentials.Credentials):
+  """Google OAuth2.0 Credentials with GAM-specific properties and methods."""
+
+  def __init__(self,
+               token,
+               refresh_token=None,
+               id_token=None,
+               token_uri=None,
+               client_id=None,
+               client_secret=None,
+               scopes=None,
+               quota_project_id=None,
+               expiry=None,
+               id_token_data=None,
+               filename=None):
+    """A thread-safe OAuth2.0 credentials object.
+
+    Credentials adds additional utility properties and methods to a
+    standard OAuth2.0 credentials object. When used to store credentials on
+    disk, it implements a file lock to avoid collision during writes.
+
+    Args:
+      token: Optional String, The OAuth 2.0 access token. Can be None if refresh
+        information is provided.
+      refresh_token: String, The OAuth 2.0 refresh token. If specified,
+        credentials can be refreshed.
+      id_token: String, The Open ID Connect ID Token.
+      token_uri: String, The OAuth 2.0 authorization server's token endpoint
+        URI. Must be specified for refresh, can be left as None if the token can
+        not be refreshed.
+      client_id: String, The OAuth 2.0 client ID. Must be specified for refresh,
+        can be left as None if the token can not be refreshed.
+      client_secret: String, The OAuth 2.0 client secret. Must be specified for
+        refresh, can be left as None if the token can not be refreshed.
+      scopes: Sequence[str], The scopes used to obtain authorization.
+        This parameter is used by :meth:`has_scopes`. OAuth 2.0 credentials can
+          not request additional scopes after authorization. The scopes must be
+          derivable from the refresh token if refresh information is provided
+          (e.g. The refresh token scopes are a superset of this or contain a
+          wild card scope like
+            'https://www.googleapis.com/auth/any-api').
+      quota_project_id: String, The project ID used for quota and billing. This
+        project may be different from the project used to create the
+        credentials.
+      expiry: datetime.datetime, The time at which the provided token will
+        expire.
+      id_token_data: Oauth2.0 ID Token data which was previously fetched for
+        this access token against the google.oauth2.id_token library.
+      filename: String, Path to a file that will be used to store the
+        credentials. If provided, a lock file of the same name and a ".lock"
+          extension will be created for concurrency controls. Note: New
+            credentials are not saved to disk until write() or refresh() are
+            called.
+
+    Raises:
+      TypeError: If id_token_data is not the required dict type.
+    """
+    super().__init__(token=token,
+                     refresh_token=refresh_token,
+                     id_token=id_token,
+                     token_uri=token_uri,
+                     client_id=client_id,
+                     client_secret=client_secret,
+                     scopes=scopes,
+                     quota_project_id=quota_project_id)
+
+    # Load data not restored by the super class
+    self.expiry = expiry
+    if id_token_data and not isinstance(id_token_data, dict):
+      raise TypeError(f'Expected type id_token_data dict but received {type(id_token_data)}')
+    self._id_token_data = id_token_data.copy() if id_token_data else None
+
+    # If a filename is provided, use a lock file to control concurrent access
+    # to the resource. If no filename is provided, use a thread lock that has
+    # the same interface as FileLock in order to simplify the implementation.
+    if filename:
+      # Convert relative paths into absolute
+      self._filename = os.path.abspath(filename)
+    else:
+      self._filename = None
+
+  # Use a property to prevent external mutation of the filename.
+  @property
+  def filename(self):
+    return self._filename
+
+  @classmethod
+  def from_authorized_user_info_gam(cls, info, filename=None):
+    """Generates Credentials from JSON containing authorized user info.
+
+    Args:
+      info: Dict, authorized user info in Google format.
+      filename: String, the filename used to store these credentials on disk. If
+        no filename is provided, the credentials will not be saved to disk.
+
+    Raises:
+      ValueError: If missing fields are detected in the info.
+    """
+    # We need all of these keys
+    keys_needed = {'client_id', 'client_secret'}
+    # We need 1 or more of these keys
+    keys_need_one_of = {'refresh_token', 'auth_token', 'token'}
+    missing = keys_needed.difference(info.keys())
+    has_one_of = set(info) & keys_need_one_of
+    if missing or not has_one_of:
+      raise ValueError(
+        'Authorized user info was not in the expected format, missing '
+        f'fields {", ".join(missing)} and one of {", ".join(keys_need_one_of)}.')
+
+    expiry = info.get('token_expiry')
+    if expiry:
+      # Convert the raw expiry to datetime
+      expiry = datetime.datetime.strptime(expiry, YYYYMMDDTHHMMSSZ_FORMAT)
+    id_token_data = info.get('decoded_id_token')
+
+    # Provide backwards compatibility with field names when loading from JSON.
+    # Some field names may be different, depending on when/how the credentials
+    # were pickled.
+    return cls(token=info.get('token', info.get('auth_token', '')),
+               refresh_token=info.get('refresh_token', ''),
+               id_token=info.get('id_token_jwt', info.get('id_token')),
+               token_uri=info.get('token_uri'),
+               client_id=info['client_id'],
+               client_secret=info['client_secret'],
+               scopes=info.get('scopes'),
+               quota_project_id=info.get('quota_project_id'),
+               expiry=expiry,
+               id_token_data=id_token_data,
+               filename=filename)
+
+  @classmethod
+  def from_google_oauth2_credentials(cls, credentials, filename=None):
+    """Generates Credentials from a google.oauth2.Credentials object."""
+    info = json.loads(credentials.to_json())
+    # Add properties which are not exported with the native to_json() output.
+    info['id_token'] = credentials.id_token
+    if credentials.expiry:
+      info['token_expiry'] = credentials.expiry.strftime(YYYYMMDDTHHMMSSZ_FORMAT)
+    info['quota_project_id'] = credentials.quota_project_id
+
+    return cls.from_authorized_user_info_gam(info, filename=filename)
+
+  @classmethod
+  def from_client_secrets(cls,
+                          client_id,
+                          client_secret,
+                          scopes,
+                          access_type='offline',
+                          login_hint=None,
+                          filename=None,
+                          use_console_flow=False):
+    """Runs an OAuth Flow from client secrets to generate credentials.
+
+    Args:
+      client_id: String, The OAuth2.0 Client ID.
+      client_secret: String, The OAuth2.0 Client Secret.
+      scopes: Sequence[str], A list of scopes to include in the credentials.
+      access_type: String, 'offline' or 'online'.  Indicates whether your
+        application can refresh access tokens when the user is not present at
+        the browser. Valid parameter values are online, which is the default
+        value, and offline.  Set the value to offline if your application needs
+        to refresh access tokens when the user is not present at the browser.
+        This is the method of refreshing access tokens described later in this
+        document. This value instructs the Google authorization server to return
+        a refresh token and an access token the first time that your application
+        exchanges an authorization code for tokens.
+      login_hint: String, The email address that will be displayed on the Google
+        login page as a hint for the user to login to the correct account.
+      filename: String, the path to a file to use to save the credentials.
+      use_console_flow: Boolean, True if the authentication flow should be run
+        strictly from a console; False to launch a browser for authentication.
+
+    Returns:
+      Credentials
+    """
+    client_config = {
+      'installed': {
+        'client_id': client_id,
+        'client_secret': client_secret,
+#        'redirect_uris': ['http://localhost', 'urn:ietf:wg:oauth:2.0:oob'],
+        'auth_uri': 'https://accounts.google.com/o/oauth2/v2/auth',
+        'token_uri': 'https://oauth2.googleapis.com/token',
+        }
+    }
+
+    flow = _GamOauthFlow.from_client_config(client_config,
+                                            scopes,
+                                            autogenerate_code_verifier=True)
+    flow_kwargs = {'access_type': access_type}
+    if login_hint:
+      flow_kwargs['login_hint'] = login_hint
+    flow.run_dual(**flow_kwargs)
+    return cls.from_google_oauth2_credentials(flow.credentials, filename=filename)
+
+  def to_json(self, strip=None):
+    """Creates a JSON representation of a Credentials.
+
+    Args:
+        strip: Sequence[str], Optional list of members to exclude from the
+          generated JSON.
+
+    Returns:
+        str: A JSON representation of this instance, suitable to pass to
+             from_json().
+    """
+    expiry = self.expiry.strftime(YYYYMMDDTHHMMSSZ_FORMAT) if self.expiry else None
+    prep = {
+      'token': self.token,
+      'refresh_token': self.refresh_token,
+      'token_uri': self.token_uri,
+      'client_id': self.client_id,
+      'client_secret': self.client_secret,
+      'id_token': self.id_token,
+      # Google auth doesn't currently give us scopes back on refresh.
+      # 'scopes': sorted(self.scopes),
+      'token_expiry': expiry,
+      'decoded_id_token': self._id_token_data,
+      }
+
+    # Remove empty entries
+    prep = {k: v for k, v in prep.items() if v is not None}
+
+    # Remove entries that explicitly need to be removed
+    if strip is not None:
+      prep = {k: v for k, v in prep.items() if k not in strip}
+
+    return json.dumps(prep, indent=2, sort_keys=True)
 
 def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
   client_config = {
     'installed': {
       'client_id': client_id,
       'client_secret': client_secret,
-      'redirect_uris': ['http://localhost', 'urn:ietf:wg:oauth:2.0:oob'],
+#      'redirect_uris': ['http://localhost', 'urn:ietf:wg:oauth:2.0:oob'],
       'auth_uri': 'https://accounts.google.com/o/oauth2/v2/auth',
       'token_uri': 'https://oauth2.googleapis.com/token',
       }
@@ -8957,15 +9281,13 @@ def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
       return flow.credentials
     except Exception as e:
       stderrErrorMsg(Msg.AUTHENTICATION_FLOW_FAILED.format(str(e)))
-      if noBrowser:
-        deleteFile(GM.Globals[GM.GAM_OAUTH_URL_TXT], continueOnError=True, displayError=True)
-      elif 'Address already in use' in str(e):
+      if 'Address already in use' in str(e):
         writeStderr(Msg.WILL_RERUN_WITH_NO_BROWSER_TRUE)
         noBrowser = True
         continue
       systemErrorExit(SCOPES_NOT_AUTHORIZED_RC, None)
 
-def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
+def doOAuthRequest(currentScopes, login_hint, verifyScopes=False, oldFlow=False):
   client_id, client_secret = getOAuthClientIDAndSecret()
   scopesList = API.getClientScopesList(GC.Values[GC.TODRIVE_CLIENTACCESS])
   if not currentScopes or verifyScopes:
@@ -8987,16 +9309,27 @@ def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
   login_hint = _getValidateLoginHint(login_hint)
 # Needs to be set so oauthlib doesn't puke when Google changes our scopes
   os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
-  credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'offline')
+  if not oldFlow
+    credentials = Credentials.from_client_secrets(
+      client_id,
+      client_secret,
+      scopes=scopes,
+      access_type='offline',
+      login_hint=login_hint,
+      filename=GC.Values[GC.OAUTH2_TXT],
+      use_console_flow=GC.Values[GC.NO_BROWSER])
+  else:
+    credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'offline')
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
     writeClientCredentials(credentials, GC.Values[GC.OAUTH2_TXT])
   entityActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
   return True
 
-# gam oauth|oauth2 create|request [<EmailAddress>]
-# gam oauth|oauth2 create|request [admin <EmailAddress>] [scope|scopes <APIScopeURLList>]
+# gam oauth|oauth2 create|request [oldflow] [<EmailAddress>]
+# gam oauth|oauth2 create|request [oldflow] [admin <EmailAddress>] [scope|scopes <APIScopeURLList>]
 def doOAuthCreate():
+  oldFlow = checkArgumentPresent(['oldflow'])
   if not Cmd.PeekArgumentPresent(['admin', 'scope', 'scopes']):
     login_hint = getEmailAddress(noUid=True, optional=True)
     scopes = None
@@ -9023,7 +9356,7 @@ def doOAuthCreate():
             invalidChoiceExit(uscope, API.getClientScopesURLs(GC.Values[GC.TODRIVE_CLIENTACCESS]), True)
       else:
         unknownArgumentExit()
-  doOAuthRequest(scopes, login_hint)
+  doOAuthRequest(scopes, login_hint, oldFlow=oldFlow)
 
 def exitIfNoOauth2Txt():
   if not os.path.isfile(GC.Values[GC.OAUTH2_TXT]):
@@ -9108,9 +9441,10 @@ def doOAuthInfo():
         printKeyValueList([k, v])
   printBlankLine()
 
-# gam oauth|oauth2 update [<EmailAddress>]
-# gam oauth|oauth2 update [admin <EmailAddress>]
+# gam oauth|oauth2 update [oldflow] [<EmailAddress>]
+# gam oauth|oauth2 update [oldflow] [admin <EmailAddress>]
 def doOAuthUpdate():
+  oldFlow = checkArgumentPresent(['oldflow'])
   if Cmd.PeekArgumentPresent(['admin']):
     Cmd.Advance()
     login_hint = getEmailAddress(noUid=True)
@@ -9134,7 +9468,7 @@ def doOAuthUpdate():
       currentScopes = []
   except (AttributeError, IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
     invalidOauth2TxtExit(str(e))
-  if not doOAuthRequest(currentScopes, login_hint, verifyScopes=True):
+  if not doOAuthRequest(currentScopes, login_hint, verifyScopes=True, oldFlow=oldFlow):
     entityActionNotPerformedWarning([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Msg.USER_CANCELLED)
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
@@ -9315,6 +9649,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
     if client_valid:
       break
     sys.stdout.write('\n')
+# Deleted: "redirect_uris": ["http://localhost", "urn:ietf:wg:oauth:2.0:oob"],
   cs_data = f'''{{
     "installed": {{
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
@@ -9323,7 +9658,6 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
         "client_secret": "{client_secret}",
         "created_by": "{login_hint}",
         "project_id": "{projectInfo['projectId']}",
-        "redirect_uris": ["http://localhost", "urn:ietf:wg:oauth:2.0:oob"],
         "token_uri": "https://oauth2.googleapis.com/token"
     }}
 }}'''
@@ -10750,12 +11084,12 @@ def _checkDataRequiredServices(result, tryDate, dataRequiredServices, parameterS
   for warning in warnings:
     if warning['code'] == 'PARTIAL_DATA_AVAILABLE':
       for app in warning['data']:
-        if app['key'] == 'application' and app['value'] != 'docs' and ('all' in dataRequiredServices or app['value'] in dataRequiredServices):
+        if app['key'] == 'application' and app['value'] != 'docs' and app['value'] in dataRequiredServices:
           tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
           return (0, tryDateTime.strftime(YYYYMMDD_FORMAT), None)
     elif warning['code'] == 'DATA_NOT_AVAILABLE':
       for app in warning['data']:
-        if app['key'] == 'application' and app['value'] != 'docs' and ('all' in dataRequiredServices or app['value'] in dataRequiredServices):
+        if app['key'] == 'application' and app['value'] != 'docs' and app['value'] in dataRequiredServices:
           return (-1, tryDate, None)
   if parameterServices:
     requiredServices = parameterServices.copy()
