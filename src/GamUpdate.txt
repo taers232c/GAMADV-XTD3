@@ -1,3 +1,8 @@
+6.16.01
+
+Updated `gam oauth create` to allow retries when `no_browser` is true and the user
+enters an invalid authentication code.
+
 6.16.00
 
 With many thanks to Jay, updated `gam oauth create` to use a new client access authentication flow

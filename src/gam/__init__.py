@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.00'
+__version__ = '6.16.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8944,7 +8944,7 @@ def _localhost_to_ip():
   return local_ip
 
 def _waitForHttpClient(d):
-  wsgi_app = google_auth_oauthlib.flow._RedirectWSGIApp(Msg.AUTHENTICATION_FLOW_COMPLETE)
+  wsgi_app = google_auth_oauthlib.flow._RedirectWSGIApp(Msg.AUTHENTICATION_FLOW_COMPLETE_CLOSE_BROWSER.format(GAM))
   wsgiref.simple_server.WSGIServer.allow_reuse_address = False
   # Convert hostname to IP since apparently binding to the IP
   # reduces odds of firewall blocking us
@@ -9001,6 +9001,7 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
       userInputProcess.start()
     else:
       print(Msg.OAUTH2_BROWSER_OPENED_MESSAGE.format(url=d['auth_url']))
+    userInput = False
     while True:
       time.sleep(0.1)
       if not httpClientProcess.is_alive():
@@ -9008,17 +9009,23 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
           userInputProcess.terminate()
         break
       if GC.Values[GC.NO_BROWSER] and not userInputProcess.is_alive():
+        userInput = True
         httpClientProcess.terminate()
         break
-    code = d['code']
-    if code.startswith('http'):
-      parsed_url = urlparse(code)
-      parsed_params = parse_qs(parsed_url.query)
-      code = parsed_params.get('code', [None])[0]
-    try:
-      self.fetch_token(code=code)
-    except Exception as e:
-      systemErrorExit(INVALID_TOKEN_RC, str(e))
+    while True:
+      code = d['code']
+      if code.startswith('http'):
+        parsed_url = urlparse(code)
+        parsed_params = parse_qs(parsed_url.query)
+        code = parsed_params.get('code', [None])[0]
+      try:
+        self.fetch_token(code=code)
+        break
+      except Exception as e:
+        if not userInput:
+          systemErrorExit(INVALID_TOKEN_RC, str(e))
+        stderrErrorMsg(str(e))
+        _waitForUserInput(d)
     print(Msg.AUTHENTICATION_FLOW_COMPLETE)
     return self.credentials
 

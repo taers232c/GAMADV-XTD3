@@ -132,7 +132,8 @@ ATTENDEES_ADD = 'Add Attendees'
 ATTENDEES_ADD_REMOVE = 'Add/Remove Attendees'
 ATTENDEES_REMOVE = 'Remove Attendees'
 AUTHORIZATION_FILE_ALREADY_EXISTS = '{0} already exists. Please delete or rename it before attempting to {1} project.'
-AUTHENTICATION_FLOW_COMPLETE = 'The authentication flow has completed. You may close this browser window and return to GAM.'
+AUTHENTICATION_FLOW_COMPLETE = '\nThe authentication flow has completed.'
+AUTHENTICATION_FLOW_COMPLETE_CLOSE_BROWSER = 'The authentication flow has completed. You may close this browser window and return to {0}.'
 AUTHENTICATION_FLOW_FAILED = 'The authentication flow failed (invalid verification code entered?): {0}'
 BAD_ENTITIES_IN_SOURCE = '{0} {1} {2} in source marked >>> <<< above'
 BAD_REQUEST = 'Bad Request'
@@ -336,7 +337,7 @@ If your browser is on a different machine then press CTRL+C,
 set no_browser = true in gam.cfg and re-run this command.
 """
 OAUTH2_GO_TO_LINK_MESSAGE = """
-Go to the following link in a browser on this computer or other computer:
+Go to the following link in a browser on other computer:
 
     {url}
 """
