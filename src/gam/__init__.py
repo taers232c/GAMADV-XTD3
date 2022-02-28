@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.01'
+__version__ = '6.16.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -22713,10 +22713,13 @@ def buildGAPICIDeviceServiceObject():
   return ci
 
 def getUpdateDeleteCIDeviceOptions(entityType, count, action, doit, actionChoices):
+  kwargs = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if not action and myarg == 'action':
       action = getChoice(actionChoices)
+    elif action == 'wipe' and myarg == 'removeresetlock':
+      kwargs = {'body': {'removeResetLock': True}}
     elif myarg == 'doit':
       doit = True
     else:
@@ -22727,7 +22730,7 @@ def getUpdateDeleteCIDeviceOptions(entityType, count, action, doit, actionChoice
   if not doit:
     actionNotPerformedNumItemsWarning(count, entityType, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION)
     sys.exit(GM.Globals[GM.SYSEXITRC])
-  return action
+  return action, kwargs
 
 def getCIDeviceEntity():
   ci = buildGAPICIDeviceServiceObject()
@@ -22850,11 +22853,12 @@ DEVICE_ACTION_CHOICES = {'cancelwipe', 'wipe'}
 def _performCIDeviceAction(action):
   entityList, ci, customer, doit = getCIDeviceEntity()
   count = len(entityList)
-  action = getUpdateDeleteCIDeviceOptions(Ent.DEVICE, count, action, doit, DEVICE_ACTION_CHOICES)
+  action, kwargs = getUpdateDeleteCIDeviceOptions(Ent.DEVICE, count, action, doit, DEVICE_ACTION_CHOICES)
   if action == 'delete':
-    kwargs = {'customer': customer}
+    kwargs['customer'] = customer
   else:
-    kwargs = {'body': {'customer': customer}}
+    kwargs.setdefault('body', {})
+    kwargs['body']['customer'] = customer
   i = 0
   for device in entityList:
     i += 1
@@ -22884,11 +22888,11 @@ def doDeleteCIDevice():
 def doCancelWipeCIDevice():
   _performCIDeviceAction('cancelWipe')
 
-# gam wipe device <DeviceEntity> [doit]
+# gam wipe device <DeviceEntity> [removeresetlock] [doit]
 def doWipeCIDevice():
   _performCIDeviceAction('wipe')
 
-# gam update device <DeviceEntity> action <DeviceAction> [doit]
+# gam update device <DeviceEntity> action <DeviceAction> [removeresetlock] [doit]
 def doUpdateCIDevice():
   _performCIDeviceAction(None)
 
@@ -23290,11 +23294,12 @@ DEVICE_USER_ACTION_CHOICES = {'approve', 'block', 'cancelwipe', 'wipe'}
 def _performCIDeviceUserAction(action):
   entityList, ci, customer, doit = getCIDeviceUserEntity()
   count = len(entityList)
-  action = getUpdateDeleteCIDeviceOptions(Ent.DEVICE_USER, count, action, doit, DEVICE_USER_ACTION_CHOICES)
+  action, kwargs = getUpdateDeleteCIDeviceOptions(Ent.DEVICE_USER, count, action, doit, DEVICE_USER_ACTION_CHOICES)
   if action == 'delete':
-    kwargs = {'customer': customer}
+    kwargs['customer'] = customer
   else:
-    kwargs = {'body': {'customer': customer}}
+    kwargs.setdefault('body', {})
+    kwargs['body']['customer'] = customer
   i = 0
   for deviceUser in entityList:
     i += 1
@@ -32570,13 +32575,13 @@ def convertHoldNameToID(v, nameOrId, matterId, matterNameId):
       return (hold['holdId'], hold['name'], formatVaultNameId(hold['holdId'], hold['name']))
   entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, nameOrId])
 
-def convertMatterNameToID(v, nameOrId):
+def convertMatterNameToID(v, nameOrId, state=None):
   cg = UID_PATTERN.match(nameOrId)
   if cg:
     try:
       matter = callGAPI(v.matters(), 'get',
                         throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                        matterId=cg.group(1), view='BASIC', fields='matterId,name,state')
+                        matterId=cg.group(1), view='BASIC', state=state, fields='matterId,name,state')
       return (matter['matterId'], matter['name'], formatVaultNameId(matter['name'], matter['matterId']), matter['state'])
     except (GAPI.notFound, GAPI.forbidden):
       entityDoesNotExistExit(Ent.VAULT_MATTER, nameOrId)
@@ -32601,8 +32606,8 @@ def convertMatterNameToID(v, nameOrId):
   else:
     entityIsNotUniqueExit(Ent.VAULT_MATTER, nameOrId, Ent.VAULT_MATTER_ID, ids)
 
-def getMatterItem(v):
-  matterId, _, matterNameId, _ = convertMatterNameToID(v, getString(Cmd.OB_MATTER_ITEM))
+def getMatterItem(v, state=None):
+  matterId, _, matterNameId, _ = convertMatterNameToID(v, getString(Cmd.OB_MATTER_ITEM), state=state)
   return (matterId, matterNameId)
 
 def warnMatterNotOpen(matter, matterNameId, j, jcount):
@@ -32738,7 +32743,8 @@ def _validateVaultQuery(query):
 #	(shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>)
 #	[scope <all_data|held_data|unprocessed_data>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
-#	[excludedrafts <Boolean>] [format mbox|pst] [showconfidentialmodecontent <Boolean>]
+#	[excludedrafts <Boolean>] [format mbox|pst]
+#	[showconfidentialmodecontent <Boolean>] [usenewexport <Boolean>]
 #	[includerooms <Boolean>]
 #	[covereddata calllogs|textmessages|voicemails]
 #	[includeshareddrives|includeteamdrives <Boolean>] [driveversiondate <Date>|<Time>] [includeaccessinfo <Boolean>]
@@ -32750,15 +32756,18 @@ def doCreateVaultExport():
   exportFormat = 'MBOX'
   showConfidentialModeContent = None
   showDetails = False
+  useNewExport = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'matter':
-      matterId, matterNameId = getMatterItem(v)
+      matterId, matterNameId = getMatterItem(v, state='OPEN')
       body['matterId'] = matterId
     elif myarg == 'name':
       body['name'] = getString(Cmd.OB_STRING)
     elif myarg in VAULT_QUERY_ARGS:
       _buildVaultQuery(myarg, body['query'], VAULT_CORPUS_ARGUMENT_MAP)
+    elif myarg == 'usenewexport':
+      useNewExport = getBoolean()
     elif myarg == 'format':
       exportFormat = getChoice(VAULT_EXPORT_FORMAT_MAP, mapChoice=True)
     elif myarg == 'showconfidentialmodecontent':
@@ -32778,11 +32787,15 @@ def doCreateVaultExport():
   _validateVaultQuery(body['query'])
   if 'name' not in body:
     body['name'] = f'GAM {body["query"]["corpus"]} Export - {ISOformatTimeStamp(todaysTime())}'
+  optionsField = VAULT_CORPUS_OPTIONS_MAP[body['query']['corpus']]
   if body['query']['corpus'] != 'DRIVE':
     body['exportOptions'].pop('driveOptions', None)
-    body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP[body['query']['corpus']]] = {'exportFormat': exportFormat}
-    if body['query']['corpus'] == 'MAIL' and showConfidentialModeContent is not None:
-      body['exportOptions'][VAULT_CORPUS_OPTIONS_MAP['MAIL']]['showConfidentialModeContent'] = showConfidentialModeContent
+    body['exportOptions'][optionsField] = {'exportFormat': exportFormat}
+    if body['query']['corpus'] == 'MAIL':
+      if showConfidentialModeContent is not None:
+        body['exportOptions'][optionsField]['showConfidentialModeContent'] = showConfidentialModeContent
+      if useNewExport is not None:
+        body['exportOptions'][optionsField]['useNewExport'] = useNewExport
   if body['query']['corpus'] != 'VOICE':
     body['exportOptions'].pop('voiceOptions', None)
   try:

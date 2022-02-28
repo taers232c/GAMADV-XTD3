@@ -1,3 +1,12 @@
+6.16.02
+
+Following Jay's lead, added option `removeresetlock` to `gam wipe device <DeviceEntity>` that will remove the account lock
+on the Android or iOS device. This lock is enabled by default and requires the existing device user to log in after the wipe in order to unlock the device.
+* See: https://support.google.com/android/answer/9459346
+
+Following Jay's lead, added option `usenewexport <Boolean>` to `gam create vaultexport ... corpus mail`.
+* See: https://support.google.com/vault/answer/4388708#new_gmail_export&zippy=%2Cfebruary-new-gmail-export-system-available
+
 6.16.01
 
 Updated `gam oauth create` to allow retries when `no_browser` is true and the user
