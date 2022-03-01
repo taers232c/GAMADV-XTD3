@@ -37,7 +37,7 @@ and all necessary authentications.
 |    :---:    |      :---:      |   :---:   |
 
 # Installation - Upgrading from Standard GAM
-Use these steps if you have used any version of GAM in your domain. They will update your GAM project
+Use these steps if you have used any version of Standard GAM in your domain. They will update your GAM project
 and all necessary authentications.
 
 | [Downloads] | [Configuration] | [UpgradeFromStandard] |
