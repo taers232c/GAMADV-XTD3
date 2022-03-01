@@ -1,3 +1,7 @@
+6.16.04
+
+Fixed bug in `gam <UserTypeEntity> get drivefile` that caused a trap when the target file couldn't be written.
+
 6.16.03
 
 Fixed bug that broke `vault` commands.
