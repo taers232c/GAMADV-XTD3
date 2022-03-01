@@ -31,18 +31,18 @@ YOU_HAVE_NO_RIGHTS_TO_CREATE_PROJECTS_AND_YOU_ARE_NOT_A_SUPER_ADMIN = 'You have 
 LOOKS_LIKE_NO_ONE_HAS_RIGHTS_TO_YOUR_GOOGLE_CLOUD_ORGANIZATION_ATTEMPTING_TO_GIVE_YOU_CREATE_RIGHTS = 'Looks like no one has rights to your Google Cloud Organization. Attempting to give you create rights...\n'
 THE_FOLLOWING_RIGHTS_SEEM_TO_EXIST = 'The following rights seem to exist:\n'
 GIVING_LOGIN_HINT_THE_CREATOR_ROLE = 'Giving {0} the role of {1}...\n'
-ACCEPT_CLOUD_TOS = '''Please go to:
+ACCEPT_CLOUD_TOS = '''
+Please go to:
 
-https://console.cloud.google.com/start&authuser={0}
+https://console.cloud.google.com/projectselector2/home/dashboard?supportedpurview=project
 
-and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup, you can return here and press enter.\n'''
+sign in as {0} and accept the Terms of Service (ToS). As soon as you've accepted the ToS popup, you can return here and press enter.\n'''
 
 PROJECT_STILL_BEING_CREATED_SLEEPING = 'Project still being created. Sleeping {0} seconds\n'
 FAILED_TO_CREATE_PROJECT = 'Failed to create project: {0}\n'
 SETTING_GAM_PROJECT_CONSENT_SCREEN = 'Setting GAM project consent screen...\n'
-PLEASE_RESOLVE_ERROR = '\nPlease resolve error as described above\n\n'
-PRESS_ENTER_ONCE_ERROR_RESOLVED = 'Press enter once error is resolved and we will try enabling the API again.'
-CREATE_PROJECT_INSTRUCTIONS = '''Please go to:
+CREATE_PROJECT_INSTRUCTIONS = '''
+Please go to:
 
 {0}
 
@@ -181,7 +181,7 @@ EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT = 'The email address is an ummanaged account'
 ENTER_GSUITE_ADMIN_EMAIL_ADDRESS = '\nEnter your Google Workspace admin email address? '
 ENTER_MANAGE_GCP_PROJECT_EMAIL_ADDRESS = '\nEnter your Google Workspace admin or GCP project manager email address authorized to manage project(s): {0}? '
 ENTER_VERIFICATION_CODE = 'Enter verification code: '
-ENTER_VERIFICATION_CODE_TO_SCOPE = 'Enter data up to &scope from "Unable to connect" URL on other computer: '
+ENTER_VERIFICATION_CODE_OR_URL = 'Enter verification code or paste "Unable to connect" URL from other computer (only URL data up to &scope required): '
 ENTITY_DOES_NOT_EXIST = '{0} does not exist'
 ENTITY_NAME_NOT_VALID = 'Entity Name Not Valid'
 ERROR = 'error'
@@ -337,9 +337,12 @@ If your browser is on a different machine then press CTRL+C,
 set no_browser = true in gam.cfg and re-run this command.
 """
 OAUTH2_GO_TO_LINK_MESSAGE = """
-Go to the following link in a browser on other computer:
+Go to the following link in a browser on this computer or on another computer:
 
     {url}
+
+If you use a browser on another computer, you will get a browser error that the site can't be reached AFTER you
+click the Allow button, paste "Unable to connect" URL from other computer (only URL data up to &scope required):
 """
 ON_CURRENT_PRIVATE_KEY = ' on current key'
 ON_VAULT_HOLD = 'On Google Vault Hold'

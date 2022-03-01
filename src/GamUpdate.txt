@@ -1,3 +1,9 @@
+6.16.03
+
+Fixed bug that broke `vault` commands.
+
+Updated `gam oauth create` to use client access authentication flow as in Standard GAM, `config no_browser true` is no longer necessary.
+
 6.16.02
 
 Following Jay's lead, added option `removeresetlock` to `gam wipe device <DeviceEntity>` that will remove the account lock

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.02'
+__version__ = '6.16.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8978,7 +8978,7 @@ def _waitForHttpClient(d):
 
 def _waitForUserInput(d):
   sys.stdin = open(0, DEFAULT_FILE_READ_MODE, )
-  d['code'] = input(Msg.ENTER_VERIFICATION_CODE_TO_SCOPE)
+  d['code'] = input(Msg.ENTER_VERIFICATION_CODE_OR_URL)
 
 class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
   def run_dual(self, **kwargs):
@@ -8987,8 +8987,7 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
     d['trailing_slash'] = True
     d['open_browser'] = not GC.Values[GC.NO_BROWSER]
     httpClientProcess = multiprocessing.Process(target=_waitForHttpClient, args=(d,))
-    if GC.Values[GC.NO_BROWSER]:
-      userInputProcess = multiprocessing.Process(target=_waitForUserInput, args=(d,))
+    userInputProcess = multiprocessing.Process(target=_waitForUserInput, args=(d,))
     httpClientProcess.start()
     # we need to wait until web server starts on avail port
     # so we know redirect_uri to use
@@ -8996,19 +8995,15 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
       time.sleep(0.1)
     self.redirect_uri = d['redirect_uri']
     d['auth_url'], _ = super().authorization_url(**kwargs)
-    if GC.Values[GC.NO_BROWSER]:
-      print(Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(url=d['auth_url']))
-      userInputProcess.start()
-    else:
-      print(Msg.OAUTH2_BROWSER_OPENED_MESSAGE.format(url=d['auth_url']))
+    print(Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(url=d['auth_url']))
+    userInputProcess.start()
     userInput = False
     while True:
       time.sleep(0.1)
       if not httpClientProcess.is_alive():
-        if GC.Values[GC.NO_BROWSER]:
-          userInputProcess.terminate()
+        userInputProcess.terminate()
         break
-      if GC.Values[GC.NO_BROWSER] and not userInputProcess.is_alive():
+      if not userInputProcess.is_alive():
         userInput = True
         httpClientProcess.terminate()
         break
@@ -9505,7 +9500,7 @@ def getCRMService(login_hint):
   httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
   return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER, httpObj))
 
-def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
+def enableGAMProjectAPIs(httpObj, projectId, login_hint, checkEnabled, i=0, count=0):
   apis = API.PROJECT_APIS[:]
   projectName = f'projects/{projectId}'
   serveu = getAPIService(API.SERVICEUSAGE, httpObj)
@@ -9553,8 +9548,7 @@ def enableGAMProjectAPIs(httpObj, projectId, checkEnabled, i=0, count=0):
           break
         except GAPI.failedPrecondition as e:
           entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
-          writeStderr(Msg.PLEASE_RESOLVE_ERROR)
-          readStdin(Msg.PRESS_ENTER_ONCE_ERROR_RESOLVED)
+          readStdin(Msg.ACCEPT_CLOUD_TOS.format(login_hint))
         except (GAPI.forbidden, GAPI.permissionDenied, GAPI.internalError) as e:
           entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
           status = False
@@ -9635,7 +9629,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
     sys.stderr.write(f'Unknown error: {content}\n')
     return False
 
-  if not enableGAMProjectAPIs(httpObj, projectInfo['projectId'], False):
+  if not enableGAMProjectAPIs(httpObj, projectInfo['projectId'], login_hint, False):
     return
   if appInfo and not setGAMProjectConsentScreen(httpObj, projectInfo['projectId'], appInfo):
     return
@@ -10037,7 +10031,7 @@ def doUpdateProject():
       continue
     projectId = project['projectId']
     Act.Set(Act.UPDATE)
-    if not enableGAMProjectAPIs(httpObj, projectId, True, i, count):
+    if not enableGAMProjectAPIs(httpObj, projectId, login_hint, True, i, count):
       continue
     iam = getAPIService(API.IAM, httpObj)
     _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
@@ -32581,14 +32575,14 @@ def convertMatterNameToID(v, nameOrId, state=None):
     try:
       matter = callGAPI(v.matters(), 'get',
                         throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                        matterId=cg.group(1), view='BASIC', state=state, fields='matterId,name,state')
+                        matterId=cg.group(1), view='BASIC', fields='matterId,name,state')
       return (matter['matterId'], matter['name'], formatVaultNameId(matter['name'], matter['matterId']), matter['state'])
     except (GAPI.notFound, GAPI.forbidden):
       entityDoesNotExistExit(Ent.VAULT_MATTER, nameOrId)
   try:
     matters = callGAPIpages(v.matters(), 'list', 'matters',
                             throwReasons=[GAPI.FORBIDDEN],
-                            view='BASIC', fields='matters(matterId,name,state),nextPageToken')
+                            view='BASIC', state=state, fields='matters(matterId,name,state),nextPageToken')
   except GAPI.forbidden:
     ClientAPIAccessDeniedExit()
   nameOrIdlower = nameOrId.lower()
