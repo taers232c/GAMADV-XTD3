@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.04'
+__version__ = '6.16.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -1362,23 +1362,23 @@ def makeOrgUnitPathAbsolute(path):
   if path == '/':
     return path
   if path.startswith('/'):
-    return path.rstrip('/')
+    return path.removesuffix('/')
   if path.startswith('id:'):
     return path
   if path.startswith('uid:'):
     return path[1:]
-  return '/'+path.rstrip('/')
+  return '/'+path.removesuffix('/')
 
 def makeOrgUnitPathRelative(path):
   if path == '/':
     return path
   if path.startswith('/'):
-    return path[1:].rstrip('/')
+    return path[1:].removesuffix('/')
   if path.startswith('id:'):
     return path
   if path.startswith('uid:'):
     return path[1:]
-  return path.rstrip('/')
+  return path.removesuffix('/')
 
 def encodeOrgUnitPath(path):
   if path.find('+') == -1 and path.find('%') == -1:
@@ -14414,16 +14414,19 @@ def _doInfoOrgs(entityList):
       unknownArgumentExit()
   i = 0
   count = len(entityList)
-  for orgUnitPath in entityList:
+  for origOrgUnitPath in entityList:
     i += 1
     try:
-      if orgUnitPath == '/':
-        _, orgUnitPath = getOrgUnitId(cd, orgUnitPath)
+      if origOrgUnitPath == '/':
+        _, orgUnitPath = getOrgUnitId(cd, origOrgUnitPath)
       else:
-        orgUnitPath = makeOrgUnitPathRelative(orgUnitPath)
+        orgUnitPath = makeOrgUnitPathRelative(origOrgUnitPath)
       result = callGAPI(cd.orgunits(), 'get',
                         throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                         customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(orgUnitPath))
+      if 'orgUnitPath' not in result:
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, origOrgUnitPath], Msg.DOES_NOT_EXIST, i, count)
+        continue
       printEntity([Ent.ORGANIZATIONAL_UNIT, result['orgUnitPath']], i, count)
       Ind.Increment()
       for field in ORG_FIELD_INFO_ORDER:
@@ -15160,7 +15163,7 @@ def doInfoAliases():
   infoAliases(getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY))
 
 # gam print aliases|nicknames [todrive <ToDriveAttribute>*]
-#	[(query <QueryUser>)|(queries <QueryUserList>)]
+#	[domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
 #	[aliasmatchpattern <RegularExpression>]
 #	[shownoneditable] [nogroups] [nousers]
 #	[onerowpertarget] [suppressnoaliasrows]
@@ -15193,6 +15196,8 @@ def doPrintAliases():
   groupFields = ['email', 'aliases']
   getGroups = getUsers = True
   oneRowPerTarget = showNonEditable = suppressNoAliasRows = False
+  customer = GC.Values[GC.CUSTOMER_ID]
+  domain = None
   queries = [None]
   aliasMatchPattern = re.compile(r'^.*$')
   while Cmd.ArgumentsRemaining():
@@ -15207,6 +15212,9 @@ def doPrintAliases():
       getGroups = False
     elif myarg == 'nousers':
       getUsers = False
+    elif myarg == 'domain':
+      domain = getString(Cmd.OB_DOMAIN_NAME).lower()
+      customer = None
     elif myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
       getGroups = False
@@ -15234,15 +15242,18 @@ def doPrintAliases():
       try:
         entityList = callGAPIpages(cd.users(), 'list', 'users',
                                    pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='primaryEmail',
-                                   throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
+                                   throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT, GAPI.DOMAIN_NOT_FOUND,
                                                  GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                                   customer=GC.Values[GC.CUSTOMER_ID], query=query, orderBy='email',
+                                   customer=customer, domain=domain, query=query, orderBy='email',
                                    fields=f'nextPageToken,users({",".join(userFields)})',
                                    maxResults=GC.Values[GC.USER_MAX_RESULTS])
         for user in entityList:
           writeAliases(user, user['primaryEmail'], 'User')
       except (GAPI.invalidOrgunit, GAPI.invalidInput):
         entityActionFailedWarning([Ent.ALIAS, None], invalidQuery(query))
+        return
+      except GAPI.domainNotFound as e :
+        entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, domain], str(e))
         return
       except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
         accessErrorExit(cd)
@@ -15252,10 +15263,13 @@ def doPrintAliases():
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
                                  throwReasons=GAPI.GROUP_LIST_THROW_REASONS,
-                                 customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
+                                 customer=customer, domain=domain, orderBy='email',
                                  fields=f'nextPageToken,groups({",".join(groupFields)})')
       for group in entityList:
         writeAliases(group, group['email'], 'Group')
+    except GAPI.domainNotFound as e :
+      entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, domain], str(e))
+      return
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
       accessErrorExit(cd)
   csvPF.writeCSVfile('Aliases')
@@ -23338,7 +23352,7 @@ def doCancelWipeCIDeviceUser():
 def doWipeCIDeviceUser():
   _performCIDeviceUserAction('wipe')
 
-# gam update device <DeviceUserEntity> action <DeviceUserAction> [doit]
+# gam update deviceuser <DeviceUserEntity> action <DeviceUserAction> [doit]
 def doUpdateCIDeviceUser():
   _performCIDeviceUserAction(None)
 
@@ -36805,9 +36819,9 @@ def doPrintUsers(entityList=None):
     'maxGroups': 0
     }
   customer = GC.Values[GC.CUSTOMER_ID]
-  licenses = {}
   domain = None
   queries = [None]
+  licenses = {}
   projection = 'basic'
   projectionSet = False
   customFieldMask = None

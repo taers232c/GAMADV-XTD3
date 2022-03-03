@@ -1148,7 +1148,7 @@ gam <UserTypeEntity> delete alias|aliases
 gam info alias|aliases <EmailAddressEntity>
 
 gam print alias|aliases [todrive <ToDriveAttribute>*]
-        [(query <QueryUser>)|(queries <QueryUserList>)]
+        [domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
         [aliasmatchpattern <RegularExpression>]
         [shownoneditable] [nogroups] [nousers]
         [onerowpertarget] [suppressnoaliasrows]
