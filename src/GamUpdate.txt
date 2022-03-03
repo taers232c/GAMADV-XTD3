@@ -1,3 +1,7 @@
+6.16.06
+
+Updated code to remove Python 3.9 dependency introduced in 6.15.05.
+
 6.16.05
 
 Added option `domain <DomainName>` to `gam print aliases` to simplify printing aliases from a secondary domain.

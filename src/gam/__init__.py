@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.05'
+__version__ = '6.16.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -1362,23 +1362,31 @@ def makeOrgUnitPathAbsolute(path):
   if path == '/':
     return path
   if path.startswith('/'):
-    return path.removesuffix('/')
+    if not path.endswith('/'):
+      return path
+    return path[:-1]
   if path.startswith('id:'):
     return path
   if path.startswith('uid:'):
     return path[1:]
-  return '/'+path.removesuffix('/')
+  if not path.endswith('/'):
+    return '/'+path
+  return '/'+path[:-1]
 
 def makeOrgUnitPathRelative(path):
   if path == '/':
     return path
   if path.startswith('/'):
-    return path[1:].removesuffix('/')
+    if not path.endswith('/'):
+      return path[1:]
+    return path[1:-1]
   if path.startswith('id:'):
     return path
   if path.startswith('uid:'):
     return path[1:]
-  return path.removesuffix('/')
+  if not path.endswith('/'):
+    return path
+  return path[:-1]
 
 def encodeOrgUnitPath(path):
   if path.find('+') == -1 and path.find('%') == -1:
