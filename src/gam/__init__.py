@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.06'
+__version__ = '6.16.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -44147,6 +44147,11 @@ def _setGetPermissionsForTeamDrives(fieldsList):
     permissionsFields = getItemFieldsFromFieldsList('permissions', permissionsFieldsList, True)
   return (getPermissionsForTeamDrives, permissionsFields)
 
+def _stripControlCharsFromName(name):
+  for cc in ['\x00', '\r', '\n']:
+    name = name.replace(cc, '')
+  return name
+
 # gam <UserTypeEntity> info drivefile <DriveFileEntity>
 #	[filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
@@ -44225,7 +44230,7 @@ def showFileInfo(users):
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields=fields, supportsAllDrives=True)
         if stripCRsFromName:
-          result['name'] = result['name'].replace('\r', '')
+          result['name'] = _stripControlCharsFromName(result['name'])
         driveId = result.get('driveId')
         if driveId:
           if result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == TEAM_DRIVE:
@@ -44740,7 +44745,7 @@ def printShowFileRevisions(users):
       if showTitles:
         fileName, entityType = _getDriveFileNameFromId(drive, fileId, not csvPF)
         if stripCRsFromName:
-          fileName = fileName.replace('\r', '')
+          fileName = _stripControlCharsFromName(fileName)
       try:
         results = callGAPIpages(drive.revisions(), 'list', 'revisions',
                                 throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.REVISIONS_NOT_SUPPORTED],
@@ -44864,7 +44869,7 @@ def extendFileTree(fileTree, feed, DLP, stripCRsFromName):
     if not DLP.CheckOnlyTeamDrives(f_file) or not DLP.CheckExcludeTrashed(f_file):
       continue
     if stripCRsFromName:
-      f_file['name'] = f_file['name'].replace('\r', '')
+      f_file['name'] = _stripControlCharsFromName(f_file['name'])
     if not f_file.get('parents', []):
       f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) else [SHARED_WITHME]
     fileId = f_file['id']
@@ -45850,7 +45855,7 @@ def printFileList(users):
           else:
             for f_file in feed.get('files', []):
               if stripCRsFromName:
-                f_file['name'] = f_file['name'].replace('\r', '')
+                f_file['name'] = _stripControlCharsFromName(f_file['name'])
               _printFileInfo(drive, user, f_file)
           del feed
         if not pageToken or (DLP.maxItems and totalItems >= DLP.maxItems):
@@ -45891,7 +45896,7 @@ def printFileList(users):
                                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                                    fileId=fileId, fields=fields, supportsAllDrives=True)
           if stripCRsFromName:
-            fileEntryInfo['name'] = fileEntryInfo['name'].replace('\r', '')
+            fileEntryInfo['name'] = _stripControlCharsFromName(fileEntryInfo['name'])
           if filepath:
             fileTree[fileId] = {'info': fileEntryInfo}
         except GAPI.fileNotFound:
@@ -46541,7 +46546,7 @@ def printShowFileTree(users):
                                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                                    fileId=fileId, fields=fields, supportsAllDrives=True)
           if stripCRsFromName:
-            fileEntryInfo['name'] = fileEntryInfo['name'].replace('\r', '')
+            fileEntryInfo['name'] = _stripControlCharsFromName(fileEntryInfo['name'])
           if buildTree:
             fileTree[fileId] = {'info': fileEntryInfo}
         except GAPI.fileNotFound:

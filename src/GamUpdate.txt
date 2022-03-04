@@ -1,3 +1,15 @@
+6.16.07
+
+Extended option `stripcrsfromname` option in the following commands to strip nulls and linefeeds
+from displayed file names in addition to carriage returns.
+```
+gam <UserTypeEntity> info drivefile <DriveFileEntity>
+gam <UserTypeEntity> print|show filerevisions <DriveFileEntity>
+gam <UserTypeEntity> show fileinfo <DriveFileEntity>
+gam <UserTypeEntity> print|show filetree
+gam <UserTypeEntity> print filelist
+```
+
 6.16.06
 
 Updated code to remove Python 3.9 dependency introduced in 6.15.05.
