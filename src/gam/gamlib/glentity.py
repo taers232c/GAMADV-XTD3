@@ -80,6 +80,7 @@ class GamEntity():
   CHROME_CHANNEL = 'chan'
   CHROME_PLATFORM = 'cpla'
   CHROME_POLICY = 'cpol'
+  CHROME_POLICY_IMAGE = 'cpim'
   CHROME_POLICY_SCHEMA = 'cpsc'
   CHROME_RELEASE = 'crel'
   CHROME_VERSION = 'cver'
@@ -360,6 +361,7 @@ class GamEntity():
     CHROME_CHANNEL: ['Chrome Channels', 'Chrome Channel'],
     CHROME_PLATFORM: ['Chrome Platforms', 'Chrome Platform'],
     CHROME_POLICY: ['Chrome Policies', 'Chrome Policy'],
+    CHROME_POLICY_IMAGE: ['Chrome Policy Images', 'Chrome Policy Image'],
     CHROME_POLICY_SCHEMA: ['Chrome Policy Schemas', 'Chrome Policy Schema'],
     CHROME_RELEASE: ['Chrome Releases', 'Chrome Release'],
     CHROME_VERSION: ['Chrome Versions', 'Chrome Version'],

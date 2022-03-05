@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.07'
+__version__ = '6.16.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -22259,6 +22259,26 @@ CHROME_SCHEMA_TYPE_MESSAGE = {
      'updatessuppressedstarttime':
        {'casedField': 'updatesSuppressedStartTime',
         'type': 'timeOfDay'}},
+  'chrome.devices.managedguest.Avatar':
+    {'useravatarimage':
+       {'casedField': 'userAvatarImage',
+        'type': 'downloadUri'}},
+  'chrome.devices.managedguest.Wallpaper':
+    {'wallpaperimage':
+       {'casedField': 'wallpaperImage',
+        'type': 'downloadUri'}},
+  'chrome.devices.SignInWallpaperImage':
+    {'devicewallpaperimage':
+       {'casedField': 'deviceWallpaperImage',
+        'type': 'downloadUri'}},
+  'chrome.users.Avatar':
+    {'useravatarimage':
+       {'casedField': 'userAvatarImage',
+        'type': 'downloadUri'}},
+  'chrome.users.Wallpaper':
+    {'wallpaperimage':
+       {'casedField': 'wallpaperImage',
+        'type': 'downloadUri'}},
   }
 
 # gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
@@ -22297,7 +22317,9 @@ def doUpdateChromePolicy():
         if schema:
           casedField = schema['casedField']
           vtype = schema['type']
-          if vtype != 'timeOfDay':
+          if vtype == 'downloadUri':
+            value = getString(Cmd.OB_STRING)
+          elif vtype != 'timeOfDay':
             if 'default' not in  schema:
               value = getInteger(minVal=schema['minVal'], maxVal=schema['maxVal'])*schema['scale']
             else:
@@ -22306,11 +22328,11 @@ def doUpdateChromePolicy():
             value = getHHMM()
           if vtype == 'duration':
             body['requests'][-1]['policyValue']['value'][casedField] = {vtype: f'{value}s'}
-          elif vtype == 'value':
+          elif vtype in {'value', 'downloadUri'}:
             body['requests'][-1]['policyValue']['value'][casedField] = {vtype: value}
           elif vtype == 'count':
             body['requests'][-1]['policyValue']['value'][casedField] = value
-          else: ##timeOfDay
+          else: #timeOfDay
             hours, minutes = value.split(':')
             body['requests'][-1]['policyValue']['value'][casedField] = {vtype: {'hours': hours, 'minutes': minutes}}
           body['requests'][-1]['updateMask'] += f'{casedField},'
@@ -22434,7 +22456,9 @@ def doPrintShowChromePolicies():
             value = int(value) // schema['scale']
         elif vtype == 'count':
           pass
-        else: ##timeOfDay
+        elif vtype == 'downloadUri':
+          value = value.get(vtype, '')
+        else: #timeOfDay
           hours = value.get(vtype, {}).get('hours', 0)
           minutes = value.get(vtype, {}).get('minutes', 0)
           value = f'{hours:02}:{minutes:02}'
@@ -22563,6 +22587,42 @@ def doPrintShowChromePolicies():
       _printPolicy(policy)
   if csvPF:
     csvPF.writeCSVfile(f'Chrome Policies - {orgUnitPath}')
+
+CHROME_IMAGE_SCHEMAS_MAP = {
+  'chrome.devices.managedguest.avatar': {'name': 'chrome.devices.managedguest.Avatar', 'field': 'userAvatarImage'},
+  'chrome.devices.managedguest.wallpaper': {'name': 'chrome.devices.managedguest.Wallpaper', 'field': 'wallpaperImage'},
+  'chrome.devices.signinwallpaperimage': {'name': 'chrome.devices.SignInWallpaperImage', 'field': 'deviceWallpaperImage'},
+  'chrome.users.avatar': {'name': 'chrome.users.Avatar', 'field': 'userAvatarImage'},
+  'chrome.users.wallpaper': {'name': 'chrome.users.Wallpaper', 'field': 'wallpaperImage'},
+  }
+
+# gam create chromepolicyimage <ChromePolicyImageSchemaName> <FileName>
+def doCreateChromePolicyImage():
+  cp = buildGAPIObject(API.CHROMEPOLICY)
+  parent = _getCustomersCustomerIdWithC()
+  schema = getChoice(CHROME_IMAGE_SCHEMAS_MAP, mapChoice=True)
+  parameters = {}
+  parameters[DFA_LOCALFILEPATH] = os.path.expanduser(getString(Cmd.OB_FILE_NAME))
+  try:
+    f = open(parameters[DFA_LOCALFILEPATH], 'rb')
+    f.close()
+  except IOError as e:
+    Cmd.Backup()
+    usageErrorExit(f'{parameters[DFA_LOCALFILEPATH]}: {str(e)}')
+  parameters[DFA_LOCALFILENAME] = os.path.basename(parameters[DFA_LOCALFILEPATH])
+  parameters[DFA_LOCALMIMETYPE] = mimetypes.guess_type(parameters[DFA_LOCALFILEPATH])[0]
+  if parameters[DFA_LOCALMIMETYPE] is None:
+    parameters[DFA_LOCALMIMETYPE] = 'image/jpeg'
+  checkForExtraneousArguments()
+  media_body = getMediaBody(parameters)
+  try:
+    result = callGAPI(cp.media(), 'upload',
+                      throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
+                      customer=parent, media_body=media_body,
+                      body={'policyField': f"{schema['name']}.{schema['field']}"})
+    entityActionPerformed([Ent.CHROME_POLICY_IMAGE, f"{schema['name']} {schema['field']} {result['downloadUri']}"])
+  except (GAPI.invalidArgument, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.CHROME_POLICY_IMAGE, f"{schema['name']}", Ent.FILE, f"{parameters[DFA_LOCALFILEPATH]}"], str(e))
 
 def _getChromePolicySchemaName():
   name = getString(Cmd.OB_SCHEMA_NAME)
@@ -35849,6 +35909,7 @@ def deleteUsers(entityList):
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
     except GAPI.conditionNotMet as e:
       entityActionFailedWarning([Ent.USER, user], Msg.CAN_NOT_DELETE_USER_WITH_VAULT_HOLD.format(str(e), user), i, count)
+
 # gam delete users <UserTypeEntity> [noactionifalias]
 def doDeleteUsers():
   deleteUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)[1])
@@ -59121,6 +59182,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_BROWSERTOKEN:		doCreateBrowserToken,
   Cmd.ARG_BUILDING:		doCreateBuilding,
   Cmd.ARG_CHATMESSAGE:		doCreateChatMessage,
+  Cmd.ARG_CHROMEPOLICYIMAGE:	doCreateChromePolicyImage,
   Cmd.ARG_CIGROUP:		doCreateCIGroup,
   Cmd.ARG_CONTACT:		doCreateDomainContact,
   Cmd.ARG_COURSE:		doCreateCourse,

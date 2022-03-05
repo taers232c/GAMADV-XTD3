@@ -1,3 +1,17 @@
+6.16.08
+
+Added command to upload image files for use in Chrome policies.
+```
+<ChromePolicyImageSchemaName> ::=
+        chrome.devices.managedguest.avatar |
+        chrome.devices.managedguest.wallpaper |
+        chrome.devices.signinwallpaperimage |
+        chrome.users.avatar |
+        chrome.users.wallpaper
+
+gam create chromepolicyimage <ChromePolicyImageSchemaName> <FileName>
+```
+
 6.16.07
 
 Extended option `stripcrsfromname` option in the following commands to strip nulls and linefeeds
@@ -12,7 +26,7 @@ gam <UserTypeEntity> print filelist
 
 6.16.06
 
-Updated code to remove Python 3.9 dependency introduced in 6.15.05.
+Updated code to remove Python 3.9 dependency introduced in 6.16.05.
 
 6.16.05
 

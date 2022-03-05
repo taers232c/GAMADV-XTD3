@@ -1963,6 +1963,15 @@ gam print crostelemetry [todrive <ToDriveAttribute>*]
 
 # Chrome Browser Policies
 
+<ChromePolicyImageSchemaName> ::=
+        chrome.devices.managedguest.avatar |
+        chrome.devices.managedguest.wallpaper |
+        chrome.devices.signinwallpaperimage |
+        chrome.users.avatar |
+        chrome.users.wallpaper
+
+gam create chromepolicyimage <ChromePolicyImageSchemaName> <FileName>
+
 gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 gam delete chromepolicy <SchemaName>+
