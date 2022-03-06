@@ -1,3 +1,8 @@
+6.16.09
+
+Added option `role|roles <DriveFileACLRoleList>` to `gam <UserTypeEntity> print|show drivefileacls`
+to simplify limiting displayed ACLs by role.
+
 6.16.08
 
 Added command to upload image files for use in Chrome policies.

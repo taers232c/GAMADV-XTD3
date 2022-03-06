@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.08'
+__version__ = '6.16.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51692,6 +51692,7 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
   return True
 
 # gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	(role|roles <DriveFileACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[includepermissionsforview published]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -51699,6 +51700,7 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
 # gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
+#	(role|roles <DriveFileACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[includepermissionsforview published]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -51709,7 +51711,11 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
   csvPF = CSVPrintFile(['Owner', 'id'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fileIdEntity = getDriveFileEntity()
+  aclRolesMap = DRIVEFILE_ACL_ROLES_MAP.copy()
+  if fileIdEntity['teamdrivename'] or fileIdEntity['teamdriveadminquery'] or fileIdEntity['teamdrivefilequery'] or fileIdEntity['teamdrive']:
+    aclRolesMap['owner'] = 'organizer'
   addTitle = None
+  roles = set()
   oneItemPerRow = pmselect = showTitles = False
   includePermissionsForView = None
   fieldsList = []
@@ -51720,6 +51726,8 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif myarg in {'role', 'roles'}:
+      roles |= getACLRoles(aclRolesMap)
     elif myarg == 'oneitemperrow':
       oneItemPerRow = True
     elif myarg == 'orderby':
@@ -51746,6 +51754,9 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       includePermissionsForView = getChoice(DRIVEFILE_PERMISSIONS_FOR_VIEW_CHOICES)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if fieldsList:
+    if roles:
+      fieldsList.append('role')
   fields = getItemFieldsFromFieldsList('permissions', fieldsList, True)
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
@@ -51790,6 +51801,13 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
           continue
       else:
         permissions = PM.GetMatchingPermissions(permissions)
+      if roles:
+        matchingPermissions = []
+        for permission in permissions:
+          if roles and permission['role'] not in roles:
+            continue
+          matchingPermissions.append(permission)
+        permissions = matchingPermissions
       if not csvPF:
         if not FJQC.formatJSON:
           _showDriveFilePermissions(entityType, fileName, permissions, printKeys, timeObjects, j, jcount)

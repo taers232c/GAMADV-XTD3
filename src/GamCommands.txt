@@ -76,7 +76,7 @@ If an item contains spaces, it should be surrounded by ".
         #d5ae49|#e07798|#e4d7f5|#e66550|#eaa041|#efa093|#efefef|#f2c960|
         #f3f3f3|#f691b3|#f6c5be|#f7a7c0|#fad165|#fb4c2f|#fbc8d9|#fcda83|
         #fcdee8|#fce8b3|#fef1d1|#ffad47|#ffbc6b|#ffd6a2|#ffe6c7|#ffffff
-<Language> ::=
+<LanguageCode> ::=
         ach|af|ag|ak|am|ar|az|be|bem|bg|bn|br|bs|ca|chr|ckb|co|crs|cs|cy|da|de|
         ee|el|en|en-gb|en-us|eo|es|es-419|et|eu|fa|fi|fil|fo|fr|fr-ca|fy|
         ga|gaa|gd|gl|gn|gu|ha|haw|he|hi|hr|ht|hu|hy|ia|id|ig|in|is|it|iw|ja|jw|
@@ -86,6 +86,9 @@ If an item contains spaces, it should be surrounded by ".
         sd|sh|si|sk|sl|sn|so|sq|sr|sr-me|st|su|sv|sw|
         ta|te|tg|th|ti|tk|tl|tn|to|tr|tt|tum|tw|
         ug|uk|ur|uz|vi|wo|xh|yi|yo|zh-cn|zh-hk|zh-tw|zu
+<Language> ::=
+        <LanguageCode>[+|-]|
+        <String>
 <Locale> ::=
         ''|    #Not defined
         ar_eg| #Arabic, Egypt
@@ -435,7 +438,7 @@ If an item contains spaces, it should be surrounded by ".
 <QueryDriveFile> ::= <String>
         See: https://developers.google.com/drive/api/v3/search-files
 <QueryDynamicGroup> ::= <String>
-        See: https://cloud.google.com/identity/docs/reference/rest/v1beta1/groups#dynamicgroupquery
+        See: https://cloud.google.com/identity/docs/reference/rest/v1/groups#dynamicgroupquery
 <QueryGmail> ::= <String>
         See: https://support.google.com/mail/answer/7190
 <QueryGroup> ::= <String>
@@ -473,7 +476,12 @@ If an item contains spaces, it should be surrounded by ".
 <SMTPHostName> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
-<SharedDriveACLRole> ::= commenter|contentmanager|fileorganizer|manager|organizer|reader|writer
+<SharedDriveACLRole> ::=
+        commenter|
+        contentmanager|fileorganizer|
+        contributor|editor|writer|
+        manager|organizer|owner|
+        reader|viewer
 <SharedDriveID> ::= <String>
 <SharedDriveName> ::= <String>
 <ThreadID> ::= <String>
@@ -541,11 +549,12 @@ If an item contains spaces, it should be surrounded by ".
 <DeviceIDList> ::= "<DeviceID>(,<DeviceID>)*"
 <DeviceUserList> ::= "<DeviceUserID>(,<DeviceUserID>)*"
 <DomainNameList> ::= "<DomainName>(,<DomainName>)*"
-<DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
+<DriveFileACLRoleList> ::= "<DriveFileACLRole>(,<DriveFileACLRole>)*"
 <DriveFileList> ::= "<DriveFileItem>(,<DriveFileItem>)*"
 <DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 <DriveFileRevisionIDList> ::= "<DriveFileRevisionID>(,<DriveFileRevisionID>)*"
+<DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
 <EmailAddressList> ::= "<EmailAddress>(,<EmailAddress>)*"
 <EmailItemList> ::= "<EmailItem>(,<EmailItem>)*"
 <EventIDList> ::= "<EventID>(,<EventID>)*"
@@ -562,7 +571,7 @@ If an item contains spaces, it should be surrounded by ".
 <GroupTypeList> ::= "<GroupType>(,<GroupType>)*"
 <LabelIDList> ::= "<LabelID>(,<LabelID)*"
 <LabelNameList> ::= "<LabelName>(,<LabelName)*"
-<LanguageList> ::= "<Language>(,<Language)*"
+<LanguageList> ::= "<Language>(,<Language>)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
 <MatterStateList> ::= "<MatterState>(,<MatterState>)*"
 <MessageIDList> ::= "<MessageID>(,<MessageID>)*"
@@ -3745,6 +3754,7 @@ gam info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles]
         [formatjson]
 gam show drivefileacls <SharedDriveEntityAdmin>
+        (role|roles <DriveFileACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -3752,6 +3762,7 @@ gam show drivefileacls <SharedDriveEntityAdmin>
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson]
 gam print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
+        (role|roles <DriveFileACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -3778,6 +3789,7 @@ gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermis
         [showtitles]
         [formatjson] adminaccess
 gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
+        (role|roles <DriveFileACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
         [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -3785,6 +3797,7 @@ gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] adminaccess
 gam <UserTypeEntity> print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
+        (role|roles <DriveFileACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
