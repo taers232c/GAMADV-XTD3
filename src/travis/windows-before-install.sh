@@ -63,6 +63,10 @@ else
 fi
 ls -l /c/python/DLLs/libcrypto*
 ls -l /c/python/DLLs/libssl*
+rm -f /c/python/DLLs/libcrypto-1_1.dll
+rm -f /c/python/DLLs/libssl-1_1.dll
+ls -l /c/python/DLLs/libcrypto*
+ls -l /c/python/DLLs/libssl*
 
 cd $mypath
 
