@@ -1,3 +1,7 @@
+6.16.10
+
+Updated to OpenSSL 3.0.1.
+
 6.16.09
 
 Added option `role|roles <DriveFileACLRoleList>` to `gam <UserTypeEntity> print|show drivefileacls`
