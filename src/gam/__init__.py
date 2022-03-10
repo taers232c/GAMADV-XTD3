@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.10'
+__version__ = '6.16.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -58700,7 +58700,8 @@ def _showNoteListItems(listItems):
     k += 1
     printKeyValueListWithCount(['item', ''], k, kcount)
     Ind.Increment()
-    printKeyValueList(['text', listItem['text']['text']])
+    if 'text' in listItem and 'text' in listItem['text']:
+      printKeyValueList(['text', listItem['text']['text']])
     if 'checked' in listItem:
       printKeyValueList(['checked', listItem['checked']])
     if 'childListItems' in listItem:
@@ -58771,7 +58772,7 @@ def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
   if 'attachments' in note:
     _showNoteAttachments(note['attachments'])
   body = note.get('body', {})
-  if 'text' in body:
+  if 'text' in body and 'text' in body['text']:
     if not compact:
       printKeyValueList(['text', None])
       Ind.Increment()

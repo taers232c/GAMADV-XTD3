@@ -1,3 +1,8 @@
+6.16.11
+
+Fixed bug in `gam <UserTypeEntity> show notes` that caused a trap when a note has no text
+or a check box has no text.
+
 6.16.10
 
 Fixed bug in `gam <UserTypeEntity> print notes ... formatjson` where carriage returns and line feeds
