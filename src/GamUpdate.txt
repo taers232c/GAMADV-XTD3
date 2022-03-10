@@ -1,3 +1,11 @@
+6.16.10
+
+Fixed bug in `gam <UserTypeEntity> print notes ... formatjson` where carriage returns and line feeds
+were not properly displayed.
+
+Fixed bug in `gam <UserTypeEntity> create note ... json` where carriage returns and line feeds
+were not properly input.
+
 6.16.09
 
 Added option `role|roles <DriveFileACLRoleList>` to `gam <UserTypeEntity> print|show drivefileacls`

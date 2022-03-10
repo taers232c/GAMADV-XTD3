@@ -58811,6 +58811,8 @@ def createNote(users):
       if not body['title']:
         body['title'] = jsonData.get('title', '')
       body['body'] = jsonData.get('body', {})
+      if 'text' in body['body'] and 'text' in body['body']['text']:
+        body['body']['text']['text'] = unescapeCRsNLs(body['body']['text']['text'])
       for permission in jsonData.get('permissions', []):
         if permission['role'] == 'WRITER':
           if 'user' in permission:
@@ -58987,6 +58989,8 @@ def printShowNotes(users):
       compact = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if FJQC.formatJSON:
+    GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL] = False
   if fieldsList and 'permissions' not in fieldsList:
     showPermissions = False
     fieldsList.append('permissions')
