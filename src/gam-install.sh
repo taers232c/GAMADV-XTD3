@@ -344,7 +344,7 @@ while $admin_authorized; do
         read -p "Please enter the email address of a regular Google Workspace user: " regularuser
       fi
       echo_yellow "Great! Checking service account scopes.This will fail the first time. Follow the steps to authorize and retry. It can take a few minutes for scopes to PASS after they've been authorized in the admin console."
-      "$target_dir/$target_gam" $config_cmd user $adminuser check serviceaccount
+      "$target_dir/$target_gam" $config_cmd user $regularuser check serviceaccount
       rc=$?
       if (( $rc == 0 )); then
         echo_green "Service account authorization complete."
