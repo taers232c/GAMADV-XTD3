@@ -1,3 +1,7 @@
+6.16.13
+
+Fixed the fix in 6.16.12.
+
 6.16.12
 
 Updated code to eliminate fix for a Python 3.10.0 bug that caused `gam <UserTypeEntity> print notes ... formatjson`

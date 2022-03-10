@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.12'
+__version__ = '6.16.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -6658,7 +6658,7 @@ def getItemFieldsFromFieldsList(item, fieldsList, returnItemIfNoneList=False):
 
 class CSVPrintFile():
 
-  def __init__(self, titles=None, sortTitles=None, indexedTitles=None):
+  def __init__(self, titles=None, sortTitles=None, indexedTitles=None, escapeChar='\\'):
     self.rows = []
     self.todrive = GM.Globals[GM.CSV_TODRIVE]
     self.titlesSet = set()
@@ -6673,7 +6673,7 @@ class CSVPrintFile():
     self.SetColumnDelimiter(GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER])
     if GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR) is None:
       GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')
-    self.SetEscapeChar(None)
+    self.SetEscapeChar(escapeChar)
     self.SetQuoteChar(GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR])
     if GM.Globals.get(GM.CSV_OUTPUT_TIMESTAMP_COLUMN) is None:
       GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = GC.Values.get(GC.CSV_OUTPUT_TIMESTAMP_COLUMN, '')
@@ -58965,7 +58965,7 @@ NOTES_ROLE_CHOICE_MAP = {
 #	[role owner|writer]
 #	[formatjson [quotechar <Character>]]
 def printShowNotes(users):
-  csvPF = CSVPrintFile(['User', 'name', 'title', 'owner', 'ownedByMe']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'name', 'title', 'owner', 'ownedByMe'], escapeChar=None) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   compact = False
   fieldsList = []
