@@ -1,3 +1,8 @@
+6.16.12
+
+Updated code to eliminate fix for a Python 3.10.0 bug that caused `gam <UserTypeEntity> print notes ... formatjson`
+to display quotes in note text incorrectly.
+
 6.16.11
 
 Fixed bug in `gam <UserTypeEntity> show notes` that caused a trap when a note has no text

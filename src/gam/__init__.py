@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.11'
+__version__ = '6.16.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -6673,7 +6673,7 @@ class CSVPrintFile():
     self.SetColumnDelimiter(GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER])
     if GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR) is None:
       GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')
-    self.SetEscapeChar('\\')
+    self.SetEscapeChar(None)
     self.SetQuoteChar(GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR])
     if GM.Globals.get(GM.CSV_OUTPUT_TIMESTAMP_COLUMN) is None:
       GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = GC.Values.get(GC.CSV_OUTPUT_TIMESTAMP_COLUMN, '')
@@ -7274,16 +7274,12 @@ class CSVPrintFile():
       writerDialect = {
         'delimiter': self.columnDelimiter,
         'doublequote': True,
+        'escapechar': self.escapeChar,
         'lineterminator': lineterminator,
         'quotechar': self.quoteChar,
         'quoting': csv.QUOTE_MINIMAL,
         'skipinitialspace': False,
         'strict': False}
-# fix issue with Python 3.10.0 and no escape char
-# 3.10.1+ may fix this within Python so hopefully
-# this is short-lived.
-      if sys.version_info.minor >= 10:
-        writerDialect['escapechar'] = self.escapeChar
       return writerDialect
 
     def writeCSVToStdout():
