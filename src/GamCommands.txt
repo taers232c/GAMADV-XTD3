@@ -3339,6 +3339,7 @@ gam report usage customer [todrive <ToDriveAttribute>*]
         contextawareaccess|
         currents|gplus|google+|
         datastudio|
+        domain|
         drive|doc|docs|
         gcp|
         groups|group|
@@ -5883,6 +5884,11 @@ gam <UserTypeEntity> clear contacts
 gam <UserTypeEntity> dedup contacts
         [<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
         [matchType [<Boolean>]]
+
+gam <UserTypeEntity> replacedomain contacts
+        [<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
+        [matchType [<Boolean>]]
+        (domain <OldDomainName> <NewDomainName>)+
 
 gam <UserTypeEntity> update contactphotos
         <PeopleResourceNameEntity>|<PeopleUserContactSelection>

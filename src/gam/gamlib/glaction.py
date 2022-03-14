@@ -84,6 +84,7 @@ class GamAction():
   RENAME = 'rena'
   REOPEN = 'reop'
   REPLACE = 'repl'
+  REPLACE_DOMAIN = 'repd'
   REPORT = 'repo'
   RESPOND = 'resp'
   RESTORE = 'rest'
@@ -188,6 +189,7 @@ class GamAction():
     RENAME: ['Renamed', 'Rename'],
     REOPEN: ['Reopened', 'Reopen'],
     REPLACE: ['Replaced', 'Replace'],
+    REPLACE_DOMAIN: ['Domain Replaced', 'Replace Domain'],
     REPORT: ['Reported', 'Report'],
     RESPOND: ['Responded', 'Respond'],
     RESTORE: ['Restored', 'Restore'],

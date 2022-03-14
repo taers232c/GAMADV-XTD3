@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.13'
+__version__ = '6.16.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -6658,7 +6658,7 @@ def getItemFieldsFromFieldsList(item, fieldsList, returnItemIfNoneList=False):
 
 class CSVPrintFile():
 
-  def __init__(self, titles=None, sortTitles=None, indexedTitles=None, escapeChar='\\'):
+  def __init__(self, titles=None, sortTitles=None, indexedTitles=None):
     self.rows = []
     self.todrive = GM.Globals[GM.CSV_TODRIVE]
     self.titlesSet = set()
@@ -6673,7 +6673,7 @@ class CSVPrintFile():
     self.SetColumnDelimiter(GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER])
     if GM.Globals.get(GM.CSV_OUTPUT_QUOTE_CHAR) is None:
       GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = GC.Values.get(GC.CSV_OUTPUT_QUOTE_CHAR, '"')
-    self.SetEscapeChar(escapeChar)
+    self.SetEscapeChar('\\')
     self.SetQuoteChar(GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR])
     if GM.Globals.get(GM.CSV_OUTPUT_TIMESTAMP_COLUMN) is None:
       GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = GC.Values.get(GC.CSV_OUTPUT_TIMESTAMP_COLUMN, '')
@@ -18097,21 +18097,44 @@ def dedupPeopleEmailAddressMatches(emailMatchType, contact):
     contact[PEOPLE_EMAIL_ADDRESSES] = savedAddresses
   return updateRequired
 
+def replaceDomainPeopleEmailAddressMatches(emailMatchType, contact, replaceDomains):
+  updateRequired = False
+  for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
+    emailAddr = item['value']
+    userName, domain = splitEmailAddress(emailAddr)
+    domain = domain.lower()
+    emailType = item.get('type', '')
+    if (domain in replaceDomains) and (not emailMatchType or emailType == emailMatchType):
+      item['value'] = f'{userName}@{replaceDomains[domain]}'
+      updateRequired = True
+  return updateRequired
+
 # gam <UserTypeEntity> dedup contacts
 #	[<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
 #	[matchType [<Boolean>]]
-def dedupUserPeopleContacts(users):
+# gam <UserTypeEntity> replacedomain contacts
+#	[<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
+#	[matchType [<Boolean>]]
+#	(domain <DomainName> <DomainName>)+
+def dedupReplaceDomainUserPeopleContacts(users):
+  action = Act.Get()
   entityType = Ent.USER
   peopleEntityType = Ent.PEOPLE_CONTACT
   sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
   entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1, True)
   emailMatchType = False
+  replaceDomains = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'matchtype':
       emailMatchType = getBoolean()
+    elif action == Act.REPLACE_DOMAIN and myarg == 'domain':
+      domain = getString(Cmd.OB_DOMAIN_NAME).lower()
+      replaceDomains[domain] = getString(Cmd.OB_DOMAIN_NAME).lower()
     else:
       unknownArgumentExit()
+  if action == Act.REPLACE_DOMAIN and not replaceDomains:
+    missingArgumentExit('domain')
   if not contactQuery['otherContacts']:
     APIpeople = API.PEOPLE
   else:
@@ -18136,7 +18159,7 @@ def dedupUserPeopleContacts(users):
       entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships', None, entityType, user, i, count)
       if entityList is None:
         continue
-    Act.Set(Act.DEDUP)
+    Act.Set(action)
     j = 0
     jcount = len(entityList)
     entityPerformActionModifierNumItems([entityType, user], Msg.MAXIMUM_OF, jcount, peopleEntityType, i, count)
@@ -18159,8 +18182,12 @@ def dedupUserPeopleContacts(users):
           if not localPeopleContactSelects(contactQuery, contact):
             continue
           resourceName = contact['resourceName']
-        if not dedupPeopleEmailAddressMatches(emailMatchType, contact):
-          continue
+        if action == Act.DEDUP:
+          if not dedupPeopleEmailAddressMatches(emailMatchType, contact):
+            continue
+        else:
+          if not replaceDomainPeopleEmailAddressMatches(emailMatchType, contact, replaceDomains):
+            continue
         Act.Set(Act.UPDATE)
         callGAPI(people.people(), 'updateContact',
                  throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
@@ -51842,6 +51869,8 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
             csvPF.WriteRowNoFilter(baserow)
     Ind.Decrement()
   if csvPF:
+    if not oneItemPerRow:
+      csvPF.SetIndexedTitles(['permissions'])
     csvPF.writeCSVfile('Drive File ACLs')
 
 def doPrintShowDriveFileACLs():
@@ -52568,7 +52597,6 @@ SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP = {
   'false': 0,
   'only': -1,
   }
-TEAMDRIVE_INDEXED_TITLES = ['permissions']
 
 # gam [<UserTypeEntity>] print teamdriveacls [todrive <ToDriveAttribute>*]
 #	[adminaccess|asadmin]
@@ -52587,7 +52615,7 @@ TEAMDRIVE_INDEXED_TITLES = ['permissions']
 #	[shownopermissionsdrives false|true|only]
 #	[formatjsn]
 def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
-  csvPF = CSVPrintFile(['User', 'id', 'name', 'createdTime'], 'sortall', TEAMDRIVE_INDEXED_TITLES) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'id', 'name', 'createdTime'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   roles = set()
   checkGroups = oneItemPerRow = pmselect = False
@@ -52777,6 +52805,8 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
                                          ensure_ascii=False, sort_keys=True)
             csvPF.WriteRowNoFilter(baserow)
   if csvPF:
+    if not oneItemPerRow:
+      csvPF.SetIndexedTitless(['permissions'])
     csvPF.writeCSVfile('SharedDrive ACLs')
 
 def doPrintShowTeamDriveACLs():
@@ -58965,7 +58995,9 @@ NOTES_ROLE_CHOICE_MAP = {
 #	[role owner|writer]
 #	[formatjson [quotechar <Character>]]
 def printShowNotes(users):
-  csvPF = CSVPrintFile(['User', 'name', 'title', 'owner', 'ownedByMe'], escapeChar=None) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'name', 'title', 'owner', 'ownedByMe']) if Act.csvFormat() else None
+  if csvPF:
+    csvPF.SetEscapeChar(None)
   FJQC = FormatJSONQuoteChar(csvPF)
   compact = False
   fieldsList = []
@@ -60196,7 +60228,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   'dedup':
     (Act.DEDUP,
-     {Cmd.ARG_PEOPLECONTACT:	dedupUserPeopleContacts,
+     {Cmd.ARG_PEOPLECONTACT:	dedupReplaceDomainUserPeopleContacts,
      }
     ),
   'delete':
@@ -60381,6 +60413,11 @@ USER_COMMANDS_WITH_OBJECTS = {
   'remove':
     (Act.REMOVE,
      {Cmd.ARG_CALENDAR:		removeCalendars,
+     }
+    ),
+  'replacedomain':
+    (Act.REPLACE_DOMAIN,
+     {Cmd.ARG_PEOPLECONTACT:	dedupReplaceDomainUserPeopleContacts,
      }
     ),
   'show':

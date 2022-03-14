@@ -1,3 +1,16 @@
+6.16.14
+
+Added command to replace domain names in contact email addresses; this can be useful
+when merging/renaming domains.
+```
+gam <UserTypeEntity> replacedomain contacts
+        [<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
+        [matchType [<Boolean>]]
+        (domain <OldDomainName> <NewDomainName>)+
+```
+
+Fixed sorting of permissions in `gam <UserTypeEntity> print drivefileacls`.
+
 6.16.13
 
 Fixed the fix in 6.16.12.
