@@ -52806,7 +52806,7 @@ def printShowTeamDriveACLs(users, useDomainAdminAccess=False):
             csvPF.WriteRowNoFilter(baserow)
   if csvPF:
     if not oneItemPerRow:
-      csvPF.SetIndexedTitless(['permissions'])
+      csvPF.SetIndexedTitles(['permissions'])
     csvPF.writeCSVfile('SharedDrive ACLs')
 
 def doPrintShowTeamDriveACLs():
