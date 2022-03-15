@@ -1,3 +1,10 @@
+6.16.17
+
+Updated `gam <UserTypeEntity> replacedomain contacts emailmatchpattern <RegularExpression> domain <OldDomainName> <NewDomainName>`
+to only replace `<OldDomainName>` with `<NewDomainName>` in the email addresses within the contact that match `<RegularExpression>`.
+Previously, `emailmatchpattern <RegularExpression>` selected a contact and all email addresses within the contact had
+their domain names updated if applicable.
+
 6.16.16
 
 Added option `aggregateusersby clientid|appname` to `gam <UserTypeEntity> print|show tokens` that

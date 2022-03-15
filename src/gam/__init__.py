@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.16'
+__version__ = '6.16.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -18097,16 +18097,30 @@ def dedupPeopleEmailAddressMatches(emailMatchType, contact):
     contact[PEOPLE_EMAIL_ADDRESSES] = savedAddresses
   return updateRequired
 
-def replaceDomainPeopleEmailAddressMatches(emailMatchType, contact, replaceDomains):
+def replaceDomainPeopleEmailAddressMatches(contactQuery, localMatchType, contact, replaceDomains):
   updateRequired = False
-  for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
-    emailAddr = item['value']
-    userName, domain = splitEmailAddress(emailAddr)
-    domain = domain.lower()
-    emailType = item.get('type', '')
-    if (domain in replaceDomains) and (not emailMatchType or emailType == emailMatchType):
-      item['value'] = f'{userName}@{replaceDomains[domain]}'
-      updateRequired = True
+  if contactQuery['emailMatchPattern']:
+    emailMatchType = contactQuery['emailMatchType']
+    for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
+      emailAddr = item['value']
+      emailType = item.get('type', '')
+      if contactQuery['emailMatchPattern'].match(emailAddr):
+        userName, domain = splitEmailAddress(emailAddr)
+        domain = domain.lower()
+        if ((domain in replaceDomains) and
+            (not emailMatchType or emailType == emailMatchType) and
+            (not localMatchType or emailType == localMatchType)):
+          item['value'] = f'{userName}@{replaceDomains[domain]}'
+          updateRequired = True
+  else:
+    for item in contact.get(PEOPLE_EMAIL_ADDRESSES, []):
+      emailAddr = item['value']
+      emailType = item.get('type', '')
+      userName, domain = splitEmailAddress(emailAddr)
+      domain = domain.lower()
+      if (domain in replaceDomains) and (not localMatchType or emailType == localMatchType):
+        item['value'] = f'{userName}@{replaceDomains[domain]}'
+        updateRequired = True
   return updateRequired
 
 # gam <UserTypeEntity> dedup contacts
@@ -18179,14 +18193,14 @@ def dedupReplaceDomainUserPeopleContacts(users):
                              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                              resourceName=contact, sources=sources, personFields='emailAddresses,memberships')
         else:
-          if not localPeopleContactSelects(contactQuery, contact):
+          if action == Act.DEDUP and not localPeopleContactSelects(contactQuery, contact):
             continue
           resourceName = contact['resourceName']
         if action == Act.DEDUP:
           if not dedupPeopleEmailAddressMatches(emailMatchType, contact):
             continue
         else:
-          if not replaceDomainPeopleEmailAddressMatches(emailMatchType, contact, replaceDomains):
+          if not replaceDomainPeopleEmailAddressMatches(contactQuery, emailMatchType, contact, replaceDomains):
             continue
         Act.Set(Act.UPDATE)
         callGAPI(people.people(), 'updateContact',
