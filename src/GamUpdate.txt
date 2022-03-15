@@ -1,3 +1,9 @@
+6.16.16
+
+Added option `aggregateusersby clientid|appname` to `gam <UserTypeEntity> print|show tokens` that
+aggregates the users by `clientid|appname` and displays a count of the number of users rather
+than the individual users for each `clientid|appname`.
+
 6.16.15
 
 Updated to allow new 10 million cell limit in Google Sheets.

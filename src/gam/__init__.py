@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.15'
+__version__ = '6.16.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -54529,17 +54529,29 @@ def deleteTokens(users):
       entityUnknownWarning(Ent.USER, user, i, count)
 
 TOKENS_FIELDS_TITLES = ['clientId', 'displayText', 'anonymous', 'nativeApp', 'userKey', 'scopes']
+TOKENS_AGGREGATE_FIELDS_TITLES = ['clientId', 'displayText', 'anonymous', 'nativeApp', 'users', 'scopes']
 TOKENS_ORDERBY_CHOICE_MAP = {
   'clientid': 'clientId',
+  'id': 'clientId',
   'displaytext': 'displayText',
+  'appname': 'displayText'.
   }
 
 def _printShowTokens(entityType, users):
-  def _showToken(token, j, jcount):
-    printKeyValueListWithCount(['Client ID', token['clientId']], j, jcount)
+  def _printToken(token):
+    row = {}
+    for item in token:
+      if item != 'scopes':
+        row[item] = token.get(item, '')
+      else:
+        row[item] = delimiter.join(token.get('scopes', []))
+    csvPF.WriteRow(row)
+
+  def _showToken(token, keyTitle, keyField, j, jcount):
+    printKeyValueListWithCount([keyTitle, token[keyField]], j, jcount)
     Ind.Increment()
     for item in sorted(token):
-      if item not in {'clientId', 'scopes'}:
+      if item not in {keyField, 'scopes'}:
         printKeyValueList([item, token.get(item, '')])
     item = 'scopes'
     printKeyValueList([item, None])
@@ -54550,10 +54562,13 @@ def _printShowTokens(entityType, users):
     Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
-  csvPF = CSVPrintFile(['user']+TOKENS_FIELDS_TITLES) if Act.csvFormat() else None
+  csvPF = CSVPrintFile() if Act.csvFormat() else None
   clientId = None
+  aggregateUsersBy = ''
   orderBy = 'clientId'
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  aggregateTokensById = {}
+  tokenNameIdMap = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -54562,6 +54577,10 @@ def _printShowTokens(entityType, users):
       clientId = commonClientIds(getString(Cmd.OB_CLIENT_ID))
     elif myarg == 'orderby':
       orderBy = getChoice(TOKENS_ORDERBY_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'aggregateusersby':
+      aggregateUsersBy = getChoice(TOKENS_ORDERBY_CHOICE_MAP, mapChoice=True)
+      if aggregateUsersBy == 'displayText':
+        tokenNameIdMap = {}
     elif myarg == 'delimiter':
       delimiter = getCharacter()
     elif not entityType:
@@ -54571,13 +54590,18 @@ def _printShowTokens(entityType, users):
       unknownArgumentExit()
   if not entityType:
     users = getItemsToModify(Cmd.ENTITY_ALL_USERS_NS, None)
+  if csvPF:
+    if not aggregateUsersBy:
+      csvPF.SetTitles(['user']+TOKENS_FIELDS_TITLES)
+    else:
+      csvPF.SetTitles(TOKENS_AGGREGATE_FIELDS_TITLES)
   fields = ','.join(TOKENS_FIELDS_TITLES)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user = normalizeEmailAddressOrUID(user)
     try:
-      if csvPF:
+      if csvPF or aggregateUsersBy:
         printGettingEntityItemForWhom(Ent.ACCESS_TOKEN, user, i, count)
       if clientId:
         results = [callGAPI(cd.tokens(), 'get',
@@ -54590,41 +54614,84 @@ def _printShowTokens(entityType, users):
                                 throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
                                               GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
                                 userKey=user, fields=f'items({fields})')
-      jcount = len(results)
-      if not csvPF:
-        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.ACCESS_TOKEN, i, count)
-        Ind.Increment()
-        j = 0
-        for token in sorted(results, key=lambda k: k[orderBy]):
-          j += 1
-          _showToken(token, j, jcount)
-        Ind.Decrement()
+      if not aggregateUsersBy:
+        jcount = len(results)
+        if not csvPF:
+          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.ACCESS_TOKEN, i, count)
+          Ind.Increment()
+          j = 0
+          for token in sorted(results, key=lambda k: k[orderBy]):
+            j += 1
+            _showToken(token, 'Client ID', 'clientId', j, jcount)
+          Ind.Decrement()
+        else:
+          if results:
+            for token in sorted(results, key=lambda k: k[orderBy]):
+              row = {'user': user, 'scopes': delimiter.join(token.get('scopes', []))}
+              for item in token:
+                if item != 'scopes':
+                  row[item] = token.get(item, '')
+              csvPF.WriteRow(row)
+          elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
+            csvPF.WriteRowNoFilter({'user': user})
       else:
         if results:
-          for token in sorted(results, key=lambda k: k[orderBy]):
-            row = {'user': user, 'scopes': delimiter.join(token.get('scopes', []))}
-            for item in token:
-              if item != 'scopes':
-                row[item] = token.get(item, '')
-            csvPF.WriteRow(row)
-        elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
-          csvPF.WriteRowNoFilter({'user': user})
+          for token in results:
+            tokcid = token['clientId']
+            if tokcid not in aggregateTokensById:
+              token.pop('userKey', None)
+              token['users'] = 0
+              aggregateTokensById[tokcid] = token
+            aggregateTokensById[tokcid]['users'] += 1
+            if tokenNameIdMap is not None:
+              tokname = token['displayText']
+              if tokname not in tokenNameIdMap:
+                tokenNameIdMap[tokname] = set()
+              tokenNameIdMap[tokname].add(tokcid)
     except (GAPI.notFound, GAPI.resourceNotFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], str(e), i, count)
     except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
+  if aggregateUsersBy == 'clientId':
+    if not csvPF:
+      jcount = len(aggregateTokensById)
+      performActionNumItems(jcount, Ent.ACCESS_TOKEN)
+      Ind.Increment()
+      j = 0
+      for _, token in sorted(iter(aggregateTokensById.items())):
+        j += 1
+        _showToken(token, 'Client ID', 'clientId', j, jcount)
+      Ind.Decrement()
+    else:
+      for _, token in sorted(iter(aggregateTokensById.items())):
+        _printToken(token)
+  elif aggregateUsersBy == 'displayText':
+    if not csvPF:
+      jcount = len(aggregateTokensById)
+      performActionNumItems(jcount, Ent.ACCESS_TOKEN)
+      Ind.Increment()
+      j = 0
+      for _, tokenIds in sorted(iter(tokenNameIdMap.items())):
+        for tokcid in sorted(tokenIds):
+          j += 1
+          _showToken(aggregateTokensById[tokcid], 'App Name', 'displayText', j, jcount)
+      Ind.Decrement()
+    else:
+      for _, tokenIds in sorted(iter(tokenNameIdMap.items())):
+        for tokcid in sorted(tokenIds):
+          _printToken(aggregateTokensById[tokcid])
   if csvPF:
     csvPF.writeCSVfile('OAuth Tokens')
 
 # gam <UserTypeEntity> print tokens|token [todrive <ToDriveAttribute>*] [clientid <ClientID>]
-#	[orderby clientid|displaytext] [delimiter <Character>]
+#	[aggregateusersby|orderby clientid|id|appname|displaytext] [delimiter <Character>]
 # gam <UserTypeEntity> show tokens|token|3lo|oauth [clientid <ClientID>]
-#	[orderby clientid|displaytext]
+#	[aggregateusersby|orderby clientid|id|appname|displaytext]
 def printShowTokens(users):
   _printShowTokens(Cmd.ENTITY_USERS, users)
 
 # gam print tokens|token [todrive <ToDriveAttribute>*] [clientid <ClientID>]
-#	[orderby clientid|displaytext] [delimiter <Character>]
+#	[aggregateusersby|orderby clientid|id|appname|displaytext] [delimiter <Character>]
 #	[<UserTypeEntity>]
 def doPrintTokens():
   _printShowTokens(None, None)
