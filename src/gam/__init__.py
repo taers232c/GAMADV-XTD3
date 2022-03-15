@@ -54536,6 +54536,10 @@ TOKENS_ORDERBY_CHOICE_MAP = {
   'displaytext': 'displayText',
   'appname': 'displayText',
   }
+TOKENS_TITLE_MAP = {
+  'clientId': 'Client ID',
+  'displayText': 'App Name',
+  }
 
 def _printShowTokens(entityType, users):
   def _printToken(token):
@@ -54595,6 +54599,11 @@ def _printShowTokens(entityType, users):
       csvPF.SetTitles(['user']+TOKENS_FIELDS_TITLES)
     else:
       csvPF.SetTitles(TOKENS_AGGREGATE_FIELDS_TITLES)
+  else:
+    if not aggregateUsersBy:
+      tokenTitle = TOKENS_TITLE_MAP[orderBy]
+    else:
+      tokenTitle = TOKENS_TITLE_MAP[aggregateUsersBy]
   fields = ','.join(TOKENS_FIELDS_TITLES)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -54622,7 +54631,7 @@ def _printShowTokens(entityType, users):
           j = 0
           for token in sorted(results, key=lambda k: k[orderBy]):
             j += 1
-            _showToken(token, 'Client ID', 'clientId', j, jcount)
+            _showToken(token, tokenTitle, orderBy, j, jcount)
           Ind.Decrement()
         else:
           if results:
@@ -54660,7 +54669,7 @@ def _printShowTokens(entityType, users):
       j = 0
       for _, token in sorted(iter(aggregateTokensById.items())):
         j += 1
-        _showToken(token, 'Client ID', 'clientId', j, jcount)
+        _showToken(token, tokenTitle, aggregateUsersBy, j, jcount)
       Ind.Decrement()
     else:
       for _, token in sorted(iter(aggregateTokensById.items())):
@@ -54674,7 +54683,7 @@ def _printShowTokens(entityType, users):
       for _, tokenIds in sorted(iter(tokenNameIdMap.items())):
         for tokcid in sorted(tokenIds):
           j += 1
-          _showToken(aggregateTokensById[tokcid], 'App Name', 'displayText', j, jcount)
+          _showToken(aggregateTokensById[tokcid], tokenTitle, aggregateUsersBy, j, jcount)
       Ind.Decrement()
     else:
       for _, tokenIds in sorted(iter(tokenNameIdMap.items())):
