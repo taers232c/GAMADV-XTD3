@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.14'
+__version__ = '6.16.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -198,7 +198,7 @@ SECONDS_PER_MINUTE = 60
 SECONDS_PER_HOUR = 3600
 SECONDS_PER_DAY = 86400
 SECONDS_PER_WEEK = 604800
-MAX_GOOGLE_SHEET_CELLS = 5000000 # See https://support.google.com/drive/answer/37603
+MAX_GOOGLE_SHEET_CELLS = 10000000 # See https://support.google.com/drive/answer/37603
 MAX_LOCAL_GOOGLE_TIME_OFFSET = 30
 UTF8 = 'utf-8'
 UTF8_SIG = 'utf-8-sig'

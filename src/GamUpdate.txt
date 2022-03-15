@@ -1,3 +1,8 @@
+6.16.15
+
+Updated to allow new 10 million cell limit in Google Sheets.
+* See: https://workspaceupdates.googleblog.com/2022/03/ten-million-cells-google-sheets.html
+
 6.16.14
 
 Added command to replace domain names in contact email addresses; this can be useful
