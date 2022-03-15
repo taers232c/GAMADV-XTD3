@@ -54534,7 +54534,7 @@ TOKENS_ORDERBY_CHOICE_MAP = {
   'clientid': 'clientId',
   'id': 'clientId',
   'displaytext': 'displayText',
-  'appname': 'displayText'.
+  'appname': 'displayText',
   }
 
 def _printShowTokens(entityType, users):
