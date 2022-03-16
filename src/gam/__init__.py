@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.17'
+__version__ = '6.16.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4224,6 +4224,10 @@ def checkGDataError(e, service):
         body.startswith('Quota exceeded for quota metric') or
         body.startswith('Request rate higher than configured')):
       return (GDATA.QUOTA_EXCEEDED, body)
+    if (body.startswith('Photo delete failed') or
+        body.startswith('Upload photo failed') or
+        body.startswith('Photo query failed')):
+      return (GDATA.NOT_FOUND, body)
     if body.startswith(GDATA.API_DEPRECATED_MSG):
       return (GDATA.API_DEPRECATED, body)
     if reason == 'Too Many Requests':
@@ -16917,6 +16921,7 @@ def _processContactPhotos(function):
       if function == 'ChangePhoto':
         if subForContactId or subForEmail:
           filename = _makeFilenameFromPattern()
+        filename = os.path.join(targetFolder, filename)
         callGData(contactsObject, function,
                   throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.SERVICE_NOT_APPLICABLE, GDATA.FORBIDDEN, GDATA.NOT_IMPLEMENTED],
                   retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
@@ -16946,8 +16951,8 @@ def _processContactPhotos(function):
                   retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
                   contact_entry_or_url=contact, extra_headers={'If-Match': '*'})
         entityActionPerformed([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename])
-    except GDATA.notFound:
-      entityDoesNotHaveItemWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, ''])
+    except GDATA.notFound as e:
+      entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e), j, jcount)
     except (GDATA.badRequest, OSError, IOError) as e:
       entityActionFailedWarning([entityType, user, Ent.CONTACT, contactId, Ent.PHOTO, filename], str(e), j, jcount)
     except (GDATA.forbidden, GDATA.notImplemented):
@@ -18097,7 +18102,7 @@ def dedupPeopleEmailAddressMatches(emailMatchType, contact):
     contact[PEOPLE_EMAIL_ADDRESSES] = savedAddresses
   return updateRequired
 
-def replaceDomainPeopleEmailAddressMatches(contactQuery, localMatchType, contact, replaceDomains):
+def replaceDomainPeopleEmailAddressMatches(contactQuery, contact, replaceDomains):
   updateRequired = False
   if contactQuery['emailMatchPattern']:
     emailMatchType = contactQuery['emailMatchType']
@@ -18108,8 +18113,7 @@ def replaceDomainPeopleEmailAddressMatches(contactQuery, localMatchType, contact
         userName, domain = splitEmailAddress(emailAddr)
         domain = domain.lower()
         if ((domain in replaceDomains) and
-            (not emailMatchType or emailType == emailMatchType) and
-            (not localMatchType or emailType == localMatchType)):
+            (not emailMatchType or emailType == emailMatchType)):
           item['value'] = f'{userName}@{replaceDomains[domain]}'
           updateRequired = True
   else:
@@ -18118,7 +18122,7 @@ def replaceDomainPeopleEmailAddressMatches(contactQuery, localMatchType, contact
       emailType = item.get('type', '')
       userName, domain = splitEmailAddress(emailAddr)
       domain = domain.lower()
-      if (domain in replaceDomains) and (not localMatchType or emailType == localMatchType):
+      if domain in replaceDomains:
         item['value'] = f'{userName}@{replaceDomains[domain]}'
         updateRequired = True
   return updateRequired
@@ -18128,7 +18132,6 @@ def replaceDomainPeopleEmailAddressMatches(contactQuery, localMatchType, contact
 #	[matchType [<Boolean>]]
 # gam <UserTypeEntity> replacedomain contacts
 #	[<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
-#	[matchType [<Boolean>]]
 #	(domain <DomainName> <DomainName>)+
 def dedupReplaceDomainUserPeopleContacts(users):
   action = Act.Get()
@@ -18140,7 +18143,7 @@ def dedupReplaceDomainUserPeopleContacts(users):
   replaceDomains = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'matchtype':
+    if action == Act.DEDUP and myarg == 'matchtype':
       emailMatchType = getBoolean()
     elif action == Act.REPLACE_DOMAIN and myarg == 'domain':
       domain = getString(Cmd.OB_DOMAIN_NAME).lower()
@@ -18200,7 +18203,7 @@ def dedupReplaceDomainUserPeopleContacts(users):
           if not dedupPeopleEmailAddressMatches(emailMatchType, contact):
             continue
         else:
-          if not replaceDomainPeopleEmailAddressMatches(contactQuery, emailMatchType, contact, replaceDomains):
+          if not replaceDomainPeopleEmailAddressMatches(contactQuery, contact, replaceDomains):
             continue
         Act.Set(Act.UPDATE)
         callGAPI(people.people(), 'updateContact',
@@ -19120,6 +19123,7 @@ def _processPeopleContactPhotos(users, function):
         if function == 'updateContactPhoto':
           if subForContactId or subForEmail:
             filename = _makeFilenameFromPattern(resourceName)
+          filename = os.path.join(targetFolder, filename)
           with open(os.path.expanduser(filename), 'rb') as f:
             image_data = f.read()
           callGAPI(people.people(), function,
@@ -19130,6 +19134,7 @@ def _processPeopleContactPhotos(users, function):
         elif function == 'getContactPhoto':
           if subForContactId or subForEmail:
             filename = _makeFilenameFromPattern(resourceName)
+          filename = os.path.join(targetFolder, filename)
           result = callGAPI(people.people(), 'get',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                             resourceName=resourceName, personFields='photos')
@@ -19164,7 +19169,7 @@ def _processPeopleContactPhotos(users, function):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
       except GAPI.photoNotFound:
-        entityDoesNotHaveItemWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, ''], j, jcount)
+        entityDoesNotHaveItemWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], j, jcount)
       except (OSError, IOError) as e:
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):

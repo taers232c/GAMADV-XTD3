@@ -1,3 +1,9 @@
+6.16.18
+
+Fixed bug in `gam update contactphotos` and `gam <UserTypeEntity> update contactphotos` where
+option `drivedir|(sourcefolder <FilePath>)` was not properly processed. Unfortunately, the
+Domain Shared Contacts API seems to be broken when trying to manage contact photos.
+
 6.16.17
 
 Updated `gam <UserTypeEntity> replacedomain contacts emailmatchpattern <RegularExpression> domain <OldDomainName> <NewDomainName>`
@@ -23,7 +29,6 @@ when merging/renaming domains.
 ```
 gam <UserTypeEntity> replacedomain contacts
         [<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
-        [matchType [<Boolean>]]
         (domain <OldDomainName> <NewDomainName>)+
 ```
 

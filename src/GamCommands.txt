@@ -5887,7 +5887,6 @@ gam <UserTypeEntity> dedup contacts
 
 gam <UserTypeEntity> replacedomain contacts
         [<PeopleResourceNameEntity>|<PeopleUserContactSelection>]
-        [matchType [<Boolean>]]
         (domain <OldDomainName> <NewDomainName>)+
 
 gam <UserTypeEntity> update contactphotos
