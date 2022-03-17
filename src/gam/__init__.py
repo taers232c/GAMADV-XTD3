@@ -34177,7 +34177,7 @@ def doPrintVaultCounts():
   # so we keep track of which accounts we searched and can report
   # zero data for them.
   if search_method == 'ACCOUNT':
-    query_accounts = query.get('accountInfo', {}).get('emails': [])
+    query_accounts = query.get('accountInfo', {}).get('emails', [])
   elif search_method == 'ENTIRE_ORG':
     query_accounts = getItemsToModify(Cmd.ENTITY_ALL_USERS, '')
   elif search_method == 'ORG_UNIT':
