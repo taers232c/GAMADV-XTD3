@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.18'
+__version__ = '6.16.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -34177,7 +34177,7 @@ def doPrintVaultCounts():
   # so we keep track of which accounts we searched and can report
   # zero data for them.
   if search_method == 'ACCOUNT':
-    query_accounts = query.get('accountInfo', [])
+    query_accounts = query.get('accountInfo', {}).get('emails': [])
   elif search_method == 'ENTIRE_ORG':
     query_accounts = getItemsToModify(Cmd.ENTITY_ALL_USERS, '')
   elif search_method == 'ORG_UNIT':
@@ -34196,9 +34196,10 @@ def doPrintVaultCounts():
         query_accounts.remove(account)
     for account in a_count.get('accountCounts', []):
       email = account.get('account', {}).get('email', '')
-      csvPF.WriteRow({'account': email, 'count': account.get('count')})
-      if email in query_accounts:
-        query_accounts.remove(email)
+      if email:
+        csvPF.WriteRow({'account': email, 'count': account.get('count', 0)})
+        if email in query_accounts:
+          query_accounts.remove(email)
   for account in query_accounts:
     csvPF.WriteRow({'account': account, 'count': 0})
   csvPF.writeCSVfile('Vault Counts')

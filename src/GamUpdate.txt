@@ -1,3 +1,8 @@
+6.16.19
+
+Fixed bug in `gam print vaultcounts matter <MatterItem> corpus mail accounts <EmailAddressEntity>` where
+extraneous lines `emails,0,` appeared in the output.
+
 6.16.18
 
 Fixed bug in `gam update contactphotos` and `gam <UserTypeEntity> update contactphotos` where
