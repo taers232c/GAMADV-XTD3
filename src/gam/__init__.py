@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.16.19'
+__version__ = '6.17.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10494,7 +10494,7 @@ def _getSAKeys(iam, projectId, clientEmail, name, keyTypes):
     entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
   return (False, None)
 
-SVCACCT_KEY_TIME_OBJECTS = ['validAfterTime', 'validBeforeTime']
+SVCACCT_KEY_TIME_OBJECTS = {'validAfterTime', 'validBeforeTime'}
 
 def _showSAKeys(keys, count, currentPrivateKeyId):
   Ind.Increment()
@@ -21080,7 +21080,7 @@ CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP = {
 CROS_TELEMETRY_SCALAR_FIELDS = ['deviceId', 'serialNumber', 'customer', 'name', 'orgUnitId', 'orgUnitPath']
 CROS_TELEMETRY_SCALAR_FIELDS_SET = set(CROS_TELEMETRY_SCALAR_FIELDS)
 CROS_TELEMETRY_LIST_FIELDS = list(CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP.values())
-CROS_TELEMETRY_TIME_OBJECTS = ['reportTime', 'lastUpdateTime', 'lastUpdateCheckTime', 'lastRebootTime']
+CROS_TELEMETRY_TIME_OBJECTS = {'reportTime', 'lastUpdateTime', 'lastUpdateCheckTime', 'lastRebootTime'}
 
 # gam info crostelemetry <SerialNumber>
 #	<CrOSTelemetryFieldName>* [fields <CrOSTelemetryFieldNameList>]
@@ -21299,7 +21299,7 @@ def doDeleteBrowsers():
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
 
-BROWSER_TIME_OBJECTS = ['lastActivityTime', 'lastPolicyFetchTime', 'lastRegistrationTime', 'lastStatusReportTime', 'safeBrowsingWarningsResetTime']
+BROWSER_TIME_OBJECTS = {'lastActivityTime', 'lastPolicyFetchTime', 'lastRegistrationTime', 'lastStatusReportTime', 'safeBrowsingWarningsResetTime'}
 
 def _showBrowser(browser, FJQC, i=0, count=0):
   if FJQC.formatJSON:
@@ -21715,7 +21715,7 @@ def doRevokeBrowserToken():
   except GAPI.forbidden:
     accessErrorExit(None)
 
-BROWSER_TOKEN_TIME_OBJECTS = ['createTime', 'expireTime', 'revokeTime']
+BROWSER_TOKEN_TIME_OBJECTS = {'createTime', 'expireTime', 'revokeTime'}
 
 BROWSER_TOKEN_FIELDS_CHOICE_MAP = {
   'createtime': 'createTime',
@@ -21926,7 +21926,7 @@ def doPrintShowChatSpaces():
   if csvPF:
     csvPF.writeCSVfile('Chat Spaces')
 
-CHAT_MEMBER_TIME_OBJECTS = ['createTime']
+CHAT_MEMBER_TIME_OBJECTS = {'createTime'}
 
 def _showChatMember(member, FJQC, i=0, count=0):
   if FJQC.formatJSON:
@@ -22107,7 +22107,7 @@ def doDeleteChatMessage():
   except GAPI.permissionDenied as e:
     entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
 
-CHAT_MESSAGE_TIME_OBJECTS = ['createTime']
+CHAT_MESSAGE_TIME_OBJECTS = {'createTime'}
 
 def _showChatMessage(message, FJQC, i=0, count=0):
   if FJQC.formatJSON:
@@ -23762,7 +23762,7 @@ PRINTER_FIELDS_CHOICE_MAP = {
   'uri': 'uri',
   'usedriverlessconfig': 'useDriverlessConfig',
   }
-PRINTER_TIME_OBJECTS = ['createTime']
+PRINTER_TIME_OBJECTS = {'createTime'}
 
 def _checkPrinterInheritance(cd, printer, orgUnitId, showInherited):
   if 'orgUnitId' in printer:
@@ -37252,7 +37252,7 @@ def doCIUserInvitationsAction():
   except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.USER_INVITATION, f'{user}'], str(e))
 
-CI_USERINVITATION_TIME_OBJECTS = ['updateTime']
+CI_USERINVITATION_TIME_OBJECTS = {'updateTime'}
 
 def _showUserInvitation(invitation, FJQC, i=0, count=0):
   if FJQC is not None and FJQC.formatJSON:
@@ -42314,6 +42314,7 @@ CORPORA_CHOICE_MAP = {
 QUERY_SHORTCUTS_MAP = {
   'allfiles': f"mimeType != '{MIMETYPE_GA_FOLDER}'",
   'allfolders': f"mimeType = '{MIMETYPE_GA_FOLDER}'",
+  'allforms': f"mimeType = '{MIMETYPE_GA_FORM}'",
   'allgooglefiles': f"mimeType != '{MIMETYPE_GA_FOLDER}' and mimeType contains 'vnd.google'",
   'allnongooglefiles': "not mimeType contains 'vnd.google'",
   'allshortcuts': f"mimeType = '{MIMETYPE_GA_SHORTCUT}'",
@@ -42321,6 +42322,7 @@ QUERY_SHORTCUTS_MAP = {
   'allitems': 'allitems',
   'myfiles': ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}'",
   'myfolders': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FOLDER}'",
+  'myforms': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FORM}'",
   'mygooglefiles': ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}' and mimeType contains 'vnd.google'",
   'mynongooglefiles': ME_IN_OWNERS_AND+"not mimeType contains 'vnd.google'",
   'myshortcuts': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_SHORTCUT}'",
@@ -42328,6 +42330,7 @@ QUERY_SHORTCUTS_MAP = {
   'myitems': ME_IN_OWNERS,
   'othersfiles': NOT_ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}'",
   'othersfolders': NOT_ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FOLDER}'",
+  'othersforms': NOT_ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FORM}'",
   'othersgooglefiles': NOT_ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}' and mimeType contains 'vnd.google'",
   'othersnongooglefiles': NOT_ME_IN_OWNERS_AND+"not mimeType contains 'vnd.google'",
   'othersshortcuts': NOT_ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_SHORTCUT}'",
@@ -42551,60 +42554,60 @@ def getDriveFileEntity(queryShortcutsOK=True, DLP=None):
       fileIdEntity['dict'] = entityList
     else:
       cleanFileIDsList(fileIdEntity, entityList)
-  else:
-    myarg = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
-    mycmd = myarg.lower().replace('_', '').replace('-', '')
-    if mycmd == 'id':
-      cleanFileIDsList(fileIdEntity, getStringReturnInList(Cmd.OB_DRIVE_FILE_ID))
-    elif mycmd == 'ids':
-      cleanFileIDsList(fileIdEntity, getString(Cmd.OB_DRIVE_FILE_ID).replace(',', ' ').split())
-    elif mycmd == 'query':
-      fileIdEntity['query'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
-    elif queryShortcutsOK and mycmd in QUERY_SHORTCUTS_MAP:
-      fileIdEntity['query'] = QUERY_SHORTCUTS_MAP[mycmd]
-    elif mycmd in DRIVE_BY_NAME_CHOICE_MAP:
-      fileIdEntity['query'] = DRIVE_BY_NAME_CHOICE_MAP[mycmd].format(getEscapedDriveFileName())
-    elif not DLP and mycmd in {'root', 'mydrive'}:
-      cleanFileIDsList(fileIdEntity, [ROOT])
-    elif DLP and mycmd in LOCATION_CHOICE_MAP:
-      DLP.SetLocation(LOCATION_CHOICE_MAP[mycmd])
-      cleanFileIDsList(fileIdEntity, DLP.locationFileIds)
-    elif mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'):
-      fileIdEntity['teamdrive'] = {'driveId': None,
-                                   'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
-      while True:
-        if mycmd in {'teamdriveid', 'shareddriveid'}:
-          fileIdEntity['teamdrive']['driveId'] = getString(Cmd.OB_TEAMDRIVE_ID).strip()
-        elif mycmd in {'teamdrive', 'shareddrive'}:
-          fileIdEntity['teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
-        elif mycmd in {'teamdriveadminquery', 'shareddriveadminquery'}:
-          fileIdEntity['teamdriveadminquery'] = getString(Cmd.OB_QUERY)
-        elif mycmd in {'teamdrivefilename', 'shareddrivefilename'}:
-          fileIdEntity['teamdrivefilequery'] = WITH_ANY_FILE_NAME.format(getEscapedDriveFileName())
-        elif mycmd in {'teamdrivequery', 'shareddrivequery'}:
-          fileIdEntity['teamdrivefilequery'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
-        elif queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP:
-          fileIdEntity['teamdrivefilequery'] = TEAMDRIVE_QUERY_SHORTCUTS_MAP[mycmd]
-        elif (mycmd.find(':') > 0) and _getTDKeywordColonValue(myarg):
-          pass
-        else:
-          unknownArgumentExit()
-        if Cmd.ArgumentsRemaining():
-          myarg = getString(Cmd.OB_STRING)
-          mycmd = myarg.lower().replace('_', '').replace('-', '')
-          if (mycmd.startswith('teamdriveparent') or mycmd.startswith('shareddriveparent') or
-              ((not (mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'))) and
-               (not (queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP)))):
-            Cmd.Backup()
-            break
-        else:
+    return fileIdEntity
+  myarg = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
+  mycmd = myarg.lower().replace('_', '').replace('-', '')
+  if mycmd == 'id':
+    cleanFileIDsList(fileIdEntity, getStringReturnInList(Cmd.OB_DRIVE_FILE_ID))
+  elif mycmd == 'ids':
+    cleanFileIDsList(fileIdEntity, getString(Cmd.OB_DRIVE_FILE_ID).replace(',', ' ').split())
+  elif mycmd == 'query':
+    fileIdEntity['query'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
+  elif queryShortcutsOK and mycmd in QUERY_SHORTCUTS_MAP:
+    fileIdEntity['query'] = QUERY_SHORTCUTS_MAP[mycmd]
+  elif mycmd in DRIVE_BY_NAME_CHOICE_MAP:
+    fileIdEntity['query'] = DRIVE_BY_NAME_CHOICE_MAP[mycmd].format(getEscapedDriveFileName())
+  elif not DLP and mycmd in {'root', 'mydrive'}:
+    cleanFileIDsList(fileIdEntity, [ROOT])
+  elif DLP and mycmd in LOCATION_CHOICE_MAP:
+    DLP.SetLocation(LOCATION_CHOICE_MAP[mycmd])
+    cleanFileIDsList(fileIdEntity, DLP.locationFileIds)
+  elif mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'):
+    fileIdEntity['teamdrive'] = {'driveId': None,
+                                 'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
+    while True:
+      if mycmd in {'teamdriveid', 'shareddriveid'}:
+        fileIdEntity['teamdrive']['driveId'] = getString(Cmd.OB_TEAMDRIVE_ID).strip()
+      elif mycmd in {'teamdrive', 'shareddrive'}:
+        fileIdEntity['teamdrivename'] = getString(Cmd.OB_TEAMDRIVE_NAME)
+      elif mycmd in {'teamdriveadminquery', 'shareddriveadminquery'}:
+        fileIdEntity['teamdriveadminquery'] = getString(Cmd.OB_QUERY)
+      elif mycmd in {'teamdrivefilename', 'shareddrivefilename'}:
+        fileIdEntity['teamdrivefilequery'] = WITH_ANY_FILE_NAME.format(getEscapedDriveFileName())
+      elif mycmd in {'teamdrivequery', 'shareddrivequery'}:
+        fileIdEntity['teamdrivefilequery'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
+      elif queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP:
+        fileIdEntity['teamdrivefilequery'] = TEAMDRIVE_QUERY_SHORTCUTS_MAP[mycmd]
+      elif (mycmd.find(':') > 0) and _getTDKeywordColonValue(myarg):
+        pass
+      else:
+        unknownArgumentExit()
+      if Cmd.ArgumentsRemaining():
+        myarg = getString(Cmd.OB_STRING)
+        mycmd = myarg.lower().replace('_', '').replace('-', '')
+        if (mycmd.startswith('teamdriveparent') or mycmd.startswith('shareddriveparent') or
+            ((not (mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'))) and
+             (not (queryShortcutsOK and mycmd in TEAMDRIVE_QUERY_SHORTCUTS_MAP)))):
+          Cmd.Backup()
           break
-      if not fileIdEntity['teamdrive'].get('driveId'):
-        fileIdEntity['teamdrive']['corpora'] = CORPORA_ALL_DRIVES
-    elif (mycmd.find(':') > 0) and _getKeywordColonValue(myarg):
-      pass
-    else:
-      cleanFileIDsList(fileIdEntity, [myarg])
+      else:
+        break
+    if not fileIdEntity['teamdrive'].get('driveId'):
+      fileIdEntity['teamdrive']['corpora'] = CORPORA_ALL_DRIVES
+  elif (mycmd.find(':') > 0) and _getKeywordColonValue(myarg):
+    pass
+  else:
+    cleanFileIDsList(fileIdEntity, [myarg])
   return fileIdEntity
 
 def getDriveFileEntityTeamDriveOnly():
@@ -43574,8 +43577,10 @@ def _showTeamDriveThemeSettings(themes):
     Ind.Decrement()
   Ind.Decrement()
 
-# gam <UserTypeEntity> print drivesettings [todrive <ToDriveAttribute>*] [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
-# gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
+# gam <UserTypeEntity> print drivesettings [todrive <ToDriveAttribute>*]
+#	[allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
+# gam <UserTypeEntity> show drivesettings
+#	[allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 def printShowDriveSettings(users):
   def _showFormats(title):
     if title in fieldsList and title in feed:
@@ -45307,7 +45312,7 @@ class DriveListParameters():
     elif myarg == 'showmimetype':
       self.mimeTypeCheck.Get()
       if self.myargOptions['mimeTypeInQuery']:
-        self.fileIdEntity['query'] = self.mimeTypeCheck.AddMimeTypeToQuery(self.fileIdEntity.get('query', ''))
+        self.AppendToQuery(self.mimeTypeCheck.AddMimeTypeToQuery(self.fileIdEntity.get('query', '')))
     elif myarg == 'excludetrashed':
       self.excludeTrashed = True
     elif myarg.startswith('querytime'):
@@ -46110,8 +46115,10 @@ def printFileList(users):
       csvPFco.SetRowFilter([])
     csvPFco.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive File Counts')
 
-# gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttribute>*] [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-# gam <UserTypeEntity> show filepaths <DriveFileEntity> (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	[oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+# gam <UserTypeEntity> show filepaths <DriveFileEntity>
+#	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 def printShowFilePaths(users):
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   csvPF = CSVPrintFile(['Owner', 'id', fileNameTitle, 'paths'], 'sortall', ['paths']) if Act.csvFormat() else None
@@ -52901,7 +52908,7 @@ def _getDataStudioAssets(ds, user, i, count, parameters, assetTypes, fields, ord
 DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP = {
   'title': 'title'
   }
-DATASTUDIO_ASSETS_TIME_OBJECTS = ['updateTime', 'updateByMeTime', 'createTime', 'lastViewByMeTime']
+DATASTUDIO_ASSETS_TIME_OBJECTS = {'updateTime', 'updateByMeTime', 'createTime', 'lastViewByMeTime'}
 
 # gam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
 #	[([assettype report|datasource|all] [title <String>]
@@ -57555,25 +57562,223 @@ def printShowFilters(users):
     csvPF.SetSortTitles([])
     csvPF.writeCSVfile('Filters')
 
-# gam info forms <FormIDEntity>
-#def doInfoForms():
-#  gform = buildGAPIObject(API.FORMS)
-#  formIdEntity = getEntityList(Cmd.OB_FORM_ID_ENTITY)
-#  checkForExtraneousArguments()
-#  i = 0
-#  count = len(entityList)
-#  for formId in entityList:
-#    i += 1
-#    try:
-#      result = callGAPI(gform.forms(), 'get',
-#                        throwReasons=[GAPI.NOT_FOUND],
-#                        id=formId)
-#      printEntity([Ent.FORM, result['formId']], i, count)
-#      Ind.Increment()
-#      showJSON(None, result)
-#      Ind.Decrement()
-#    except GAPI.notFound as e:
-#      entityActionFailedWarning([Ent.FORM, formId], str(e), i, count)
+# gam <UserTypeEntity> create form title <String> [description <String>]
+#	[drivefilename <DriveFileName>] [<DriveFileParentAttribute>]
+#	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
+def createForm(users):
+  csvPF = None
+  returnIdOnly = False
+  title = ''
+  body = {'mimeType': MIMETYPE_GA_FORM}
+  ubody = {'includeFormInResponse': True,
+           'requests': [{'updateFormInfo': {'info': {}, 'updateMask': []}}]}
+  parentParms = initDriveFileAttributes()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'title':
+      title = getString(Cmd.OB_STRING)
+      ubody['requests'][0]['updateFormInfo']['info']['title'] = title
+      ubody['requests'][0]['updateFormInfo']['updateMask'].append('title')
+    elif myarg == 'drivefilename':
+      body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
+    elif myarg == 'description':
+      ubody['requests'][0]['updateFormInfo']['info']['description'] = getString(Cmd.OB_STRING, minLen=0)
+      ubody['requests'][0]['updateFormInfo']['updateMask'].append('description')
+    elif getDriveFileParentAttribute(myarg, parentParms):
+      pass
+    elif myarg == 'returnidonly':
+      returnIdOnly = True
+    elif myarg == 'csv':
+      csvPF = CSVPrintFile(['User', 'formId', 'name', 'title', 'responderUri'])
+    elif csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      unknownArgumentExit()
+  if not title:
+    missingArgumentExit('title')
+  ubody['requests'][0]['updateFormInfo']['updateMask'] = ','.join(ubody['requests'][0]['updateFormInfo']['updateMask'])
+  if 'name' not in body:
+    body['name']  = title
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
+    if not drive:
+      continue
+    if not _getDriveFileParentInfo(drive, user, i, count, body, parentParms):
+      continue
+    _, gform = buildGAPIServiceObject(API.FORMS, user, i, count)
+    if not gform:
+      continue
+    try:
+      result = callGAPI(drive.files(), 'create',
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                    GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
+                                                                    GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                    GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                        body=body, fields='id,name', supportsAllDrives=True)
+      formId = result['id']
+      form = callGAPI(gform.forms(), 'batchUpdate',
+                      throwReasons=[GAPI.INVALID_ARGUMENT],
+                      formId=formId, body=ubody)
+      if returnIdOnly:
+        writeStdout(f'{formId}\n')
+      elif not csvPF:
+        entityActionPerformed([Ent.USER, user, Ent.FORM, title,
+                               Ent.DRIVE_FILE, f"{result['name']}({formId})"])
+      else:
+        csvPF.WriteRow({'User': user, 'formId': formId,
+                        'name': form['form']['info']['documentTitle'],
+                        'title': form['form']['info']['title'],
+                        'responderUri': form['form']['responderUri']})
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep,
+            GAPI.invalidArgument) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.FORM, title, Ent.DRIVE_FILE, body['name']], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Forms')
+
+# gam <UserTypeEntity> print forms <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show forms <DriveFileEntity>
+#	[formatjson]
+def printShowForms(users):
+  csvPF = CSVPrintFile(['User', 'formId', 'name', 'title', 'description'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fileIdEntity = getDriveFileEntity()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, _, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
+                                              entityType=[Ent.FORM, None][csvPF is not None or FJQC.formatJSON])
+    if jcount == 0:
+      continue
+    _, gform = buildGAPIServiceObject(API.FORMS, user, i, count)
+    if not gform:
+      continue
+    Ind.Increment()
+    j = 0
+    for formId in fileIdEntity['list']:
+      j += 1
+      try:
+        result = callGAPI(gform.forms(), 'get',
+                          throwReasons=[GAPI.NOT_FOUND],
+                          formId=formId)
+        if not csvPF:
+          if not FJQC.formatJSON:
+            printEntity([Ent.FORM, result['formId']], j, jcount)
+            Ind.Increment()
+            showJSON(None, result)
+            Ind.Decrement()
+          else:
+            printLine(json.dumps(cleanJSON(result), ensure_ascii=False, sort_keys=True))
+        else:
+          info = result.pop('info')
+          baserow = {'User': user, 'formId': formId, 'name': info['documentTitle'],
+                     'title': info['title'], 'description': info.get('description', '')}
+          row = flattenJSON(result, flattened=baserow.copy())
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(row)
+          elif csvPF.CheckRowTitles(row):
+            result['info'] = info
+            baserow['JSON'] = json.dumps(cleanJSON(result), ensure_ascii=False, sort_keys=True)
+            csvPF.WriteRowNoFilter(baserow)
+      except GAPI.notFound as e:
+        entityActionFailedWarning([Ent.FORM, formId], str(e), j, jcount)
+    Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Forms')
+
+FORM_RESPONSE_TIME_OBJECTS = {'createTime', 'lastSubmittedTime'}
+
+# gam <UserTypeEntity> print formresponses <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	[filtertime.* <Time>] [filter <String>]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show formresponses <DriveFileEntity>
+#	[filtertime.* <Time>] [filter <String>]
+#	[formatjson]
+def printShowFormResponses(users):
+  csvPF = CSVPrintFile(['User', 'formId', 'responseId', 'createTime', 'lastSubmittedTime', 'respondentEmail', 'totalScore'],
+                       'sortall', indexedTitles=['answers']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  frfilter = None
+  filterTimes = {}
+  fileIdEntity = getDriveFileEntity()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg.startswith('filtertime'):
+      filterTimes[myarg] = getTimeOrDeltaFromNow()
+    elif myarg in {'filter', 'filters'}:
+      frfilter = getString(Cmd.OB_STRING)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if filterTimes and filter is not None:
+    for filterTimeName, filterTimeValue in iter(filterTimes.items()):
+      frfilter = frfilter.replace(f'#{filterTimeName}#', filterTimeValue)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, _, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
+                                              entityType=[Ent.FORM, None][csvPF is not None or FJQC.formatJSON])
+    if jcount == 0:
+      continue
+    _, gform = buildGAPIServiceObject(API.FORMS, user, i, count)
+    if not gform:
+      continue
+    Ind.Increment()
+    j = 0
+    for formId in fileIdEntity['list']:
+      j += 1
+      try:
+        results = callGAPIpages(gform.forms().responses(), 'list', 'responses',
+                                throwReasons=[GAPI.NOT_FOUND],
+                                filter=frfilter, formId=formId)
+        kcount = len(results)
+        if not csvPF:
+          if not FJQC.formatJSON:
+            entityPerformActionNumItems([Ent.FORM, formId], kcount, Ent.FORM_RESPONSE, j, jcount)
+          Ind.Increment()
+          k = 0
+          for response in results:
+            k += 1
+            if not FJQC.formatJSON:
+              printEntity([Ent.FORM_RESPONSE, response['responseId']], k, kcount)
+              Ind.Increment()
+              showJSON(None, response, timeObjects=FORM_RESPONSE_TIME_OBJECTS)
+              Ind.Decrement()
+            else:
+              printLine(json.dumps(cleanJSON(response, timeObjects=FORM_RESPONSE_TIME_OBJECTS),
+                                   ensure_ascii=False, sort_keys=True))
+          Ind.Decrement()
+        else:
+          for response in results:
+            row = flattenJSON(response, flattened={'User': user, 'formId': formId}, timeObjects=FORM_RESPONSE_TIME_OBJECTS)
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(row)
+            elif csvPF.CheckRowTitles(row):
+              csvPF.WriteRowNoFilter({'User': user, 'formId': formId, 'responseId': response['responseId'],
+                                      'createTime': response['createTime'],
+                                      'lastSubmittedTime': response['lastSubmittedTime'],
+                                      'respondentEmail': response.get('respondentEmail', ''),
+                                      'totalScore': response.get('totalScore', ''),
+                                      'JSON': json.dumps(cleanJSON(response, timeObjects=FORM_RESPONSE_TIME_OBJECTS)
+                                                         , ensure_ascii=False, sort_keys=True)})
+      except GAPI.notFound as e:
+        entityActionFailedWarning([Ent.FORM, formId], str(e), j, jcount)
+    Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Form Responses')
 
 EMAILSETTINGS_OLD_NEW_OLD_FORWARD_ACTION_MAP = {
   'ARCHIVE': 'archive',
@@ -58872,7 +59077,7 @@ def _showNoteAttachments(attachments):
     Ind.Decrement()
   Ind.Decrement()
 
-NOTES_TIME_OBJECTS = ['createTime', 'updateTime', 'trashTime']
+NOTES_TIME_OBJECTS = {'createTime', 'updateTime', 'trashTime'}
 
 def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
   if FJQC is not None and FJQC.formatJSON:
@@ -59515,7 +59720,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DOMAINCONTACT:	doInfoDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
       Cmd.ARG_INSTANCE:		doInfoInstance,
-#      Cmd.ARG_FORM:		doInfoForms,
       Cmd.ARG_GAL:		doInfoGAL,
       Cmd.ARG_GROUP:		doInfoGroups,
       Cmd.ARG_GROUPMEMBERS:	doInfoGroupMembers,
@@ -60243,6 +60447,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_DRIVEFILESHORTCUT:	createDriveFileShortcut,
   Cmd.ARG_EVENT:		createCalendarEvent,
   Cmd.ARG_FILTER:		createFilter,
+  Cmd.ARG_FORM:			createForm,
   Cmd.ARG_FORWARDINGADDRESS:	createForwardingAddresses,
   Cmd.ARG_GUARDIAN:		inviteGuardians,
   Cmd.ARG_GUARDIANINVITATION:	inviteGuardians,
@@ -60473,6 +60678,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FILEREVISION:	printShowFileRevisions,
       Cmd.ARG_FILETREE:		printShowFileTree,
       Cmd.ARG_FILTER:		printShowFilters,
+      Cmd.ARG_FORM:		printShowForms,
+      Cmd.ARG_FORMRESPONSE:	printShowFormResponses,
       Cmd.ARG_FORWARD:		printShowForward,
       Cmd.ARG_FORWARDINGADDRESS:	printShowForwardingAddresses,
       Cmd.ARG_GMAILPROFILE:	printShowGmailProfile,
@@ -60540,6 +60747,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FILEREVISION:	printShowFileRevisions,
       Cmd.ARG_FILETREE:		printShowFileTree,
       Cmd.ARG_FILTER:		printShowFilters,
+      Cmd.ARG_FORM:		printShowForms,
+      Cmd.ARG_FORMRESPONSE:	printShowFormResponses,
       Cmd.ARG_FORWARD:		printShowForward,
       Cmd.ARG_FORWARDINGADDRESS:	printShowForwardingAddresses,
       Cmd.ARG_GMAILPROFILE:	printShowGmailProfile,
@@ -60715,6 +60924,8 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_FILEPATHS:		Cmd.ARG_FILEPATH,
   Cmd.ARG_FILEREVISIONS:	Cmd.ARG_FILEREVISION,
   Cmd.ARG_FILTERS:		Cmd.ARG_FILTER,
+  Cmd.ARG_FORMS:		Cmd.ARG_FORM,
+  Cmd.ARG_FORMRESPONSES:	Cmd.ARG_FORMRESPONSE,
   Cmd.ARG_FORWARDS:		Cmd.ARG_FORWARD,
   Cmd.ARG_FORWARDINGADDRESSES:	Cmd.ARG_FORWARDINGADDRESS,
   Cmd.ARG_GROUPS:		Cmd.ARG_GROUP,

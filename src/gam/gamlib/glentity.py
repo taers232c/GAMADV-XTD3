@@ -176,6 +176,7 @@ class GamEntity():
   FILE = 'file'
   FILTER = 'filt'
   FORM = 'form'
+  FORM_RESPONSE = 'frmr'
   FORWARD_ENABLED = 'fwde'
   FORWARDING_ADDRESS = 'fwda'
   GCP_FOLDER = 'gcpf'
@@ -457,6 +458,7 @@ class GamEntity():
     FILE: ['Files', 'File'],
     FILTER: ['Filters', 'Filter'],
     FORM: ['Forms', 'Form'],
+    FORM_RESPONSE: ['Form Responses', 'Form Response'],
     FORWARD_ENABLED: ['Forward Enabled', 'Forward Enabled'],
     FORWARDING_ADDRESS: ['Forwarding Addresses', 'Forwarding Address'],
     GCP_FOLDER: ['GCP Folders', 'GCP Folder'],

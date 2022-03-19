@@ -1,3 +1,11 @@
+6.17.00
+
+Added initial support for the Forms API.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Forms
+
+Fixed bug in `gam <UserTypeEntity> print|show filecounts ... showmimetype [not] <MimeTypeList>` that
+removed `'me' in owners` from the query.
+
 6.16.19
 
 Fixed bug in `gam print vaultcounts matter <MatterItem> corpus mail accounts <EmailAddressEntity>` where
