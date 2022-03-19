@@ -6,6 +6,9 @@ Added initial support for the Forms API.
 Fixed bug in `gam <UserTypeEntity> print|show filecounts ... showmimetype [not] <MimeTypeList>` that
 removed `'me' in owners` from the query.
 
+* Upgraded to Python 3.10.3
+* Upgraded to OpenSSL 1.1.1n
+
 6.16.19
 
 Fixed bug in `gam print vaultcounts matter <MatterItem> corpus mail accounts <EmailAddressEntity>` where
