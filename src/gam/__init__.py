@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.17.00'
+__version__ = '6.17.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -57684,7 +57684,7 @@ def printShowForms(users):
         else:
           info = result.pop('info')
           baserow = {'User': user, 'formId': formId, 'name': info['documentTitle'],
-                     'title': info['title'], 'description': info.get('description', '')}
+                     'title': info.get('title', ''), 'description': info.get('description', '')}
           row = flattenJSON(result, flattened=baserow.copy())
           if not FJQC.formatJSON:
             csvPF.WriteRowTitles(row)

@@ -1,3 +1,7 @@
+6.17.01
+
+Fixed bug in `gam <UserTypeEntity> print forms` that caused a trap when a form has no title.
+
 6.17.00
 
 Added initial support for the Forms API.
