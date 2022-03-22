@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.17.01'
+__version__ = '6.17.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -57562,7 +57562,35 @@ def printShowFilters(users):
     csvPF.SetSortTitles([])
     csvPF.writeCSVfile('Filters')
 
-# gam <UserTypeEntity> create form title <String> [description <String>]
+def findFormRequest(field, newRequest, ubody):
+  for request in ubody['requests']:
+    if field in request:
+      return request
+  ubody['requests'].append(newRequest)
+  return ubody['requests'][-1]
+
+def updateFormInfoRequest(key, value, ubody):
+  request = findFormRequest('updateFormInfo',
+                            {'updateFormInfo': {'info': {}, 'updateMask': []}},
+                            ubody)
+  request['updateFormInfo']['info'][key] = value
+  request['updateFormInfo']['updateMask'].append(key)
+
+def updateFormSettingsRequest(key, value, ubody):
+  request = findFormRequest('updateSettings',
+                            {'updateSettings': {'settings': {'quizSettings': {}}, 'updateMask': []}},
+                            ubody)
+  request['updateSettings']['settings']['quizSettings'][key] = value
+  request['updateSettings']['updateMask'].append(f'quizSettings.{key}')
+
+def updateFormRequestUpdateMasks(ubody):
+  for request in ubody['requests']:
+    for k, v in request.items():
+      if k in {'updateFormInfo', 'updateSettings'}:
+        v['updateMask'] = ','.join(v['updateMask'])
+        break
+
+# gam <UserTypeEntity> create form title <String> [description <String>] [isquiz [<Boolean>]]
 #	[drivefilename <DriveFileName>] [<DriveFileParentAttribute>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
 def createForm(users):
@@ -57570,20 +57598,19 @@ def createForm(users):
   returnIdOnly = False
   title = ''
   body = {'mimeType': MIMETYPE_GA_FORM}
-  ubody = {'includeFormInResponse': True,
-           'requests': [{'updateFormInfo': {'info': {}, 'updateMask': []}}]}
+  ubody = {'includeFormInResponse': True, 'requests': []}
   parentParms = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'title':
       title = getString(Cmd.OB_STRING)
-      ubody['requests'][0]['updateFormInfo']['info']['title'] = title
-      ubody['requests'][0]['updateFormInfo']['updateMask'].append('title')
+      updateFormInfoRequest(myarg, title, ubody)
+    elif myarg == 'description':
+      updateFormInfoRequest(myarg, getString(Cmd.OB_STRING, minLen=0), ubody)
+    elif myarg == 'isquiz':
+      updateFormSettingsRequest('isQuiz', getBoolean(), ubody)
     elif myarg == 'drivefilename':
       body['name'] = getString(Cmd.OB_DRIVE_FILE_NAME)
-    elif myarg == 'description':
-      ubody['requests'][0]['updateFormInfo']['info']['description'] = getString(Cmd.OB_STRING, minLen=0)
-      ubody['requests'][0]['updateFormInfo']['updateMask'].append('description')
     elif getDriveFileParentAttribute(myarg, parentParms):
       pass
     elif myarg == 'returnidonly':
@@ -57596,7 +57623,7 @@ def createForm(users):
       unknownArgumentExit()
   if not title:
     missingArgumentExit('title')
-  ubody['requests'][0]['updateFormInfo']['updateMask'] = ','.join(ubody['requests'][0]['updateFormInfo']['updateMask'])
+  updateFormRequestUpdateMasks(ubody)
   if 'name' not in body:
     body['name']  = title
   i, count, users = getEntityArgument(users)
@@ -57640,6 +57667,45 @@ def createForm(users):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvPF:
     csvPF.writeCSVfile('Forms')
+
+# gam <UserTypeEntity> update form <DriveFileEntity> [title <String>] [description <String>] [isquiz [Boolean>]
+def updateForm(users):
+  ubody = {'includeFormInResponse': False, 'requests': []}
+  fileIdEntity = getDriveFileEntity()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'title':
+      updateFormInfoRequest(myarg, getString(Cmd.OB_STRING), ubody)
+    elif myarg == 'description':
+      updateFormInfoRequest(myarg, getString(Cmd.OB_STRING, minLen=0), ubody)
+    elif myarg == 'isquiz':
+      updateFormSettingsRequest('isQuiz', getBoolean(), ubody)
+    else:
+      unknownArgumentExit()
+  updateFormRequestUpdateMasks(ubody)
+  if not ubody['requests']:
+    return
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, _, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.FORM)
+    if jcount == 0:
+      continue
+    _, gform = buildGAPIServiceObject(API.FORMS, user, i, count)
+    if not gform:
+      continue
+    Ind.Increment()
+    j = 0
+    for formId in fileIdEntity['list']:
+      j += 1
+      try:
+        callGAPI(gform.forms(), 'batchUpdate',
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                 formId=formId, body=ubody)
+        entityActionPerformed([Ent.USER, user, Ent.FORM, formId], j, jcount)
+      except (GAPI.notFound, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
+    Ind.Decrement()
 
 # gam <UserTypeEntity> print forms <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	[formatjson [quotechar <Character>]]
@@ -60849,6 +60915,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEFILEACL:	updateDriveFileACLs,
       Cmd.ARG_EVENT:		updateCalendarEvents,
       Cmd.ARG_FILEREVISION:	updateFileRevisions,
+      Cmd.ARG_FORM:		updateForm,
       Cmd.ARG_GROUP:		updateUserGroups,
       Cmd.ARG_LABEL:		updateLabels,
       Cmd.ARG_LABELSETTINGS:	updateLabelSettings,

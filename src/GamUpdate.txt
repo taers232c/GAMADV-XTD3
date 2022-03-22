@@ -1,3 +1,11 @@
+6.17.02
+
+Added a command to update basic form settings.
+```
+gam <UserTypeEntity> update form <DriveFileEntity>
+        [title <String>] [description <String>] [isquiz [Boolean>]
+```
+
 6.17.01
 
 Fixed bug in `gam <UserTypeEntity> print forms` that caused a trap when a form has no title.
