@@ -13269,12 +13269,12 @@ def doPrintShowChannelProducts():
   doPrintShowChannelItems(Ent.CHANNEL_PRODUCT)
 
 # gam print channelskus [todrive <ToDriveAttribute>*]
-#	accountid <AccountID> [language <LanguageCode]
+#	accountid <AccountID> [language <LanguageCode] [productid <ProductID>]
 #	[fields <ChannelSKUFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelskus
-#	accountid <AccountID> [language <LanguageCode]
+#	accountid <AccountID> [language <LanguageCode] [productid <ProductID>]
 #	[fields <ChannelSKUFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
