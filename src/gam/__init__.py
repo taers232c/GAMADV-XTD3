@@ -13119,6 +13119,7 @@ def doPrintShowChannelItems(entityType):
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   accountId = customerId = name = None
+  productId = 'products/-'
   kwargs = {'pageSize': channelEntityMap['pageSize']}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -13169,9 +13170,10 @@ def doPrintShowChannelItems(entityType):
       entityName = kwargs['parent'] = name
   try:
     results = callGAPIpages(service, 'list', channelEntityMap['items'],
+                            bailOnInternalError=True,
                             throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
                             fields=f"nextPageToken,{channelEntityMap['items']}", **kwargs)
-  except (GAPI.permissionDenied, GAPI.invalidArgument) as e:
+  except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.internalError) as e:
     entityActionFailedWarning([entityType, entityName], str(e))
     return
   jcount = len(results)
@@ -13225,7 +13227,7 @@ def doPrintShowChannelItems(entityType):
 #	[maxresults <Integer>]
 #	[formatjson]
 def doPrintShowChannelCustomers():
-  doPrintShowChannelItems(Ent.CHANNEL_CUSTOMERS)
+  doPrintShowChannelItems(Ent.CHANNEL_CUSTOMER)
 
 # gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
 #	(accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
@@ -13251,7 +13253,7 @@ def doPrintShowChannelCustomerEntitlements():
 #	[maxresults <Integer>]
 #	[formatjson]
 def doPrintShowChannelOffers():
-  doPrintShowChannelItems(Ent.CHANNEL_OFFERS)
+  doPrintShowChannelItems(Ent.CHANNEL_OFFER)
 
 # gam print channelproducts [todrive <ToDriveAttribute>*]
 #	accountid <AccountID> [language <LanguageCode]
@@ -60112,7 +60114,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CHANNELCUSTOMER:	doPrintShowChannelCustomers,
-      Cmd.ARG_CHANNELCUSTOMERENTITLEMENTS:	doPrintShowChannelCustomerEntitlements,
+      Cmd.ARG_CHANNELCUSTOMERENTITLEMENT:	doPrintShowChannelCustomerEntitlements,
       Cmd.ARG_CHANNELOFFER:	doPrintShowChannelOffers,
       Cmd.ARG_CHANNELPRODUCT:	doPrintShowChannelProducts,
       Cmd.ARG_CHANNELSKU:	doPrintShowChannelSKUs,
@@ -60229,7 +60231,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
       Cmd.ARG_CHANNELCUSTOMER:	doPrintShowChannelCustomers,
-      Cmd.ARG_CHANNELCUSTOMERENTITLEMENTS:	doPrintShowChannelCustomerEntitlements,
+      Cmd.ARG_CHANNELCUSTOMERENTITLEMENT:	doPrintShowChannelCustomerEntitlements,
       Cmd.ARG_CHANNELOFFER:	doPrintShowChannelOffers,
       Cmd.ARG_CHANNELPRODUCT:	doPrintShowChannelProducts,
       Cmd.ARG_CHANNELSKU:	doPrintShowChannelSKUs,
