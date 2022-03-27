@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.17.02'
+__version__ = '6.18.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13000,6 +13000,284 @@ def doPrintShowResoldSubscriptions():
                                 'subscriptionId': subscription['subscriptionId'],
                                 'JSON': json.dumps(cleanJSON(subscription, timeObjects=SUBSCRIPTION_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
     csvPF.writeCSVfile('Resold Subscriptions')
+
+def normalizeChannelAccountID(accountId):
+  if accountId.startswith('accounts/'):
+    return accountId
+  return f'accounts/{accountId}'
+
+def normalizeChannelCustomerID(customerId):
+  if customerId.startswith('customers/'):
+    return customerId
+  return f'customers/{customerId}'
+
+def normalizeChannelProductID(productId):
+  if productId.startswith('products/'):
+    return productId
+  return f'products/{productId}'
+
+CHANNEL_ENTITY_MAP = {
+  Ent.CHANNEL_CUSTOMER:
+    {'titles': ['name', 'orgDisplayName', 'domain'],
+     'timeObjects': ['createTime', 'updateTime'],
+     'items': 'customers',
+     'pageSize': 10,
+     'maxPageSize': 50,
+     'fieldsMap': {
+        'name': 'name',
+        'orgdisplayname': 'orgDisplayName',
+        'orgpostaladdress': 'orgPostalAddress',
+        'primarycontactinfo': 'primaryContactInfo',
+        'alternateemail': 'alternateEmail',
+        'domain': 'domain',
+        'createtime': 'createTime',
+        'updatetime': 'updateTime',
+        'cloudidentityid': 'cloudIdentityId',
+        'languagecode': 'languageCode',
+        'cloudidentityinfo': 'cloudIdentityInfo',
+        'channelpartnerid': 'channelPartnerId',
+        }
+     },
+  Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
+    {'titles': ['name', 'offer', 'createTime', 'updateTime'],
+     'timeObjects': ['createTime', 'updateTime', 'startTime', 'endTime'],
+     'items': 'entitlements',
+     'pageSize': 50,
+     'maxPageSize': 100,
+     'fieldsMap': {
+        'name': 'name',
+        'createtime': 'createTime',
+        'updatetime': 'updateTime',
+        'offer': 'offer',
+        'commitmentsettings': 'commitmentSettings',
+        'provisioningstate': 'provisioningState',
+        'provisionedservice': 'provisionedService',
+        'suspensionreasons': 'suspensionReasons',
+        'purchaseorderid': 'purchaseOrderId',
+        'trialsettings': 'trialSettings',
+        'associationinfo': 'associationInfo',
+        'parameters': 'parameters',
+        }
+     },
+  Ent.CHANNEL_OFFER:
+    {'titles': ['name', 'sku', 'startTime', 'endTime'],
+     'timeObjects': ['startTime', 'endTime'],
+     'items': 'offers',
+     'pageSize': 500,
+     'maxPageSize': 1000,
+     'fieldsMap': {
+        'name': 'name',
+        'marketinginfo': 'marketingInfo',
+        'sku': 'sku',
+        'plan': 'plan',
+        'constraints': 'constraints',
+        'pricebyresources': 'priceByResources',
+        'starttime': 'startTime',
+        'endtime': 'endTime',
+        'parameterdefinitions': 'parameterDefinitions',
+        }
+     },
+  Ent.CHANNEL_PRODUCT:
+    {'titles': ['name'],
+     'timeObjects': None,
+     'items': 'products',
+     'pageSize': 100,
+     'maxPageSize': 1000,
+     'fieldsMap': {
+        'name': 'name',
+        'marketinginfo': 'marketingInfo',
+        }
+     },
+  Ent.CHANNEL_SKU:
+    {'titles': ['name'],
+     'timeObjects': None,
+     'items': 'skus',
+     'pageSize': 100,
+     'maxPageSize': 1000,
+     'fieldsMap': {
+        'name': 'name',
+        'marketinginfo': 'marketingInfo',
+        'product': 'product',
+        }
+     }
+  }
+
+def doPrintShowChannelItems(entityType):
+  cchan = buildGAPIObject(API.CLOUDCHANNEL)
+  if entityType == Ent.CHANNEL_CUSTOMER:
+    service = cchan.accounts().customers()
+  elif entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
+    service = cchan.accounts().customers().entitlements()
+  elif entityType == Ent.CHANNEL_OFFER:
+    service = cchan.accounts().offers()
+  elif entityType == Ent.CHANNEL_PRODUCT:
+    service = cchan.products()
+  else: #Ent.CHANNEL_SKU
+    service = cchan.products().skus()
+  channelEntityMap = CHANNEL_ENTITY_MAP[entityType]
+  csvPF = CSVPrintFile(channelEntityMap['titles'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  fieldsList = []
+  accountId = customerId = name = None
+  kwargs = {'pageSize': channelEntityMap['pageSize']}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'accountid':
+      accountId = normalizeChannelAccountID(getString(Cmd.OB_ACCOUNT_ID))
+    elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg == 'customerid':
+      customerId = normalizeChannelCustomerID(getString(Cmd.OB_CUSTOMER_ID))
+    elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg == 'name':
+      name = getString(Cmd.OB_STRING)
+    elif (entityType in {Ent.CHANNEL_OFFER, Ent.CHANNEL_PRODUCT, Ent.CHANNEL_SKU}) and myarg == 'language':
+      kwargs['languageCode'] = getLanguageCode()
+    elif (entityType in {Ent.CHANNEL_CUSTOMER, Ent.CHANNEL_OFFER}) and myarg == 'filter':
+      kwargs['filter'] = getString(Cmd.OB_STRING)
+    elif entityType == Ent.CHANNEL_SKU:
+      productId = normalizeChannelProductID(getGoogleProduct())
+    elif myarg == 'fields':
+      if not fieldsList:
+        csvPF.AddField('name', channelEntityMap['fieldsMap'], fieldsList)
+      for field in _getFieldsList():
+        if field in channelEntityMap['fields']:
+          csvPF.AddField(field, channelEntityMap['fieldsMap'], fieldsList)
+        else:
+          invalidChoiceExit(field, list(channelEntityMap['fieldsMap']), True)
+    elif myarg == 'maxresults':
+      kwargs['pageSize'] = getInteger(minVal=1, maxVal=channelEntityMap['maxPageSize'])
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if entityType != Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
+    if not accountId:
+      missingArgumentExit('accountid')
+    entityName = accountId
+    if entityType in {Ent.CHANNEL_CUSTOMER, Ent.CHANNEL_OFFER}:
+      kwargs['parent'] = accountId
+    else:
+      kwargs['account'] = accountId
+      if entityType == Ent.CHANNEL_SKU:
+        kwargs['parent'] = productId
+  else:
+    if not name:
+      if not accountId:
+        missingArgumentExit('accountid')
+      if not customerId:
+        missingArgumentExit('customerid')
+      entityName = kwargs['parent'] = f'{accountId}/{customerId}'
+    else:
+      entityName = kwargs['parent'] = name
+  try:
+    results = callGAPIpages(service, 'list', channelEntityMap['items'],
+                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                            fields=f"nextPageToken,{channelEntityMap['items']}", **kwargs)
+  except (GAPI.permissionDenied, GAPI.invalidArgument) as e:
+    entityActionFailedWarning([entityType, entityName], str(e))
+    return
+  jcount = len(results)
+  if not csvPF:
+    if not FJQC.formatJSON:
+      performActionNumItems(jcount, entityType)
+    Ind.Increment()
+    j = 0
+    for item in results:
+      j += 1
+      if not FJQC.formatJSON:
+        Ind.Increment()
+        printEntity([entityType, item['name']], j, jcount)
+        showJSON(None, item, timeObjects=channelEntityMap['timeObjects'])
+        Ind.Decrement()
+      else:
+        printLine(json.dumps(cleanJSON(item, timeObjects=channelEntityMap['timeObjects']),
+                             ensure_ascii=False, sort_keys=False))
+    Ind.Decrement()
+  else:
+    for item in results:
+      row = flattenJSON(item, timeObjects=channelEntityMap['timeObjects'])
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(row)
+      elif csvPF.CheckRowTitles(row):
+        row = {'name': item['name'],
+               'JSON': json.dumps(cleanJSON(item, timeObjects=channelEntityMap['timeObjects']),
+                                  ensure_ascii=False, sort_keys=True)}
+        if entityType == Ent.CHANNEL_CUSTOMER:
+          row.update({'orgDisplayName': item['orgDisplayName'],
+                      'domain': item['domain']})
+        elif entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
+          row.update({'offer': item['offer'],
+                      'createTime': formatLocalTime(item['createTime']),
+                      'updateTime': formatLocalTime(item.get('updateTime', NEVER_TIME))})
+        elif entityType == Ent.CHANNEL_OFFER:
+          row.update({'sku': item['sku'],
+                      'startTime': formatLocalTime(item['startTime']),
+                      'endTime': formatLocalTime(item.get('endTime', NEVER_TIME))})
+        csvPF.WriteRowNoFilter(row)
+    csvPF.writeCSVfile(Ent.Plural(entityType))
+
+# gam print channelcustomers [todrive <ToDriveAttribute>*]
+#	accountid <AccountID> [filter <String>]
+#	[fields <ChannelCustomerFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson [quotechar <Character>]]
+# gam show channelcustomers
+#	accountid <AccountID> [filter <String>]
+#	[fields <ChannelCustomerFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson]
+def doPrintShowChannelCustomers():
+  doPrintShowChannelItems(Ent.CHANNEL_CUSTOMERS)
+
+# gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
+#	(accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+#	[fields <ChannelCustomerEntitlementFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson [quotechar <Character>]]
+# gam show channelcustomerentitlements
+#	(accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+#	[fields <ChannelCustomerEntitlementFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson]
+def doPrintShowChannelCustomerEntitlements():
+  doPrintShowChannelItems(Ent.CHANNEL_CUSTOMER_ENTITLEMENT)
+
+# gam print channeloffers [todrive <ToDriveAttribute>*]
+#	accountid <AccountID> [filter <String>] [language <LanguageCode]
+#	[fields <ChannelOfferFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson [quotechar <Character>]]
+# gam show channeloffers
+#	accountid <AccountID> [filter <String>] [language <LanguageCode]
+#	[fields <ChannelOfferFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson]
+def doPrintShowChannelOffers():
+  doPrintShowChannelItems(Ent.CHANNEL_OFFERS)
+
+# gam print channelproducts [todrive <ToDriveAttribute>*]
+#	accountid <AccountID> [language <LanguageCode]
+#	[fields <ChannelProductFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson [quotechar <Character>]]
+# gam show channelproducts
+#	accountid <AccountID> [language <LanguageCode]
+#	[fields <ChannelProductFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson]
+def doPrintShowChannelProducts():
+  doPrintShowChannelItems(Ent.CHANNEL_PRODUCT)
+
+# gam print channelskus [todrive <ToDriveAttribute>*]
+#	accountid <AccountID> [language <LanguageCode]
+#	[fields <ChannelSKUFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson [quotechar <Character>]]
+# gam show channelskus
+#	accountid <AccountID> [language <LanguageCode]
+#	[fields <ChannelSKUFieldList>]
+#	[maxresults <Integer>]
+#	[formatjson]
+def doPrintShowChannelSKUs():
+  doPrintShowChannelItems(Ent.CHANNEL_SKU)
 
 # gam create domainalias|aliasdomain <DomainAlias> <DomainName>
 def doCreateDomainAlias():
@@ -59833,6 +60111,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
+      Cmd.ARG_CHANNELCUSTOMER:	doPrintShowChannelCustomers,
+      Cmd.ARG_CHANNELCUSTOMERENTITLEMENTS:	doPrintShowChannelCustomerEntitlements,
+      Cmd.ARG_CHANNELOFFER:	doPrintShowChannelOffers,
+      Cmd.ARG_CHANNELPRODUCT:	doPrintShowChannelProducts,
+      Cmd.ARG_CHANNELSKU:	doPrintShowChannelSKUs,
       Cmd.ARG_CHATMEMBER:	doPrintShowChatMembers,
       Cmd.ARG_CHATSPACE:	doPrintShowChatSpaces,
       Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
@@ -59945,6 +60228,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
+      Cmd.ARG_CHANNELCUSTOMER:	doPrintShowChannelCustomers,
+      Cmd.ARG_CHANNELCUSTOMERENTITLEMENTS:	doPrintShowChannelCustomerEntitlements,
+      Cmd.ARG_CHANNELOFFER:	doPrintShowChannelOffers,
+      Cmd.ARG_CHANNELPRODUCT:	doPrintShowChannelProducts,
+      Cmd.ARG_CHANNELSKU:	doPrintShowChannelSKUs,
       Cmd.ARG_CHATMEMBER:	doPrintShowChatMembers,
       Cmd.ARG_CHATSPACE:	doPrintShowChatSpaces,
       Cmd.ARG_CHROMEAPPS:	doPrintShowChromeApps,
@@ -60097,6 +60385,11 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_BROWSERTOKENS:	Cmd.ARG_BROWSERTOKEN,
   Cmd.ARG_BUILDINGS:		Cmd.ARG_BUILDING,
   Cmd.ARG_CHATMEMBERS:		Cmd.ARG_CHATMEMBER,
+  Cmd.ARG_CHANNELCUSTOMERS:	Cmd.ARG_CHANNELCUSTOMER,
+  Cmd.ARG_CHANNELCUSTOMERENTITLEMENTS:	Cmd.ARG_CHANNELCUSTOMERENTITLEMENT,
+  Cmd.ARG_CHANNELOFFERS:	Cmd.ARG_CHANNELOFFER,
+  Cmd.ARG_CHANNELPRODUCTS:	Cmd.ARG_CHANNELPRODUCT,
+  Cmd.ARG_CHANNELSKUS:		Cmd.ARG_CHANNELSKU,
   Cmd.ARG_CHATSPACES:		Cmd.ARG_CHATSPACE,
   Cmd.ARG_CHROMEPOLICIES:	Cmd.ARG_CHROMEPOLICY,
   Cmd.ARG_CHROMESCHEMAS:	Cmd.ARG_CHROMESCHEMA,

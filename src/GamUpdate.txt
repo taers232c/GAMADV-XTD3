@@ -1,3 +1,8 @@
+6.18.00
+
+Added initial support for the Cloud Channel API; this is used by resellers.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Cloud-Channel
+
 6.17.02
 
 Added a command to update basic form settings.

@@ -69,6 +69,11 @@ class GamEntity():
   CALENDAR = 'cale'
   CALENDAR_ACL = 'cacl'
   CALENDAR_SETTINGS = 'cset'
+  CHANNEL_CUSTOMER = 'chcu'
+  CHANNEL_CUSTOMER_ENTITLEMENT = 'chce'
+  CHANNEL_OFFER = 'chof'
+  CHANNEL_PRODUCT = 'chpr'
+  CHANNEL_SKU = 'chsk'
   CHAT_MEMBER = 'chme'
   CHAT_MESSAGE = 'chms'
   CHAT_SPACE = 'chsp'
@@ -351,6 +356,11 @@ class GamEntity():
     CALENDAR: ['Calendars', 'Calendar'],
     CALENDAR_ACL: ['Calendar ACLs', 'Calendar ACL'],
     CALENDAR_SETTINGS: ['Calendar Settings', 'Calendar Settings'],
+    CHANNEL_CUSTOMER: ['Channel Customers', 'Channel Customer'],
+    CHANNEL_CUSTOMER_ENTITLEMENT: ['Channel Customer Entitlements', 'Channel Customer Entitlement'],
+    CHANNEL_OFFER: ['Channel Offers', 'Channel Offer'],
+    CHANNEL_PRODUCT: ['Channel Products', 'Channel Product'],
+    CHANNEL_SKU: ['Channel SKUs', 'Channel SKU'],
     CHAT_MESSAGE: ['Chat Messages', 'Chat Message'],
     CHAT_MEMBER: ['Chat Members', 'Chat Member'],
     CHAT_SPACE: ['Chat Spaces', 'Chat Space'],

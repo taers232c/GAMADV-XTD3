@@ -281,6 +281,7 @@ If an item contains spaces, it should be surrounded by ".
 ## Named items
 
 <AccessToken> ::= <String>
+<AccountID> ::= <String>
 <AlertID> ::= <String>
 <APIScopeURL> ::= <String>
 <APPID> ::= <String>
@@ -2055,6 +2056,116 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
         [start <Date>] [end <Date>]
         [formatjson [quotechar <Character>]]
 
+# Cloud Channel
+
+<ChannelCustomerField> ::=
+        alternateemail |
+        channelpartnerid |
+        cloudidentityid |
+        cloudidentityinfo |
+        createtime |
+        domain |
+        languagecode |
+        name |
+        orgdisplayname |
+        orgpostaladdress |
+        primarycontactinfo |
+        updatetime
+<ChannelCustomerFieldList> ::= "<ChannelCustomerField>(,<ChannelCustomerField>)*"
+
+gam print channelcustomers [todrive <ToDriveAttribute>*]
+        accountid <AccountID> [filter <String>]
+        [fields <ChannelCustomerFieldList>]
+	[maxresults <Integer>]
+        [formatjson [quotechar <Character>]]
+gam show channelcustomers
+        accountid <AccountID> [filter <String>]
+        [fields <ChannelCustomerFieldList>]
+	[maxresults <Integer>]
+        [formatjson]
+
+<ChannelCustomerEntitlementField> ::=
+        associationinfo |
+        commitmentsettings |
+        createtime |
+        name |
+        offer |
+        parameters |
+        provisionedservice |
+        provisioningstate |
+        purchaseorderid |
+        suspensionreasons |
+        trialsettings |
+        updatetime
+<ChannelCustomerEntitlementFieldList> ::= "<ChannelCustomerEntitlementField>(,<ChannelCustomerEntitlementField>)*"
+
+gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
+        (accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+        [fields <ChannelCustomerEntitlementsFieldList>]
+	[maxresults <Integer>]
+        [formatjson [quotechar <Character>]]
+gam show channelcustomerentitlements
+        (accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+        [fields <ChannelCustomerEntitlementsFieldList>]
+	[maxresults <Integer>]
+        [formatjson]
+
+<ChannelCustomerOfferField> ::=
+        constraints |
+        endtime |
+        marketinginfo |
+        name |
+        parameterdefinitions |
+        plan |
+        pricebyresources |
+        sku |
+        starttime
+<ChannelOfferFieldList> ::= "<ChannelOfferField>(,<ChannelOfferField>)*"
+
+gam print channeloffers [todrive <ToDriveAttribute>*]
+        accountid <AccountID> [filter <String>] [language <LanguageCode]
+        [fields <ChannelOfferFieldList>]
+	[maxresults <Integer>]
+        [formatjson [quotechar <Character>]]
+gam show channeloffers
+        accountid <AccountID> [filter <String>] [language <LanguageCode]
+        [fields <ChannelOfferFieldList>]
+	[maxresults <Integer>]
+        [formatjson]
+
+<ChannelProductField> ::=
+        marketinginfo |
+        name
+<ChannelProductFieldList> ::= "<ChannelProductField>(,<ChannelProductField>)*"
+
+gam print channelproducts [todrive <ToDriveAttribute>*]
+        accountid <AccountID> [language <LanguageCode]
+        [fields <ChannelProductFieldList>]
+	[maxresults <Integer>]
+        [formatjson [quotechar <Character>]]
+gam show channelproducts
+        accountid <AccountID> [language <LanguageCode]
+        [fields <ChannelProductFieldList>]
+	[maxresults <Integer>]
+        [formatjson]
+
+<ChannelSKUField> ::=
+        marketinginfo |
+        name |
+        product
+<ChannelSKUFieldList> ::= "<ChannelSKUField>(,<ChannelSKUField>)*"
+
+gam print channelskus [todrive <ToDriveAttribute>*]
+        accountid <AccountID> [language <LanguageCode]
+        [fields <ChannelSKUFieldList>]
+	[maxresults <Integer>]
+        [formatjson [quotechar <Character>]]
+gam show channelskus
+        accountid <AccountID> [language <LanguageCode]
+        [fields <ChannelSKUFieldList>]
+	[maxresults <Integer>]
+        [formatjson]
+
 # Contacts - Delegation
 
 gam <UserTypeEntity> create contactdelegate <UserEntity>
@@ -3447,6 +3558,7 @@ gam print resoldsubscriptions [todrive <ToDriveAttribute>*]
         [customerid <CustomerID>] [customer_auth_token <String>] [customer_prefix <String>]
         [maxresults <Number>]
         [formatjson [quotechar <Character>]]
+
 # Resource Calendars
 
 <BuildingFieldName> ::=

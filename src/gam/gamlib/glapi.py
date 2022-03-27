@@ -29,6 +29,7 @@ CHROMEMANAGEMENT_TELEMETRY = 'chromemanagementtelemetry'
 CHROMEPOLICY = 'chromepolicy'
 CHROMEVERSIONHISTORY = 'versionhistory'
 CLASSROOM = 'classroom'
+CLOUDCHANNEL = 'cloudchannel'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
 CLOUDIDENTITY_GROUPS = 'cloudidentitygroups'
 CLOUDIDENTITY_GROUPS_BETA = 'cloudidentitygroupsbeta'
@@ -122,6 +123,7 @@ PROJECT_APIS = [
   'chromemanagement.googleapis.com',
   'chromepolicy.googleapis.com',
   'classroom.googleapis.com',
+  'cloudchannel.googleapis.com',
   'cloudidentity.googleapis.com',
   'cloudresourcemanager.googleapis.com',
   'contacts.googleapis.com',
@@ -156,6 +158,7 @@ _INFO = {
   CHROMEMANAGEMENT_TELEMETRY: {'name': 'Chrome Management API - Telemetry', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'chromemanagement'},
   CHROMEPOLICY: {'name': 'Chrome Policy API', 'version': 'v1', 'v2discovery': True},
   CHROMEVERSIONHISTORY: {'name': 'Chrome Version History API', 'version': 'v1', 'v2discovery': True},
+  CLOUDCHANNEL: {'name': 'Channel Channel API', 'version': 'v1', 'v2discovery': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS_BETA: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
@@ -266,6 +269,11 @@ _CLIENT_SCOPES = [
    'api': CLASSROOM,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/classroom.rosters'},
+  {'name': 'Cloud Channel API',
+   'api': CLOUDCHANNEL,
+   'subscopes': READONLY,
+   'offByDefault': True,
+   'scope': 'https://www.googleapis.com/auth/apps.order'},
   {'name': 'Cloud Identity Groups API',
    'api': CLOUDIDENTITY_GROUPS,
    'subscopes': READONLY,
