@@ -4,7 +4,7 @@ export gampath="dist/gamadv-xtd3"
 rm -rf $gampath
 mkdir -p $gampath
 export gampath=$(readlink -e $gampath)
-pyinstaller --clean --noupx -F --distpath $gampath gam.spec
+pyinstaller --clean -F --distpath $gampath gam.spec
 export gam="${gampath}/gam"
 echo "running compiled GAM..."
 $gam version
