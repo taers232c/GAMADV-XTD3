@@ -111,7 +111,7 @@ if ([ "${TRAVIS_DIST}" == "precise" ] || [ "${TRAVIS_DIST}" == "trusty" ] || [ "
   $pip install staticx
 fi
 
-#$pip install --upgrade git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
+$pip install --upgrade git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
 
 cd $mypath
 
@@ -120,5 +120,4 @@ $pip install --upgrade pip
 $pip install --upgrade packaging
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirements.txt
-$pip install --upgrade pyinstaller
 $pip install wheel
