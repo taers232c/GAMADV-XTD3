@@ -2074,12 +2074,12 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
 <ChannelCustomerFieldList> ::= "<ChannelCustomerField>(,<ChannelCustomerField>)*"
 
 gam print channelcustomers [todrive <ToDriveAttribute>*]
-        accountid <AccountID> [filter <String>]
+        [accountid <AccountID>] [filter <String>]
         [fields <ChannelCustomerFieldList>]
 	[maxresults <Integer>]
         [formatjson [quotechar <Character>]]
 gam show channelcustomers
-        accountid <AccountID> [filter <String>]
+        [accountid <AccountID>] [filter <String>]
         [fields <ChannelCustomerFieldList>]
 	[maxresults <Integer>]
         [formatjson]
@@ -2100,12 +2100,12 @@ gam show channelcustomers
 <ChannelCustomerEntitlementFieldList> ::= "<ChannelCustomerEntitlementField>(,<ChannelCustomerEntitlementField>)*"
 
 gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
-        (accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID>/customers/<CustomerID>)
+        ([accountid <AccountID>] customerid <CustomerID>)|(name accounts/<AccountID>/customers/<CustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
 	[maxresults <Integer>]
         [formatjson [quotechar <Character>]]
 gam show channelcustomerentitlements
-        (accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+        ([accountid <AccountID>] customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
 	[maxresults <Integer>]
         [formatjson]
@@ -2123,12 +2123,12 @@ gam show channelcustomerentitlements
 <ChannelOfferFieldList> ::= "<ChannelOfferField>(,<ChannelOfferField>)*"
 
 gam print channeloffers [todrive <ToDriveAttribute>*]
-        accountid <AccountID> [filter <String>] [language <LanguageCode>]
+        [accountid <AccountID>] [filter <String>] [language <LanguageCode>]
         [fields <ChannelOfferFieldList>]
 	[maxresults <Integer>]
         [formatjson [quotechar <Character>]]
 gam show channeloffers
-        accountid <AccountID> [filter <String>] [language <LanguageCode>]
+        [accountid <AccountID>] [filter <String>] [language <LanguageCode>]
         [fields <ChannelOfferFieldList>]
 	[maxresults <Integer>]
         [formatjson]
@@ -2139,12 +2139,12 @@ gam show channeloffers
 <ChannelProductFieldList> ::= "<ChannelProductField>(,<ChannelProductField>)*"
 
 gam print channelproducts [todrive <ToDriveAttribute>*]
-        accountid <AccountID> [language <LanguageCode>]
+        [accountid <AccountID>] [language <LanguageCode>]
         [fields <ChannelProductFieldList>]
 	[maxresults <Integer>]
         [formatjson [quotechar <Character>]]
 gam show channelproducts
-        accountid <AccountID> [language <LanguageCode>]
+        [accountid <AccountID>] [language <LanguageCode>]
         [fields <ChannelProductFieldList>]
 	[maxresults <Integer>]
         [formatjson]
@@ -2156,12 +2156,12 @@ gam show channelproducts
 <ChannelSKUFieldList> ::= "<ChannelSKUField>(,<ChannelSKUField>)*"
 
 gam print channelskus [todrive <ToDriveAttribute>*]
-        accountid <AccountID> [language <LanguageCode>] [productid <ProductID>]
+        [accountid <AccountID>] [language <LanguageCode>] [productid <ProductID>]
         [fields <ChannelSKUFieldList>]
 	[maxresults <Integer>]
         [formatjson [quotechar <Character>]]
 gam show channelskus
-        accountid <AccountID> [language <LanguageCode>] [productid <ProductID>]
+        [accountid <AccountID>] [language <LanguageCode>] [productid <ProductID>]
         [fields <ChannelSKUFieldList>]
 	[maxresults <Integer>]
         [formatjson]

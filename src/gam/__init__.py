@@ -13021,9 +13021,9 @@ CHANNEL_ENTITY_MAP = {
     {'titles': ['name', 'orgDisplayName', 'domain'],
      'timeObjects': ['createTime', 'updateTime'],
      'items': 'customers',
-     'pageSize': 10,
+     'pageSize': 50,
      'maxPageSize': 50,
-     'fieldsMap': {
+     'fields': {
         'name': 'name',
         'orgdisplayname': 'orgDisplayName',
         'orgpostaladdress': 'orgPostalAddress',
@@ -13042,9 +13042,9 @@ CHANNEL_ENTITY_MAP = {
     {'titles': ['name', 'offer', 'createTime', 'updateTime'],
      'timeObjects': ['createTime', 'updateTime', 'startTime', 'endTime'],
      'items': 'entitlements',
-     'pageSize': 50,
+     'pageSize': 100,
      'maxPageSize': 100,
-     'fieldsMap': {
+     'fields': {
         'name': 'name',
         'createtime': 'createTime',
         'updatetime': 'updateTime',
@@ -13063,9 +13063,9 @@ CHANNEL_ENTITY_MAP = {
     {'titles': ['name', 'sku', 'startTime', 'endTime'],
      'timeObjects': ['startTime', 'endTime'],
      'items': 'offers',
-     'pageSize': 500,
+     'pageSize': 1000,
      'maxPageSize': 1000,
-     'fieldsMap': {
+     'fields': {
         'name': 'name',
         'marketinginfo': 'marketingInfo',
         'sku': 'sku',
@@ -13081,9 +13081,9 @@ CHANNEL_ENTITY_MAP = {
     {'titles': ['name'],
      'timeObjects': None,
      'items': 'products',
-     'pageSize': 100,
+     'pageSize': 1000,
      'maxPageSize': 1000,
-     'fieldsMap': {
+     'fields': {
         'name': 'name',
         'marketinginfo': 'marketingInfo',
         }
@@ -13092,9 +13092,9 @@ CHANNEL_ENTITY_MAP = {
     {'titles': ['name'],
      'timeObjects': None,
      'items': 'skus',
-     'pageSize': 100,
+     'pageSize': 1000,
      'maxPageSize': 1000,
-     'fieldsMap': {
+     'fields': {
         'name': 'name',
         'marketinginfo': 'marketingInfo',
         'product': 'product',
@@ -13136,22 +13136,22 @@ def doPrintShowChannelItems(entityType):
     elif (entityType in {Ent.CHANNEL_CUSTOMER, Ent.CHANNEL_OFFER}) and myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING)
     elif entityType == Ent.CHANNEL_SKU:
-      productId = normalizeChannelProductID(getGoogleProduct())
+      productId = normalizeChannelProductID(getString(Cmd.OB_PRODUCT_ID))
     elif myarg == 'fields':
       if not fieldsList:
-        csvPF.AddField('name', channelEntityMap['fieldsMap'], fieldsList)
+        csvPF.AddField('name', channelEntityMap['fields'], fieldsList)
       for field in _getFieldsList():
         if field in channelEntityMap['fields']:
-          csvPF.AddField(field, channelEntityMap['fieldsMap'], fieldsList)
+          csvPF.AddField(field, channelEntityMap['fields'], fieldsList)
         else:
-          invalidChoiceExit(field, list(channelEntityMap['fieldsMap']), True)
+          invalidChoiceExit(field, list(channelEntityMap['fields']), True)
     elif myarg == 'maxresults':
       kwargs['pageSize'] = getInteger(minVal=1, maxVal=channelEntityMap['maxPageSize'])
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if entityType != Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
     if not accountId:
-      missingArgumentExit('accountid')
+      accountId = normalizeChannelAccountID(GC.Values[GC.CUSTOMER_ID])
     entityName = accountId
     if entityType in {Ent.CHANNEL_CUSTOMER, Ent.CHANNEL_OFFER}:
       kwargs['parent'] = accountId
@@ -13171,9 +13171,9 @@ def doPrintShowChannelItems(entityType):
   try:
     results = callGAPIpages(service, 'list', channelEntityMap['items'],
                             bailOnInternalError=True,
-                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST],
                             fields=f"nextPageToken,{channelEntityMap['items']}", **kwargs)
-  except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.internalError) as e:
+  except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.internalError) as e:
     entityActionFailedWarning([entityType, entityName], str(e))
     return
   jcount = len(results)
@@ -13217,12 +13217,12 @@ def doPrintShowChannelItems(entityType):
     csvPF.writeCSVfile(Ent.Plural(entityType))
 
 # gam print channelcustomers [todrive <ToDriveAttribute>*]
-#	accountid <AccountID> [filter <String>]
+#	[accountid <AccountID>] [filter <String>]
 #	[fields <ChannelCustomerFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelcustomers
-#	accountid <AccountID> [filter <String>]
+#	[accountid <AccountID>] [filter <String>]
 #	[fields <ChannelCustomerFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
@@ -13230,12 +13230,12 @@ def doPrintShowChannelCustomers():
   doPrintShowChannelItems(Ent.CHANNEL_CUSTOMER)
 
 # gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
-#	(accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+#	([accountid <AccountID>] customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
 #	[fields <ChannelCustomerEntitlementFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelcustomerentitlements
-#	(accountid <AccountID> customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+#	([accountid <AccountID>] customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
 #	[fields <ChannelCustomerEntitlementFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
@@ -13243,12 +13243,12 @@ def doPrintShowChannelCustomerEntitlements():
   doPrintShowChannelItems(Ent.CHANNEL_CUSTOMER_ENTITLEMENT)
 
 # gam print channeloffers [todrive <ToDriveAttribute>*]
-#	accountid <AccountID> [filter <String>] [language <LanguageCode]
+#	[accountid <AccountID>] [filter <String>] [language <LanguageCode]
 #	[fields <ChannelOfferFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channeloffers
-#	accountid <AccountID> [filter <String>] [language <LanguageCode]
+#	[accountid <AccountID>] [filter <String>] [language <LanguageCode]
 #	[fields <ChannelOfferFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
@@ -13256,12 +13256,12 @@ def doPrintShowChannelOffers():
   doPrintShowChannelItems(Ent.CHANNEL_OFFER)
 
 # gam print channelproducts [todrive <ToDriveAttribute>*]
-#	accountid <AccountID> [language <LanguageCode]
+#	[accountid <AccountID>] [language <LanguageCode]
 #	[fields <ChannelProductFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelproducts
-#	accountid <AccountID> [language <LanguageCode]
+#	[accountid <AccountID>] [language <LanguageCode]
 #	[fields <ChannelProductFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
@@ -13269,12 +13269,12 @@ def doPrintShowChannelProducts():
   doPrintShowChannelItems(Ent.CHANNEL_PRODUCT)
 
 # gam print channelskus [todrive <ToDriveAttribute>*]
-#	accountid <AccountID> [language <LanguageCode] [productid <ProductID>]
+#	[accountid <AccountID>] [language <LanguageCode] [productid <ProductID>]
 #	[fields <ChannelSKUFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelskus
-#	accountid <AccountID> [language <LanguageCode] [productid <ProductID>]
+#	[accountid <AccountID>] [language <LanguageCode] [productid <ProductID>]
 #	[fields <ChannelSKUFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
