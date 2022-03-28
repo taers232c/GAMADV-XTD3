@@ -13135,7 +13135,7 @@ def doPrintShowChannelItems(entityType):
       kwargs['languageCode'] = getLanguageCode()
     elif (entityType in {Ent.CHANNEL_CUSTOMER, Ent.CHANNEL_OFFER}) and myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING)
-    elif entityType == Ent.CHANNEL_SKU:
+    elif (entityType == Ent.CHANNEL_SKU) and myarg == 'productid':
       productId = normalizeChannelProductID(getString(Cmd.OB_PRODUCT_ID))
     elif myarg == 'fields':
       if not fieldsList:
