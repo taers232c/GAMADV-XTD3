@@ -17,7 +17,8 @@ env:
     - MIN_OPENSSL_VERSION=$LINUX_MIN_OPENSSL_VERSION
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.10
-    - PYINSTALLER_VERSION=669313ba4c5c1403ebeb335c35cb68c8c6ba5dd4
+#    - PYINSTALLER_VERSION=669313ba4c5c1403ebeb335c35cb68c8c6ba5dd4
+    - PYINSTALLER_VERSION=e7816615e5097525ff3848188cb3789dd18dcffc
 
 cache:
   directories:
@@ -52,13 +53,13 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=true
-    - os: linux
-      name: "Linux 64-bit Precise"
-      dist: precise
-      language: shell
-      env:
-        - DIST_UPGRADE=false
-        - PATCHELF_VERSION=0.9
+#    - os: linux
+#      name: "Linux 64-bit Precise"
+#      dist: precise
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=false
+#        - PATCHELF_VERSION=0.9
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal

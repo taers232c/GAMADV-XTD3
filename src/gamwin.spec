@@ -39,6 +39,6 @@ exe = EXE(pyz,
           a.datas,
           name='gam',
           debug=False,
-          strip=True,
+          strip=False,
           upx=False,
           console=True )

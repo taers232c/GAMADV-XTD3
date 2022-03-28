@@ -3,7 +3,7 @@ export gampath="dist/gamadv-xtd3"
 rm -rf $gampath
 mkdir -p $gampath
 export gampath=$(readlink -e $gampath)
-$python -OO -m PyInstaller --clean -F --distpath $gampath gam.spec
+$python -OO -m PyInstaller --clean --distpath $gampath gam.spec
 export gam="${gampath}/gam"
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
 cp LICENSE $gampath/

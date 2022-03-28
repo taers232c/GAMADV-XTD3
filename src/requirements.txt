@@ -11,4 +11,3 @@ importlib.metadata; python_version < '3.8'
 passlib
 python-dateutil
 pathvalidate
-setuptools == 60.10.0
