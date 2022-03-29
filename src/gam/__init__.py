@@ -13161,11 +13161,12 @@ def doPrintShowChannelItems(entityType):
         kwargs['parent'] = productId
   else:
     entityName = kwargs['parent'] = name if name else f'{resellerId}/{customerId}'
+  fields = getItemFieldsFromFieldsList(channelEntityMap['items'], fieldsList)
   try:
     results = callGAPIpages(service, 'list', channelEntityMap['items'],
                             bailOnInternalError=True,
                             throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST],
-                            fields=f"nextPageToken,{channelEntityMap['items']}", **kwargs)
+                            fields=fields, **kwargs)
   except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.internalError) as e:
     entityActionFailedWarning([entityType, entityName], str(e))
     return
