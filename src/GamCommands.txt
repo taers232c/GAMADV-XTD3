@@ -281,7 +281,6 @@ If an item contains spaces, it should be surrounded by ".
 ## Named items
 
 <AccessToken> ::= <String>
-<AccountID> ::= <String>
 <AlertID> ::= <String>
 <APIScopeURL> ::= <String>
 <APPID> ::= <String>
@@ -455,6 +454,7 @@ If an item contains spaces, it should be surrounded by ".
 <QueryVaultCorpus> ::= <String>
         See: https://developers.google.com/vault/reference/rest/v1/matters.holds#CorpusQuery
 <RequestID> ::= <String>
+<ResellerID> ::= <String>
 <ResourceID> ::= <String>
 <SchemaName> ::= <String>
 <Section> ::= <String>
@@ -2074,14 +2074,14 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
 <ChannelCustomerFieldList> ::= "<ChannelCustomerField>(,<ChannelCustomerField>)*"
 
 gam print channelcustomers [todrive <ToDriveAttribute>*]
-        [accountid <AccountID>] [filter <String>]
+        [resellerid <ResellerID>] [filter <String>]
         [fields <ChannelCustomerFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelcustomers
-        [accountid <AccountID>] [filter <String>]
+        [resellerid <ResellerID>] [filter <String>]
         [fields <ChannelCustomerFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson]
 
 <ChannelCustomerEntitlementField> ::=
@@ -2100,14 +2100,14 @@ gam show channelcustomers
 <ChannelCustomerEntitlementFieldList> ::= "<ChannelCustomerEntitlementField>(,<ChannelCustomerEntitlementField>)*"
 
 gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
-        ([accountid <AccountID>] customerid <CustomerID>)|(name accounts/<AccountID>/customers/<CustomerID>)
+        ([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<ResellerID>/customers/<CustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelcustomerentitlements
-        ([accountid <AccountID>] customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+        ([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<AccountID/customers/<CustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson]
 
 <ChannelCustomerOfferField> ::=
@@ -2123,14 +2123,14 @@ gam show channelcustomerentitlements
 <ChannelOfferFieldList> ::= "<ChannelOfferField>(,<ChannelOfferField>)*"
 
 gam print channeloffers [todrive <ToDriveAttribute>*]
-        [accountid <AccountID>] [filter <String>] [language <LanguageCode>]
+        [resellerid <ResellerID>] [filter <String>] [language <LanguageCode>]
         [fields <ChannelOfferFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channeloffers
-        [accountid <AccountID>] [filter <String>] [language <LanguageCode>]
+        [resellerid <ResellerID>] [filter <String>] [language <LanguageCode>]
         [fields <ChannelOfferFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson]
 
 <ChannelProductField> ::=
@@ -2139,14 +2139,14 @@ gam show channeloffers
 <ChannelProductFieldList> ::= "<ChannelProductField>(,<ChannelProductField>)*"
 
 gam print channelproducts [todrive <ToDriveAttribute>*]
-        [accountid <AccountID>] [language <LanguageCode>]
+        [resellerid <ResellerID>] [language <LanguageCode>]
         [fields <ChannelProductFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelproducts
-        [accountid <AccountID>] [language <LanguageCode>]
+        [resellerid <ResellerID>] [language <LanguageCode>]
         [fields <ChannelProductFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson]
 
 <ChannelSKUField> ::=
@@ -2156,14 +2156,14 @@ gam show channelproducts
 <ChannelSKUFieldList> ::= "<ChannelSKUField>(,<ChannelSKUField>)*"
 
 gam print channelskus [todrive <ToDriveAttribute>*]
-        [accountid <AccountID>] [language <LanguageCode>] [productid <ProductID>]
+        [resellerid <ResellerID>] [language <LanguageCode>] [productid <ProductID>]
         [fields <ChannelSKUFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelskus
-        [accountid <AccountID>] [language <LanguageCode>] [productid <ProductID>]
+        [resellerid <ResellerID>] [language <LanguageCode>] [productid <ProductID>]
         [fields <ChannelSKUFieldList>]
-	[maxresults <Integer>]
+	[maxresults <Number>]
         [formatjson]
 
 # Contacts - Delegation

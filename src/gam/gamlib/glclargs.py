@@ -658,7 +658,6 @@ class GamCLArgs():
 
 # Object BNF names
   OB_ACCESS_TOKEN = 'AccessToken'
-  OB_ACCOUNT_ID = 'AccountID'
   OB_ACL_SCOPE = 'ACLScope'
   OB_ACL_SCOPE_ENTITY = 'ACLScopeEntity'
   OB_ALERT_ID = 'AlertID'
@@ -801,6 +800,7 @@ class GamCLArgs():
   OB_QUERY_LIST = 'QueryList'
   OB_RECURRENCE = 'RRULE EXRULE RDATE and EXDATE lines'
   OB_REQUEST_ID = 'RequestID'
+  OB_RESELLER_ID = 'ResellerID'
   OB_RESOURCE_ENTITY = 'ResourceEntity'
   OB_RESOURCE_ID = 'ResourceID'
   OB_RE_PATTERN = 'REPattern'

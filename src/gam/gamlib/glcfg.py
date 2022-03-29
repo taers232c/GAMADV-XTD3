@@ -172,6 +172,8 @@ OAUTH2SERVICE_JSON = 'oauth2service_json'
 PEOPLE_MAX_RESULTS = 'people_max_results'
 # Quick info user: nogroups nolicenses noschemas
 QUICK_INFO_USER = 'quick_info_user'
+# resellerId from gam.cfg or retrieved from Google
+RESELLER_ID = 'reseller_id'
 # Default section to use for processing
 SECTION = 'section'
 # Show API calls retry data
@@ -301,6 +303,7 @@ Defaults = {
   OAUTH2SERVICE_JSON: FN_OAUTH2SERVICE_JSON,
   PEOPLE_MAX_RESULTS: '100',
   QUICK_INFO_USER: FALSE,
+  RESELLER_ID: '',
   SECTION: '',
   SHOW_API_CALLS_RETRY_DATA: FALSE,
   SHOW_COMMANDS: FALSE,
@@ -426,6 +429,7 @@ VAR_INFO = {
   OAUTH2SERVICE_JSON: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: 'OAUTHSERVICEFILE', VAR_ACCESS: os.R_OK | os.W_OK},
   PEOPLE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, 1000)},
   QUICK_INFO_USER: {VAR_TYPE: TYPE_BOOLEAN},
+  RESELLER_ID: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   SECTION: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   SHOW_API_CALLS_RETRY_DATA: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_COMMANDS: {VAR_TYPE: TYPE_BOOLEAN},

@@ -13001,10 +13001,10 @@ def doPrintShowResoldSubscriptions():
                                 'JSON': json.dumps(cleanJSON(subscription, timeObjects=SUBSCRIPTION_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
     csvPF.writeCSVfile('Resold Subscriptions')
 
-def normalizeChannelAccountID(accountId):
-  if accountId.startswith('accounts/'):
-    return accountId
-  return f'accounts/{accountId}'
+def normalizeChannelResellerID(resellerId):
+  if resellerId.startswith('accounts/'):
+    return resellerId
+  return f'accounts/{resellerId}'
 
 def normalizeChannelCustomerID(customerId):
   if customerId.startswith('customers/'):
@@ -13118,15 +13118,17 @@ def doPrintShowChannelItems(entityType):
   csvPF = CSVPrintFile(channelEntityMap['titles'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
-  accountId = customerId = name = None
+  resellerId = normalizeChannelResellerID(GC.Values[GC.RESELLER_ID]) if GC.Values[GC.RESELLER_ID] else GC.Values[GC.CUSTOMER_ID]
+  customerId = normalizeChannelCustomererID(GC.Values[GC.CUSTOMER_ID])
+  name = None
   productId = 'products/-'
   kwargs = {'pageSize': channelEntityMap['pageSize']}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'accountid':
-      accountId = normalizeChannelAccountID(getString(Cmd.OB_ACCOUNT_ID))
+    elif myarg == 'resellerid':
+      resellerId = normalizeChannelResellerID(getString(Cmd.OB_RESELLER_ID))
     elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg == 'customerid':
       customerId = normalizeChannelCustomerID(getString(Cmd.OB_CUSTOMER_ID))
     elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg == 'name':
@@ -13150,24 +13152,15 @@ def doPrintShowChannelItems(entityType):
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if entityType != Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
-    if not accountId:
-      accountId = normalizeChannelAccountID(GC.Values[GC.CUSTOMER_ID])
-    entityName = accountId
+    entityName = resellerId
     if entityType in {Ent.CHANNEL_CUSTOMER, Ent.CHANNEL_OFFER}:
-      kwargs['parent'] = accountId
+      kwargs['parent'] = resellerId
     else:
-      kwargs['account'] = accountId
+      kwargs['account'] = resellerId
       if entityType == Ent.CHANNEL_SKU:
         kwargs['parent'] = productId
   else:
-    if not name:
-      if not accountId:
-        missingArgumentExit('accountid')
-      if not customerId:
-        missingArgumentExit('customerid')
-      entityName = kwargs['parent'] = f'{accountId}/{customerId}'
-    else:
-      entityName = kwargs['parent'] = name
+    entityName = kwargs['parent'] = name if name else f'{resellerId}/{customerId}'
   try:
     results = callGAPIpages(service, 'list', channelEntityMap['items'],
                             bailOnInternalError=True,
@@ -13217,12 +13210,12 @@ def doPrintShowChannelItems(entityType):
     csvPF.writeCSVfile(Ent.Plural(entityType))
 
 # gam print channelcustomers [todrive <ToDriveAttribute>*]
-#	[accountid <AccountID>] [filter <String>]
+#	[resellerid <ResellerID>] [filter <String>]
 #	[fields <ChannelCustomerFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelcustomers
-#	[accountid <AccountID>] [filter <String>]
+#	[resellerid <ResellerID>] [filter <String>]
 #	[fields <ChannelCustomerFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
@@ -13230,12 +13223,12 @@ def doPrintShowChannelCustomers():
   doPrintShowChannelItems(Ent.CHANNEL_CUSTOMER)
 
 # gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
-#	([accountid <AccountID>] customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+#	([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<AccountID/customers/<CustomerID>)
 #	[fields <ChannelCustomerEntitlementFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelcustomerentitlements
-#	([accountid <AccountID>] customerid <CustomerID>)|(name accounts/<AccountID/customers/<CustomerID>)
+#	([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<AccountID/customers/<CustomerID>)
 #	[fields <ChannelCustomerEntitlementFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
@@ -13243,12 +13236,12 @@ def doPrintShowChannelCustomerEntitlements():
   doPrintShowChannelItems(Ent.CHANNEL_CUSTOMER_ENTITLEMENT)
 
 # gam print channeloffers [todrive <ToDriveAttribute>*]
-#	[accountid <AccountID>] [filter <String>] [language <LanguageCode]
+#	[resellerid <ResellerID>] [filter <String>] [language <LanguageCode]
 #	[fields <ChannelOfferFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channeloffers
-#	[accountid <AccountID>] [filter <String>] [language <LanguageCode]
+#	[resellerid <ResellerID>] [filter <String>] [language <LanguageCode]
 #	[fields <ChannelOfferFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
@@ -13256,12 +13249,12 @@ def doPrintShowChannelOffers():
   doPrintShowChannelItems(Ent.CHANNEL_OFFER)
 
 # gam print channelproducts [todrive <ToDriveAttribute>*]
-#	[accountid <AccountID>] [language <LanguageCode]
+#	[resellerid <ResellerID>] [language <LanguageCode]
 #	[fields <ChannelProductFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelproducts
-#	[accountid <AccountID>] [language <LanguageCode]
+#	[resellerid <ResellerID>] [language <LanguageCode]
 #	[fields <ChannelProductFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
@@ -13269,12 +13262,12 @@ def doPrintShowChannelProducts():
   doPrintShowChannelItems(Ent.CHANNEL_PRODUCT)
 
 # gam print channelskus [todrive <ToDriveAttribute>*]
-#	[accountid <AccountID>] [language <LanguageCode] [productid <ProductID>]
+#	[resellerid <ResellerID>] [language <LanguageCode] [productid <ProductID>]
 #	[fields <ChannelSKUFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelskus
-#	[accountid <AccountID>] [language <LanguageCode] [productid <ProductID>]
+#	[resellerid <ResellerID>] [language <LanguageCode] [productid <ProductID>]
 #	[fields <ChannelSKUFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]
