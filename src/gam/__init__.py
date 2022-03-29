@@ -13119,7 +13119,7 @@ def doPrintShowChannelItems(entityType):
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   resellerId = normalizeChannelResellerID(GC.Values[GC.RESELLER_ID]) if GC.Values[GC.RESELLER_ID] else GC.Values[GC.CUSTOMER_ID]
-  customerId = normalizeChannelCustomererID(GC.Values[GC.CUSTOMER_ID])
+  customerId = normalizeChannelCustomerID(GC.Values[GC.CUSTOMER_ID])
   name = None
   productId = 'products/-'
   kwargs = {'pageSize': channelEntityMap['pageSize']}
