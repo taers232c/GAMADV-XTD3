@@ -13115,7 +13115,8 @@ def doPrintShowChannelItems(entityType):
   else: #Ent.CHANNEL_SKU
     service = cchan.products().skus()
   channelEntityMap = CHANNEL_ENTITY_MAP[entityType]
-  csvPF = CSVPrintFile(channelEntityMap['titles'], 'sortall') if Act.csvFormat() else None
+#  csvPF = CSVPrintFile(channelEntityMap['titles'], 'sortall') if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['name'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   resellerId = normalizeChannelResellerID(GC.Values[GC.RESELLER_ID] if GC.Values[GC.RESELLER_ID] else GC.Values[GC.CUSTOMER_ID])
@@ -13141,10 +13142,10 @@ def doPrintShowChannelItems(entityType):
       productId = normalizeChannelProductID(getString(Cmd.OB_PRODUCT_ID))
     elif myarg == 'fields':
       if not fieldsList:
-        csvPF.AddField('name', channelEntityMap['fields'], fieldsList)
+        fieldsList.append('name')
       for field in _getFieldsList():
         if field in channelEntityMap['fields']:
-          csvPF.AddField(field, channelEntityMap['fields'], fieldsList)
+          fieldsList.append(channelEntityMap['fields'][field])
         else:
           invalidChoiceExit(field, list(channelEntityMap['fields']), True)
     elif myarg == 'maxresults':
@@ -13196,17 +13197,17 @@ def doPrintShowChannelItems(entityType):
         row = {'name': item['name'],
                'JSON': json.dumps(cleanJSON(item, timeObjects=channelEntityMap['timeObjects']),
                                   ensure_ascii=False, sort_keys=True)}
-        if entityType == Ent.CHANNEL_CUSTOMER:
-          row.update({'orgDisplayName': item['orgDisplayName'],
-                      'domain': item['domain']})
-        elif entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
-          row.update({'offer': item['offer'],
-                      'createTime': formatLocalTime(item['createTime']),
-                      'updateTime': formatLocalTime(item.get('updateTime', NEVER_TIME))})
-        elif entityType == Ent.CHANNEL_OFFER:
-          row.update({'sku': item['sku'],
-                      'startTime': formatLocalTime(item['startTime']),
-                      'endTime': formatLocalTime(item.get('endTime', NEVER_TIME))})
+#        if entityType == Ent.CHANNEL_CUSTOMER:
+#          row.update({'orgDisplayName': item['orgDisplayName'],
+#                      'domain': item['domain']})
+#        elif entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
+#          row.update({'offer': item['offer'],
+#                      'createTime': formatLocalTime(item['createTime']),
+#                      'updateTime': formatLocalTime(item.get('updateTime', NEVER_TIME))})
+#        elif entityType == Ent.CHANNEL_OFFER:
+#          row.update({'sku': item['sku'],
+#                      'startTime': formatLocalTime(item['startTime']),
+#                      'endTime': formatLocalTime(item.get('endTime', NEVER_TIME))})
         csvPF.WriteRowNoFilter(row)
     csvPF.writeCSVfile(Ent.Plural(entityType))
 
