@@ -13118,7 +13118,7 @@ def doPrintShowChannelItems(entityType):
   csvPF = CSVPrintFile(channelEntityMap['titles'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
-  resellerId = normalizeChannelResellerID(GC.Values[GC.RESELLER_ID]) if GC.Values[GC.RESELLER_ID] else GC.Values[GC.CUSTOMER_ID]
+  resellerId = normalizeChannelResellerID(GC.Values[GC.RESELLER_ID] if GC.Values[GC.RESELLER_ID] else GC.Values[GC.CUSTOMER_ID])
   customerId = normalizeChannelCustomerID(GC.Values[GC.CUSTOMER_ID])
   name = None
   productId = 'products/-'
