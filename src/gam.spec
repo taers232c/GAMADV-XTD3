@@ -29,6 +29,7 @@ for d in a.datas:
         a.datas.remove(d)
         break
 
+# use strip on all non-Windows platforms
 strip = not sys.platform == 'win32'
 
 pyz = PYZ(a.pure)

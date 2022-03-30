@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.18.01'
+__version__ = '6.18.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9541,6 +9541,7 @@ def enableGAMProjectAPIs(httpObj, projectId, login_hint, checkEnabled, i=0, coun
   if status and jcount > 0:
     Act.Set(Act.ENABLE)
     entityPerformActionNumItems([Ent.PROJECT, projectId], jcount, Ent.API, i, count)
+    failed = 0
     Ind.Increment()
     j = 0
     for api in apis:
@@ -9559,9 +9560,13 @@ def enableGAMProjectAPIs(httpObj, projectId, login_hint, checkEnabled, i=0, coun
           readStdin(Msg.ACCEPT_CLOUD_TOS.format(login_hint))
         except (GAPI.forbidden, GAPI.permissionDenied, GAPI.internalError) as e:
           entityActionFailedWarning([Ent.API, api], str(e), j, jcount)
-          status = False
+          failed += 1
           break
     Ind.Decrement()
+    if not checkEnabled:
+      status = failed <= 2
+    else:
+      status = failed == 0
   return status
 
 def _grantRotateRights(iam, projectId, service_account, email, account_type='serviceAccount'):

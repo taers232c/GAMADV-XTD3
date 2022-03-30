@@ -1,3 +1,8 @@
+6.18.02
+
+Updated `gam create project` to proceed even if one or two APIs fail to be enabled;
+currently, any failure terminates the project creation.
+
 6.18.01
 
 * Upgraded to Python 3.10.4
