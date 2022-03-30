@@ -19,7 +19,6 @@ extra_files += copy_metadata('google-api-python-client')
 
 a = Analysis(['gam/__main__.py'],
              pathex=['./gam'],
-#             hiddenimports=['pkg_resources.py2_warn'],
              hookspath=None,
              excludes=['FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter'],
              datas=extra_files,
@@ -30,6 +29,7 @@ for d in a.datas:
         a.datas.remove(d)
         break
 
+strip = not sys.platform == 'win32'
 
 pyz = PYZ(a.pure)
 exe = EXE(pyz,
@@ -39,6 +39,6 @@ exe = EXE(pyz,
           a.datas,
           name='gam',
           debug=False,
-          strip=True,
+          strip=strip,
           upx=False,
           console=True )
