@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.18.00'
+__version__ = '6.18.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13018,7 +13018,7 @@ def normalizeChannelProductID(productId):
 
 CHANNEL_ENTITY_MAP = {
   Ent.CHANNEL_CUSTOMER:
-    {'titles': ['name', 'orgDisplayName', 'domain'],
+    {'JSONtitles': ['name', 'domain', 'JSON'],
      'timeObjects': ['createTime', 'updateTime'],
      'items': 'customers',
      'pageSize': 50,
@@ -13039,7 +13039,7 @@ CHANNEL_ENTITY_MAP = {
         }
      },
   Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
-    {'titles': ['name', 'offer', 'createTime', 'updateTime'],
+    {'JSONtitles': ['name', 'offer', 'JSON'],
      'timeObjects': ['createTime', 'updateTime', 'startTime', 'endTime'],
      'items': 'entitlements',
      'pageSize': 100,
@@ -13060,7 +13060,7 @@ CHANNEL_ENTITY_MAP = {
         }
      },
   Ent.CHANNEL_OFFER:
-    {'titles': ['name', 'sku', 'startTime', 'endTime'],
+    {'JSONtitles': ['name', 'sku', 'JSON'],
      'timeObjects': ['startTime', 'endTime'],
      'items': 'offers',
      'pageSize': 1000,
@@ -13078,7 +13078,7 @@ CHANNEL_ENTITY_MAP = {
         }
      },
   Ent.CHANNEL_PRODUCT:
-    {'titles': ['name'],
+    {'JSONtitles': ['name', 'JSON'],
      'timeObjects': None,
      'items': 'products',
      'pageSize': 1000,
@@ -13089,7 +13089,7 @@ CHANNEL_ENTITY_MAP = {
         }
      },
   Ent.CHANNEL_SKU:
-    {'titles': ['name'],
+    {'JSOBtitles': ['name', 'JSON'],
      'timeObjects': None,
      'items': 'skus',
      'pageSize': 1000,
@@ -13163,6 +13163,8 @@ def doPrintShowChannelItems(entityType):
   else:
     entityName = kwargs['parent'] = name if name else f'{resellerId}/{customerId}'
   fields = getItemFieldsFromFieldsList(channelEntityMap['items'], fieldsList)
+#  if csvPF and FJQC.formatJSON and not fieldsList:
+#    csvPF.SetJSONTitles(channelEntityMap['JSONtitles'])
   try:
     results = callGAPIpages(service, 'list', channelEntityMap['items'],
                             bailOnInternalError=True,
@@ -13197,17 +13199,13 @@ def doPrintShowChannelItems(entityType):
         row = {'name': item['name'],
                'JSON': json.dumps(cleanJSON(item, timeObjects=channelEntityMap['timeObjects']),
                                   ensure_ascii=False, sort_keys=True)}
-#        if entityType == Ent.CHANNEL_CUSTOMER:
-#          row.update({'orgDisplayName': item['orgDisplayName'],
-#                      'domain': item['domain']})
-#        elif entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
-#          row.update({'offer': item['offer'],
-#                      'createTime': formatLocalTime(item['createTime']),
-#                      'updateTime': formatLocalTime(item.get('updateTime', NEVER_TIME))})
-#        elif entityType == Ent.CHANNEL_OFFER:
-#          row.update({'sku': item['sku'],
-#                      'startTime': formatLocalTime(item['startTime']),
-#                      'endTime': formatLocalTime(item.get('endTime', NEVER_TIME))})
+#        if not fieldsList:
+#          if entityType == Ent.CHANNEL_CUSTOMER:
+#            row.update({'domain': item['domain']})
+#          elif entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT:
+#            row.update({'offer': item['offer']})
+#          elif entityType == Ent.CHANNEL_OFFER:
+#            row.update({'sku': item['sku']})
         csvPF.WriteRowNoFilter(row)
     csvPF.writeCSVfile(Ent.Plural(entityType))
 
@@ -21497,7 +21495,7 @@ def doInfoPrintShowCrOSTelemetry():
   else:
     fieldsList = list(CROS_TELEMETRY_FIELDS_CHOICE_MAP.values())
   readMask = ','.join(set(fieldsList))
-  if FJQC.formatJSON:
+  if csvPF and FJQC.formatJSON:
     csvPF.SetJSONTitles(['deviceId', 'JSON'])
   printGettingAllAccountEntities(Ent.CROS_DEVICE, pfilter)
   pageMessage = getPageMessage()

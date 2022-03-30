@@ -1,3 +1,7 @@
+6.18.01
+
+* Upgraded to Python 3.10.4
+
 6.18.00
 
 Added initial support for the Cloud Channel API; this is used by resellers.
