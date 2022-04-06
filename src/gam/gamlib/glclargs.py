@@ -546,6 +546,8 @@ class GamCLArgs():
   ARG_NOTEACLS = 'noteacls'
   ARG_NOTESACL = 'notesacl'
   ARG_NOTESACLS = 'notesacls'
+  ARG_NOTEATTACHMENT = 'noteattachment'
+  ARG_NOTEATTACHMENTS = 'noteattachments'
   ARG_OAUTH = 'oauth'
   ARG_ORG = 'org'
   ARG_ORGS = 'orgs'

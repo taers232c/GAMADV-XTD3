@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.18.02'
+__version__ = '6.18.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4503,6 +4503,8 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
         error = makeErrorDict(http_status, GAPI.INVALID_INPUT, message)
       elif status == 'INTERNAL':
         error = makeErrorDict(http_status, GAPI.INTERNAL_ERROR, message)
+      elif 'cannot delete a field in use.resource.fields' in lmessage:
+        error = makeErrorDict(http_status, GAPI.FIELD_IN_USE, message)
     elif http_status == 502:
       if 'bad gateway' in lmessage:
         error = makeErrorDict(http_status, GAPI.BAD_GATEWAY, message)
@@ -32835,7 +32837,7 @@ def doCreateUpdateUserSchemas():
         if schemaDisplayName:
           oldBody['displayName'] = schemaDisplayName
         result = callGAPI(cd.schemas(), 'update',
-                          throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                          throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.FIELD_IN_USE],
                           customerId=GC.Values[GC.CUSTOMER_ID], body=oldBody, schemaKey=schemaName)
         entityActionPerformed([Ent.USER_SCHEMA, result['schemaName']], i, count)
       else:
@@ -32847,7 +32849,7 @@ def doCreateUpdateUserSchemas():
         entityActionPerformed([Ent.USER_SCHEMA, result['schemaName']], i, count)
     except GAPI.duplicate:
       entityDuplicateWarning([Ent.USER_SCHEMA, schemaName], i, count)
-    except GAPI.conditionNotMet as e:
+    except (GAPI.conditionNotMet, GAPI.fieldInUse) as e:
       entityActionFailedWarning([Ent.USER_SCHEMA, schemaName], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.USER_SCHEMA, schemaName, i, count)
@@ -32863,9 +32865,11 @@ def doDeleteUserSchemas():
     i += 1
     try:
       callGAPI(cd.schemas(), 'delete',
-               throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.FIELD_IN_USE],
                customerId=GC.Values[GC.CUSTOMER_ID], schemaKey=schemaKey)
       entityActionPerformed([Ent.USER_SCHEMA, schemaKey], i, count)
+    except GAPI.fieldInUse as e:
+      entityActionFailedWarning([Ent.USER_SCHEMA, schemaKey], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.USER_SCHEMA, schemaKey, i, count)
 
@@ -33506,7 +33510,7 @@ def doDownloadVaultExport():
       done = False
       while not done:
         status, done = downloader.next_chunk()
-        if not zipToStdout:
+        if not zipToStdout and status.progress() < 1.0:
           entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], f'{status.progress():>7.2%}', j, jcount)
       if not zipToStdout:
         entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, j, jcount)
@@ -33546,7 +33550,8 @@ def _getCloudStorageObject(s, bucket, s_object, local_file=None, expectedMd5=Non
   done = False
   while not done:
     status, done = downloader.next_chunk()
-    entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}')
+    if status.progress() < 1.0:
+      entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], f'{status.progress():>7.2%}')
   entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, local_file)
   closeFile(f, True)
   if expectedMd5 and not md5MatchesFile(local_file, expectedMd5):
@@ -49328,9 +49333,12 @@ MIMETYPE_EXTENSION_MAP = {
   'application/vnd.openxmlformats-officedocument.wordprocessingml.template': '.dotx',
   'application/x-vnd.oasis.opendocument.spreadsheet': '.ods',
   'application/zip': '.zip',
+  'image/gif': '.gif',
   'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
   'image/png': '.png',
   'image/svg+xml': '.svg',
+  'image/webp': '.webp',
   'message/rfc822': 'mht',
   'text/csv': '.csv',
   'text/html': '.html',
@@ -49346,9 +49354,9 @@ HTTP_ERROR_PATTERN = re.compile(r'^.*returned "(.*)">$')
 #	[(format <FileFormatList>)|(gsheet|csvsheet <SheetEntity>)] [exportsheetaspdf <String>]
 #	[targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 def getDriveFile(users):
-  def closeRemoveTargetFile():
-    if fh and not targetStdout:
-      closeFile(fh)
+  def closeRemoveTargetFile(f):
+    if f and not targetStdout:
+      closeFile(f)
       os.remove(filename)
 
   fileIdEntity = getDriveFileEntity()
@@ -49479,7 +49487,7 @@ def getDriveFile(users):
               y += 1
               filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
           spreadsheetUrl = None
-          fh = None
+          f = None
           try:
             if googleDoc:
               if (not exportSheetAsPDF and not sheetEntity) or mimeType != MIMETYPE_GA_SPREADSHEET:
@@ -49506,30 +49514,30 @@ def getDriveFile(users):
               else:
                 request = drive.files().get_media(fileId=fileId)
             if not targetStdout:
-              fh = open(filename, 'wb')
+              f = open(filename, 'wb')
             else:
-              fh = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
+              f = os.fdopen(os.dup(sys.stdout.fileno()), 'wb')
             if not spreadsheetUrl:
-              downloader = googleapiclient.http.MediaIoBaseDownload(fh, request)
+              downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
               done = False
               while not done:
                 status, done = downloader.next_chunk()
-                if showProgress and not suppressStdoutMsgs:
+                if showProgress and not suppressStdoutMsgs and status.progress() < 1.0:
                   entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}', j, jcount)
             else:
               if GC.Values[GC.DEBUG_LEVEL] > 0:
                 sys.stderr.write(f'Debug: spreadsheetUrl: {spreadsheetUrl}\n')
               status, content = drive._http.request(uri=spreadsheetUrl, method='GET')
               if status['status'] == '200':
-                fh.write(content)
+                f.write(content)
                 if targetStdout and content[-1] != '\n':
-                  fh.write(bytes('\n', UTF8))
+                  f.write(bytes('\n', UTF8))
               else:
                 entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, f'HTTP Error: {status["status"]}', j, jcount)
-                closeRemoveTargetFile()
+                closeRemoveTargetFile(f)
                 break
             if not targetStdout:
-              closeFile(fh)
+              closeFile(f)
             if not suppressStdoutMsgs:
               entityModifierNewValueKeyValueActionPerformed(entityValueList, Act.MODIFIER_TO, filename, my_line[0], my_line[1], j, jcount)
             break
@@ -49541,7 +49549,7 @@ def getDriveFile(users):
               entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, mg.group(1), j, jcount)
             else:
               entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), j, jcount)
-          closeRemoveTargetFile()
+          closeRemoveTargetFile(f)
           break
       except GAPI.fileNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], Msg.DOES_NOT_EXIST, j, jcount)
@@ -59416,9 +59424,10 @@ def _showNoteAttachments(attachments):
   for attachment in attachments:
     k += 1
     printKeyValueListWithCount(['name', attachment['name']], k, kcount)
-    Ind.Increment()
-    printKeyValueList(['mimeType', ','.join(attachment['mimeType'])])
-    Ind.Decrement()
+    if 'mimeType' in attachment:
+      Ind.Increment()
+      printKeyValueList(['mimeType', ','.join(attachment['mimeType'])])
+      Ind.Decrement()
   Ind.Decrement()
 
 NOTES_TIME_OBJECTS = {'createTime', 'updateTime', 'trashTime'}
@@ -59451,7 +59460,7 @@ def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
       Ind.Decrement()
     else:
       printKeyValueList(['text', escapeCRsNLs(body['text']['text'])])
-  elif 'list' in body:
+  elif 'list' in body and 'listItems' in body['list']:
     _showNoteListItems(body['list']['listItems'])
   Ind.Decrement()
 
@@ -59720,6 +59729,97 @@ def printShowNotes(users):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
   if csvPF:
     csvPF.writeCSVfile('Notes')
+
+GET_NOTE_HTTP_ERROR_PATTERN = re.compile(r'^.*\'description\': \'(.*)\'')
+
+# gam <UserTypeEntity> get noteattachments <NotesNameEntity>
+#	[targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+def getNoteAttachments(users):
+  noteNameEntity = getUserObjectEntity(Cmd.OB_NAME, Ent.NOTE)
+  targetFolderPattern = GC.Values[GC.DRIVE_DIR]
+  targetNamePattern = None
+  overwrite = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'targetfolder':
+      targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+    elif myarg == 'targetname':
+      targetNamePattern = getString(Cmd.OB_FILE_NAME)
+    elif myarg == 'overwrite':
+      overwrite = getBoolean()
+    else:
+      unknownArgumentExit()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, keep, noteNames, jcount = _validateUserGetObjectList(user, i, count, noteNameEntity,
+                                                               api=API.KEEP, showAction=True)
+    if jcount == 0:
+      continue
+    _, userName, _ = splitEmailAddressOrUID(user)
+    targetFolder = _substituteForUser(targetFolderPattern, user, userName)
+    if not os.path.isdir(targetFolder):
+      os.makedirs(targetFolder)
+    targetName = _substituteForUser(targetNamePattern, user, userName) if targetNamePattern else None
+    Ind.Increment()
+    j = 0
+    for name in noteNames:
+      j += 1
+      name = normalizeNoteName(name)
+      try:
+        result = callGAPI(keep.notes(), 'get',
+                          throwReasons=GAPI.KEEP_THROW_REASONS,
+                          name=name, fields='title,attachments')
+        title = result.get('title', 'attachment')
+        kcount = len(result['attachments'])
+        entityPerformActionNumItems([Ent.NOTE, name], kcount, Ent.ATTACHMENT, j, jcount)
+        Ind.Increment()
+        k = 0
+        for attachment in result['attachments']:
+          k += 1
+          attachmentName = attachment['name'][attachment['name'].find('attachments'):]
+          entityValueList = [Ent.ATTACHMENT, attachmentName]
+          mimeTypes = attachment.get('mimeType', [])
+          if not mimeTypes:
+            entityActionNotPerformedWarning(entityValueList, Msg.MIMETYPE_NOT_PRESENT_IN_ATTACHMENT, k, kcount)
+            continue
+          mimeType = mimeTypes[0]
+          safe_file_title = f"{targetName or cleanFilename(title)}-{k}{MIMETYPE_EXTENSION_MAP.get(mimeType, '')}"
+          filename = os.path.join(targetFolder, safe_file_title)
+          y = 0
+          while True:
+            if overwrite or not os.path.isfile(filename):
+              break
+            y += 1
+            filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
+          request = keep.media().download(name=attachment['name'], mimeType=mimeType)
+          f = openFile(filename, 'wb', continueOnError=True)
+          if f is None:
+            continue
+          downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
+          done = False
+          try:
+            while not done:
+              status, done = downloader.next_chunk()
+              if status.progress() < 1.0:
+                entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}', k, kcount)
+            entityModifierNewValueActionPerformed(entityValueList, Act.MODIFIER_TO, filename, k, kcount)
+          except (IOError, httplib2.HttpLib2Error) as e:
+            entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), k, kcount)
+          except googleapiclient.http.HttpError as e:
+            mg = GET_NOTE_HTTP_ERROR_PATTERN.match(str(e))
+            if mg:
+              entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, mg.group(1), k, kcount)
+            else:
+              entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), k, kcount)
+          closeFile(f, True)
+        Ind.Decrement()
+      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+        entityActionFailedWarning([Ent.NOTE, name], str(e), j, jcount)
+      except GAPI.serviceNotAvailable:
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+    Ind.Decrement()
 
 # gam <UserTypeEntity> create noteacl <NotesNameEntity>
 #	(user|group <EmailAddress>)+
@@ -60949,6 +61049,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.DOWNLOAD,
      {Cmd.ARG_DOCUMENT:		getGoogleDocument,
       Cmd.ARG_DRIVEFILE:	getDriveFile,
+      Cmd.ARG_NOTEATTACHMENT:	getNoteAttachments,
       Cmd.ARG_PEOPLECONTACTPHOTO:	getUserPeopleContactPhoto,
       Cmd.ARG_PHOTO:		getUserPhoto,
       Cmd.ARG_PROFILE_PHOTO:	getProfilePhoto,
@@ -61307,6 +61408,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_NOTEACLS:		Cmd.ARG_NOTEACL,
   Cmd.ARG_NOTESACL:		Cmd.ARG_NOTEACL,
   Cmd.ARG_NOTESACLS:		Cmd.ARG_NOTEACL,
+  Cmd.ARG_NOTEATTACHMENTS:	Cmd.ARG_NOTEATTACHMENT,
   Cmd.ARG_OAUTH:		Cmd.ARG_TOKEN,
   Cmd.ARG_OTHERCONTACTS:	Cmd.ARG_OTHERCONTACT,
   Cmd.ARG_PEOPLECONTACTS:	Cmd.ARG_PEOPLECONTACT,

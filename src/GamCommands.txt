@@ -5936,6 +5936,9 @@ gam <UserTypeEntity> print notes [todrive <ToDriveAttribute>*]
         [role owner|writer]
         [formatjson [quotechar <Character>]]
 
+gam <UserTypeEntity> get noteattachments <NotesNameEntity>
+        [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+
 gam <UserTypeEntity> create noteacl <NotesNameEntity>
         (user|group <EmailAddress>)+
         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])

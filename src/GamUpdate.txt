@@ -1,3 +1,13 @@
+6.18.03
+
+Added command to download Note attachments.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Keep#download-note-attachments
+
+Updated `gam delete|update schema` to handle the following error:
+```
+ERROR: 500: FIELD_IN_USE - Cannot delete a field in use.resource.fields
+```
+
 6.18.02
 
 Updated `gam create project` to proceed even if one or two APIs fail to be enabled;

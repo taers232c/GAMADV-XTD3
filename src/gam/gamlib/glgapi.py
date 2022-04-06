@@ -65,6 +65,7 @@ DOMAIN_POLICY = 'domainPolicy'
 DUPLICATE = 'duplicate'
 EVENT_DURATION_EXCEEDS_LIMIT = 'eventDurationExceedsLimit'
 FAILED_PRECONDITION = 'failedPrecondition'
+FIELD_IN_USE = 'fieldInUse'
 FIELD_NOT_WRITABLE = 'fieldNotWritable'
 FILE_NEVER_WRITABLE = 'fileNeverWritable'
 FILE_NOT_FOUND = 'fileNotFound'
@@ -379,6 +380,8 @@ class eventDurationExceedsLimit(Exception):
   pass
 class failedPrecondition(Exception):
   pass
+class fieldInUse(Exception):
+  pass
 class fieldNotWritable(Exception):
   pass
 class fileNeverWritable(Exception):
@@ -596,6 +599,7 @@ REASON_EXCEPTION_MAP = {
   DUPLICATE: duplicate,
   EVENT_DURATION_EXCEEDS_LIMIT: eventDurationExceedsLimit,
   FAILED_PRECONDITION: failedPrecondition,
+  FIELD_IN_USE: fieldInUse,
   FIELD_NOT_WRITABLE: fieldNotWritable,
   FILE_NEVER_WRITABLE: fileNeverWritable,
   FILE_NOT_FOUND: fileNotFound,
