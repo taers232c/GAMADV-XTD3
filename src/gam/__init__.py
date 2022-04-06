@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.18.03'
+__version__ = '6.18.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -43132,6 +43132,11 @@ DFA_KWARGS = 'kwargs'
 DFA_SEARCHARGS = 'searchargs'
 DFA_USE_CONTENT_AS_INDEXABLE_TEXT = 'useContentAsIndexableText'
 
+def _driveFileParentSpecified(parameters):
+  return (parameters[DFA_PARENTID] or parameters[DFA_PARENTQUERY] or
+          parameters[DFA_TEAMDRIVE_PARENT] or parameters[DFA_TEAMDRIVE_PARENTID] or
+          parameters[DFA_TEAMDRIVE_PARENTQUERY])
+
 def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryOK=False, defaultToRoot=True):
   body.pop('parents', None)
   if parameters[DFA_PARENTID]:
@@ -59734,11 +59739,14 @@ GET_NOTE_HTTP_ERROR_PATTERN = re.compile(r'^.*\'description\': \'(.*)\'')
 
 # gam <UserTypeEntity> get noteattachments <NotesNameEntity>
 #	[targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+#	[<DriveFileParentAttribute>]
 def getNoteAttachments(users):
   noteNameEntity = getUserObjectEntity(Cmd.OB_NAME, Ent.NOTE)
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   targetNamePattern = None
   overwrite = False
+  body = {}
+  parentParms = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'targetfolder':
@@ -59747,8 +59755,11 @@ def getNoteAttachments(users):
       targetNamePattern = getString(Cmd.OB_FILE_NAME)
     elif myarg == 'overwrite':
       overwrite = getBoolean()
+    elif getDriveFileParentAttribute(myarg, parentParms):
+      pass
     else:
       unknownArgumentExit()
+  parentSpecified = _driveFileParentSpecified(parentParms)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -59756,6 +59767,12 @@ def getNoteAttachments(users):
                                                                api=API.KEEP, showAction=True)
     if jcount == 0:
       continue
+    if parentSpecified:
+      _ , drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
+      if not drive:
+        continue
+      if not _getDriveFileParentInfo(drive, user, i, count, body, parentParms):
+        continue
     _, userName, _ = splitEmailAddressOrUID(user)
     targetFolder = _substituteForUser(targetFolderPattern, user, userName)
     if not os.path.isdir(targetFolder):
@@ -59785,34 +59802,58 @@ def getNoteAttachments(users):
             continue
           mimeType = mimeTypes[0]
           safe_file_title = f"{targetName or cleanFilename(title)}-{k}{MIMETYPE_EXTENSION_MAP.get(mimeType, '')}"
-          filename = os.path.join(targetFolder, safe_file_title)
+          filename = safe_file_title
           y = 0
           while True:
-            if overwrite or not os.path.isfile(filename):
+            localFilename = os.path.join(targetFolder, filename)
+            if overwrite or not os.path.isfile(localFilename):
               break
             y += 1
-            filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
+            filename = f'({y})-{safe_file_title}'
           request = keep.media().download(name=attachment['name'], mimeType=mimeType)
-          f = openFile(filename, 'wb', continueOnError=True)
+          f = openFile(localFilename, 'wb', continueOnError=True)
           if f is None:
             continue
           downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
           done = False
+          downloadOK = False
           try:
             while not done:
               status, done = downloader.next_chunk()
               if status.progress() < 1.0:
                 entityActionPerformedMessage(entityValueList, f'{status.progress():>7.2%}', k, kcount)
-            entityModifierNewValueActionPerformed(entityValueList, Act.MODIFIER_TO, filename, k, kcount)
+            entityModifierNewValueActionPerformed(entityValueList, Act.MODIFIER_TO, localFilename, k, kcount)
+            downloadOK = True
           except (IOError, httplib2.HttpLib2Error) as e:
-            entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), k, kcount)
+            entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, localFilename, str(e), k, kcount)
           except googleapiclient.http.HttpError as e:
             mg = GET_NOTE_HTTP_ERROR_PATTERN.match(str(e))
             if mg:
-              entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, mg.group(1), k, kcount)
+              entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, localFilename, mg.group(1), k, kcount)
             else:
-              entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, filename, str(e), k, kcount)
+              entityModifierNewValueActionFailedWarning(entityValueList, Act.MODIFIER_TO, localFilename, str(e), k, kcount)
           closeFile(f, True)
+          if downloadOK and parentSpecified:
+            body['name'] = filename
+            body['mimeType'] = mimeType
+            media_body = googleapiclient.http.MediaFileUpload(filename, mimetype=mimeType, resumable=True)
+            Act.Set(Act.CREATE)
+            try:
+              result = callGAPI(drive.files(), 'create',
+                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                            GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
+                                                                            GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                            GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                            GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                                media_body=media_body, body=body, fields='id,name', supportsAllDrives=True)
+              entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, f'{result["name"]}({result["id"]})'],
+                                                    Act.MODIFIER_WITH_CONTENT_FROM, localFilename, k, kcount)
+            except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
+                    GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+              entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, body['name']], str(e), k, kcount)
+            except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+              userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+            Act.Set(Act.DOWNLOAD)
         Ind.Decrement()
       except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning([Ent.NOTE, name], str(e), j, jcount)

@@ -5938,6 +5938,7 @@ gam <UserTypeEntity> print notes [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> get noteattachments <NotesNameEntity>
         [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+        [<DriveFileParentAttribute>]
 
 gam <UserTypeEntity> create noteacl <NotesNameEntity>
         (user|group <EmailAddress>)+

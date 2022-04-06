@@ -1,3 +1,8 @@
+6.18.04
+
+Added the ability to upload Note attachments to Google Drive.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Keep#download-note-attachments
+
 6.18.03
 
 Added command to download Note attachments.
