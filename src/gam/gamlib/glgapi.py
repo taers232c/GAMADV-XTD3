@@ -38,16 +38,16 @@ CANNOT_DELETE_ONLY_REVISION = 'cannotDeleteOnlyRevision'
 CANNOT_DELETE_PRIMARY_CALENDAR = 'cannotDeletePrimaryCalendar'
 CANNOT_DELETE_PRIMARY_SENDAS = 'cannotDeletePrimarySendAs'
 CANNOT_DELETE_RESOURCE_WITH_CHILDREN = 'cannotDeleteResourceWithChildren'
-CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION = 'cannotModifyInheritedTeamDrivePermission'
+CANNOT_MODIFY_INHERITED_SHAREDDRIVE_PERMISSION = 'cannotModifyInheritedSharedDrivePermission'
 CANNOT_MODIFY_RESTRICTED_LABEL = 'cannotModifyRestrictedLabel'
 CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT = 'cannotModifyViewersCanCopyContent'
-CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE = 'cannotMoveTrashedItemIntoTeamDrive'
-CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE = 'cannotMoveTrashedItemOutOfTeamDrive'
+CANNOT_MOVE_TRASHED_ITEM_INTO_SHAREDDRIVE = 'cannotMoveTrashedItemIntoSharedDrive'
+CANNOT_MOVE_TRASHED_ITEM_OUT_OF_SHAREDDRIVE = 'cannotMoveTrashedItemOutOfSharedDrive'
 CANNOT_REMOVE_OWNER = 'cannotRemoveOwner'
 CANNOT_SHARE_GROUPS_WITHLINK = 'cannotShareGroupsWithLink'
 CANNOT_SHARE_USERS_WITHLINK = 'cannotShareUsersWithLink'
-CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS = 'cannotShareTeamDriveTopFolderWithAnyoneOrDomains'
-CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS = 'cannotShareTeamDriveWithNonGoogleAccounts'
+CANNOT_SHARE_SHAREDDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS = 'cannotShareSharedDriveTopFolderWithAnyoneOrDomains'
+CANNOT_SHARE_SHAREDDRIVE_WITH_NONGOOGLE_ACCOUNTS = 'cannotShareSharedDriveWithNonGoogleAccounts'
 CANNOT_UPDATE_PERMISSION = 'cannotUpdatePermission'
 CONDITION_NOT_MET = 'conditionNotMet'
 CONFLICT = 'conflict'
@@ -69,11 +69,11 @@ FIELD_IN_USE = 'fieldInUse'
 FIELD_NOT_WRITABLE = 'fieldNotWritable'
 FILE_NEVER_WRITABLE = 'fileNeverWritable'
 FILE_NOT_FOUND = 'fileNotFound'
-FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE = 'fileOrganizerNotYetEnabledForThisTeamDrive'
-FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED = 'fileOrganizerOnNonTeamDriveNotSupported'
-FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE = 'fileOwnerNotMemberOfTeamDrive'
+FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_SHAREDDRIVE = 'fileOrganizerNotYetEnabledForThisSharedDrive'
+FILE_ORGANIZER_ON_NON_SHAREDDRIVE_NOT_SUPPORTED = 'fileOrganizerOnNonSharedDriveNotSupported'
+FILE_OWNER_NOT_MEMBER_OF_SHAREDDRIVE = 'fileOwnerNotMemberOfSharedDrive'
 FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = 'fileOwnerNotMemberOfWriterDomain'
-FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED = 'fileWriterTeamDriveMoveInDisabled'
+FILE_WRITER_SHAREDDRIVE_MOVE_IN_DISABLED = 'fileWriterSharedDriveMoveInDisabled'
 FORBIDDEN = 'forbidden'
 GATEWAY_TIMEOUT = 'gatewayTimeout'
 GROUP_NOT_FOUND = 'groupNotFound'
@@ -104,16 +104,16 @@ INVALID_SHARING_REQUEST = 'invalidSharingRequest'
 LIMIT_EXCEEDED = 'limitExceeded'
 LOGIN_REQUIRED = 'loginRequired'
 MEMBER_NOT_FOUND = 'memberNotFound'
-NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE = 'noListTeamDrivesAdministratorPrivilege'
-NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE = 'noManageTeamDriveAdministratorPrivilege'
+NO_LIST_SHAREDDRIVES_ADMINISTRATOR_PRIVILEGE = 'noListSharedDrivesAdministratorPrivilege'
+NO_MANAGE_SHAREDDRIVE_ADMINISTRATOR_PRIVILEGE = 'noManageSharedDriveAdministratorPrivilege'
 NOT_A_CALENDAR_USER = 'notACalendarUser'
 NOT_FOUND = 'notFound'
 NOT_IMPLEMENTED = 'notImplemented'
 OPERATION_NOT_SUPPORTED = 'operationNotSupported'
-ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED = 'organizerOnNonTeamDriveNotSupported'
-ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED = 'organizerOnNonTeamDriveItemNotSupported'
+ORGANIZER_ON_NON_SHAREDDRIVE_NOT_SUPPORTED = 'organizerOnNonSharedDriveNotSupported'
+ORGANIZER_ON_NON_SHAREDDRIVE_ITEM_NOT_SUPPORTED = 'organizerOnNonSharedDriveItemNotSupported'
 ORGUNIT_NOT_FOUND = 'orgunitNotFound'
-OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED = 'ownerOnTeamDriveItemNotSupported'
+OWNER_ON_SHAREDDRIVE_ITEM_NOT_SUPPORTED = 'ownerOnSharedDriveItemNotSupported'
 OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED = 'ownershipChangeAcrossDomainNotPermitted'
 PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE = 'participantIsNeitherOrganizerNorAttendee'
 PERMISSION_DENIED = 'permissionDenied'
@@ -134,19 +134,19 @@ REVISION_NOT_FOUND = 'revisionNotFound'
 REVISIONS_NOT_SUPPORTED = 'revisionsNotSupported'
 SERVICE_LIMIT = 'serviceLimit'
 SERVICE_NOT_AVAILABLE = 'serviceNotAvailable'
+SHAREDDRIVE_ALREADY_EXISTS = 'sharedDriveAlreadyExists'
+SHAREDDRIVE_DOMAIN_USERS_ONLY_RESTRICTION = 'sharedDriveDomainUsersOnlyRestriction'
+SHAREDDRIVE_TEAM_MEMBERS_ONLY_RESTRICTION = 'sharedDriveTeamMembersOnlyRestriction'
+SHAREDDRIVE_HIERARCHY_TOO_DEEP = 'sharedDriveHierarchyTooDeep'
+SHAREDDRIVE_MEMBERSHIP_REQUIRED = 'sharedDriveMembershipRequired'
+SHAREDDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = 'sharedDrivesFolderMoveInNotSupported'
+SHAREDDRIVES_FOLDER_SHARING_NOT_SUPPORTED = 'sharedDrivesFolderSharingNotSupported'
+SHAREDDRIVES_PARENT_LIMIT = 'sharedDrivesParentLimit'
+SHAREDDRIVES_SHARING_RESTRICTION_NOT_ALLOWED = 'sharedDrivesSharingRestrictionNotAllowed'
 SHARE_OUT_NOT_PERMITTED = 'shareOutNotPermitted'
 SHARE_OUT_NOT_PERMITTED_TO_USER = 'shareOutNotPermittedToUser'
 SHARING_RATE_LIMIT_EXCEEDED = 'sharingRateLimitExceeded'
 SYSTEM_ERROR = 'systemError'
-TEAMDRIVE_ALREADY_EXISTS = 'teamDriveAlreadyExists'
-TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION = 'teamDriveDomainUsersOnlyRestriction'
-TEAMDRIVE_TEAM_MEMBERS_ONLY_RESTRICTION = 'teamDriveTeamMembersOnlyRestriction'
-TEAMDRIVE_HIERARCHY_TOO_DEEP = 'teamDriveHierarchyTooDeep'
-TEAMDRIVE_MEMBERSHIP_REQUIRED = 'teamDriveMembershipRequired'
-TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = 'teamDrivesFolderMoveInNotSupported'
-TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED = 'teamDrivesFolderSharingNotSupported'
-TEAMDRIVES_PARENT_LIMIT = 'teamDrivesParentLimit'
-TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED = 'teamDrivesSharingRestrictionNotAllowed'
 TIME_RANGE_EMPTY = 'timeRangeEmpty'
 TRANSIENT_ERROR = 'transientError'
 UNKNOWN_ERROR = 'unknownError'
@@ -170,41 +170,41 @@ COURSE_ACCESS_THROW_REASONS = [NOT_FOUND, INSUFFICIENT_PERMISSIONS, PERMISSION_D
 DATASTUDIO_THROW_REASONS = [INVALID_ARGUMENT, SERVICE_NOT_AVAILABLE, BAD_REQUEST, NOT_FOUND, PERMISSION_DENIED]
 DRIVE_USER_THROW_REASONS = [SERVICE_NOT_AVAILABLE, AUTH_ERROR, DOMAIN_POLICY]
 DRIVE_ACCESS_THROW_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND, FORBIDDEN, INTERNAL_ERROR, INSUFFICIENT_FILE_PERMISSIONS, UNKNOWN_ERROR, INVALID]
-DRIVE_COPY_THROW_REASONS = DRIVE_ACCESS_THROW_REASONS+[CANNOT_COPY_FILE, BAD_REQUEST, RESPONSE_PREPARATION_FAILURE, TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+DRIVE_COPY_THROW_REASONS = DRIVE_ACCESS_THROW_REASONS+[CANNOT_COPY_FILE, BAD_REQUEST, RESPONSE_PREPARATION_FAILURE, SHAREDDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
                                                        FIELD_NOT_WRITABLE, RATE_LIMIT_EXCEEDED, USER_RATE_LIMIT_EXCEEDED]
 DRIVE_GET_THROW_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND]
 DRIVE3_CREATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID, INVALID_SHARING_REQUEST, OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
-                                   NOT_FOUND, TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION, TEAMDRIVE_TEAM_MEMBERS_ONLY_RESTRICTION,
+                                   NOT_FOUND, SHAREDDRIVE_DOMAIN_USERS_ONLY_RESTRICTION, SHAREDDRIVE_TEAM_MEMBERS_ONLY_RESTRICTION,
                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, SHARING_RATE_LIMIT_EXCEEDED,
                                    PUBLISH_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED_TO_USER,
-                                   CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
-                                   CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS,
-                                   OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                   ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                   ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                   FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
-                                   TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED, INVALID_LINK_VISIBILITY]
+                                   CANNOT_SHARE_SHAREDDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
+                                   CANNOT_SHARE_SHAREDDRIVE_WITH_NONGOOGLE_ACCOUNTS,
+                                   OWNER_ON_SHAREDDRIVE_ITEM_NOT_SUPPORTED,
+                                   ORGANIZER_ON_NON_SHAREDDRIVE_NOT_SUPPORTED,
+                                   ORGANIZER_ON_NON_SHAREDDRIVE_ITEM_NOT_SUPPORTED,
+                                   FILE_ORGANIZER_ON_NON_SHAREDDRIVE_NOT_SUPPORTED,
+                                   FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_SHAREDDRIVE,
+                                   SHAREDDRIVES_FOLDER_SHARING_NOT_SUPPORTED, INVALID_LINK_VISIBILITY]
 DRIVE3_GET_ACL_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND, FORBIDDEN, INTERNAL_ERROR,
                                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, INSUFFICIENT_FILE_PERMISSIONS,
                                                    UNKNOWN_ERROR, INVALID]
 DRIVE3_UPDATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID_OWNERSHIP_TRANSFER, CANNOT_REMOVE_OWNER,
                                    OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED,
-                                   NOT_FOUND, TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION, TEAMDRIVE_TEAM_MEMBERS_ONLY_RESTRICTION,
+                                   NOT_FOUND, SHAREDDRIVE_DOMAIN_USERS_ONLY_RESTRICTION, SHAREDDRIVE_TEAM_MEMBERS_ONLY_RESTRICTION,
                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, SHARING_RATE_LIMIT_EXCEEDED,
                                    PUBLISH_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED, SHARE_OUT_NOT_PERMITTED_TO_USER,
-                                   CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
-                                   CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS,
-                                   OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                   ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                   ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
-                                   FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
+                                   CANNOT_SHARE_SHAREDDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS,
+                                   CANNOT_SHARE_SHAREDDRIVE_WITH_NONGOOGLE_ACCOUNTS,
+                                   OWNER_ON_SHAREDDRIVE_ITEM_NOT_SUPPORTED,
+                                   ORGANIZER_ON_NON_SHAREDDRIVE_NOT_SUPPORTED,
+                                   ORGANIZER_ON_NON_SHAREDDRIVE_ITEM_NOT_SUPPORTED,
+                                   FILE_ORGANIZER_ON_NON_SHAREDDRIVE_NOT_SUPPORTED,
+                                   FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_SHAREDDRIVE,
                                    CANNOT_UPDATE_PERMISSION,
-                                   CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
+                                   CANNOT_MODIFY_INHERITED_SHAREDDRIVE_PERMISSION,
                                    FIELD_NOT_WRITABLE, PERMISSION_NOT_FOUND]
 DRIVE3_DELETE_ACL_THROW_REASONS = [BAD_REQUEST, CANNOT_REMOVE_OWNER,
-                                   CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
+                                   CANNOT_MODIFY_INHERITED_SHAREDDRIVE_PERMISSION,
                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, SHARING_RATE_LIMIT_EXCEEDED,
                                    NOT_FOUND, PERMISSION_NOT_FOUND]
 GMAIL_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST]
@@ -328,15 +328,15 @@ class cannotDeletePrimarySendAs(Exception):
   pass
 class cannotDeleteResourceWithChildren(Exception):
   pass
-class cannotModifyInheritedTeamDrivePermission(Exception):
+class cannotModifyInheritedSharedDrivePermission(Exception):
   pass
 class cannotModifyRestrictedLabel(Exception):
   pass
 class cannotModifyViewersCanCopyContent(Exception):
   pass
-class cannotMoveTrashedItemIntoTeamDrive(Exception):
+class cannotMoveTrashedItemIntoSharedDrive(Exception):
   pass
-class cannotMoveTrashedItemOutOfTeamDrive(Exception):
+class cannotMoveTrashedItemOutOfSharedDrive(Exception):
   pass
 class cannotRemoveOwner(Exception):
   pass
@@ -344,9 +344,9 @@ class cannotShareGroupsWithLink(Exception):
   pass
 class cannotShareUsersWithLink(Exception):
   pass
-class cannotShareTeamDriveTopFolderWithAnyoneOrDomains(Exception):
+class cannotShareSharedDriveTopFolderWithAnyoneOrDomains(Exception):
   pass
-class cannotShareTeamDriveWithNonGoogleAccounts(Exception):
+class cannotShareSharedDriveWithNonGoogleAccounts(Exception):
   pass
 class cannotUpdatePermission(Exception):
   pass
@@ -388,15 +388,15 @@ class fileNeverWritable(Exception):
   pass
 class fileNotFound(Exception):
   pass
-class fileOrganizerNotYetEnabledForThisTeamDrive(Exception):
+class fileOrganizerNotYetEnabledForThisSharedDrive(Exception):
   pass
-class fileOrganizerOnNonTeamDriveNotSupported(Exception):
+class fileOrganizerOnNonSharedDriveNotSupported(Exception):
   pass
-class fileOwnerNotMemberOfTeamDrive(Exception):
+class fileOwnerNotMemberOfSharedDrive(Exception):
   pass
 class fileOwnerNotMemberOfWriterDomain(Exception):
   pass
-class fileWriterTeamDriveMoveInDisabled(Exception):
+class fileWriterSharedDriveMoveInDisabled(Exception):
   pass
 class forbidden(Exception):
   pass
@@ -456,9 +456,9 @@ class loginRequired(Exception):
   pass
 class memberNotFound(Exception):
   pass
-class noListTeamDrivesAdministratorPrivilege(Exception):
+class noListSharedDrivesAdministratorPrivilege(Exception):
   pass
-class noManageTeamDriveAdministratorPrivilege(Exception):
+class noManageSharedDriveAdministratorPrivilege(Exception):
   pass
 class notACalendarUser(Exception):
   pass
@@ -468,13 +468,13 @@ class notImplemented(Exception):
   pass
 class operationNotSupported(Exception):
   pass
-class organizerOnNonTeamDriveNotSupported(Exception):
+class organizerOnNonSharedDriveNotSupported(Exception):
   pass
-class organizerOnNonTeamDriveItemNotSupported(Exception):
+class organizerOnNonSharedDriveItemNotSupported(Exception):
   pass
 class orgunitNotFound(Exception):
   pass
-class ownerOnTeamDriveItemNotSupported(Exception):
+class ownerOnSharedDriveItemNotSupported(Exception):
   pass
 class ownershipChangeAcrossDomainNotPermitted(Exception):
   pass
@@ -516,6 +516,24 @@ class serviceLimit(Exception):
   pass
 class serviceNotAvailable(Exception):
   pass
+class sharedDriveAlreadyExists(Exception):
+  pass
+class sharedDriveDomainUsersOnlyRestriction(Exception):
+  pass
+class sharedDriveTeamMembersOnlyRestriction(Exception):
+  pass
+class sharedDriveHierarchyTooDeep(Exception):
+  pass
+class sharedDriveMembershipRequired(Exception):
+  pass
+class sharedDrivesFolderMoveInNotSupported(Exception):
+  pass
+class sharedDrivesFolderSharingNotSupported(Exception):
+  pass
+class sharedDrivesParentLimit(Exception):
+  pass
+class sharedDrivesSharingRestrictionNotAllowed(Exception):
+  pass
 class shareOutNotPermitted(Exception):
   pass
 class shareOutNotPermittedToUser(Exception):
@@ -523,24 +541,6 @@ class shareOutNotPermittedToUser(Exception):
 class sharingRateLimitExceeded(Exception):
   pass
 class systemError(Exception):
-  pass
-class teamDriveAlreadyExists(Exception):
-  pass
-class teamDriveDomainUsersOnlyRestriction(Exception):
-  pass
-class teamDriveTeamMembersOnlyRestriction(Exception):
-  pass
-class teamDriveHierarchyTooDeep(Exception):
-  pass
-class teamDriveMembershipRequired(Exception):
-  pass
-class teamDrivesFolderMoveInNotSupported(Exception):
-  pass
-class teamDrivesFolderSharingNotSupported(Exception):
-  pass
-class teamDrivesParentLimit(Exception):
-  pass
-class teamDrivesSharingRestrictionNotAllowed(Exception):
   pass
 class timeRangeEmpty(Exception):
   pass
@@ -573,16 +573,16 @@ REASON_EXCEPTION_MAP = {
   CANNOT_DELETE_PRIMARY_CALENDAR: cannotDeletePrimaryCalendar,
   CANNOT_DELETE_PRIMARY_SENDAS: cannotDeletePrimarySendAs,
   CANNOT_DELETE_RESOURCE_WITH_CHILDREN: cannotDeleteResourceWithChildren,
-  CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION: cannotModifyInheritedTeamDrivePermission,
+  CANNOT_MODIFY_INHERITED_SHAREDDRIVE_PERMISSION: cannotModifyInheritedSharedDrivePermission,
   CANNOT_MODIFY_RESTRICTED_LABEL: cannotModifyRestrictedLabel,
   CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT: cannotModifyViewersCanCopyContent,
-  CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE: cannotMoveTrashedItemIntoTeamDrive,
-  CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE: cannotMoveTrashedItemOutOfTeamDrive,
+  CANNOT_MOVE_TRASHED_ITEM_INTO_SHAREDDRIVE: cannotMoveTrashedItemIntoSharedDrive,
+  CANNOT_MOVE_TRASHED_ITEM_OUT_OF_SHAREDDRIVE: cannotMoveTrashedItemOutOfSharedDrive,
   CANNOT_REMOVE_OWNER: cannotRemoveOwner,
   CANNOT_SHARE_GROUPS_WITHLINK: cannotShareGroupsWithLink,
   CANNOT_SHARE_USERS_WITHLINK: cannotShareUsersWithLink,
-  CANNOT_SHARE_TEAMDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS: cannotShareTeamDriveTopFolderWithAnyoneOrDomains,
-  CANNOT_SHARE_TEAMDRIVE_WITH_NONGOOGLE_ACCOUNTS: cannotShareTeamDriveWithNonGoogleAccounts,
+  CANNOT_SHARE_SHAREDDRIVE_TOPFOLDER_WITH_ANYONEORDOMAINS: cannotShareSharedDriveTopFolderWithAnyoneOrDomains,
+  CANNOT_SHARE_SHAREDDRIVE_WITH_NONGOOGLE_ACCOUNTS: cannotShareSharedDriveWithNonGoogleAccounts,
   CANNOT_UPDATE_PERMISSION: cannotUpdatePermission,
   CONDITION_NOT_MET: conditionNotMet,
   CONFLICT: conflict,
@@ -603,11 +603,11 @@ REASON_EXCEPTION_MAP = {
   FIELD_NOT_WRITABLE: fieldNotWritable,
   FILE_NEVER_WRITABLE: fileNeverWritable,
   FILE_NOT_FOUND: fileNotFound,
-  FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE: fileOrganizerNotYetEnabledForThisTeamDrive,
-  FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED: fileOrganizerOnNonTeamDriveNotSupported,
-  FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE: fileOwnerNotMemberOfTeamDrive,
+  FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_SHAREDDRIVE: fileOrganizerNotYetEnabledForThisSharedDrive,
+  FILE_ORGANIZER_ON_NON_SHAREDDRIVE_NOT_SUPPORTED: fileOrganizerOnNonSharedDriveNotSupported,
+  FILE_OWNER_NOT_MEMBER_OF_SHAREDDRIVE: fileOwnerNotMemberOfSharedDrive,
   FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN: fileOwnerNotMemberOfWriterDomain,
-  FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED: fileWriterTeamDriveMoveInDisabled,
+  FILE_WRITER_SHAREDDRIVE_MOVE_IN_DISABLED: fileWriterSharedDriveMoveInDisabled,
   FORBIDDEN: forbidden,
   GROUP_NOT_FOUND: groupNotFound,
   ILLEGAL_ACCESS_ROLE_FOR_DEFAULT: illegalAccessRoleForDefault,
@@ -637,16 +637,16 @@ REASON_EXCEPTION_MAP = {
   LIMIT_EXCEEDED: limitExceeded,
   LOGIN_REQUIRED: loginRequired,
   MEMBER_NOT_FOUND: memberNotFound,
-  NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE: noListTeamDrivesAdministratorPrivilege,
-  NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE: noManageTeamDriveAdministratorPrivilege,
+  NO_LIST_SHAREDDRIVES_ADMINISTRATOR_PRIVILEGE: noListSharedDrivesAdministratorPrivilege,
+  NO_MANAGE_SHAREDDRIVE_ADMINISTRATOR_PRIVILEGE: noManageSharedDriveAdministratorPrivilege,
   NOT_A_CALENDAR_USER: notACalendarUser,
   NOT_FOUND: notFound,
   NOT_IMPLEMENTED: notImplemented,
   OPERATION_NOT_SUPPORTED: operationNotSupported,
-  ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED: organizerOnNonTeamDriveNotSupported,
-  ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED: organizerOnNonTeamDriveItemNotSupported,
+  ORGANIZER_ON_NON_SHAREDDRIVE_NOT_SUPPORTED: organizerOnNonSharedDriveNotSupported,
+  ORGANIZER_ON_NON_SHAREDDRIVE_ITEM_NOT_SUPPORTED: organizerOnNonSharedDriveItemNotSupported,
   ORGUNIT_NOT_FOUND: orgunitNotFound,
-  OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED: ownerOnTeamDriveItemNotSupported,
+  OWNER_ON_SHAREDDRIVE_ITEM_NOT_SUPPORTED: ownerOnSharedDriveItemNotSupported,
   OWNERSHIP_CHANGE_ACROSS_DOMAIN_NOT_PERMITTED: ownershipChangeAcrossDomainNotPermitted,
   PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE: participantIsNeitherOrganizerNorAttendee,
   PERMISSION_DENIED: permissionDenied,
@@ -667,19 +667,19 @@ REASON_EXCEPTION_MAP = {
   REVISIONS_NOT_SUPPORTED: revisionsNotSupported,
   SERVICE_LIMIT: serviceLimit,
   SERVICE_NOT_AVAILABLE: serviceNotAvailable,
+  SHAREDDRIVE_ALREADY_EXISTS: sharedDriveAlreadyExists,
+  SHAREDDRIVE_DOMAIN_USERS_ONLY_RESTRICTION: sharedDriveDomainUsersOnlyRestriction,
+  SHAREDDRIVE_TEAM_MEMBERS_ONLY_RESTRICTION: sharedDriveTeamMembersOnlyRestriction,
+  SHAREDDRIVE_HIERARCHY_TOO_DEEP: sharedDriveHierarchyTooDeep,
+  SHAREDDRIVE_MEMBERSHIP_REQUIRED: sharedDriveMembershipRequired,
+  SHAREDDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED: sharedDrivesFolderMoveInNotSupported,
+  SHAREDDRIVES_FOLDER_SHARING_NOT_SUPPORTED: sharedDrivesFolderSharingNotSupported,
+  SHAREDDRIVES_PARENT_LIMIT: sharedDrivesParentLimit,
+  SHAREDDRIVES_SHARING_RESTRICTION_NOT_ALLOWED: sharedDrivesSharingRestrictionNotAllowed,
   SHARE_OUT_NOT_PERMITTED: shareOutNotPermitted,
   SHARE_OUT_NOT_PERMITTED_TO_USER: shareOutNotPermittedToUser,
   SHARING_RATE_LIMIT_EXCEEDED: sharingRateLimitExceeded,
   SYSTEM_ERROR: systemError,
-  TEAMDRIVE_ALREADY_EXISTS: teamDriveAlreadyExists,
-  TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION: teamDriveDomainUsersOnlyRestriction,
-  TEAMDRIVE_TEAM_MEMBERS_ONLY_RESTRICTION: teamDriveTeamMembersOnlyRestriction,
-  TEAMDRIVE_HIERARCHY_TOO_DEEP: teamDriveHierarchyTooDeep,
-  TEAMDRIVE_MEMBERSHIP_REQUIRED: teamDriveMembershipRequired,
-  TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED: teamDrivesFolderMoveInNotSupported,
-  TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED: teamDrivesFolderSharingNotSupported,
-  TEAMDRIVES_PARENT_LIMIT: teamDrivesParentLimit,
-  TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED: teamDrivesSharingRestrictionNotAllowed,
   TIME_RANGE_EMPTY: timeRangeEmpty,
   TRANSIENT_ERROR: transientError,
   UNKNOWN_ERROR: unknownError,

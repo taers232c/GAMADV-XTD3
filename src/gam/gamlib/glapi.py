@@ -20,6 +20,7 @@
 
 """
 # APIs
+ACCESSCONTEXTMANAGER = 'accesscontextmanager'
 ALERTCENTER = 'alertcenter'
 CALENDAR = 'calendar'
 CBCM = 'cbcm'
@@ -32,7 +33,9 @@ CLASSROOM = 'classroom'
 CLOUDCHANNEL = 'cloudchannel'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
 CLOUDIDENTITY_GROUPS = 'cloudidentitygroups'
-CLOUDIDENTITY_GROUPS_BETA = 'cloudidentitygroupsbeta'
+#CLOUDIDENTITY_GROUPS_BETA = 'cloudidentitygroupsbeta'
+CLOUDIDENTITY_ORGUNITS = 'cloudidentityorgunits'
+CLOUDIDENTITY_ORGUNITS_BETA = 'cloudidentityorgunitsbeta'
 CLOUDIDENTITY_USERINVITATIONS = 'cloudidentityuserinvitations'
 CLOUDRESOURCEMANAGER = 'cloudresourcemanager'
 CLOUDRESOURCEMANAGER_V1 = 'cloudresourcemanager1'
@@ -74,7 +77,9 @@ STORAGE = 'storage'
 VAULT = 'vault'
 #
 JWT_APIS = {
+  ACCESSCONTEXTMANAGER: ['https://www.googleapis.com/auth/cloud-platform'],
   CHAT: ['https://www.googleapis.com/auth/chat.bot'],
+  CLOUDRESOURCEMANAGER: ['https://www.googleapis.com/auth/cloud-platform']
   }
 #
 CHROMEVERSIONHISTORY_URL = 'https://versionhistory.googleapis.com/v1/chrome/platforms'
@@ -115,6 +120,7 @@ OAUTH2_UNAUTHORIZED_ERRORS = [
   ]
 
 PROJECT_APIS = [
+  'accesscontextmanager.googleapis.com',
   'admin.googleapis.com',
   'alertcenter.googleapis.com',
   'audit.googleapis.com',
@@ -149,6 +155,7 @@ PROJECT_APIS = [
   ]
 
 _INFO = {
+  ACCESSCONTEXTMANAGER: {'name': 'Access Context Manager API', 'version': 'v1', 'v2discovery': True, 'localjson': False},
   ALERTCENTER: {'name': 'AlertCenter API', 'version': 'v1beta1', 'v2discovery': True},
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': True, 'mappedAPI': 'calendar-json'},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
@@ -161,7 +168,9 @@ _INFO = {
   CLOUDCHANNEL: {'name': 'Channel Channel API', 'version': 'v1', 'v2discovery': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
-  CLOUDIDENTITY_GROUPS_BETA: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
+#  CLOUDIDENTITY_GROUPS_BETA: {'name': 'Cloud Identity Groups API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
+  CLOUDIDENTITY_ORGUNITS: {'name': 'Cloud Identity OrgUnits API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
+  CLOUDIDENTITY_ORGUNITS_BETA: {'name': 'Cloud Identity OrgUnits API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_USERINVITATIONS: {'name': 'Cloud Identity User Invitations API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDRESOURCEMANAGER: {'name': 'Cloud Resource Manager API v3', 'version': 'v3', 'v2discovery': True},
   CONTACTS: {'name': 'Contacts API', 'version': 'v3', 'v2discovery': False},
@@ -278,6 +287,10 @@ _CLIENT_SCOPES = [
    'api': CLOUDIDENTITY_GROUPS,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/cloud-identity.groups'},
+  {'name': 'Cloud Identity OrgUnits API',
+   'api': CLOUDIDENTITY_ORGUNITS_BETA,
+   'subscopes': READONLY,
+   'scope': 'https://www.googleapis.com/auth/cloud-identity.orgunits'},
 #  {'name': 'Cloud Identity User Invitations API',
 #   'api': CLOUDIDENTITY_USERINVITATIONS,
 #   'subscopes': READONLY,

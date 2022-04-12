@@ -87,9 +87,11 @@ _SKUS = {
   '1010020026': {
     'product': 'Google-Apps', 'aliases': ['wsentstan', 'workspaceenterprisestandard'], 'displayName': 'Google Workspace Enterprise Standard'},
   '1010020027': {
-    'product': 'Google-Apps', 'aliases': ['wsbizstart', 'workspacebusinessstarter'], 'displayName': 'Google Workspace Business Starter'},
+    'product': 'Google-Apps', 'aliases': ['wsbizstart', 'wsbizstarter', 'workspacebusinessstarter'], 'displayName': 'Google Workspace Business Starter'},
   '1010020028': {
     'product': 'Google-Apps', 'aliases': ['wsbizstan', 'workspacebusinessstandard'], 'displayName': 'Google Workspace Business Standard'},
+  '1010020029': {
+    'product': 'Google-Apps', 'aliases': ['wes', 'wsentstarter', 'workspaceenterprisestarter'], 'displayName': 'Workspace Enterprise Starter'},
   '1010020030': {
     'product': 'Google-Apps', 'aliases': ['workspacefrontline', 'workspacefrontlineworker'], 'displayName': 'Google Workspace Frontline'},
   '1010340001': {

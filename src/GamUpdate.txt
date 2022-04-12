@@ -1,3 +1,18 @@
+6.20.00
+
+Following Jay's lead, updated `gam [<UserTypeEntity>] print|show teamdrives` to display
+the `orgUnit` path for a Shared Drive in addition to its `orgUnitId'. The org unit information
+is only available when the command is run as an administrator. Additional API calls are
+necessary to get the `orgUnit` path; the option `noorgunits` disables the additional API
+calls and display of the path .
+
+Following Jay's lead, added option `ou|org|orgunit <OrgUnitItem>` to `gam [<UserTypeEntity>] update teamdrive` to
+move the Team Drive to the specified OU. This option is only available when the command is run as an administrator.
+As Jay says: THIS FEATURE IS CURRENTLY ALPHA.
+
+Follwing Jay's lead, added commands to manage/display Context-Aware Access Levels.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Context-Aware-Access-Levels
+
 6.18.04
 
 Added the ability to upload Note attachments to Google Drive.

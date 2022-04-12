@@ -66,6 +66,7 @@ class GamEntity():
   BACKUP_VERIFICATION_CODES = 'buvc'
   BUILDING = 'bldg'
   BUILDING_ID = 'bldi'
+  CAA_LEVEL = 'calv'
   CALENDAR = 'cale'
   CALENDAR_ACL = 'cacl'
   CALENDAR_SETTINGS = 'cset'
@@ -216,6 +217,7 @@ class GamEntity():
   MEMBER_NOT_SUSPENDED_NOT_ARCHIVED = 'nsna'
   MEMBER_SUSPENDED_ARCHIVED = 'suar'
   MEMBER_RESTRICTION = 'memr'
+  MEMBER_URI = 'memu'
   MEMBERSHIP_TREE = 'metr'
   MESSAGE = 'mesg'
   MIMETYPE = 'mime'
@@ -227,7 +229,7 @@ class GamEntity():
   NONEDITABLE_ALIAS = 'neal'
   OAUTH2_TXT_FILE = 'oaut'
   OAUTH2SERVICE_JSON_FILE = 'oau2'
-  ORGANIZATIONAL_UNIT = 'org'
+  ORGANIZATIONAL_UNIT = 'orgu'
   OTHER_CONTACT = 'otco'
   OWNER = 'ownr'
   OWNER_ID = 'owid'
@@ -270,6 +272,12 @@ class GamEntity():
   SENDAS_ADDRESS = 'sasa'
   SENDER = 'send'
   SERVICE = 'serv'
+  SHAREDDRIVE = 'tdrv'
+  SHAREDDRIVE_ACL = 'tdac'
+  SHAREDDRIVE_FOLDER = 'tdfo'
+  SHAREDDRIVE_ID = 'tdid'
+  SHAREDDRIVE_NAME = 'tdna'
+  SHAREDDRIVE_THEME = 'tdth'
   SHEET = 'shet'
   SHEET_ID = 'shti'
   SIGNATURE = 'sign'
@@ -291,12 +299,6 @@ class GamEntity():
   SVCACCT_KEY = 'svky'
   TARGET_USER = 'tgt'
   TEACHER = 'teac'
-  TEAMDRIVE = 'tdrv'
-  TEAMDRIVE_ACL = 'tdac'
-  TEAMDRIVE_FOLDER = 'tdfo'
-  TEAMDRIVE_ID = 'tdid'
-  TEAMDRIVE_NAME = 'tdna'
-  TEAMDRIVE_THEME = 'tdth'
   THREAD = 'thre'
   TOKEN = 'tokn'
   TRANSFER_APPLICATION = 'trap'
@@ -304,6 +306,7 @@ class GamEntity():
   TRANSFER_REQUEST = 'trnr'
   TRASHED_EVENT = 'trev'
   TRUSTED_APPLICATION = 'trus'
+  TYPE = 'type'
   UNICODE_ENCODING_ENABLED = 'unic'
   UNIQUE_ID = 'uniq'
   USER = 'user'
@@ -353,6 +356,7 @@ class GamEntity():
     BACKUP_VERIFICATION_CODES: ['Backup Verification Codes', 'Backup Verification Codes'],
     BUILDING: ['Buildings', 'Building'],
     BUILDING_ID: ['Building IDs', 'Building ID'],
+    CAA_LEVEL: ['CAA Levels', 'CAA Level'],
     CALENDAR: ['Calendars', 'Calendar'],
     CALENDAR_ACL: ['Calendar ACLs', 'Calendar ACL'],
     CALENDAR_SETTINGS: ['Calendar Settings', 'Calendar Settings'],
@@ -503,6 +507,7 @@ class GamEntity():
     MEMBER_NOT_SUSPENDED_NOT_ARCHIVED: ['Members (Not Suspended & Not Archived)', 'Member (Not Suspended & Not Archived)'],
     MEMBER_SUSPENDED_ARCHIVED: ['Members (Suspended & Archived)', 'Member (Suspended & Archived)'],
     MEMBER_RESTRICTION: ['Member Restrictions', 'Member Restriction'],
+    MEMBER_URI: ['Member URIs', 'Member URI'],
     MEMBERSHIP_TREE: ['Membership Trees', 'Membership Tree'],
     MESSAGE: ['Messages', 'Message'],
     MIMETYPE: ['MIME Types', 'MIME Type'],
@@ -557,6 +562,12 @@ class GamEntity():
     SENDAS_ADDRESS: ['SendAs Addresses', 'SendAs Address'],
     SENDER: ['Senders', 'Sender'],
     SERVICE: ['Services', 'Service'],
+    SHAREDDRIVE: ['Shared Drives', 'Shared Drive'],
+    SHAREDDRIVE_ACL: ['Shared Drive ACLs', 'Shared Drive ACL'],
+    SHAREDDRIVE_FOLDER: ['Shared Drive Folders', 'Shared Drive Folder'],
+    SHAREDDRIVE_ID: ['Shared Drive IDs', 'Shared Drive ID'],
+    SHAREDDRIVE_NAME: ['Shared Drive Names', 'Shared Drive Name'],
+    SHAREDDRIVE_THEME: ['Shared Drive Themes', 'Shared Drive Theme'],
     SHEET: ['Sheets', 'Sheet'],
     SHEET_ID: ['Sheet IDs', 'Sheet ID'],
     SIGNATURE: ['Signatures', 'Signature'],
@@ -578,12 +589,6 @@ class GamEntity():
     SVCACCT_KEY: ['Service Account Keys', 'Service Account Key'],
     TARGET_USER: ['Target Users', 'Target User'],
     TEACHER: ['Teachers', 'Teacher'],
-    TEAMDRIVE: ['Shared Drives', 'Shared Drive'],
-    TEAMDRIVE_ACL: ['Shared Drive ACLs', 'Shared Drive ACL'],
-    TEAMDRIVE_FOLDER: ['Shared Drive Folders', 'Shared Drive Folder'],
-    TEAMDRIVE_ID: ['Shared Drive IDs', 'Shared Drive ID'],
-    TEAMDRIVE_NAME: ['Shared Drive Names', 'Shared Drive Name'],
-    TEAMDRIVE_THEME: ['Shared Drive Themes', 'Shared Drive Theme'],
     THREAD: ['Threads', 'Thread'],
     TOKEN: ['Tokens', 'Token'],
     TRANSFER_APPLICATION: ['Transfer Applications', 'Transfer Application'],
@@ -591,6 +596,7 @@ class GamEntity():
     TRANSFER_REQUEST: ['Transfer Requests', 'Transfer Request'],
     TRASHED_EVENT: ['Trashed Events', 'Trashed Event'],
     TRUSTED_APPLICATION: ['Trusted Applications', 'Trusted Application'],
+    TYPE: ['Types', 'Type'],
     UNICODE_ENCODING_ENABLED: ['UTF-8 Encoding Enabled', 'UTF-8 Encoding Enabled'],
     UNIQUE_ID: ['Unique IDs', 'Unique ID'],
     USER: ['Users', 'User'],

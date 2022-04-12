@@ -288,6 +288,7 @@ If an item contains spaces, it should be surrounded by ".
 <AssetTag> ::= <String>
 <BrowserTokenPermanentID> ::= <String>
 <BuildingID> ::= <String>|id:<String>
+<CAALevelName> ::= <String>
 <CalendarACLScope> ::=
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
         domain:<DomainName>)|domain|default
@@ -429,6 +430,8 @@ If an item contains spaces, it should be surrounded by ".
 <QueryBrowserToken> ::= <String>
         See: https://support.google.com/chrome/a/answer/9949706?ref_topic=9301744
 <QueryCalendar> ::= <String>
+<QueryCEL> ::= <String>
+        See: https://cloud.google.com/access-context-manager/docs/custom-access-level-spec
 <QueryContact> ::= <String>
         See: https://developers.google.com/google-apps/contacts/v3/reference#contacts-query-parameters-reference
 <QueryCrOS> ::= <String>
@@ -600,6 +603,7 @@ If an item contains spaces, it should be surrounded by ".
 <SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
 <SharedDriveACLRoleList> ::= "<SharedDriveACLRole>(,<SharedDriveACLRole>)*"
 <SharedDriveIDList> ::= "<SharedDriveID>(,<SharedDriveID>)*"
+<StringList> ::= "<String>(,<String>)*"
 <ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
 <TimeList> ::= "<Time>(,<Time>)*"
 <UserList> ::= "<UserItem>(,<UserItem>)*"
@@ -2056,6 +2060,83 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
         [start <Date>] [end <Date>]
         [formatjson [quotechar <Character>]]
 
+# Context Aware Access
+
+<QueryCEL> ::= <String>
+        See: https://cloud.google.com/access-context-manager/docs/custom-access-level-spec
+
+<CAAAllowedEncryptionStatus> ::=
+        encryption_unsupported |
+        encrypted |
+        unencrypted
+<CAAAllowedEncryptionStatusList> ::= "<CAAAllowedEncryptionStatus>(,<CAAAllowedEncryptionStatus>)"
+
+<CAAAllowedDeviceManagementLevel> ::=
+        basic |
+        advanced|complete |
+        none
+<CAAAllowedDeviceManagementLevelList> ::= "<CAAAllowedDeviceManagementLevel>(,<CAAAllowedDeviceManagementLevel>)"
+
+<CAACombiningFunction> ::=
+        and |
+        or
+
+<CAAIPSubNetwork> ::=
+        <CIDRnetmask>
+<CAAIPSubNetworkList> ::= "<CAAIPSubNetwork>(,<CAAIPSubNetwork>)"
+
+<CAAMember> ::=
+        user:<EmailAddress> |
+        serviceAccount:<EmailAddress>
+<CAAMemberList> ::= "<CAAMember>(,<CAAMember>)"
+
+<CAAOsType> ::=
+        DESKTOP_MAC |
+        DESKTOP_WINDOWS |
+        DESKTOP_LINUX |
+        DESKTOP_CHROME_OS |
+        VERIFIED_DESKTOP_CHROME_OS |
+        ANDROID |
+        IOS
+
+<CAAOsConstraint> ::=
+        <CAAOsType> |
+        <CAAOsType>:<String>.<String>.<String>
+<CAAOsConstraintList> ::= "<CAAOsConstraint>(,<CAAOsConstraint>)"
+
+<CAARegion> ::=
+        <Character><Character>
+<CAARegionList> ::= "<CAARegion>(,<CAARegion>)"
+        See: https://www.iso.org/obp/ui/#search
+
+<CAADevicePolicyAttribute> ::=
+        (requirescreenlock <Boolean>) |
+        (allowedencryptionstatuses <CAAAllowedEncryptionStatusList>) |
+        (osconstraints <CAAOsConstraintList>) |
+        (alloweddevicemanagementlevels <CAAAllowedDeviceManagementLevelList>) |
+        (requireadminapproval <Boolean>) |
+        (requirecorpowned <Boolean>)    # See: https://www.iso.org/obp/ui/#search
+
+<CAAConditionAttribute> ::=
+        (ipsubnetworks <CAAIPSubNetworkList>) |
+        (devicepolicy <CAADevicePolicyAttribute> enddevicepolicy) |
+        (requiredaccesslevels <StringList>) |
+        (negate <Boolean>) |
+        (members <CAAMemberList>) |
+        (regions <CAARegionList>)
+        
+<CAABasicAttribute> ::+
+        (combiningfunction <CAACombiningFunction>) |
+        (condition <CAAConditionAttribute>+ endcondition)
+
+gam create caalevel <String> [description <String>] (basic <CAABasicAttribute>+)|(custom <QueryCEL>)
+gam update caalevel <CAALevelName> [description <String>] (basic <CAABasicAttribute>+)|(custom <QueryCEL>)
+gam delete caalevel <CAALevelName>
+gam show caalevels
+        [formatjson]
+gam print caalevels [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
+
 # Cloud Channel
 
 <ChannelCustomerField> ::=
@@ -2076,12 +2157,12 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
 gam print channelcustomers [todrive <ToDriveAttribute>*]
         [resellerid <ResellerID>] [filter <String>]
         [fields <ChannelCustomerFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelcustomers
         [resellerid <ResellerID>] [filter <String>]
         [fields <ChannelCustomerFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson]
 
 <ChannelCustomerEntitlementField> ::=
@@ -2102,12 +2183,12 @@ gam show channelcustomers
 gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
         ([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<ResellerID>/customers/<CustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelcustomerentitlements
         ([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<AccountID/customers/<CustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson]
 
 <ChannelCustomerOfferField> ::=
@@ -2125,12 +2206,12 @@ gam show channelcustomerentitlements
 gam print channeloffers [todrive <ToDriveAttribute>*]
         [resellerid <ResellerID>] [filter <String>] [language <LanguageCode>]
         [fields <ChannelOfferFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channeloffers
         [resellerid <ResellerID>] [filter <String>] [language <LanguageCode>]
         [fields <ChannelOfferFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson]
 
 <ChannelProductField> ::=
@@ -2141,12 +2222,12 @@ gam show channeloffers
 gam print channelproducts [todrive <ToDriveAttribute>*]
         [resellerid <ResellerID>] [language <LanguageCode>]
         [fields <ChannelProductFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelproducts
         [resellerid <ResellerID>] [language <LanguageCode>]
         [fields <ChannelProductFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson]
 
 <ChannelSKUField> ::=
@@ -2158,12 +2239,12 @@ gam show channelproducts
 gam print channelskus [todrive <ToDriveAttribute>*]
         [resellerid <ResellerID>] [language <LanguageCode>] [productid <ProductID>]
         [fields <ChannelSKUFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelskus
         [resellerid <ResellerID>] [language <LanguageCode>] [productid <ProductID>]
         [fields <ChannelSKUFieldList>]
-	[maxresults <Number>]
+        [maxresults <Number>]
         [formatjson]
 
 # Contacts - Delegation
@@ -3792,7 +3873,7 @@ gam create|add teamdrive <Name>
 gam update teamdrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsFieldName> <Boolean>)*
-        [hide|hidden <Boolean>]
+        [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 gam delete teamdrive <SharedDriveEntity>
 gam hide teamdrive <SharedDriveEntity>
 gam unhide teamdrive <SharedDriveEntity>
@@ -3801,12 +3882,21 @@ gam info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
 gam show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
         [formatjson]
 gam print teamdrives [todrive <ToDriveAttribute>*]
-        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [fields <SharedDriveFieldNameList>]
+        [teamdriveadminquery|query <QueryTeamDrive>]
+        [matchname <RegularExpression>]
+        [fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
         [formatjson [quotechar <Character>]]
 gam show teamdrives
-        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [fields <SharedDriveFieldNameList>]
+        [teamdriveadminquery|query <QueryTeamDrive>]
+        [matchname <RegularExpression>]
+        [fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
+        [formatjson] [noorgunits [<Boolean>]]
+
+gam print oushareddrives [todrive <ToDriveAttribute>*]
+        [ou|org|orgunit <OrgUnitPath>]
+        [formatjson [quotechar <Character>]]
+gam show oushareddrives
+        [ou|org|orgunit <OrgUnitPath>]
         [formatjson]
 
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
@@ -4910,8 +5000,8 @@ gam <UserTypeEntity> create|add drivefile
         [stripnameprefix <String>]
         <DriveFileCreateAttribute>*
         [enforcesingleparent <Boolean>]
-        [csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> currenttime|<String>)*]
-        [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
+        [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> currenttime|<String>)*) |
+         (returnidonly|returnlinkonly|returneditlinkonly|showdetails)]
 
 <DriveFileUpdateAttribute> ::=
         <DriveFileAttribute>|
@@ -6190,7 +6280,7 @@ gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]
 gam <UserTypeEntity> update teamdrive <SharedDriveEntity> [adminaccess|asadmin] [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
-        [hide|hidden <Boolean>]
+        [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 gam <UserTypeEntity> delete teamdrive <SharedDriveEntity>
 gam <UserTypeEntity> hide teamdrive <SharedDriveEntity>
 gam <UserTypeEntity> unhide teamdrive <SharedDriveEntity>
@@ -6201,12 +6291,14 @@ gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [fields <SharedDriveFiel
 gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
         [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
+        [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
         [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
-        [fields <SharedDriveFieldNameList>]
+        [fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdrives
+        [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
         [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
-        [fields <SharedDriveFieldNameList>]
+        [fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
         [formatjson]
 
 # Users - Force Signout and Turn Off 2-Step Verification
