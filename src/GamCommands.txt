@@ -2107,7 +2107,7 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
 <CAARegion> ::=
         <Character><Character>
 <CAARegionList> ::= "<CAARegion>(,<CAARegion>)"
-        See: https://www.iso.org/obp/ui/#search
+        See: https://github.com/taers232c/GAMADV-XTD3/wiki/Context-Aware-Access-Levels#caa-region-codes
 
 <CAADevicePolicyAttribute> ::=
         (requirescreenlock <Boolean>) |

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.20.00'
+__version__ = '6.20.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -60203,6 +60203,27 @@ def CAABuildDevicePolicy():
       unknownArgumentExit()
   return device_policy
 
+ISO3166_1_ALPHA_2_CODES = {
+  "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
+  "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS", "BT", "BV", "BW", "BY", "BZ",
+  "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CU", "CV", "CW", "CX", "CY", "CZ",
+  "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK", "FM", "FO", "FR",
+  "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY",
+  "HK", "HM", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT", "JE", "JM", "JO", "JP",
+  "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY",
+  "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ",
+  "NA", "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ",
+  "OM", "PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW",
+  "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SX", "SY", "SZ",
+  "TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ",
+  "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU", "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW",
+  }
+
+def validateISO3166_1_alpha2_code(region):
+  if region not in ISO3166_1_ALPHA_2_CODES:
+    Cmd.Backup()
+    expectedArgumentExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID_CHOICE][1].format(region), Msg.INVALID_REGION)
+    
 def CAABuildCondition():
   condition = {}
   while Cmd.ArgumentsRemaining():
@@ -60219,6 +60240,8 @@ def CAABuildCondition():
       condition['members'] = getString(Cmd.OB_STRING).split(',')
     elif myarg == 'regions':
       condition['regions'] = getString(Cmd.OB_STRING).upper().split(',')
+      for region in condition['regions']:
+        validateISO3166_1_alpha2_code(region)
     elif myarg == 'endcondition':
       break
     else:
@@ -60266,10 +60289,10 @@ def doCreateCAALevel():
   CAABuildLevel(body)
   try:
     callGAPI(caa.accessPolicies().accessLevels(), 'create',
-             throwReasons=[GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+             throwReasons=[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
              parent=ap_name, body=body)
     entityActionPerformed([Ent.CAA_LEVEL, name])
-  except (GAPI.failedPrecondition, GAPI.invalidArgument) as e:
+  except (GAPI.alreadyExists, GAPI.failedPrecondition, GAPI.invalidArgument) as e:
     entityActionFailedWarning([Ent.CAA_LEVEL, name], str(e))
   except GAPI.permissionDenied:
     CAARoleErrorExit(caa)

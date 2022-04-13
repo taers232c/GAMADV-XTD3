@@ -1,7 +1,11 @@
+6.20.01
+
+Added code to validate values in `<CAARegionList>` in `gam create|update caalevel`.
+
 6.20.00
 
 Following Jay's lead, updated `gam [<UserTypeEntity>] print|show teamdrives` to display
-the `orgUnit` path for a Shared Drive in addition to its `orgUnitId'. The org unit information
+the `orgUnit` path for a Shared Drive in addition to its `orgUnitId`. The org unit information
 is only available when the command is run as an administrator. Additional API calls are
 necessary to get the `orgUnit` path; the option `noorgunits` disables the additional API
 calls and display of the path .
