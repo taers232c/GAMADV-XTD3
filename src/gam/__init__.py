@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.20.01'
+__version__ = '6.20.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51367,9 +51367,10 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
   _validatePermissionAttributes('allowfilediscovery/withlink', withLinkLocation, body, 'allowFileDiscovery', ['anyone', 'domain'])
   _validatePermissionAttributes('expiration', expirationLocation, body, 'expirationTime', ['user', 'group'])
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
-  if csvPF and showTitles:
-    csvPF.AddTitles(fileNameTitle)
-    csvPF.SetSortAllTitles()
+  if csvPF:
+    if showTitles:
+      csvPF.AddTitles(fileNameTitle)
+      csvPF.SetSortAllTitles()
     if FJQC.formatJSON:
       csvPF.SetJSONTitles(csvPF.titlesList+['JSON'])
   i, count, users = getEntityArgument(users)

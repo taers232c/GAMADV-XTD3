@@ -1,3 +1,7 @@
+6.20.02
+
+Fixed bug in `gam <UserTypeEntity> create drivefileacl <DriveFileEntity ... csv formatjson` that caused a trap.
+
 6.20.01
 
 Added code to validate values in `<CAARegionList>` in `gam create|update caalevel`.
