@@ -3905,6 +3905,7 @@ gam <UserTypeEntity> create|add teamdrive <Name> adminaccess
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
+        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
 gam <UserTypeEntity> delete teamdrive <SharedDriveEntity> adminaccess
 gam <UserTypeEntity> info teamdrive <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>]
         [formatjson]
@@ -3984,12 +3985,16 @@ gam delete permissions <SharedDriveEntityAdmin> <DriveFilePermissionIDEntity>
 In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
 
 gam <UserTypeEntity> create|add drivefileacl <SharedDriveEntityAdmin>
-        anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>) (role <DriveFileACLRole>)
+        anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
+        (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
         [enforcesingleparent <Boolean>] [movetonewownersroot [<Boolean>]]
-        [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expires|expiration <Time>]
-        [sendemail] [emailmessage <String>] [showtitles] [nodetails] adminaccess
+        [expiration <Time>] [sendemail] [emailmessage <String>]
+        [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
+        adminaccess
 gam <UserTypeEntity> update drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
-        (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]] [showtitles] [nodetails] adminaccess
+        (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]]
+        [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
+        adminaccess
 gam <UserTypeEntity> delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
 gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles]
@@ -3998,7 +4003,7 @@ gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
         (role|roles <DriveFileACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
-        [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
+        [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [showtitles|(addtitle <String>)]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [formatjson] adminaccess

@@ -1,3 +1,7 @@
+6.20.03
+
+Fixed handling of Shared Drive API errors that was broken in 6.20.00.
+
 6.20.02
 
 Fixed bug in `gam <UserTypeEntity> create drivefileacl <DriveFileEntity ... csv formatjson` that caused a trap.
