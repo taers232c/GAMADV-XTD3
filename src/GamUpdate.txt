@@ -1,3 +1,12 @@
+6.20.04
+
+Added option `dynamicsecurity|makedynamicsecuritygroup` to `gam update cigroups <GroupEntity>`
+so you can update a dynamic group to be a security group. You should use this option if you use
+this option `security|makesecuritygroup` and get this error:
+```
+ERROR: 400: invalidArgument - Error(2022): Removing labels is not supported.
+```
+
 6.20.03
 
 Fixed handling of Shared Drive API errors that was broken in 6.20.00.

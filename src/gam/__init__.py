@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.20.03'
+__version__ = '6.20.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -26250,7 +26250,8 @@ def doUpdateGroups():
           callGAPI(ci.groups(), 'patch',
                    throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
                    name=name, body=ci_body, updateMask=','.join(list(ci_body.keys())))
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
+        except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+                GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
                 GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
           entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
           continue
@@ -28277,7 +28278,8 @@ def doCreateCIGroup():
 
 # gam update cigroups <GroupEntity> [email <EmailAddress>]
 #	[copyfrom <GroupItem>] <GroupAttribute>*
-#	[security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
+#	[security|makesecuritygroup|dynamicsecurity|makedynamicsecuritygroup]
+#	[dynamic <QueryDynamicGroup>]
 #	[memberrestrictions <QueryMemberRestrictions>]
 # gam update cigroups <GroupEntity> create|add [<GroupRole>]
 #	[usersonly|groupsonly]
@@ -28472,6 +28474,10 @@ def doUpdateCIGroups():
       elif myarg in {'security', 'makesecuritygroup'}:
         ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
                              'cloudidentity.googleapis.com/groups.security': ''}
+      elif myarg in {'dynamicsecurity', 'makedynamicsecuritygroup'}:
+        ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
+                             'cloudidentity.googleapis.com/groups.dynamic': '',
+                             'cloudidentity.googleapis.com/groups.security': ''}
       elif myarg in ['memberrestriction', 'memberrestrictions']:
         query = getString(Cmd.OB_QUERY, minLen=0)
         member_types = {'USER': '1', 'SERVICE_ACCOUNT': '2', 'GROUP': '3',}
@@ -28547,7 +28553,8 @@ def doUpdateCIGroups():
             callGAPI(ci.groups(), 'patch',
                      throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
                      name=name, body=ci_body, updateMask=','.join(list(ci_body.keys())))
-          except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
+          except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+                  GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
                   GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
             entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
             continue
@@ -28556,10 +28563,11 @@ def doUpdateCIGroups():
           # We'll see if Google servers change this at some point.
           try:
             callGAPI(ci.groups(), 'updateSecuritySettings',
-                     throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS+[GAPI.INVALID_ARGUMENT],
+                     throwReasons=GAPI.CIGROUP_UPDATE_THROW_REASONS,
                      name=f'{name}/securitySettings', updateMask='member_restriction.query', body=se_body)
-          except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput,
-                  GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition, GAPI.invalidArgument) as e:
+          except (GAPI.notFound, GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
+                  GAPI.forbidden, GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
+                  GAPI.systemError, GAPI.permissionDenied, GAPI.failedPrecondition) as e:
             entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e), i, count)
             continue
       entityActionPerformed([entityType, group], i, count)

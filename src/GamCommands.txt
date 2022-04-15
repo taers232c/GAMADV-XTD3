@@ -2936,7 +2936,7 @@ gam create|add group <EmailAddress>
         [verifynotinvitable]
 gam update group|groups <GroupEntity> [email <EmailAddress>]
         [copyfrom <GroupItem>] <GroupAttribute>*
-        [security|makesecuritygroup]
+        [security|makesecuritygroup|dynamicsecurity|makedynamicsecuritygroup]
         [admincreated <Boolean>]
         [verifynotinvitable]
 gam update group|groups <GroupEntity> create|add [<GroupRole>]
@@ -3139,7 +3139,8 @@ gam show group-members
 gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
         [makeowner] [alias|aliases <CIGroupAliasList>] [dynamic <QueryDynamicGroup>]
 gam update cigroup <GroupEntity> [copyfrom <GroupItem>] <GroupAttribute>
-        [security|makesecuritygroup] [dynamic <QueryDynamicGroup>]
+        [security|makesecuritygroup|dynamicsecurity|makedynamicsecuritygroup]
+        [dynamic <QueryDynamicGroup>]
         [memberrestrictions <QueryMemberRestrictions>]
 gam update cigroups <GroupEntity> create|add [<GroupRole>]
         [usersonly|groupsonly]
