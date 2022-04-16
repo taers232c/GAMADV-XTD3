@@ -1,3 +1,8 @@
+6.20.05
+
+Updated options `notarchived|archived` in `gam update group|groups <GroupEntity> add|remove|sync`
+to be usable with additional `<UserTypeEntity>`.
+
 6.20.04
 
 Added option `dynamicsecurity|makedynamicsecuritygroup` to `gam update cigroups <GroupEntity>`

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.20.04'
+__version__ = '6.20.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5324,24 +5324,29 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
       return entityList
   elif entityType in {Cmd.ENTITY_ALL_USERS, Cmd.ENTITY_ALL_USERS_NS, Cmd.ENTITY_ALL_USERS_NS_SUSP, Cmd.ENTITY_ALL_USERS_SUSP}:
     cd = buildGAPIObject(API.DIRECTORY)
-    query = Cmd.ALL_USERS_QUERY_MAP[entityType]
+    if entityType == Cmd.ENTITY_ALL_USERS and isSuspended is not None:
+      query = f'isSuspended={isSuspended}'
+    else:
+      query = Cmd.ALL_USERS_QUERY_MAP[entityType]
     printGettingAllAccountEntities(Ent.USER)
     try:
       result = callGAPIpages(cd.users(), 'list', 'users',
                              pageMessage=getPageMessage(),
                              throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                              customer=GC.Values[GC.CUSTOMER_ID],
-                             query=query, orderBy='email', fields='nextPageToken,users(primaryEmail)',
+                             query=query, orderBy='email', fields='nextPageToken,users(primaryEmail,archived)',
                              maxResults=GC.Values[GC.USER_MAX_RESULTS])
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       accessErrorExit(cd)
-    entityList = [user['primaryEmail'] for user in result]
+    entityList = [user['primaryEmail'] for user in result if isArchived is None or isArchived == user['archived']]
     printGotAccountEntities(len(entityList))
   elif entityType in {Cmd.ENTITY_DOMAINS, Cmd.ENTITY_DOMAINS_NS, Cmd.ENTITY_DOMAINS_SUSP}:
     if entityType == Cmd.ENTITY_DOMAINS_NS:
       query = 'isSuspended=False'
     elif entityType == Cmd.ENTITY_DOMAINS_SUSP:
       query = 'isSuspended=True'
+    elif isSuspended is not None:
+      query = f'isSuspended={isSuspended}'
     else:
       query = None
     cd = buildGAPIObject(API.DIRECTORY)
@@ -5353,13 +5358,13 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
                                pageMessage=getPageMessage(),
                                throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN],
                                domain=domain,
-                               query=query, orderBy='email', fields='nextPageToken,users(primaryEmail)',
+                               query=query, orderBy='email', fields='nextPageToken,users(primaryEmail,archived)',
                                maxResults=GC.Values[GC.USER_MAX_RESULTS])
       except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden):
         checkEntityDNEorAccessErrorExit(cd, Ent.DOMAIN, domain)
         _incrEntityDoesNotExist(Ent.DOMAIN)
         continue
-      entityList = [user['primaryEmail'] for user in result]
+      entityList = [user['primaryEmail'] for user in result if isArchived is None or isArchived == user['archived']]
       printGotAccountEntities(len(entityList))
   elif entityType in {Cmd.ENTITY_GROUP, Cmd.ENTITY_GROUPS,
                       Cmd.ENTITY_GROUP_NS, Cmd.ENTITY_GROUPS_NS,
@@ -5504,7 +5509,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
                                                                                         Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OU_AND_CHILDREN_SUSP})
     directlyInOU = entityType in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS, Cmd.ENTITY_OU_NS, Cmd.ENTITY_OUS_NS, Cmd.ENTITY_OU_SUSP, Cmd.ENTITY_OUS_SUSP}
     qualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if directlyInOU else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-    fields = 'nextPageToken,users(primaryEmail,orgUnitPath)' if directlyInOU else 'nextPageToken,users(primaryEmail)'
+    fields = 'nextPageToken,users(primaryEmail,orgUnitPath,archived)' if directlyInOU else 'nextPageToken,users(primaryEmail,archived)'
     prevLen = 0
     for ou in ous:
       ou = makeOrgUnitPathAbsolute(ou)
@@ -5545,11 +5550,11 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
           users = result.get('users', [])
           if directlyInOU:
             for user in users:
-              if ouLower == user.get('orgUnitPath', '').lower():
+              if ouLower == user.get('orgUnitPath', '').lower() and (isArchived is None or isArchived == user['archived']):
                 usersInOU += 1
                 entityList.append(user['primaryEmail'])
           else:
-            entityList.extend([user['primaryEmail'] for user in users])
+            entityList.extend([user['primaryEmail'] for user in users if isArchived is None or isArchived == user['archived']])
             usersInOU += len(users)
           del result
         if not pageToken:
@@ -5569,7 +5574,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
                                throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                              GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                customer=GC.Values[GC.CUSTOMER_ID], query=query, orderBy='email',
-                               fields='nextPageToken,users(primaryEmail,suspended)',
+                               fields='nextPageToken,users(primaryEmail,suspended,archived)',
                                maxResults=GC.Values[GC.USER_MAX_RESULTS])
       except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput):
         Cmd.Backup()
@@ -5578,7 +5583,9 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
         accessErrorExit(cd)
       for user in result:
         email = user['primaryEmail']
-        if (isSuspended is None or isSuspended == user['suspended']) and email not in entitySet:
+        if ((isSuspended is None or isSuspended == user['suspended']) and
+            (isArchived is None or isArchived == user['archived']) and
+            email not in entitySet):
           entitySet.add(email)
           entityList.append(email)
       totalLen = len(entityList)
