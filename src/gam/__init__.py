@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.20.05'
+__version__ = '6.20.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7583,7 +7583,8 @@ class CSVPrintFile():
       titlesList = self.titlesList
     else:
       if self.timestampColumn:
-        self.AddTitle(self.timestampColumn)
+        self.AddJSONTitle(self.timestampColumn)
+        self.MoveJSONTitlesToEnd(['JSON'])
       titlesList = self.JSONtitlesList
     if (not self.todrive) or self.todrive['localcopy']:
       if GM.Globals[GM.CSVFILE][GM.REDIRECT_NAME] == '-':
