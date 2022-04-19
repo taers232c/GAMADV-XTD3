@@ -1,3 +1,7 @@
+6.20.07
+
+Additional fixes to bug that caused a trap when `config csv_output_timestamp_column` and `formatjson` were used in the same command.
+
 6.20.06
 
 Fixed bug that caused a trap when `config csv_output_timestamp_column` and `formatjson` were used in the same command.
