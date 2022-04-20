@@ -1,3 +1,7 @@
+6.20.08
+
+Fixed bug in `gam <UserTypeEntity> copy|move drivefile` that caused a trap when a Shared Drive was involved.
+
 6.20.07
 
 Additional fixes to bug that caused a trap when `config csv_output_timestamp_column` and `formatjson` were used in the same command.
