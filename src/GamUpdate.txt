@@ -1,3 +1,8 @@
+6.20.10
+
+Fixed bug in `gam report customers|users ... date <Date> nodatechange` where no data was returned
+in some cases when `allverifyuser <UserItem>` was not specified.
+
 6.20.09
 
 Added option `aliasmatchpattern <RegularExpression>` to `gam print users` that limits the display of aliases

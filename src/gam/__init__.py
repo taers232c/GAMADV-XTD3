@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.20.09'
+__version__ = '6.20.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -11782,6 +11782,8 @@ def doReport():
       userCustomerRange = False
     elif usageReports and myarg == 'nodatechange':
       noDateChange = True
+      if (startEndTime.startDateTime is not None) and (startEndTime.endDateTime == startEndTime.startDateTime):
+        userCustomerRange = True
     elif usageReports and myarg in {'fields', 'parameters'}:
       for field in getString(Cmd.OB_STRING).replace(',', ' ').split():
         if ':' in field:
