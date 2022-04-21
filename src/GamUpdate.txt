@@ -1,3 +1,8 @@
+6.20.09
+
+Added option `aliasmatchpattern <RegularExpression>` to `gam print users` that limits the display of aliases
+to those that match `<RegularExpression>`.
+
 6.20.08
 
 Fixed bug in `gam <UserTypeEntity> copy|move drivefile` that caused a trap when a Shared Drive was involved.

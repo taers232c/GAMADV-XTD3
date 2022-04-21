@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.20.08'
+__version__ = '6.20.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -37116,20 +37116,20 @@ USERS_INDEXED_TITLES = ['addresses', 'aliases', 'nonEditableAliases', 'emails', 
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
-#	[issuspended <Boolean>]
+#	[issuspended <Boolean>] [aliasmatchpattern <RegularExpression>]
 #
 # gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
 #	[groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
-#	[issuspended <Boolean>]
+#	[issuspended <Boolean>] [aliasmatchpattern <RegularExpression>]
 #
 # gam print users [todrive <ToDriveAttribute>*]
 #	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
 #	 [limittoou <OrgUnitItem>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
 #	[formatjson [quotechar <Character>]] [countonly]
-#	[issuspended <Boolean>]
+#	[issuspended <Boolean>] [aliasmatchpattern <RegularExpression>]
 #
 # gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
 #	[formatjson [quotechar <Character>]] [countonly]
@@ -37178,6 +37178,8 @@ def doPrintUsers(entityList=None):
           userEntity['LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
         else:
           userEntity['LicensesCount'] = 0
+      if aliasMatchPattern and 'aliases' in userEntity:
+        userEntity['aliases'] = [alias for alias in userEntity['aliases'] if aliasMatchPattern.match(alias)]
       row = flattenJSON(userEntity, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS)
       if not FJQC.formatJSON:
         csvPF.WriteRowTitles(row)
@@ -37249,7 +37251,7 @@ def doPrintUsers(entityList=None):
   projectionSet = False
   customFieldMask = None
   quotePlusPhoneNumbers = showDeleted = False
-  isSuspended = orgUnitPath = orgUnitPathLower = orderBy = sortOrder = None
+  aliasMatchPattern = isSuspended = orgUnitPath = orgUnitPathLower = orderBy = sortOrder = None
   viewType = 'admin_view'
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
@@ -37309,6 +37311,8 @@ def doPrintUsers(entityList=None):
       printOptions['groupsInColumns'] = True
     elif myarg in {'license', 'licenses', 'licence', 'licences'}:
       printOptions['getLicenseFeed'] = True
+    elif myarg == 'aliasmatchpattern':
+      aliasMatchPattern = getREPattern(re.IGNORECASE)
     elif myarg in {'emailpart', 'emailparts', 'username'}:
       printOptions['emailParts'] = True
     elif myarg in {'countonly', 'countsonly'}:

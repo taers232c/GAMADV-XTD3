@@ -4540,7 +4540,7 @@ gam print users [todrive <ToDriveAttribute>*]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
-        [issuspended <Boolean>]
+        [issuspended <Boolean>] [aliasmatchpattern <RegularExpression>]
 
 Print fields for specified users.
 
@@ -4552,7 +4552,7 @@ gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
-        [issuspended <Boolean>]
+        [issuspended <Boolean>] [aliasmatchpattern <RegularExpression>]
 
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [orderby <UserOrderByFieldName> [ascending|descending]]
@@ -4562,7 +4562,7 @@ gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
         [delimiter <Character>] [sortheaders [<Boolean>]] [scalarsfirst [<Boolean>]]
         [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
-        [issuspended <Boolean>]
+        [issuspended <Boolean>] [aliasmatchpattern <RegularExpression>]
 
 The first column will always be primaryEmail; the remaining field names will be sorted if allfields, basic, full or sortheaders is specified;
 otherwise, the remaining field names will appear in the order specified.
