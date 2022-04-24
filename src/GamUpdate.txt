@@ -1,3 +1,8 @@
+6.21.00
+
+Added option `allowitemdeletion` to `gam [<UserTypeEntity>] delete shareddrive <SharedDriveEntity>`
+that allows deletion of non-empty Shared Drives. This option requires a Super Admin user.
+
 6.20.10
 
 Fixed bug in `gam report customers|users ... date <Date> nodatechange` where no data was returned

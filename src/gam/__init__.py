@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.20.10'
+__version__ = '6.21.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52609,10 +52609,16 @@ def updateSharedDrive(users, useDomainAdminAccess=False):
 def doUpdateSharedDrive():
   updateSharedDrive([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> delete shareddrive <SharedDriveEntity>
+# gam <UserTypeEntity> delete shareddrive <SharedDriveEntity> [allowitemdeletion]
 def deleteSharedDrive(users):
   fileIdEntity = getSharedDriveEntity()
-  checkForExtraneousArguments()
+  allowItemDeletion = useDomainAdminAccess = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in {'nukefromorbit', 'allowitemdeletion'}:
+      allowItemDeletion = useDomainAdminAccess = True
+    else:
+      unknownArgumentExit()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -52623,16 +52629,18 @@ def deleteSharedDrive(users):
       driveId = fileIdEntity['shareddrive']['driveId']
       callGAPI(drive.drives(), 'delete',
                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN,
-                                                           GAPI.CANNOT_DELETE_RESOURCE_WITH_CHILDREN, GAPI.INSUFFICIENT_FILE_PERMISSIONS],
-               driveId=driveId)
+                                                           GAPI.CANNOT_DELETE_RESOURCE_WITH_CHILDREN, GAPI.INSUFFICIENT_FILE_PERMISSIONS,
+                                                           GAPI.NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE],
+               driveId=driveId, allowItemDeletion=allowItemDeletion, useDomainAdminAccess=useDomainAdminAccess)
       entityActionPerformed([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], i, count)
     except (GAPI.notFound, GAPI.forbidden,
-            GAPI.cannotDeleteResourceWithChildren, GAPI.insufficientFilePermissions) as e:
+            GAPI.cannotDeleteResourceWithChildren, GAPI.insufficientFilePermissions,
+            GAPI.noManageTeamDriveAdministratorPrivilege) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
 
-# gam delete shareddrive <SharedDriveEntity>
+# gam delete shareddrive <SharedDriveEntity> [allowitemdeletion]
 def doDeleteSharedDrive():
   deleteSharedDrive([_getAdminEmail()])
 
