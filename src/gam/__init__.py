@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.21.00'
+__version__ = '6.21.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2853,7 +2853,8 @@ def getGSheetData():
   except GAPI.fileNotFound:
     getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId], Msg.DOES_NOT_EXIST)
   except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+          GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
     getGDocSheetDataFailedExit([Ent.USER, user, Ent.SPREADSHEET, fileId, sheetEntity['sheetType'], sheetEntity['sheetValue']], str(e))
   except (IOError, httplib2.HttpLib2Error) as e:
     if f:
@@ -7011,7 +7012,8 @@ class CSVPrintFile():
                     invalidTodriveFileIdExit([self.todrive[sheetEntity]['sheetType'], self.todrive[sheetEntity]['sheetValue']], Msg.NOT_WRITABLE, tdsheetLocation[sheetEntity])
                 self.todrive[sheetEntity]['sheetId'] = sheetId
           except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                  GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+                  GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+                  GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
             invalidTodriveFileIdExit([], str(e), tdfileidLocation)
       except GAPI.fileNotFound:
         invalidTodriveFileIdExit([], Msg.NOT_FOUND, tdfileidLocation)
@@ -7427,7 +7429,8 @@ class CSVPrintFile():
                                      spreadsheetId=self.todrive['fileId'], body=body)
                 self.todrive['sheetEntity'] = {'sheetId': addresult['replies'][0]['addSheet']['properties']['sheetId']}
               except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+                      GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+                      GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
                 todriveCSVErrorExit(entityValueList, str(e))
             body = {'requests': []}
             if not self.todrive['addsheet']:
@@ -7451,7 +7454,8 @@ class CSVPrintFile():
                        throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                        spreadsheetId=self.todrive['fileId'], body=body)
             except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+                    GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
               todriveCSVErrorExit(entityValueList, str(e))
             closeFile(csvFile)
 # Create/update file
@@ -7525,7 +7529,7 @@ class CSVPrintFile():
                            spreadsheetId=spreadsheetId, body=body)
               except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
                       GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
-                      GAPI.invalid, GAPI.invalidArgument, GAPI.teamDriveHierarchyTooDeep) as e:
+                      GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.teamDriveHierarchyTooDeep) as e:
                 todriveCSVErrorExit([Ent.USER, user, Ent.SPREADSHEET, title], str(e))
           Act.Set(action)
           file_url = result['webViewLink']
@@ -47585,7 +47589,8 @@ def updateDriveFile(users):
             except GAPI.fileNotFound as e:
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_ID, fileId], str(e), j, jcount)
             except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+                    GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+                    GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
               entityActionFailedWarning(entityValueList, str(e), j, jcount)
             except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
               userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -49598,7 +49603,8 @@ def getDriveFile(users):
       except GAPI.revisionNotFound:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId, Ent.DRIVE_FILE_REVISION, revisionId], Msg.DOES_NOT_EXIST, j, jcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+              GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -54469,7 +54475,8 @@ def createSheet(users):
                    addParents=addParents, removeParents=removeParents, fields='', supportsAllDrives=True)
           parentId = addParents
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.permissionDenied,
-                GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument,
+                GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+                GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition,
                 GAPI.cannotAddParent) as e:
           parentMsg = f'{ERROR_PREFIX}{addParents}: {str(e)}'
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -54544,7 +54551,8 @@ def updateSheets(users):
             showJSON(field, result[field])
         Ind.Decrement()
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+              GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -54629,7 +54637,8 @@ def infoPrintShowSheets(users):
             csvPF.WriteRowNoFilter({'User': user, 'spreadsheetId': spreadsheetId,
                                     'JSON': json.dumps(result, ensure_ascii=False, sort_keys=False)})
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+              GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -54753,7 +54762,8 @@ def appendSheetRanges(users):
           printKeyValueList([field, result[field]])
         _showUpdateValuesResponse(result['updates'], k, kcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+              GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -54798,7 +54808,8 @@ def updateSheetRanges(users):
           k += 1
           _showUpdateValuesResponse(response, k, kcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+              GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -54847,7 +54858,8 @@ def clearSheetRanges(users):
           k += 1
           printKeyValueListWithCount(['range', clearedRange], k, kcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+              GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -54939,7 +54951,8 @@ def printShowSheetRanges(users):
           elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT]:
             csvPF.WriteRowNoFilter({'User': user})
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+              GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+              GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, spreadsheetId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

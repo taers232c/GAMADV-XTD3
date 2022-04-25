@@ -1,3 +1,10 @@
+6.21.01
+
+Updated GAM spreadsheet commands to handle the following error:
+```
+ERROR: 400: failedPrecondition - This operation is not supported for this document
+```
+
 6.21.00
 
 Added option `allowitemdeletion` to `gam [<UserTypeEntity>] delete shareddrive <SharedDriveEntity>`
