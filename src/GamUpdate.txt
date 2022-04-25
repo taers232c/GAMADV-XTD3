@@ -1,5 +1,9 @@
 6.21.01
 
+Added `clock_skew_in_seconds` variable to `gam.cfg` that defines the number of seconds
+of clock skew allowed between local time and Google time. The default value is 10 seconds
+which was the previous hard-coded value.
+
 Updated GAM spreadsheet commands to handle the following error:
 ```
 ERROR: 400: failedPrecondition - This operation is not supported for this document
