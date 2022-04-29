@@ -1,6 +1,6 @@
 6.21.02
 
-Updated `gam update chromepolicy` in allow specification of policy data with JSON.
+Updated `gam update chromepolicy` to allow specification of policy data with JSON.
 For complex policies, this is the only way to enter the policy data.
 ```
 gam update chromepolicy
