@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.21.01'
+__version__ = '6.21.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -22631,9 +22631,23 @@ CHROME_SCHEMA_TYPE_MESSAGE = {
         'type': 'downloadUri'}},
   }
 
+CHROME_TARGET_VERSION_CHANNEL_MINUS_PATTERN = re.compile(r'^([a-z]+)-(\d+)$')
+CHROME_TARGET_VERSION_PATTERN = re.compile(r'^(\d{1,4}\.){1,4}$')
+
 # gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
 #	ou|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 def doUpdateChromePolicy():
+  def getSpecialVtypeValue(vtype, value):
+    if vtype == 'duration':
+      return {vtype: f'{value}s'}
+    if vtype in {'value', 'downloadUri'}:
+      return {vtype: value}
+    if vtype == 'count':
+      return value
+    #if vtype == timeOfDay:
+    hours, minutes = value.split(':')
+    return {vtype: {'hours': hours, 'minutes': minutes}}
+
   cp = buildGAPIObject(API.CHROMEPOLICY)
   cv = None
   customer = _getCustomersCustomerIdWithC()
@@ -22662,6 +22676,47 @@ def doUpdateChromePolicy():
         if field in {'ou', 'org', 'orgunit', 'printerid', 'appid'} or '.' in field:
           Cmd.Backup()
           break # field is actually a new policy name or orgunit
+        # JSON
+        if field == 'json':
+          jsonData = getJSON(['additionalTargetKeys', 'direct', 'name', 'orgUnitPath', 'parentOrgUnitPath'])
+          for field in jsonData.get('fields', []):
+            casedField = field['name']
+            lowerField = casedField.lower()
+            # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
+            schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(lowerField)
+            if schema:
+              body['requests'][-1]['policyValue']['value'][casedField] = getSpecialVtypeValue(schema['type'], field['value'])
+              body['requests'][-1]['updateMask'] += f'{casedField},'
+              continue
+            vtype = schemas[myarg]['settings'].get(lowerField, {}).get('type')
+            value = field['value']
+            if vtype in ['TYPE_INT64', 'TYPE_INT32', 'TYPE_UINT64']:
+              value = int(value)
+            elif vtype in ['TYPE_BOOL']:
+              pass
+            elif vtype in ['TYPE_ENUM']:
+              value = f"{schemas[myarg]['settings'][lowerField]['enum_prefix']}{value}"
+            elif vtype in ['TYPE_LIST']:
+              value = value.split(',')
+            if myarg == 'chrome.users.chromebrowserupdates' and casedField == 'targetVersionPrefixSetting':
+              mg = CHROME_TARGET_VERSION_CHANNEL_MINUS_PATTERN.match(value)
+              if mg:
+                channel = mg.group(1).lower().replace('_', '')
+                if channelMap is None:
+                  cv, channelMap = getPlatformChannelMap(cv, Ent.CHROME_CHANNEL)
+                if channel not in channelMap:
+                  invalidChoiceExit(value, channelMap, True)
+                cv, status, milestone = getRelativeMilestone(cv, channelMap[channel], int(mg.group(2)))
+                if not status:
+                  Cmd.Backup()
+                  invalidArgumentExit(f'{milestone} for {casedField}: {value}')
+                value =  f'{milestone}.'
+              elif not CHROME_TARGET_VERSION_PATTERN.match(value):
+                Cmd.Backup()
+                invalidArgumentExit(f'{Msg.CHROME_TARGET_VERSION_FORMAT} for {casedField}: {value}')
+            body['requests'][-1]['policyValue']['value'][casedField] = value
+            body['requests'][-1]['updateMask'] += f'{casedField},'
+          break
         # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
         schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(field)
         if schema:
@@ -22676,15 +22731,7 @@ def doUpdateChromePolicy():
               value = getIntegerEmptyAllowed(minVal=schema['minVal'], maxVal=schema['maxVal'], default=schema['default'])*schema['scale']
           else:
             value = getHHMM()
-          if vtype == 'duration':
-            body['requests'][-1]['policyValue']['value'][casedField] = {vtype: f'{value}s'}
-          elif vtype in {'value', 'downloadUri'}:
-            body['requests'][-1]['policyValue']['value'][casedField] = {vtype: value}
-          elif vtype == 'count':
-            body['requests'][-1]['policyValue']['value'][casedField] = value
-          else: #timeOfDay
-            hours, minutes = value.split(':')
-            body['requests'][-1]['policyValue']['value'][casedField] = {vtype: {'hours': hours, 'minutes': minutes}}
+          body['requests'][-1]['policyValue']['value'][casedField] = getSpecialVtypeValue(vtype, value)
           body['requests'][-1]['updateMask'] += f'{casedField},'
           continue
         if field not in schemas[myarg]['settings']:
@@ -22719,24 +22766,29 @@ def doUpdateChromePolicy():
         elif vtype in ['TYPE_LIST']:
           value = value.split(',')
         if myarg == 'chrome.users.chromebrowserupdates' and casedField == 'targetVersionPrefixSetting':
-          mg = re.compile(r'^([a-z]+)-(\d+)$').match(value)
+          mg = CHROME_TARGET_VERSION_CHANNEL_MINUS_PATTERN.match(value)
           if mg:
             channel = mg.group(1).lower().replace('_', '')
             if channelMap is None:
               cv, channelMap = getPlatformChannelMap(cv, Ent.CHROME_CHANNEL)
             if channel not in channelMap:
               invalidChoiceExit(value, channelMap, True)
-            cv, milestone = getRelativeMilestone(cv, channelMap[channel], int(mg.group(2)))
-            if not milestone:
+            cv, status, milestone = getRelativeMilestone(cv, channelMap[channel], int(mg.group(2)))
+            if not status:
               Cmd.Backup()
-              invalidArgumentExit(value)
+              invalidArgumentExit(f'{milestone} for {casedField}: {value}')
             value = f'{milestone}.'
+          elif not CHROME_TARGET_VERSION_PATTERN.match(value):
+            Cmd.Backup()
+            invalidArgumentExit(Msg.CHROME_TARGET_VERSION_FORMAT)
         body['requests'][-1]['policyValue']['value'][casedField] = value
         body['requests'][-1]['updateMask'] += f'{casedField},'
     else:
       unknownArgumentExit()
   if not orgUnit:
     missingArgumentExit('orgunit')
+  if not body['requests'][-1]['updateMask']:
+    body['requests'].pop()
   count = len(body['requests'])
   performActionNumItems(count, Ent.CHROME_POLICY)
   if count == 0:
@@ -22838,6 +22890,9 @@ def doPrintShowChromePolicies():
         csvPF.WriteRowTitles(row)
       elif (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(row):
         csvPF.WriteRowNoFilter({'name': policy['name'],
+                                'orgUnitPath': policy['orgUnitPath'],
+                                'parentOrgUnitPath': policy['parentOrgUnitPath'],
+                                'direct': policy['direct'],
                                 'JSON': json.dumps(cleanJSON(policy),
                                                    ensure_ascii=False, sort_keys=True)})
 
@@ -22845,7 +22900,7 @@ def doPrintShowChromePolicies():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   cd = buildGAPIObject(API.DIRECTORY)
   customer = _getCustomersCustomerIdWithC()
-  csvPF = CSVPrintFile(['name'], indexedTitles=CHROME_POLICY_INDEXED_TITLES) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(CHROME_POLICY_SORT_TITLES, indexedTitles=CHROME_POLICY_INDEXED_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   appId = orgUnit = policySchemaFilter = printerId = None
   showPolicies = CHROME_POLICY_SHOW_ALL
@@ -22891,7 +22946,6 @@ def doPrintShowChromePolicies():
                   'chrome.devices.managedGuest',
                  ]
   if csvPF and not FJQC.formatJSON:
-    csvPF.SetSortTitles(CHROME_POLICY_SORT_TITLES)
     if printerId:
       csvPF.AddSortTitles(['printerId'])
     elif appId:
@@ -24816,21 +24870,21 @@ def getRelativeMilestone(cv, channel, minus):
                              fields='nextPageToken,releases(version)')
   except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.CHROME_RELEASE, None], str(e))
-    return (cv, '')
+    return (cv, False, str(e))
   milestones = []
   # Note that milestones are usually sequential but some numbers
   # may be skipped. For example, there was no Chrome 82 stable.
   # Thus we need to do more than find the latest version and subtract.
   for release in releases:
     if 'version' in release:
-      milestone = release['version'].split('.')[0]
+      milestone = int(release['version'].split('.')[0])
       if milestone not in milestones:
-        milestones.append(milestone)
+        milestones.append(int(milestone))
   milestones.sort(reverse=True)
   try:
-    return (cv, milestones[minus])
+    return (cv, True, str(milestones[minus]))
   except IndexError:
-    return (cv, '')
+    return (cv, False, f'{channel}-{0}:{channel}-{len(milestones)-1}')
 
 CHROME_HISTORY_ENTITY_CHOICE_MAP = {
   'platforms': Ent.CHROME_PLATFORM,

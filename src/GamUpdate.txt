@@ -1,3 +1,17 @@
+6.21.02
+
+Updated `gam update chromepolicy` in allow specification of policy data with JSON.
+For complex policies, this is the only way to enter the policy data.
+```
+gam update chromepolicy
+        (<SchemaName>
+          (<Field> <Value>)+ |
+	  (json [charset <Charset>] <JSONData>) |
+          (json file <FileName> [charset <Charset>])
+        )+
+        ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
+```
+
 6.21.01
 
 Added `clock_skew_in_seconds` variable to `gam.cfg` that defines the number of seconds
