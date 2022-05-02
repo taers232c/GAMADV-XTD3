@@ -49,27 +49,27 @@ Please go to:
 1. Choose "Desktop App" or "Other" for "Application type".
 2. Enter "GAM" or another desired value for "Name".
 3. Click the blue "Create" button.
-4. Copy your "client ID" value that shows on the next page.
+4. Copy your "Client ID" value that shows on the next page.
 '''
 ENTER_YOUR_CLIENT_ID = '\nEnter your Client ID: '
-GO_BACK_TO_YOUR_BROWSER_AND_COPY_YOUR_CLIENT_SECRET_VALUE = '\n5. Go back to your browser and copy your "client secret" value.\n'
+GO_BACK_TO_YOUR_BROWSER_AND_COPY_YOUR_CLIENT_SECRET_VALUE = '\n5. Go back to your browser and copy your "Client Secret" value.\n'
 ENTER_YOUR_CLIENT_SECRET = '\nEnter your Client Secret: '
 GO_BACK_TO_YOUR_BROWSER_AND_CLICK_OK_TO_CLOSE_THE_OAUTH_CLIENT_POPUP = '\n6. Go back to your browser and click OK to close the "OAuth client" popup if it\'s still open.\n'
 IS_NOT_A_VALID_CLIENT_ID = '''
 
 {0}
 
-Is not a valid client ID.
+Is not a valid Client ID.
 
-Please make sure you are following the directions exactly and that there are no extra spaces in your client ID.
+Please make sure you are following the directions exactly and that there are no extra spaces in your Client ID.
 '''
 IS_NOT_A_VALID_CLIENT_SECRET = '''
 
 {0}
 
-Is not a valid client secret.
+Is not a valid Client Secret.
 
-Please make sure you are following the directions exactly and that there are no extra spaces in your client secret.
+Please make sure you are following the directions exactly and that there are no extra spaces in your Client Secret.
 '''
 YOUR_GAM_PROJECT_IS_CREATED_AND_READY_TO_USE = 'That\'s it! Your GAM Project is created and ready to use.\n'
 
@@ -81,7 +81,7 @@ SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authen
 SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE = 'Service Account Private Key age; Google recommends rotating keys on a routine basis'
 SERVICE_ACCOUNT_PRIVATE_KEY_AGE = 'Service Account Private Key age: {0} days'
 UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS = 'Please run "gam update project" to view/manage service account keys'
-DOMAIN_WIDE_DELEGATION_AUTHENTICATION = 'Domain-Wide Delegation authentication'
+DOMAIN_WIDE_DELEGATION_AUTHENTICATION = 'Domain-wide Delegation authentication'
 SCOPE_AUTHORIZATION_PASSED = '''All scopes PASSED!
 
 Service Account Client name: {0} is fully authorized.
@@ -91,7 +91,7 @@ To authorize them (in case some scopes were unselected), please go to the follow
 {0}
     {1}
 
-You will be directed to the Google Workspace admin console Security/API Controls/Domain-wide Delegation page
+You will be directed to the Google Workspace admin console Security > API Controls > Domain-wide Delegation page
 The "Add a new Client ID" box will open
 Make sure that "Overwrite existing client ID" is checked
 Click AUTHORIZE
@@ -103,7 +103,7 @@ To authorize them, please go to the following link in your browser:
 {0}
     {1}
 
-You will be directed to the Google Workspace admin console Security/API Controls/Domain-wide Delegation page
+You will be directed to the Google Workspace admin console Security > API Controls > Domain-wide Delegation page
 The "Add a new Client ID" box will open
 Make sure that "Overwrite existing client ID" is checked
 Click AUTHORIZE
@@ -178,7 +178,7 @@ DUPLICATE = 'Duplicate'
 DUPLICATE_ALREADY_A_ROLE = 'Duplicate, already a {0}'
 DYNAMIC_GROUP_MEMBERSHIP_CANNOT_BE_MODIFIED = 'Dynamic group membership cannot be modified'
 EITHER = 'Either'
-EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT = 'The email address is an ummanaged account'
+EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT = 'The email address is an unmanaged account'
 ENTER_GSUITE_ADMIN_EMAIL_ADDRESS = '\nEnter your Google Workspace admin email address? '
 ENTER_MANAGE_GCP_PROJECT_EMAIL_ADDRESS = '\nEnter your Google Workspace admin or GCP project manager email address authorized to manage project(s): {0}? '
 ENTER_VERIFICATION_CODE = 'Enter verification code: '
@@ -429,4 +429,4 @@ WAITING_FOR_SERVICE_ACCOUNT_CREATION_TO_COMPLETE_SLEEPING = 'Waiting for Service
 WILL_RERUN_WITH_NO_BROWSER_TRUE = 'Will re-run command with no_browser true\n'
 WITH = 'with'
 WOULD_MAKE_MEMBERSHIP_CYCLE = 'Would make membership cycle'
-YOU_CAN_ADD_DOMAIN_TO_ACCOUNT = 'You can now add: {0} or it\'s subdomains as secondary or domain aliases of the Google Workspace Account: {1}'
+YOU_CAN_ADD_DOMAIN_TO_ACCOUNT = 'You can now add: {0} or its subdomains as secondary or domain aliases of the Google Workspace Account: {1}'
