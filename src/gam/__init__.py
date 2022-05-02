@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.21.02'
+__version__ = '6.21.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -32824,7 +32824,14 @@ def _showSchema(schema, i=0, count=0):
     Ind.Increment()
     for a_key in field:
       if a_key not in {'kind', 'etag', 'fieldName'}:
-        printKeyValueList([a_key, field[a_key]])
+        if a_key != 'numericIndexingSpec':
+          printKeyValueList([a_key, field[a_key]])
+        else:
+          printKeyValueList([a_key, ''])
+          Ind.Increment()
+          for s_key in field[a_key]:
+            printKeyValueList([s_key, field[a_key][s_key]])
+          Ind.Decrement()
     Ind.Decrement()
   Ind.Decrement()
 

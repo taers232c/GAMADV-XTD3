@@ -1,3 +1,7 @@
+6.21.03
+
+Fixed bug in `gam info|show schema` that caused a trap.
+
 6.21.02
 
 Updated `gam update chromepolicy` to allow specification of policy data with JSON.
