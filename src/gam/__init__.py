@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.21.03'
+__version__ = '6.21.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -36744,7 +36744,7 @@ def infoUsers(entityList):
         printUserCIGroupMap(a_child, group_name_mappings, seen_group_count, edges, 'inherited')
         Ind.Decrement()
 
-  def _showType(row, typeKey, typeCustomValue, customTypeKey):
+  def _showType(row, typeKey, typeCustomValue, customTypeKey, defaultType=None):
     if typeKey in row:
       if row[typeKey] != typeCustomValue or not row.get(customTypeKey):
         printKeyValueList([typeKey, row[typeKey]])
@@ -36756,6 +36756,9 @@ def infoUsers(entityList):
       return True
     if customTypeKey in row:
       printKeyValueList([customTypeKey, row[customTypeKey]])
+      return True
+    if defaultType:
+      printKeyValueList([typeKey, defaultType])
       return True
     return False
 
@@ -37070,7 +37073,7 @@ def infoUsers(entityList):
                 printKeyValueList([field])
                 Ind.Increment()
                 for an_item in propertyValue[schema][field]:
-                  _showType(an_item, typeKey, typeCustomValue, customTypeKey)
+                  _showType(an_item, typeKey, typeCustomValue, customTypeKey, defaultType='work')
                   Ind.Increment()
                   printKeyValueList(['value', an_item['value']])
                   Ind.Decrement()

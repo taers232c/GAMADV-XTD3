@@ -1,3 +1,8 @@
+6.21.04
+
+Updated handling of multivalued custom schema fields that are specified without a type;
+the type will be shown as `work` as Google eventually sets the type to `work` itself.
+
 6.21.03
 
 Fixed bug in `gam info|show schema` that caused a trap.
