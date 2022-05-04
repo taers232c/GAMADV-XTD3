@@ -1372,6 +1372,7 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         end|endtime|
         endtimeunspecified|
         extendedproperties|
+        eventType|
         gadget|
         guestscaninviteothers|
         guestscanmodify|
@@ -1396,7 +1397,6 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         summary|
         transparency|
         updated|
-        eventType|
         visibility
 <EventFieldNameList> ::= "<EventFieldName>(,<EventFieldName>)*"
 

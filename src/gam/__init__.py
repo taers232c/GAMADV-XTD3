@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.21.04'
+__version__ = '6.21.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9907,7 +9907,9 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
     if (GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and
         (API.CLOUDRESOURCEMANAGER in GM.Globals[GM.SVCACCT_SCOPES] or
          API.CLOUDRESOURCEMANAGER_V1 in GM.Globals[GM.SVCACCT_SCOPES])): #Backwards compatibility hack
-      _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER, login_hint)
+# Removed 6.21.05
+#      _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER, login_hint)
+      _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER, None)
       if crm:
         httpObj = crm._http
   if not crm:
