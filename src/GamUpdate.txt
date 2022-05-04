@@ -2,7 +2,7 @@
 
 Fixed bug in `gam print|show projects|svcaccts` that caused a trap.
 
-Added support for new calendar event read-only field `eventType`.
+Added support for new calendar event read-only field `eventType`; thanks to @josemdv.
 
 6.21.04
 
