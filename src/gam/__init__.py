@@ -32322,6 +32322,7 @@ EVENT_FIELDS_CHOICE_MAP = {
   'guestscanseeotherguests': 'guestsCanSeeOtherGuests',
   'hangoutlink': 'hangoutLink',
   'htmllink': 'htmlLink',
+  'eventtype': 'eventType',
   'icaluid': 'iCalUID',
   'id': 'id',
   'location': 'location',

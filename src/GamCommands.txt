@@ -1396,6 +1396,7 @@ gam calendar|calendars <CalendarEntity> empty calendartrash
         summary|
         transparency|
         updated|
+        eventType|
         visibility
 <EventFieldNameList> ::= "<EventFieldName>(,<EventFieldName>)*"
 
