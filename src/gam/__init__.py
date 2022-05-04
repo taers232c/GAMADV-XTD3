@@ -31523,7 +31523,7 @@ CALENDAR_EVENT_STATUS_CHOICES = ['confirmed', 'tentative', 'cancelled']
 CALENDAR_EVENT_TRANSPARENCY_CHOICES = ['opaque', 'transparent']
 CALENDAR_EVENT_VISIBILITY_CHOICES = ['default', 'public', 'private', 'confedential']
 
-EVENT_JSON_CLEAR_FIELDS = ['created', 'creator', 'endTimeUpspecified', 'hangoutLink', 'htmlLink',
+EVENT_JSON_CLEAR_FIELDS = ['created', 'creator', 'endTimeUpspecified', 'hangoutLink', 'htmlLink', 'eventType',
                            'privateCopy', 'locked', 'recurringEventId', 'updated']
 EVENT_JSON_INSERT_CLEAR_FIELDS = ['iCalUID', 'id', 'organizer']
 EVENT_JSON_UPDATE_CLEAR_FIELDS = ['iCalUID', 'id', 'organizer']
@@ -32322,6 +32322,7 @@ EVENT_FIELDS_CHOICE_MAP = {
   'guestscanseeotherguests': 'guestsCanSeeOtherGuests',
   'hangoutlink': 'hangoutLink',
   'htmllink': 'htmlLink',
+  'eventtype': 'eventType',
   'icaluid': 'iCalUID',
   'id': 'id',
   'location': 'location',
