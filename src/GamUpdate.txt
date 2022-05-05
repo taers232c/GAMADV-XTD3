@@ -1,3 +1,7 @@
+6.21.06
+
+Fixed bug in `gam update|use project` that caused the command to fail on Windows.
+
 6.21.05
 
 Fixed bug in `gam print|show projects|svcaccts` that caused a trap.

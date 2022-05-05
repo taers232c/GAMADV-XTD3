@@ -181,7 +181,6 @@ EITHER = 'Either'
 EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT = 'The email address is an unmanaged account'
 ENTER_GSUITE_ADMIN_EMAIL_ADDRESS = '\nEnter your Google Workspace admin email address? '
 ENTER_MANAGE_GCP_PROJECT_EMAIL_ADDRESS = '\nEnter your Google Workspace admin or GCP project manager email address authorized to manage project(s): {0}? '
-ENTER_VERIFICATION_CODE = 'Enter verification code: '
 ENTER_VERIFICATION_CODE_OR_URL = 'Enter verification code or paste "Unable to connect" URL from other computer (only URL data up to &scope required): '
 ENTITY_DOES_NOT_EXIST = '{0} does not exist'
 ENTITY_NAME_NOT_VALID = 'Entity Name Not Valid'
@@ -331,14 +330,6 @@ NO_SVCACCT_ACCESS_ALLOWED = 'No Service Account Access allowed'
 NO_TRANSFER_LACK_OF_DISK_SPACE = 'Transfer not performed due to lack of target drive space.'
 NO_USAGE_PARAMETERS_DATA_AVAILABLE = 'No usage parameters data available.'
 NO_USER_COUNTS_DATA_AVAILABLE = 'No User counts data available.'
-OAUTH2_BROWSER_OPENED_MESSAGE = """
-Your browser has been opened to visit:
-
-    {url}
-
-If your browser is on a different machine then press CTRL+C,
-set no_browser = true in gam.cfg and re-run this command.
-"""
 OAUTH2_GO_TO_LINK_MESSAGE = """
 Go to the following link in a browser on this computer or on another computer:
 

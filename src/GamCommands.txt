@@ -1103,10 +1103,10 @@ gam rotate sakey|sakeys retain_none [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_204
 gam delete sakeys <ServiceAccountKeyList>+ [doit]
 gam show sakeys [all|system|user]
 
-gam oauth|oauth2 create|request [oldflow] [<EmailAddress>]
-gam oauth|oauth2 create|request [oldflow] [admin <EmailAddress>] [scopes <APIScopeURLList>]
-gam oauth|oauth2 update [oldflow] [<EmailAddress>]
-gam oauth|oauth2 update [oldflow] [admin <EmailAddress>]
+gam oauth|oauth2 create|request [<EmailAddress>]
+gam oauth|oauth2 create|request [admin <EmailAddress>] [scopes <APIScopeURLList>]
+gam oauth|oauth2 update [<EmailAddress>]
+gam oauth|oauth2 update [admin <EmailAddress>]
 gam oauth|oauth2 delete|revoke
 gam oauth|oauth2 export [<FileName>]
 gam oauth|oauth2 refresh

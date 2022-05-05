@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.21.05'
+__version__ = '6.21.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9008,7 +9008,7 @@ def _waitForHttpClient(d):
   local_server.server_close()
 
 def _waitForUserInput(d):
-  sys.stdin = open(0, DEFAULT_FILE_READ_MODE, )
+  sys.stdin = open(0, DEFAULT_FILE_READ_MODE)
   d['code'] = input(Msg.ENTER_VERIFICATION_CODE_OR_URL)
 
 class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
@@ -9234,7 +9234,7 @@ class Credentials(google.oauth2.credentials.Credentials):
       'installed': {
         'client_id': client_id,
         'client_secret': client_secret,
-#        'redirect_uris': ['http://localhost', 'urn:ietf:wg:oauth:2.0:oob'],
+        'redirect_uris': ['http://localhost'],
         'auth_uri': 'https://accounts.google.com/o/oauth2/v2/auth',
         'token_uri': 'https://oauth2.googleapis.com/token',
         }
@@ -9283,44 +9283,7 @@ class Credentials(google.oauth2.credentials.Credentials):
 
     return json.dumps(prep, indent=2, sort_keys=True)
 
-def _run_oauth_flow(client_id, client_secret, scopes, login_hint, access_type):
-  client_config = {
-    'installed': {
-      'client_id': client_id,
-      'client_secret': client_secret,
-#      'redirect_uris': ['http://localhost', 'urn:ietf:wg:oauth:2.0:oob'],
-      'auth_uri': 'https://accounts.google.com/o/oauth2/v2/auth',
-      'token_uri': 'https://oauth2.googleapis.com/token',
-      }
-    }
-
-  flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_config(client_config, scopes, autogenerate_code_verifier=True)
-  kwargs = {'access_type': access_type}
-  if login_hint:
-    kwargs['login_hint'] = login_hint
-  noBrowser = GC.Values[GC.NO_BROWSER]
-  while True:
-    try:
-      if noBrowser:
-        flow.run_console(
-          authorization_prompt_message=Msg.OAUTH2_GO_TO_LINK_MESSAGE,
-          authorization_code_message=Msg.ENTER_VERIFICATION_CODE,
-          **kwargs)
-      else:
-        flow.run_local_server(
-          authorization_prompt_message=Msg.OAUTH2_BROWSER_OPENED_MESSAGE,
-          success_message=Msg.AUTHENTICATION_FLOW_COMPLETE,
-          **kwargs)
-      return flow.credentials
-    except Exception as e:
-      stderrErrorMsg(Msg.AUTHENTICATION_FLOW_FAILED.format(str(e)))
-      if 'Address already in use' in str(e):
-        writeStderr(Msg.WILL_RERUN_WITH_NO_BROWSER_TRUE)
-        noBrowser = True
-        continue
-      systemErrorExit(SCOPES_NOT_AUTHORIZED_RC, None)
-
-def doOAuthRequest(currentScopes, login_hint, verifyScopes=False, oldFlow=False):
+def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
   client_id, client_secret = getOAuthClientIDAndSecret()
   scopesList = API.getClientScopesList(GC.Values[GC.TODRIVE_CLIENTACCESS])
   if not currentScopes or verifyScopes:
@@ -9342,27 +9305,22 @@ def doOAuthRequest(currentScopes, login_hint, verifyScopes=False, oldFlow=False)
   login_hint = _getValidateLoginHint(login_hint)
 # Needs to be set so oauthlib doesn't puke when Google changes our scopes
   os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
-  if not oldFlow:
-    credentials = Credentials.from_client_secrets(
-      client_id,
-      client_secret,
-      scopes=scopes,
-      access_type='offline',
-      login_hint=login_hint,
-      filename=GC.Values[GC.OAUTH2_TXT],
-      use_console_flow=GC.Values[GC.NO_BROWSER])
-  else:
-    credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'offline')
+  credentials = Credentials.from_client_secrets(
+    client_id,
+    client_secret,
+    scopes=scopes,
+    access_type='offline',
+    login_hint=login_hint,
+    use_console_flow=GC.Values[GC.NO_BROWSER])
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
     writeClientCredentials(credentials, GC.Values[GC.OAUTH2_TXT])
   entityActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]])
   return True
 
-# gam oauth|oauth2 create|request [oldflow] [<EmailAddress>]
-# gam oauth|oauth2 create|request [oldflow] [admin <EmailAddress>] [scope|scopes <APIScopeURLList>]
+# gam oauth|oauth2 create|request [<EmailAddress>]
+# gam oauth|oauth2 create|request [admin <EmailAddress>] [scope|scopes <APIScopeURLList>]
 def doOAuthCreate():
-  oldFlow = checkArgumentPresent(['oldflow'])
   if not Cmd.PeekArgumentPresent(['admin', 'scope', 'scopes']):
     login_hint = getEmailAddress(noUid=True, optional=True)
     scopes = None
@@ -9389,7 +9347,7 @@ def doOAuthCreate():
             invalidChoiceExit(uscope, API.getClientScopesURLs(GC.Values[GC.TODRIVE_CLIENTACCESS]), True)
       else:
         unknownArgumentExit()
-  doOAuthRequest(scopes, login_hint, oldFlow=oldFlow)
+  doOAuthRequest(scopes, login_hint)
 
 def exitIfNoOauth2Txt():
   if not os.path.isfile(GC.Values[GC.OAUTH2_TXT]):
@@ -9474,10 +9432,9 @@ def doOAuthInfo():
         printKeyValueList([k, v])
   printBlankLine()
 
-# gam oauth|oauth2 update [oldflow] [<EmailAddress>]
-# gam oauth|oauth2 update [oldflow] [admin <EmailAddress>]
+# gam oauth|oauth2 update [<EmailAddress>]
+# gam oauth|oauth2 update [admin <EmailAddress>]
 def doOAuthUpdate():
-  oldFlow = checkArgumentPresent(['oldflow'])
   if Cmd.PeekArgumentPresent(['admin']):
     Cmd.Advance()
     login_hint = getEmailAddress(noUid=True)
@@ -9501,7 +9458,7 @@ def doOAuthUpdate():
       currentScopes = []
   except (AttributeError, IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
     invalidOauth2TxtExit(str(e))
-  if not doOAuthRequest(currentScopes, login_hint, verifyScopes=True, oldFlow=oldFlow):
+  if not doOAuthRequest(currentScopes, login_hint, verifyScopes=True):
     entityActionNotPerformedWarning([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Msg.USER_CANCELLED)
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
@@ -9527,7 +9484,13 @@ def getCRMService(login_hint):
   scopes = ['https://www.googleapis.com/auth/cloud-platform']
   client_id = '297408095146-fug707qsjv4ikron0hugpevbrjhkmsk7.apps.googleusercontent.com'
   client_secret = 'qM3dP8f_4qedwzWQE1VR4zzU'
-  credentials = _run_oauth_flow(client_id, client_secret, scopes, login_hint, 'online')
+  credentials = Credentials.from_client_secrets(
+    client_id,
+    client_secret,
+    scopes=scopes,
+    access_type='online',
+    login_hint=login_hint,
+    use_console_flow=GC.Values[GC.NO_BROWSER])
   httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
   return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER, httpObj))
 
