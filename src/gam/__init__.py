@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.21.06'
+__version__ = '6.21.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -36042,6 +36042,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         schemaValue = {}
         if checkArgumentPresent(clTypeKeyword):
           getKeywordAttribute(typeKeywords, schemaValue)
+        else:
+          schemaValue['type'] = 'work'
         schemaValue['value'] = getString(Cmd.OB_STRING, minLen=0)
         if schemaValue['value'] or not ignoreEmpty:
           body[up][schemaName][fieldName].append(schemaValue)
