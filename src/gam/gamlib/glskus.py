@@ -30,6 +30,7 @@ _PRODUCTS = {
   '101033': 'Google Voice',
   '101034': 'Google Workspace Archived User',
   '101035': 'Cloud Search',
+  '101036': 'Google Meet Global Dialing',
   '101037': 'Google Workspace for Education',
   'Google-Apps': 'Google Workspace',
   'Google-Chrome-Device-Management': 'Google Chrome Device Management',
@@ -65,6 +66,8 @@ _SKUS = {
     'product': '101033', 'aliases': ['gvpremier', 'voicepremier', 'googlevoicepremier'], 'displayName': 'Google Voice Premier'},
   '1010350001': {
     'product': '101035', 'aliases': ['cloudsearch'], 'displayName': 'Cloud Search'},
+  '1010360001': {
+    'product': '101036', 'aliases': ['meetdialing','googlemeetglobaldialing'], 'displayName': 'Google Meet Global Dialing'},
   '1010370001': {
     'product': '101037', 'aliases': ['gwetlu', 'workspaceeducationupgrade'], 'displayName': 'Google Workspace for Education: Teaching and Learning Upgrade'},
   'Google-Apps': {
