@@ -188,6 +188,7 @@ If an item contains spaces, it should be surrounded by ".
         101033 |
         101034 |
         101035 |
+        101036 |
         101037 |
         Google-Apps |
         Google-Chrome-Device-Management |
@@ -223,6 +224,7 @@ If an item contains spaces, it should be surrounded by ".
         gwesstaff | workspaceeducationstandardstaff | 1010310006 |
         gwesstudent | workspaceeducationstandardstudent | 1010310007 |
         gwetlu | workspaceeducationupgrade | 1010370001 |
+        meetdialing | googlemeetglobaldialing |
         postini | gams | gsuitegams | gsuitepostini | gsuitemessagesecurity | Google-Apps-For-Postini |
         standard | free | Google-Apps |
         vault | googlevault | Google-Vault |
@@ -3625,7 +3627,7 @@ gam report users|user [todrive <ToDriveAttribute>*]
 
 gam create|add resoldcustomer <CustomerDomain> (customer_auth_token <String>) <ResoldCustomerAttribute>+
 gam update resoldcustomer <CustomerID> [customer_auth_token <String>] <ResoldCustomerAttribues>+
-gam info resoldcustomer <CustomerID>
+gam info resoldcustomer <CustomerID> [formatjson]
 
 gam create|add resoldsubscription <CustomerID> (sku <SKUID>)
         (plan annual_monthly_pay|annual_yearly_pay|flexible|trial) (seats <NumberOfSeats> <MaximumNumberOfSeats>)

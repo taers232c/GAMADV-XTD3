@@ -4,6 +4,11 @@ When setting a multivalued custom schema field for a user, if `type home|other|w
 `work` will be assigned. Previously, if type was not specified, Google would accept the field without a type
 but would eventually set type to `work` itself in the background.
 
+Added ProuctID `101036: Google Meet Global Dialing` and SKUID `meetdialing|googlemeetglobaldialing`;
+thanks to @jay-eleven.
+
+Added option `formatjson` to `gam info resoldcustomer <CustomerID>`.
+
 6.21.06
 
 Fixed bug in `gam update|use project` that caused the command to fail on Windows.

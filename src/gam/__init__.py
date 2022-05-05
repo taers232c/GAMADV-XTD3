@@ -12732,23 +12732,29 @@ def doUpdateResoldCustomer():
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], str(e))
 
-# gam info resoldcustomer <CustomerID>
+# gam info resoldcustomer <CustomerID> [formatjson]
 def doInfoResoldCustomer():
   res = buildGAPIObject(API.RESELLER)
   customerId = getString(Cmd.OB_CUSTOMER_ID)
-  checkForExtraneousArguments()
+  FJQC = FormatJSONQuoteChar()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    FJQC.GetFormatJSON(myarg)
   try:
     customerInfo = callGAPI(res.customers(), 'get',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerId=customerId)
-    printKeyValueList(['Customer ID', customerInfo['customerId']])
-    printKeyValueList(['Customer Domain', customerInfo['customerDomain']])
-    if 'customerDomainVerified' in customerInfo:
-      printKeyValueList(['Customer Domain Verified', customerInfo['customerDomainVerified']])
-    _showCustomerAddressPhoneNumber(customerInfo)
-    if 'alternateEmail' in customerInfo:
-      printKeyValueList(['Customer Alternate Email', customerInfo['alternateEmail']])
-    printKeyValueList(['Customer Admin Console URL', customerInfo['resourceUiUrl']])
+    if not FJQC.formatJSON:
+      printKeyValueList(['Customer ID', customerInfo['customerId']])
+      printKeyValueList(['Customer Domain', customerInfo['customerDomain']])
+      if 'customerDomainVerified' in customerInfo:
+        printKeyValueList(['Customer Domain Verified', customerInfo['customerDomainVerified']])
+      _showCustomerAddressPhoneNumber(customerInfo)
+      if 'alternateEmail' in customerInfo:
+        printKeyValueList(['Customer Alternate Email', customerInfo['alternateEmail']])
+      printKeyValueList(['Customer Admin Console URL', customerInfo['resourceUiUrl']])
+    else:
+      printLine(json.dumps(cleanJSON(customerInfo), ensure_ascii=False, sort_keys=False))
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.CUSTOMER_ID, customerId], str(e))
 
