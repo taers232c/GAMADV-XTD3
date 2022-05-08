@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.21.07'
+__version__ = '6.22.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -703,8 +703,8 @@ def checkForExtraneousArguments():
   if Cmd.ArgumentsRemaining():
     usageErrorExit(Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_EXTRANEOUS][[1, 0][Cmd.MultipleArgumentsRemaining()]], extraneous=True)
 
-# Get an argument, downshift, delete underscores
-def getArgument():
+# Check that an argument remains, get an argument, downshift, delete underscores
+def checkGetArgument():
   if Cmd.ArgumentsRemaining():
     argument = Cmd.Current().lower()
     if argument:
@@ -713,13 +713,19 @@ def getArgument():
   missingArgumentExit(Cmd.OB_ARGUMENT)
 
 # Get an argument, downshift, delete underscores
-# An empty argument is allowed
-def getArgumentEmptyAllowed():
-  if Cmd.ArgumentsRemaining():
-    argument = Cmd.Current().lower()
+def getArgument():
+  argument = Cmd.Current().lower()
+  if argument:
     Cmd.Advance()
     return argument.replace('_', '')
   missingArgumentExit(Cmd.OB_ARGUMENT)
+
+# Get an argument, downshift, delete underscores
+# An empty argument is allowed
+def getArgumentEmptyAllowed():
+  argument = Cmd.Current().lower()
+  Cmd.Advance()
+  return argument.replace('_', '')
 
 def getACLRoles(aclRolesMap):
   roles = []
@@ -3114,6 +3120,7 @@ def SetGlobalVariables():
   ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
   ROW_FILTER_BOOL_PATTERN = re.compile(r'^(boolean):(.+)$', re.IGNORECASE)
   ROW_FILTER_RE_PATTERN = re.compile(r'^(regex|regexcs|notregex|notregexcs):(.*)$', re.IGNORECASE)
+  ROW_FILTER_DATA_PATTERN = re.compile(r'^(data|notdata):(list|file|csvfile) +(.+)$', re.IGNORECASE)
   REGEX_CHARS = '^$*+|$[{('
 
   def _getCfgRowFilter(sectionName, itemName):
@@ -3223,7 +3230,21 @@ def SetGlobalVariables():
         except re.error as e:
           _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.INVALID_RE}: {e}')
         continue
-      _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression>')
+      mg = ROW_FILTER_DATA_PATTERN.match(filterStr)
+      if mg:
+        filterType = mg.group(1).lower()
+        filterSubType = mg.group(2).lower()
+        if filterSubType == 'list':
+          rowFilters.append((columnPat, anyMatch, filterType, set(shlexSplitList(mg.group(3)))))
+          continue
+        Cmd.MergeArguments(shlexSplitList(mg.group(3), ' '))
+        if filterSubType == 'file':
+          rowFilters.append((columnPat, anyMatch, filterType, getEntitiesFromFile(False, returnSet=True)))
+          continue
+        if filterSubType == 'csvfile':
+          rowFilters.append((columnPat, anyMatch, filterType, getEntitiesFromCSVFile(False, returnSet=True)))
+          continue
+      _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression> or data:<DataSelector>')
     return rowFilters
 
   def _getCfgSection(sectionName, itemName):
@@ -3587,7 +3608,7 @@ def SetGlobalVariables():
     elif varType == GC.TYPE_TIMEZONE:
       GC.Values[itemName] = _getCfgTimezone(sectionName, itemName)
   GM.Globals[GM.DATETIME_NOW] = datetime.datetime.now(GC.Values[GC.TIMEZONE])
-# Everything else
+# Everything else except row filters
   for itemName in sorted(GC.VAR_INFO):
     varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
     if varType == GC.TYPE_BOOLEAN:
@@ -3602,14 +3623,17 @@ def SetGlobalVariables():
       GC.Values[itemName] = _getCfgHeaderFilter(sectionName, itemName)
     elif varType == GC.TYPE_LOCALE:
       GC.Values[itemName] = _getCfgLocale(sectionName, itemName)
-    elif varType == GC.TYPE_ROWFILTER:
-      GC.Values[itemName] = _getCfgRowFilter(sectionName, itemName)
     elif varType == GC.TYPE_PASSWORD:
       GC.Values[itemName] = _getCfgPassword(sectionName, itemName)
     elif varType == GC.TYPE_STRING:
       GC.Values[itemName] = _getCfgString(sectionName, itemName)
     elif varType == GC.TYPE_FILE:
       GC.Values[itemName] = _getCfgFile(sectionName, itemName)
+# Row filters
+  for itemName in sorted(GC.VAR_INFO):
+    varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+    if varType == GC.TYPE_ROWFILTER:
+      GC.Values[itemName] = _getCfgRowFilter(sectionName, itemName)
 # Process selectfilter|selectoutputfilter|selectinputfilter
   if inputFilterSectionName:
     GC.Values[GC.CSV_INPUT_ROW_FILTER] = _getCfgRowFilter(inputFilterSectionName, GC.CSV_INPUT_ROW_FILTER)
@@ -5844,7 +5868,7 @@ def fileDataErrorExit(filename, row, itemName, value, errMessage):
                                        ''))
 
 # <FileName> [charset <String>] [delimiter <Character>]
-def getEntitiesFromFile(shlexSplit):
+def getEntitiesFromFile(shlexSplit, returnSet=False):
   filename = getString(Cmd.OB_FILE_NAME)
   if filename.lower() != 'gdoc':
     encoding = getCharSet()
@@ -5870,11 +5894,11 @@ def getEntitiesFromFile(shlexSplit):
         entitySet.add(item)
         entityList.append(item)
   closeFile(f)
-  return entityList
+  return entityList if not returnSet else entitySet
 
 # <FileName>(:<FieldName>)+ [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
 #	[endcsv|(fields <FieldNameList>)] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
-def getEntitiesFromCSVFile(shlexSplit):
+def getEntitiesFromCSVFile(shlexSplit, returnSet=False):
   drive, fileFieldName = os.path.splitdrive(getString(Cmd.OB_FILE_NAME_FIELD_NAME))
   if fileFieldName.find(':') == -1:
     Cmd.Backup()
@@ -5906,7 +5930,7 @@ def getEntitiesFromCSVFile(shlexSplit):
             entitySet.add(item)
             entityList.append(item)
   closeFile(f)
-  return entityList
+  return entityList if not returnSet else entitySet
 
 # <FileName> [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 #	keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
@@ -6592,6 +6616,28 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         return False
     return True
 
+  def rowDataFilterMatch(filterData):
+    if anyMatch:
+      for column in columns:
+        if str(row.get(column, '')) in filterData:
+          return True
+      return False
+    for column in columns:
+      if not str(row.get(column, '')) in filterData:
+        return False
+    return True
+
+  def rowNotDataFilterMatch(filterData):
+    if anyMatch:
+      for column in columns:
+        if str(row.get(column, '')) in filterData:
+          return False
+      return True
+    for column in columns:
+      if not str(row.get(column, '')) in filterData:
+        return True
+    return False
+
   def filterMatch(filterVal):
     if filterVal[2] == 'regex':
       if rowRegexFilterMatch(filterVal[3]):
@@ -6611,8 +6657,14 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
     elif filterVal[2] == 'countrange':
       if rowCountRangeFilterMatch(filterVal[3], filterVal[4], filterVal[5]):
         return True
-    else: #boolean
+    elif filterVal[2] == 'boolean':
       if rowBooleanFilterMatch(filterVal[3]):
+        return True
+    elif filterVal[2] == 'data':
+      if rowDataFilterMatch(filterVal[3]):
+        return True
+    elif filterVal[2] == 'notdata':
+      if rowNotDataFilterMatch(filterVal[3]):
         return True
     return False
 
@@ -45696,7 +45748,7 @@ class DriveListParameters():
         self.UpdateAnyOwnerQuery()
         self.AppendToQuery(QUERY_SHORTCUTS_MAP[myarg])
       elif self.myargOptions['allowChoose'] and myarg == 'choose':
-        myarg = getArgument()
+        myarg = checkGetArgument()
         if myarg in DRIVE_BY_NAME_CHOICE_MAP:
           self.SetQuery(DRIVE_BY_NAME_CHOICE_MAP[myarg].format(getEscapedDriveFileName()))
         elif myarg in LOCATION_CHOICE_MAP:
@@ -48263,7 +48315,8 @@ def _getSheetProtectedRanges(sheet, user, i, count, j, jcount, fileId, fileTitle
       for protectedRange in rsheet.get('protectedRanges', []):
         sheetProtectedRanges.append({'updateProtectedRange': {'protectedRange': protectedRange, 'fields': 'editors'}})
   except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+          GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileTitle], str(e), j, jcount)
     _incrStatistic(statistics, stat)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -48278,7 +48331,8 @@ def _updateSheetProtectedRanges(sheet, user, i, count, j, jcount, newFileId, new
              throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
              spreadsheetId=newFileId, body={'requests': sheetProtectedRanges})
   except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
-          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.invalid, GAPI.invalidArgument) as e:
+          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+          GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, newFileTitle], str(e), j, jcount)
     _incrStatistic(statistics, stat)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:

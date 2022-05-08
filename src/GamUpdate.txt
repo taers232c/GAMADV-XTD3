@@ -1,3 +1,11 @@
+6.22.00
+
+Extended `csv_input_row_filter`, `csv_input_row_drop_filter`, `csv_output_row_filter` and `csv_output_row_filter`
+to allow specification of filter values from a list, flat file or CSV file.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Input-Filtering
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Output-Filtering
+
 6.21.07
 
 When setting a multivalued custom schema field for a user, if `type home|other|work|(custom <String>)` is not specified, 
