@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.00'
+__version__ = '6.22.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3240,10 +3240,10 @@ def SetGlobalVariables():
         Cmd.MergeArguments(shlexSplitList(mg.group(3), ' '))
         if filterSubType == 'file':
           rowFilters.append((columnPat, anyMatch, filterType, getEntitiesFromFile(False, returnSet=True)))
-          continue
-        if filterSubType == 'csvfile':
+        else: #elif filterSubType == 'csvfile':
           rowFilters.append((columnPat, anyMatch, filterType, getEntitiesFromCSVFile(False, returnSet=True)))
-          continue
+        Cmd.RestoreArguments()
+        continue
       _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression> or data:<DataSelector>')
     return rowFilters
 

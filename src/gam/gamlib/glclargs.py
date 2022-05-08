@@ -880,6 +880,9 @@ class GamCLArgs():
     self.argvI = 0
     self.argvLen = 0
     self.argvIsave = 0
+    self.origArgv = []
+    self.origArgvI = 0
+    self.origArgvLen = 0
     self.encoding = 'utf-8'
 
 # Initialize arguments
@@ -980,3 +983,17 @@ class GamCLArgs():
       self.Advance()
     self.ResetLocation(0)
     return False
+
+# Merge new arguments into current argument list
+  def MergeArguments(self, arguments):
+    self.origArgv = self.argv[:]
+    self.origArgvI = self.argvI
+    self.origArgvLen = self.argvLen
+    self.argv = self.argv[0:self.argvI]+arguments+self.argv[self.argvI:]
+    self.argvLen += len(arguments)
+
+# Restore 
+  def RestoreArguments(self):
+    self.argv = self.origArgv[:]
+    self.argvI = self.origArgvI
+    self.argvLen = self.origArgvLen
