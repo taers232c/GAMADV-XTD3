@@ -1,10 +1,15 @@
+6.22.03
+
+Fixed bug in `gam report customers|users ... date <Date> nodatechange` where previous
+bug fix in 6.20.10 changed the format of the output.
+
 6.22.02
 
 Google has updated the Directory API to explicitly allow updating the OU of a Chromebook
 with the OU ID rather than the OU path. The `update_cros_ou_with_id` variable in `gam.cfg` specifies
 whether to use the OU ID or path to update the OU of a Chromebook.
 
-The Directory API now supports displaying the OU ID of a Chromebook; added `orgunitid' to `<CrOSFieldName>`
+The Directory API now supports displaying the OU ID of a Chromebook; added `orgunitid` to `<CrOSFieldName>`
 to allow display of this attribute in `gam info|print cros`.
 
 Added display of the OU ID of a Chromebook to `gam print crosactivity`.

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.02'
+__version__ = '6.22.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -11998,7 +11998,7 @@ def doReport():
     if startEndTime.startDateTime is None:
       startEndTime.startDateTime = startEndTime.endDateTime = todaysDate()
     csvPF.SetTitles('date')
-    if not userCustomerRange:
+    if not userCustomerRange or (startEndTime.startDateTime == startEndTime.endDateTime):
       csvPF.AddTitles(['name', 'value'])
     authorizedApps = []
     startDateTime = startEndTime.startDateTime
@@ -12024,10 +12024,10 @@ def doReport():
         usage = callGAPIpages(service, 'get', 'usageReports',
                               throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.FORBIDDEN],
                               date=tryDate, customerId=customerId, parameters=parameters)
-        if userCustomerRange:
-          status, lastDate = processCustomerUsageOneRow(usage, lastDate)
-        else:
+        if not userCustomerRange or (startEndTime.startDateTime == startEndTime.endDateTime):
           status, lastDate = processCustomerUsage(usage, lastDate)
+        else:
+          status, lastDate = processCustomerUsageOneRow(usage, lastDate)
         if not status:
           break
       except GAPI.invalid as e:
@@ -57542,7 +57542,7 @@ def processDelegates(users):
       try:
         if function == 'create':
           callGAPI(gmail.users().settings().delegates(), function,
-                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION,
+                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.ALREADY_EXISTS, GAPI.FAILED_PRECONDITION, GAPI.INVALID,
                                                           GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                    userId='me', body={'delegateEmail': delegateEmail})
         else:
@@ -57550,7 +57550,8 @@ def processDelegates(users):
                    throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_INPUT, GAPI.PERMISSION_DENIED],
                    userId='me', delegateEmail=delegateEmail)
         entityActionPerformed([Ent.USER, user, Ent.DELEGATE, delegateEmail], j, jcount)
-      except (GAPI.alreadyExists, GAPI.failedPrecondition, GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      except (GAPI.alreadyExists, GAPI.failedPrecondition, GAPI.invalid,
+              GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DELEGATE, delegateEmail], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
