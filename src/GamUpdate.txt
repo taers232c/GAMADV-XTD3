@@ -1,3 +1,14 @@
+6.22.02
+
+Google has updated the Directory API to explicitly allow updating the OU of a Chromebook
+with the OU ID rather than the OU path. The `update_cros_ou_with_id` variable in `gam.cfg` specifies
+whether to use the OU ID or path to update the OU of a Chromebook.
+
+The Directory API now supports displaying the OU ID of a Chromebook; added `orgunitid' to `<CrOSFieldName>`
+to allow display of this attribute in `gam info|print cros`.
+
+Added display of the OU ID of a Chromebook to `gam print crosactivity`.
+
 6.22.01
 
 Fixed bug in code introduced in 6.22.00 that caused a trap.
@@ -48,7 +59,7 @@ For complex policies, this is the only way to enter the policy data.
 gam update chromepolicy
         (<SchemaName>
           (<Field> <Value>)+ |
-	  (json [charset <Charset>] <JSONData>) |
+          (json [charset <Charset>] <JSONData>) |
           (json file <FileName> [charset <Charset>])
         )+
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
@@ -1431,8 +1442,8 @@ See: https://github.com/taers232c/GAMADV-XTD3/wiki/Command-Logging-Progress#comm
 Added the following keyword to `gam.cfg` to display commands to stderr when executing `gam batch|tbatch|csv|loop`.
 ```
 show_commands
-	Display commands to stderr when executing `gam batch|tbatch|csv|loop`.
-	Default: False
+        Display commands to stderr when executing `gam batch|tbatch|csv|loop`.
+        Default: False
 ```
 See: https://github.com/taers232c/GAMADV-XTD3/wiki/Command-Logging-Progress#command-progress
 
@@ -3149,11 +3160,11 @@ Fixed bug in `gam <UserTypeEntity> sync license` where an attempt was made to ad
 Following Jay's lead, added commands to send commands to ChromeOS devices.
 ```
 <CrOSCommand>
-	reboot|
-	remote_powerwash|
-	set_volume <0-100>|
-	wipe_users|
-	take_a_screenshot
+        reboot|
+        remote_powerwash|
+        set_volume <0-100>|
+        wipe_users|
+        take_a_screenshot
 
 gam issuecommand cros <CrOSEntity> command <CrOSCommand> [times_to_check_status <Integer>] [doit]
 gam <CrOSTypeEntity> issuecommand command <CrOSCommand> [times_to_check_status <Integer>] [doit]

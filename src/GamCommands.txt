@@ -1764,6 +1764,7 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatc
         model|
         notes|
         ordernumber|
+        orgunitid|
         orgunitpath|org|ou|
         osversion|
         platformversion|
@@ -1995,7 +1996,7 @@ gam create chromepolicyimage <ChromePolicyImageSchemaName> <FileName>
 gam update chromepolicy
         (<SchemaName>
           (<Field> <Value>)+ |
-	  (json [charset <Charset>] <JSONData>) |
+          (json [charset <Charset>] <JSONData>) |
           (json file <FileName> [charset <Charset>])
         )+
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]

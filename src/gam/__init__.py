@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.01'
+__version__ = '6.22.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14505,7 +14505,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quick
     if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
       svcargs['body'] = {'orgUnitPath': orgUnitPath}
     else:
-      svcargs['body'] = {'orgUnitPath': orgUnitPath, 'orgUnitId': orgUnitId}
+      svcargs['body'] = {'orgUnitId': orgUnitId}
     method = getattr(cd.chromeosdevices(), 'patch')
     dbatch = cd.new_batch_http_request(callback=_callbackMoveCrOSesToOrgUnit)
     bcount = 0
@@ -20042,8 +20042,9 @@ def updateCrOSDevices(entityList):
   else:
     if update_body or noBatchUpdate:
       if orgUnitPath and (not quickCrOSMove or noBatchUpdate):
-        update_body['orgUnitPath'] = orgUnitPath
-        if GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
+        if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
+          update_body['orgUnitPath'] = orgUnitPath
+        else:
           update_body['orgUnitId'] = orgUnitId
         orgUnitPath = None
       function = 'update'
@@ -20065,11 +20066,11 @@ def updateCrOSDevices(entityList):
                             customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, fields='notes')['notes']
         update_body['notes'] = updateNotes.replace('#notes#', oldNotes)
       callGAPI(cd.chromeosdevices(), function,
-               throwReasons=[GAPI.INVALID, GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT,
+               throwReasons=[GAPI.INVALID, GAPI.CONDITION_NOT_MET, GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
                              GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                customerId=GC.Values[GC.CUSTOMER_ID], **kwargs)
       entityActionPerformed([Ent.CROS_DEVICE, deviceId], i, count)
-    except (GAPI.invalid, GAPI.conditionNotMet) as e:
+    except (GAPI.invalid, GAPI.conditionNotMet, GAPI.invalidInput) as e:
       entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], str(e), i, count)
     except GAPI.invalidOrgunit:
       entityActionFailedWarning([Ent.CROS_DEVICE, deviceId], Msg.INVALID_ORGUNIT, i, count)
@@ -20340,6 +20341,7 @@ CROS_FIELDS_CHOICE_MAP = {
   'notes': 'notes',
   'ordernumber': 'orderNumber',
   'org': 'orgUnitPath',
+  'orgunitid': 'orgUnitId',
   'orgunitpath': 'orgUnitPath',
   'osversion': 'osVersion',
   'ou': 'orgUnitPath',
@@ -20361,6 +20363,7 @@ CROS_FIELDS_CHOICE_MAP = {
 CROS_BASIC_FIELDS_LIST = ['deviceId', 'annotatedAssetId', 'annotatedLocation', 'annotatedUser', 'lastSync', 'notes', 'serialNumber', 'status']
 
 CROS_SCALAR_PROPERTY_PRINT_ORDER = [
+  'orgUnitId',
   'orgUnitPath',
   'annotatedAssetId',
   'annotatedLocation',
@@ -20502,6 +20505,8 @@ def infoCrOSDevices(entityList):
     for field in reverseLists:
       if field in cros:
         cros[field].reverse()
+    if 'orgUnitId' in cros:
+      cros['orgUnitId'] = f"id:{cros['orgUnitId']}"
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(cros, timeObjects=CROS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
       continue
@@ -20822,6 +20827,8 @@ def doPrintCrOSDevices(entityList=None):
     for field in reverseLists:
       if field in cros:
         cros[field].reverse()
+    if 'orgUnitId' in cros:
+      cros['orgUnitId'] = f"id:{cros['orgUnitId']}"
     if FJQC.formatJSON:
       if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
@@ -21149,6 +21156,8 @@ def doPrintCrOSActivity(entityList=None):
     for field in reverseLists:
       if field in cros:
         cros[field].reverse()
+    if 'orgUnitId' in cros:
+      cros['orgUnitId'] = f"id:{cros['orgUnitId']}"
     if FJQC.formatJSON:
       if (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_ACTIVITY_TIME_OBJECTS)):
         csvPF.WriteRowNoFilter({'deviceId': cros['deviceId'],
@@ -21194,7 +21203,7 @@ def doPrintCrOSActivity(entityList=None):
 
   cd = buildGAPIObject(API.DIRECTORY)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
-  fieldsList = ['deviceId', 'annotatedAssetId', 'annotatedLocation', 'serialNumber', 'orgUnitPath']
+  fieldsList = ['deviceId', 'annotatedAssetId', 'annotatedLocation', 'serialNumber', 'orgUnitId', 'orgUnitPath']
   reverseLists = []
   csvPF = CSVPrintFile(fieldsList)
   FJQC = FormatJSONQuoteChar(csvPF)
