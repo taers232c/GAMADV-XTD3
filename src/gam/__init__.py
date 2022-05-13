@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.04'
+__version__ = '6.22.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -37381,7 +37381,7 @@ def doPrintUsers(entityList=None):
     'emailParts': False,
     'getGroupFeed': False,
     'getLicenseFeed': False,
-    'getLicenseByUser': False,
+    'getLicenseFeedByUser': False,
     'groupsInColumns': False,
     'scalarsFirst': False,
     'sortHeaders': False,

@@ -1,3 +1,7 @@
+6.22.05
+
+Fixed bug introduced in 6.22.04 in `gam print users` that caused a trap.
+
 6.22.04
 
 Fixed bug in `gam update drivefile <DriveFileEntity> ... parentid <DriveFolderID> newfilename <DriveFileName>`
