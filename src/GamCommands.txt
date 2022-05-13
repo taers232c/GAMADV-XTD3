@@ -2945,7 +2945,7 @@ gam create|add group <EmailAddress>
         [verifynotinvitable]
 gam update group|groups <GroupEntity> [email <EmailAddress>]
         [copyfrom <GroupItem>] <GroupAttribute>*
-        [security|makesecuritygroup|dynamicsecurity|makedynamicsecuritygroup]
+        [security|makesecuritygroup]
         [admincreated <Boolean>]
         [verifynotinvitable]
 gam update group|groups <GroupEntity> create|add [<GroupRole>]
@@ -3232,8 +3232,12 @@ gam show cigroup-members
 
 # Licenses
 
-gam print licenses [todrive <ToDriveAttribute>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
-gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+gam print licenses [todrive <ToDriveAttribute>*]
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+        [maxresults <Integer>] [countsonly]
+gam show licenses
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+        [maxresults <Integer>]
 
 # Cloud Identity Devices
 
@@ -4543,7 +4547,9 @@ gam print users [todrive <ToDriveAttribute>*]
         ([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
          [limittoou <OrgUnitIten>] [deleted_only|only_deleted])
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups|groupsincolumns] [license|licenses|licence|licences]
+        [groups|groupsincolumns]
+        [license|licenses|licence|licences|licensebyuser|licensesbyuser|licencebyuser|licencesbyuser]
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
         [schemas|custom|customschemas all|<SchemaNameList>]
         [emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
@@ -4555,7 +4561,9 @@ Print fields for specified users.
 
 gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups|groupsincolumns] [license|licenses|licence|licences]
+        [groups|groupsincolumns]
+        [license|licenses|licence|licences|licensebyuser|licensesbyuser|licencebyuser|licencesbyuser]
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
         [schemas|custom|customschemas all|<SchemaNameList>]
         [emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
@@ -4565,7 +4573,9 @@ gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
 
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [orderby <UserOrderByFieldName> [ascending|descending]]
-        [groups|groupsincolumns] [license|licenses|licence|licences]
+        [groups|groupsincolumns]
+        [license|licenses|licence|licences|licensebyuser|licensesbyuser|licencebyuser|licencesbyuser]
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
         [schemas|custom|customschemas all|<SchemaNameList>]
         [emailpart|emailparts|username]
         [userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]

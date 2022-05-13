@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.03'
+__version__ = '6.22.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3267,10 +3267,24 @@ def SetGlobalVariables():
       return value
     return ''
 
+  def _validateLicenseSKUs(sectionName, itemName, skuList):
+    GM.Globals[GM.LICENSE_SKUS] = []
+    for sku in skuList.split(','):
+      if '/' not in sku:
+        productId, sku = SKU.getProductAndSKU(sku)
+        if not productId:
+          _printValueError(sectionName, itemName, sku, f'{Msg.EXPECTED}: {",".join(SKU.getSortedSKUList())}')
+      else:
+        (productId, sku) = sku.split('/')
+      if (productId, sku) not in GM.Globals[GM.LICENSE_SKUS]:
+        GM.Globals[GM.LICENSE_SKUS].append((productId, sku))
+
   def _getCfgString(sectionName, itemName):
     value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName))
     minLen, maxLen = GC.VAR_INFO[itemName].get(GC.VAR_LIMITS, (None, None))
     if ((minLen is None) or (len(value) >= minLen)) and ((maxLen is None) or (len(value) <= maxLen)):
+      if itemName == GC.LICENSE_SKUS and value:
+        _validateLicenseSKUs(sectionName, itemName, value)
       return value
     _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.EXPECTED}: {integerLimits(minLen, maxLen, Msg.STRING_LENGTH)}')
     return ''
@@ -29893,8 +29907,11 @@ def doShowCIGroupMembers():
     if checkGroupMatchPatterns(groupEmail, groupEntity, matchPatterns):
       _showGroup(groupEntity['name'], groupEmail, 0)
 
-# gam print licenses [todrive <ToDriveAttribute>*] [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite] [countsonly]
-def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False):
+# gam print licenses [todrive <ToDriveAttribute>*]
+#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+#	[maxresults <Integer>]
+#	[countsonly]
+def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False, maxResults=500):
   lic = buildGAPIObject(API.LICENSING)
   setTrueCustomerId()
   customerId = _getCustomerId()
@@ -29921,8 +29938,12 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
         products = []
       elif myarg == 'countsonly':
         countsOnly = True
+      elif myarg == 'maxresults':
+        maxResults = getInteger(minVal=100, maxVal=1000)
       else:
         unknownArgumentExit()
+    if not skus and not products and GM.Globals[GM.LICENSE_SKUS]:
+      skus = GM.Globals[GM.LICENSE_SKUS]
     if not countsOnly:
       fields = getItemFieldsFromFieldsList('items', ['productId', 'skuId', 'userId'])
       csvPF.SetTitles(['userId', 'productId', 'productDisplay', 'skuId', 'skuDisplay'])
@@ -29946,7 +29967,8 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
         feed += callGAPIpages(lic.licenseAssignments(), 'listForProductAndSku', 'items',
                               pageMessage=getPageMessageForWhom(forWhom=skuIdDisplay),
                               throwReasons=[GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
-                              customerId=customerId, productId=productId, skuId=skuId, fields=fields)
+                              customerId=customerId, productId=productId, skuId=skuId,
+                              maxResults=maxResults, fields=fields)
         if countsOnly:
           licenseCounts.append([Ent.PRODUCT, productId, Ent.SKU, [skuId, skuIdDisplay][returnCounts], Ent.LICENSE, len(feed)])
           feed = []
@@ -29964,7 +29986,8 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
         feed += callGAPIpages(lic.licenseAssignments(), 'listForProduct', 'items',
                               pageMessage=getPageMessageForWhom(forWhom=productDisplay),
                               throwReasons=[GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_ARGUMENT],
-                              customerId=customerId, productId=productId, fields=fields)
+                              customerId=customerId, productId=productId,
+                              maxResults=maxResults, fields=fields)
         if countsOnly:
           licenseCounts.append([Ent.PRODUCT, [productId, productDisplay][returnCounts], Ent.LICENSE, len(feed)])
           feed = []
@@ -30008,7 +30031,9 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
                     'skuId': skuId, 'skuDisplay': SKU.skuIdToDisplayName(skuId)})
   csvPF.writeCSVfile('Licenses')
 
-# gam show licenses [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+# gam show licenses
+#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+#	[maxresults <Integer>]
 def doShowLicenses():
   licenseCounts = doPrintLicenses(countsOnly=True, returnCounts=True)
   for u_license in licenseCounts:
@@ -36571,6 +36596,24 @@ def waitForMailbox(entityList):
         break
     Ind.Decrement()
 
+def getUserLicenses(lic, user, skus):
+  def _callbackGetLicense(request_id, response, exception):
+    if exception is None:
+      if response and 'skuId' in response:
+        licenses.append(response['skuId'])
+
+  licenses = []
+  svcargs = dict([('userId', user['primaryEmail']), ('productId', None), ('skuId', None), ('fields', 'skuId')]+GM.Globals[GM.EXTRA_ARGS_LIST])
+  method = getattr(lic.licenseAssignments(), 'get')
+  dbatch = lic.new_batch_http_request(callback=_callbackGetLicense)
+  for sku in skus:
+    svcparms = svcargs.copy()
+    svcparms['productId'] = sku[0]
+    svcparms['skuId'] = sku[1]
+    dbatch.add(method(**svcparms))
+  dbatch.execute()
+  return licenses
+
 USER_NAME_PROPERTY_PRINT_ORDER = [
   'givenName',
   'familyName',
@@ -36797,11 +36840,6 @@ def infoUsers(entityList):
       return True
     return False
 
-  def _callbackGetLicense(request_id, response, exception):
-    if exception is None:
-      if response and 'skuId' in response:
-        licenses.append(response['skuId'])
-
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = not GC.Values[GC.QUICK_INFO_USER]
   FJQC = FormatJSONQuoteChar()
@@ -36811,7 +36849,7 @@ def infoUsers(entityList):
   fieldsList = []
   groups = []
   memberships = []
-  skus = SKU.getAllSKUs()
+  skus = SKU.getAllSKUs() if not GM.Globals[GM.LICENSE_SKUS] else GM.Globals[GM.LICENSE_SKUS]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'quick':
@@ -36891,18 +36929,7 @@ def infoUsers(entityList):
           pass
       elif getCIGroups:
         memberships = getCIGroupMembershipGraph(user['primaryEmail'])
-      licenses = []
-      if getLicenses:
-        svcargs = dict([('userId', None), ('productId', None), ('skuId', None), ('fields', 'skuId')]+GM.Globals[GM.EXTRA_ARGS_LIST])
-        method = getattr(lic.licenseAssignments(), 'get')
-        dbatch = lic.new_batch_http_request(callback=_callbackGetLicense)
-        for sku in skus:
-          svcparms = svcargs.copy()
-          svcparms['userId'] = user['primaryEmail']
-          svcparms['productId'] = sku[0]
-          svcparms['skuId'] = sku[1]
-          dbatch.add(method(**svcparms))
-        dbatch.execute()
+      licenses = getUserLicenses(lic, user, skus) if getLicenses else []
       if FJQC.formatJSON:
         if getGroups:
           user['groups'] = groups
@@ -37183,9 +37210,10 @@ def infoUsers(entityList):
 #	[nobuildingnames|buildingnames]
 #	[nogroups|groups|grouptree]
 #	[nolicenses|nolicences|licenses|licences]
+#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
 #	[noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
 #	[userview] <UserFieldName>* [fields <UserFieldNameList>]
-#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+#	[formatjson]
 def doInfoUsers():
   infoUsers(getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, delayGet=True)[1])
 
@@ -37195,9 +37223,10 @@ def doInfoUsers():
 #	[nobuildingnames|buildingnames]
 #	[nogroups|groups|grouptree]
 #	[nolicenses|nolicences|licenses|licences]
+#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
 #	[noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
 #	[userview] <UserFieldName>* [fields <UserFieldNameList>]
-#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)] [formatjson]
+#	[formatjson]
 # gam info user
 def doInfoUser():
   if Cmd.ArgumentsRemaining():
@@ -37219,14 +37248,20 @@ USERS_INDEXED_TITLES = ['addresses', 'aliases', 'nonEditableAliases', 'emails', 
 # gam print users [todrive <ToDriveAttribute>*]
 #	([domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
 #	 [limittoou <OrgUnitItem>] [deleted_only|only_deleted])|[select <UserTypeEntity>]
-#	[groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+#	[groups|groupsincolumns]
+#	[license|licenses|licence|licences|licensebyuser|licensesbyuser|licencebyuser|licencesbyuser]
+#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
+#	[emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
 #	[issuspended <Boolean>] [aliasmatchpattern <RegularExpression>]
 #
 # gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
-#	[groups|groupsincolumns] [license|licenses|licence|licences] [emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
+#	[groups|groupsincolumns]
+#	[license|licenses|licence|licences|licensebyuser|licensesbyuser|licencebyuser|licencesbyuser]
+#	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
+#	[emailpart|emailparts|username] [schemas|custom all|<SchemaNameList>]
 #	[orderby <UserOrderByFieldName> [ascending|descending]]
 #	[userview] [basic|full|allfields | <UserFieldName>* | fields <UserFieldNameList>]
 #	[delimiter <Character>] [sortheaders] [formatjson [quotechar <Character>]] [quoteplusphonenumbers]
@@ -37277,14 +37312,15 @@ def doPrintUsers(entityList=None):
           badRequestWarning(Ent.GROUP, Ent.MEMBER, userEmail)
         except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
           accessErrorExit(cd)
-      if licenses:
-        u_licenses = licenses.get(userEmail.lower())
+      if printOptions['getLicenseFeed'] or printOptions['getLicenseFeedByUser']:
+        if printOptions['getLicenseFeed']:
+          u_licenses = licenses.get(userEmail.lower(), [])
+        else:
+          u_licenses = getUserLicenses(lic, userEntity, skus)
+        userEntity['LicensesCount'] = len(u_licenses)
         if u_licenses:
-          userEntity['LicensesCount'] = len(u_licenses)
           userEntity['Licenses'] = delimiter.join(u_licenses)
           userEntity['LicensesDisplay'] = delimiter.join([SKU.skuIdToDisplayName(skuId) for skuId in u_licenses])
-        else:
-          userEntity['LicensesCount'] = 0
       if aliasMatchPattern and 'aliases' in userEntity:
         userEntity['aliases'] = [alias for alias in userEntity['aliases'] if aliasMatchPattern.match(alias)]
       row = flattenJSON(userEntity, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS)
@@ -37345,6 +37381,7 @@ def doPrintUsers(entityList=None):
     'emailParts': False,
     'getGroupFeed': False,
     'getLicenseFeed': False,
+    'getLicenseByUser': False,
     'groupsInColumns': False,
     'scalarsFirst': False,
     'sortHeaders': False,
@@ -37354,6 +37391,9 @@ def doPrintUsers(entityList=None):
   domain = None
   queries = [None]
   licenses = {}
+  lic = None
+  skus = None
+  maxResults = 500
   projection = 'basic'
   projectionSet = False
   customFieldMask = None
@@ -37418,12 +37458,22 @@ def doPrintUsers(entityList=None):
       printOptions['groupsInColumns'] = True
     elif myarg in {'license', 'licenses', 'licence', 'licences'}:
       printOptions['getLicenseFeed'] = True
+      printOptions['getLicenseFeedByUser'] = False
+    elif myarg in {'licensebyuser', 'licensesbyuser', 'licencebyuser', 'licencesbyuser'}:
+      printOptions['getLicenseFeedByUser'] = True
+      printOptions['getLicenseFeed'] = False
+    elif myarg in {'products', 'product'}:
+      skus = SKU.convertProductListToSKUList(getGoogleProductList())
+    elif myarg in {'sku', 'skus'}:
+      skus = getGoogleSKUList()
     elif myarg == 'aliasmatchpattern':
       aliasMatchPattern = getREPattern(re.IGNORECASE)
     elif myarg in {'emailpart', 'emailparts', 'username'}:
       printOptions['emailParts'] = True
     elif myarg in {'countonly', 'countsonly'}:
       printOptions['countOnly'] = True
+    elif myarg == 'maxresults':
+      maxResults = getInteger(minVal=100, maxVal=1000)
     elif myarg == 'quoteplusphonenumbers':
       quotePlusPhoneNumbers = True
     else:
@@ -37446,10 +37496,16 @@ def doPrintUsers(entityList=None):
           csvPF.AddTitles(['GroupsCount', 'Groups'])
         else:
           csvPF.AddTitles(['Groups'])
-      if printOptions['getLicenseFeed']:
+      if printOptions['getLicenseFeed'] or printOptions['getLicenseFeedByUser']:
         csvPF.AddTitles(['LicensesCount', 'Licenses', 'LicensesDisplay'])
     if printOptions['getLicenseFeed']:
-      licenses = doPrintLicenses(returnFields=['userId', 'skuId'])
+      if skus is None and GM.Globals[GM.LICENSE_SKUS]:
+        skus = GM.Globals[GM.LICENSE_SKUS]
+      licenses = doPrintLicenses(returnFields=['userId', 'skuId'], skus=skus, maxResults=maxResults)
+    elif printOptions['getLicenseFeedByUser']:
+      lic = buildGAPIObject(API.LICENSING)
+      if skus is None:
+        skus = SKU.getAllSKUs() if not GM.Globals[GM.LICENSE_SKUS] else GM.Globals[GM.LICENSE_SKUS]
   if entityList is None:
     sortRows = False
     if orgUnitPath is not None and fieldsList:
@@ -37591,7 +37647,7 @@ def doPrintUsers(entityList=None):
         csvPF.MoveTitlesToEnd(['GroupsCount', 'Groups'])
       else:
         csvPF.MoveTitlesToEnd(['Groups']+[f'Groups{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{j}' for j in range(printOptions['maxGroups'])])
-    if printOptions['getLicenseFeed']:
+    if printOptions['getLicenseFeed'] or printOptions['getLicenseFeedByUser']:
       csvPF.MoveTitlesToEnd(['LicensesCount', 'Licenses', 'LicensesDisplay'])
   elif not FJQC.formatJSON:
     for domain, count in sorted(iter(domainCounts.items())):
@@ -47616,7 +47672,7 @@ def updateDriveFile(users):
               removeParents.extend(result.get('parents', []))
             if not newName and parameters[DFA_REPLACEFILENAME]:
               body['name'] = processFilenameReplacements(result['name'], parameters[DFA_REPLACEFILENAME])
-          elif newName:
+          if newName:
             if parameters[DFA_REPLACEFILENAME]:
               body['name'] = processFilenameReplacements(newName, parameters[DFA_REPLACEFILENAME])
             else:

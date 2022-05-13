@@ -141,6 +141,8 @@ EVENT_MAX_RESULTS = 'event_max_results'
 EXTRA_ARGS = 'extra_args'
 # When processing items in batches, how many seconds should GAM wait between batches
 INTER_BATCH_WAIT = 'inter_batch_wait'
+# License SKUs to process
+LICENSE_SKUS = 'license_skus'
 # When retrieving lists of Google Group members from API, how many should be retrieved in each chunk
 MEMBER_MAX_RESULTS = 'member_max_results'
 # When deleting or modifying Gmail messages, how many should be processed in each batch
@@ -290,6 +292,7 @@ Defaults = {
   EVENT_MAX_RESULTS: '250',
   EXTRA_ARGS: '',
   INTER_BATCH_WAIT: '0',
+  LICENSE_SKUS: '',
   MEMBER_MAX_RESULTS: '200',
   MESSAGE_BATCH_SIZE: '50',
   MESSAGE_MAX_RESULTS: '500',
@@ -417,6 +420,7 @@ VAR_INFO = {
   EVENT_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 2500)},
   EXTRA_ARGS: {VAR_TYPE: TYPE_FILE, VAR_SIGFILE: FN_EXTRA_ARGS_TXT, VAR_SFFT: ('', FN_EXTRA_ARGS_TXT), VAR_ACCESS: os.R_OK},
   INTER_BATCH_WAIT: {VAR_TYPE: TYPE_FLOAT, VAR_LIMITS: (0.0, 60.0)},
+  LICENSE_SKUS: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   MEMBER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 200)},
   MESSAGE_BATCH_SIZE: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 1000)},
   MESSAGE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 10000)},

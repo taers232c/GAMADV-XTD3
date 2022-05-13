@@ -1,3 +1,26 @@
+6.22.04
+
+Fixed bug in `gam update drivefile <DriveFileEntity> ... parentid <DriveFolderID> newfilename <DriveFileName>`
+where the file was not renamed.
+
+The Enterprise License Manager API doesn't provide an option to get a list of the licenses a user holds.
+For `gam info user`, GAM makes a batch API call with 47 product/SKU pairs querying whether the user holds
+a license for the product/SKU. An error is returned (and suppressed) for each product/SKU pair for which
+the user does not hold a license.
+
+Currently, when you specify the `license` option with `gam print users`, GAM downloads all licenses for the domain
+and from that data determines which licenses a user holds. For large numbers of users this works reasonably well;
+for a small number of users the all license download might be overly expensive. The following options (synonyms)
+`licensebyuser|licensesbyuser|licencebyuser|licencesbyuser` were added to `gam print users` that cause it
+to use the batch API call method to retrieve the licenses for each user.
+
+Additionally, these options `(products <ProductIDList>)|(skus <SKUIDList>)` can be used with both `gam info user`
+and `gam print users` to limit the licenses retrieved.
+
+Added `license_skus` variable to `gam.cfg` that defines the SKUs that will be processed when getting licenses.
+Each item in the list can be  a `<SKUID>` which will be validated or `<ProductID>/<SKUID>` which will not.
+The default, an empty string, means that all SKUs will be processed when getting licenses.
+
 6.22.03
 
 Fixed bug in `gam report customers|users ... date <Date> nodatechange` where previous

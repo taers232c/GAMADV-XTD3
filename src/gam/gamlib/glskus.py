@@ -106,9 +106,9 @@ _SKUS = {
   '1010340004': {
     'product': '101034', 'aliases': ['wsentstanarchived', 'workspaceenterprisestandardarchived'], 'displayName': 'Google Workspace Enterprise Standard - Archived User'},
   '1010060001': {
-    'product': 'Google-Apps', 'aliases': ['gsuiteessentials', 'essentials',
-                                          'd4e', 'driveenterprise', 'drive4enterprise',
-                                          'wsess', 'workspaceesentials'], 'displayName': 'Google Workspace Essentials'},
+    'product': '101006', 'aliases': ['gsuiteessentials', 'essentials',
+                                     'd4e', 'driveenterprise', 'drive4enterprise',
+                                     'wsess', 'workspaceesentials'], 'displayName': 'Google Workspace Essentials'},
   '1010060003': {
     'product': 'Google-Apps', 'aliases': ['wsentess', 'workspaceenterpriseessentials'], 'displayName': 'Google Workspace Enterprise Essentials'},
   'Google-Drive-storage-20GB': {
