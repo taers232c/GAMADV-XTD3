@@ -26,6 +26,7 @@ import re
 _PRODUCTS = {
   '101001': 'Cloud Identity Free',
   '101005': 'Cloud Identity Premium',
+  '101006': 'Google Workspace Essentials',
   '101031': 'Google Workspace for Education',
   '101033': 'Google Voice',
   '101034': 'Google Workspace Archived User',
