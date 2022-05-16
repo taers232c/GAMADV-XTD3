@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.06'
+__version__ = '6.22.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -46916,6 +46916,8 @@ def printShowFileTree(users):
   def _showFileInfo(fileEntry, depth, j=0, jcount=0):
     if not DLP.CheckExcludeTrashed(fileEntry):
       return
+    if stripCRsFromName:
+      fileEntry['name'] = _stripControlCharsFromName(fileEntry['name'])
     if not csvPF:
       fileInfoList = []
       for field in FILETREE_FIELDS_PRINT_ORDER:

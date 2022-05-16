@@ -1,3 +1,8 @@
+6.22.07
+
+Fixed bug in `gam <UserTypeEntity> print|show filetree select <DriveFileEntity>` where the `stripcrsfromname`
+option was not applied.
+
 6.22.06
 
 Updated code to handle Enterprise Licensing API issue with SKU 1010060001 (Google Workspace Essentials).
