@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.07'
+__version__ = '6.22.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -18860,10 +18860,13 @@ def _infoPeople(users, entityType, source):
       try:
         result = callGAPI(people.people(), 'get',
                           bailOnInternalError=True,
-                          throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.INVALID_ARGUMENT]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                           resourceName=resourceName, sources=sources, personFields=fields)
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
+        continue
+      except GAPI.invalidArgument as e:
+        entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
         continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
         ClientAPIAccessDeniedExit()
@@ -60815,7 +60818,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_MOBILE:		doInfoMobileDevices,
       Cmd.ARG_ORG:		doInfoOrg,
       Cmd.ARG_ORGS:		doInfoOrgs,
-      Cmd.ARG_PEOPLE:		doInfoDomainPeopleProfile,
+      Cmd.ARG_PEOPLEPROFILE:	doInfoDomainPeopleProfile,
       Cmd.ARG_PEOPLECONTACT:	doInfoDomainPeopleContacts,
       Cmd.ARG_PRINTER:		doInfoPrinter,
       Cmd.ARG_RESOLDCUSTOMER:	doInfoResoldCustomer,
