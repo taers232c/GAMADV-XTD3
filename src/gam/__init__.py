@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.08'
+__version__ = '6.22.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -20324,7 +20324,10 @@ def _computeDVRstorageFreePercentage(cros):
   for diskVolumeReport in cros.get('diskVolumeReports', []):
     volumeInfo = diskVolumeReport['volumeInfo']
     for volume in volumeInfo:
-      volume['storageFreePercentage'] = str(int(int(volume['storageFree'])/int(volume['storageTotal'])*100))
+      if volume['storageTotal'] != '0':
+        volume['storageFreePercentage'] = str(int(int(volume['storageFree'])/int(volume['storageTotal'])*100))
+      else:
+        volume['storageFreePercentage'] = '0'
 
 def _getFilterDateTime():
   filterDate = getYYYYMMDD(returnDateTime=True)

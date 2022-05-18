@@ -1,3 +1,7 @@
+6.22.09
+
+Fixed bug in `gam print cros ...showdvrsfp` that caused a 'ZeroDivisionError: division by zero' trap.
+
 6.22.08
 
 Fixed bug where `gam info people` was not recognized as a valid command.
