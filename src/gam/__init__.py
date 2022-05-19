@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.09'
+__version__ = '6.22.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -43319,7 +43319,6 @@ DFA_LOCALMIMETYPE = 'localMimeType'
 DFA_STRIPNAMEPREFIX = 'stripNamePrefix'
 DFA_REPLACEFILENAME = 'replaceFileName'
 DFA_OCRLANGUAGE = 'ocrLanguage'
-DFA_ENFORCE_SINGLE_PARENT = 'enforceSingleParent'
 DFA_PARENTID = 'parentId'
 DFA_PARENTQUERY = 'parentQuery'
 DFA_ADD_PARENT_IDS = 'addParentIds'
@@ -43578,7 +43577,6 @@ def initDriveFileAttributes():
           DFA_STRIPNAMEPREFIX: None,
           DFA_REPLACEFILENAME: [],
           DFA_OCRLANGUAGE: None,
-          DFA_ENFORCE_SINGLE_PARENT: False,
           DFA_PARENTID: None,
           DFA_PARENTQUERY: None,
           DFA_ADD_PARENT_IDS: [],
@@ -43628,7 +43626,7 @@ def getDriveFileParentAttribute(myarg, parameters):
     parameters[DFA_KWARGS]['includeItemsFromAllDrives'] = True
     parameters[DFA_KWARGS]['supportsAllDrives'] = True
   elif myarg == 'enforcesingleparent':
-    parameters[DFA_ENFORCE_SINGLE_PARENT] = getBoolean(defaultValue=None)
+    deprecatedArgument(myarg)
   else:
     return False
   return True
@@ -43647,7 +43645,7 @@ def getDriveFileAddRemoveParentAttribute(myarg, parameters):
   elif myarg in {'removeanyownerparentname', 'removesharedparentname'}:
     parameters[DFA_REMOVE_PARENT_NAMES].append(ANY_NON_TRASHED_FOLDER_NAME.format(getEscapedDriveFolderName()))
   elif myarg == 'enforcesingleparent':
-    parameters[DFA_ENFORCE_SINGLE_PARENT] = getBoolean(defaultValue=None)
+    deprecatedArgument(myarg)
   else:
     return False
   return True
@@ -47228,7 +47226,6 @@ returnItemMap = {
 #	[(drivefilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
 #	[stripnameprefix <String>]
 #	<DriveFileCreateAttribute>*
-#	[enforcesingleparent <Boolean>]
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
 #	(addcsvdata <FieldName> <String>)*
 def createDriveFile(users):
@@ -47298,7 +47295,6 @@ def createDriveFile(users):
                                                                     GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
                                                                     GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
                                                                     GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
-                        enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
                         ocrLanguage=parameters[DFA_OCRLANGUAGE],
                         ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -47589,7 +47585,7 @@ def checkDriveFileShortcut(users):
 #	[localfile <FileName>|-]
 #	[retainname | (newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
 #	[stripnameprefix <String>]
-#	<DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
+#	<DriveFileUpdateAttribute>*
 #	[(gsheet|csvsheet <SheetEntity> [clearfilter])|(addsheet <String>)]
 #	[charset <String>] [columndelimiter <Character>]
 def updateDriveFile(users):
@@ -47729,7 +47725,7 @@ def updateDriveFile(users):
                                                                               GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
                                                                               GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                               GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
-                                fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
+                                fileId=fileId,
                                 ocrLanguage=parameters[DFA_OCRLANGUAGE],
                                 keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                                 useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -47768,7 +47764,7 @@ def updateDriveFile(users):
                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                             GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
                                                                             GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
-                              fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
+                              fileId=fileId,
                               ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                               useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
@@ -47811,7 +47807,7 @@ def updateDriveFile(users):
         try:
           result = callGAPI(drive.files(), 'copy',
                             throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT],
-                            fileId=fileId, enforceSingleParent=parameters[DFA_ENFORCE_SINGLE_PARENT],
+                            fileId=fileId,
                             ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                             body=body, fields='id,name,webViewLink', supportsAllDrives=True)
@@ -49954,7 +49950,7 @@ def collectOrphans(users):
             callGAPI(drive.files(), 'update',
                      bailOnInternalError=True,
                      throwReasons=GAPI.DRIVE_USER_THROW_REASONS, retryReasons=[GAPI.FILE_NOT_FOUND],
-                     enforceSingleParent=True, fileId=fileId, body={}, addParents=newParentId, fields='')
+                     fileId=fileId, body={}, addParents=newParentId, fields='')
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName],
                                                                Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
           except (GAPI.fileNotFound, GAPI.internalError) as e:
@@ -51500,11 +51496,11 @@ def _showDriveFilePermissions(entityType, fileName, permissions, printKeys, time
 # gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
 #	anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 #	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
-#	[enforcesingleparent <Boolean>] [moveToNewOwnersRoot [<Boolean>]]
+#	[moveToNewOwnersRoot [<Boolean>]]
 #	[expiration <Time>] [sendemail] [emailmessage <String>]
 #	[showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 def createDriveFileACL(users, useDomainAdminAccess=False):
-  enforceSingleParent = moveToNewOwnersRoot = False
+  moveToNewOwnersRoot = False
   sendNotificationEmail = showTitles = _transferOwnership = False
   roleLocation = withLinkLocation = expirationLocation = None
   emailMessage = None
@@ -51538,9 +51534,9 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
         sendNotificationEmail = _transferOwnership = True
       ubody['role'] = body['role']
     elif myarg == 'enforcesingleparent':
-      enforceSingleParent = getBoolean(defaultValue=None)
+      deprecatedAegument(myarg)
     elif myarg == 'movetonewownersroot':
-      moveToNewOwnersRoot = getBoolean(defaultValue=None)
+      moveToNewOwnersRoot = getBoolean()
     elif myarg in {'expiration', 'expires'}:
       expirationLocation = Cmd.Location()
       ubody['expirationTime'] = getTimeOrDeltaFromNow()
@@ -51594,7 +51590,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
         permission = callGAPI(drive.permissions(), 'create',
                               bailOnInternalError=True,
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
-                              enforceSingleParent=enforceSingleParent, moveToNewOwnersRoot=moveToNewOwnersRoot,
+                              moveToNewOwnersRoot=moveToNewOwnersRoot,
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
                               transferOwnership=_transferOwnership, body=body, fields='*', supportsAllDrives=True)
@@ -51792,7 +51788,7 @@ def getJSONPermissionSkips(myarg, skips):
 
 # gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin]
 #	[expiration <Time>] [sendmail] [emailmessage <String>]
-#	[enforcesingleparent <Boolean>] [moveToNewOwnersRoot <Boolean>]
+#	[moveToNewOwnersRoot [<Boolean>]]
 #	<PermissionMatch>* [<PermissionMatchAction>]
 def createDriveFilePermissions(users, useDomainAdminAccess=False):
   def convertJSONPermissions(jsonPermissions):
@@ -51883,7 +51879,7 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
     if int(ri[RI_J]) == int(ri[RI_JCOUNT]):
       Ind.Decrement()
 
-  enforceSingleParent = moveToNewOwnersRoot = False
+  moveToNewOwnersRoot = False
   sendNotificationEmail = False
   emailMessage = expiration = None
   fileIdEntity = getDriveFileEntity()
@@ -51899,9 +51895,9 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'enforcesingleparent':
-      enforceSingleParent = getBoolean(defaultValue=None)
+      deprecatedArgument(myarg)
     elif myarg == 'movetonewownersroot':
-      moveToNewOwnersRoot = getBoolean(defaultValue=None)
+      moveToNewOwnersRoot = getBoolean()
     elif myarg in {'expiration', 'expires'}:
       expiration = getTimeOrDeltaFromNow()
     elif myarg == 'sendemail':
@@ -51966,7 +51962,6 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
           entityActionFailedWarning([Ent.DRIVE_FILE_OR_FOLDER_ID, fileId, Ent.PERMITTEE, permission], Msg.INVALID, k, kcount)
           continue
         if svcparms['body']['role'] == 'owner':
-          svcparms['enforceSingleParent'] = enforceSingleParent
           svcparms['moveToNewOwnersRoot'] = moveToNewOwnersRoot
           svcparms['transferOwnership'] = svcparms['sendNotificationEmail'] = True
         dbatch.add(method(**svcparms), request_id=batchRequestID(fileId, j, jcount, k, kcount, permission))

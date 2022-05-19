@@ -3964,7 +3964,6 @@ In these commands, the Google administrator named in oauth2.txt is used.
 gam create|add drivefileacl <SharedDriveEntityAdmin>
         anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
-        [enforcesingleparent <Boolean>] [movetonewownersroot [<Boolean>]]
         [expiration <Time>] [sendemail] [emailmessage <String>]
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 gam update drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
@@ -4001,7 +4000,7 @@ In these commands, you specify an administrator and then indicate that you want 
 gam <UserTypeEntity> create|add drivefileacl <SharedDriveEntityAdmin>
         anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
-        [enforcesingleparent <Boolean>] [movetonewownersroot [<Boolean>]]
+        [movetonewownersroot [<Boolean>]]
         [expiration <Time>] [sendemail] [emailmessage <String>]
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
         adminaccess
@@ -5024,7 +5023,6 @@ gam <UserTypeEntity> create|add drivefile
         [(drivefilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
         [stripnameprefix <String>]
         <DriveFileCreateAttribute>*
-        [enforcesingleparent <Boolean>]
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> currenttime|<String>)*) |
          (returnidonly|returnlinkonly|returneditlinkonly|showdetails)]
 
@@ -5044,7 +5042,7 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|ret
         [localfile <FileName>|-]
         [retainname | (newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
         [stripnameprefix <String>]
-        <DriveFileUpdateAttribute>* [enforcesingleparent <Boolean>]
+        <DriveFileUpdateAttribute>*
         [(gsheet|csvsheet <SheetEntity> [clearfilter])|(addsheet <String>)]
         [charset <CharSet>] [columndelimiter <Character>]
 
@@ -5216,7 +5214,7 @@ gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttr
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionEntity>
         [expires|expiration <Time>] [sendemail] [emailmessage <String>]
-        [enforcesingleparent <Boolean>] [movetonewownersroot <Boolean>]
+        [movetonewownersroot [<Boolean>]]
         <PermissionMatch>* [<PermissionMatchAction>]
 gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
         <PermissionMatch>* [<PermissionMatchAction>]
@@ -6368,7 +6366,7 @@ See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets/bat
 gam <UserTypeEntity> create|add sheet
         ((json [charset <Charset>] <SpreadsheetJSONCreateRequest>) |
          (json file <FileName> [charset <Charset>]))
-        [<DriveFileParentAttribute>] [enforcesingleparent <Boolean>]
+        [<DriveFileParentAttribute>]
         [formatjson] [returnidonly]
 gam <UserTypeEntity> update sheet <DriveFileEntity>
         ((json [charset <Charset>] <SpreadsheetJSONUpdateRequest>) |
