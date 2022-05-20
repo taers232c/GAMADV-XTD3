@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.10'
+__version__ = '6.22.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -33652,11 +33652,17 @@ def doDownloadVaultExport():
       continue
     if targetName:
       _, s_objectFilename = s_object.rsplit('/', 1)
-      s_objectFilename, s_objectExtension = s_objectFilename.rsplit('.', 1)
+      if s_objectFilename.find('.') != -1:
+        s_objectFilename, s_objectExtension = s_objectFilename.rsplit('.', 1)
+      else:
+        s_objectExtension = ''
       if targetName.find('#') == -1:
         extCounts.setdefault(s_objectExtension, 0)
         extCounts[s_objectExtension] += 1
-        filename = f"{targetName}-{extCounts[s_objectExtension]}.{s_objectExtension}"
+        if s_objectExtension:
+          filename = f"{targetName}-{extCounts[s_objectExtension]}.{s_objectExtension}"
+        else:
+          filename = f"{targetName}-{extCounts[s_objectExtension]}"
       else:
         filename = targetName.replace('#objectname#', s_object).replace('#filename#', s_objectFilename).replace('#extension#', s_objectExtension)
       filename = os.path.join(targetFolder, filename.replace('/', '-'))
@@ -51534,7 +51540,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
         sendNotificationEmail = _transferOwnership = True
       ubody['role'] = body['role']
     elif myarg == 'enforcesingleparent':
-      deprecatedAegument(myarg)
+      deprecatedArgument(myarg)
     elif myarg == 'movetonewownersroot':
       moveToNewOwnersRoot = getBoolean()
     elif myarg in {'expiration', 'expires'}:

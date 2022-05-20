@@ -1,7 +1,7 @@
 lxml
 cryptography
 distro; sys_platform == 'linux'
-filelock==3.6.0
+filelock
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
