@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.12'
+__version__ = '6.22.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -20059,9 +20059,8 @@ def updateCrOSDevices(entityList):
   else:
     if update_body or noBatchUpdate:
       if orgUnitPath and (not quickCrOSMove or noBatchUpdate):
-        if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
-          update_body['orgUnitPath'] = orgUnitPath
-        else:
+        update_body['orgUnitPath'] = orgUnitPath
+        if GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
           update_body['orgUnitId'] = orgUnitId
         orgUnitPath = None
       function = 'update'
