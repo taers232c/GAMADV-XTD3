@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.11'
+__version__ = '6.22.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14519,7 +14519,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quick
     if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
       svcargs['body'] = {'orgUnitPath': orgUnitPath}
     else:
-      svcargs['body'] = {'orgUnitId': orgUnitId}
+      svcargs['body'] = {'orgUnitPath': orgUnitPath, 'orgUnitId': orgUnitId}
     method = getattr(cd.chromeosdevices(), 'patch')
     dbatch = cd.new_batch_http_request(callback=_callbackMoveCrOSesToOrgUnit)
     bcount = 0

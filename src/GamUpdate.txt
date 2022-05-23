@@ -1,3 +1,7 @@
+6.22.12
+
+Updated code to handle a Google API problem wnen updating the OU of a Chromebook.
+
 6.22.11
 
 Updated `gam download vaultexport|export` to avoid a trap when the
