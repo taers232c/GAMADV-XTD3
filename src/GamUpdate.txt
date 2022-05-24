@@ -1,6 +1,19 @@
+6.22.14
+
+Added option `stripcrsfromname` to `gam <UserTypeEntity> print|show filepath` that causes carriage returns,
+linefeeds and nulls to be stripped from file names.
+
+Added option `fullpath` to `gam <UserTypeEntity> print|show filepath` and `gam <UserTypeEntity> show fileinfo`
+that adds additional path information indicating that a file is an Orphan or Shared with me.
+
+Added keywords `mydriveid` and `rootid` to `<DriveFileEntity>` as synonyms for `mydrive` and `root` in all
+commands except `gam <UserTypeEntity> print filelist|filetree`. In those commands, `select mydrive|root`
+is used to select a class of files; `select mydriveid|rootid` is used to select a folder starting point.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Display#display-file-list
+
 6.22.13
 
-Updated code to handle another Google API problem wnen updating the OU of a Chromebook.
+Updated code to handle another Google API problem when updating the OU of a Chromebook.
 
 6.22.12
 
@@ -96,7 +109,7 @@ to allow specification of filter values from a list, flat file or CSV file.
 
 6.21.07
 
-When setting a multivalued custom schema field for a user, if `type home|other|work|(custom <String>)` is not specified, 
+When setting a multivalued custom schema field for a user, if `type home|other|work|(custom <String>)` is not specified,
 `work` will be assigned. Previously, if type was not specified, Google would accept the field without a type
 but would eventually set type to `work` itself in the background.
 
@@ -353,7 +366,7 @@ gam create chromepolicyimage <ChromePolicyImageSchemaName> <FileName>
 
 6.16.07
 
-Extended option `stripcrsfromname` option in the following commands to strip nulls and linefeeds
+Extended option `stripcrsfromname` in the following commands to strip nulls and linefeeds
 from displayed file names in addition to carriage returns.
 ```
 gam <UserTypeEntity> info drivefile <DriveFileEntity>
@@ -873,7 +886,7 @@ Fixed bug in `gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity> csv
 
 6.11.07
 
-Added command `gam <UserTypeEntity> delete labelid <LabelID>` that is used to 
+Added command `gam <UserTypeEntity> delete labelid <LabelID>` that is used to
 delete Gmail labels by ID rather than by name.
 
 6.11.06

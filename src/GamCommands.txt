@@ -760,7 +760,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 ## Named collections
 
 <BrowserEntity> ::=
-        <DeviceIDList> | 
+        <DeviceIDList> |
         (query:<QueryBrowser>)|(query:orgunitpath:<OrgUnitPath>)|(query <QueryBrowser>) |
         (browserou <OrgUnitItem>) | (browserous <OrgUnitList>) |
         <FileSelector> | <CSVFileSelector>
@@ -865,7 +865,8 @@ Specify a collection of items by directly specifying them; the item type is dete
         <DriveFileNameEntity> |
         <DriveFileQueryEntity> |
         <DriveFileQueryShortcut> |
-        root | mydrive |
+        mydrive | mydriveid |
+        root | rootid |
         <SharedDriveIDEntity> [<SharedDriveFileQueryShortcut>] |
         <SharedDriveNameEntity> [<SharedDriveFileQueryShortcut>] |
         <SharedDriveFileNameEntity> |
@@ -1084,7 +1085,7 @@ gam create|add svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
         [sadescription <ServiceAccountDescription>]
 gam delete svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
         (saemail <ServiceAccountEmail>)|(saname <ServiceAccountName>)|(sauniqueid <ServiceAccountUniqueID>)
-gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)* 
+gam check svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
 gam update svcacct <UserTypeEntity> (scope|scopes <APIScopeURLList>)*
 gam show svcaccts [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
         [showsakeys all|system|user]
@@ -1592,6 +1593,7 @@ gam create chatmessage space <ChatSpace> [thread <ChatThread>]
 gam update chatmessage name <ChatMessage>
         (text <String>)|(textfile <FileName> [charset <CharSet>])
 gam delete chatmessage name <ChatMessage>
+
 gam info chatmessage name <ChatMessage>
         [formatjson]
 
@@ -1663,7 +1665,7 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
         name|
         platform|
         version|
-<ChromeReleasesOrderByFieldName> ::= 
+<ChromeReleasesOrderByFieldName> ::=
         channel|
         endtime|
         fraction|
@@ -2133,7 +2135,7 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
         (negate <Boolean>) |
         (members <CAAMemberList>) |
         (regions <CAARegionList>)
-        
+
 <CAABasicAttribute> ::+
         (combiningfunction <CAACombiningFunction>) |
         (condition <CAAConditionAttribute>+ endcondition)
@@ -5129,11 +5131,12 @@ gam <UserTypeEntity> trash drivefile <DriveFileEntity>
 gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 
 gam <UserTypeEntity> info drivefile <DriveFileEntity>
-        [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-        [formatjson]
+        [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [showparentsidsaslist] [showshareddrivepermissions]
+        [showdrivename|showshareddrivename|showteamdrivename]
         [stripcrsfromname]
+        [formatjson]
 
 gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
         [<DriveFileParentAttribute>|convertparents]
@@ -5501,16 +5504,20 @@ gam <UserTypeEntity> collect orphans
         permissionmatchaction|pma process|skip
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
-        [filepath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+        [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [showparentsidsaslist] [showshareddrivepermissions]
         [showdrivename|showshareddrivename|showteamdrivename]
         [stripcrsfromname]
         [formatjson]
+
 gam <UserTypeEntity> show filepath <DriveFileEntity>
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [stripcrsfromname] [fullpath]
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*]
-        [oneitemperrow] (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        (orderby <DriveFileOrderByFieldName> [ascending|descending])*
+        [stripcrsfromname] [fullpath]
+        [oneitemperrow]
 
 gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
         [((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>)
