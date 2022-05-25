@@ -1,3 +1,10 @@
+6.22.15
+
+Updated code to handle the following Oauth2 error:
+```
+ERROR: Authentication Token Error - access_denied: Account restricted
+```
+
 6.22.14
 
 Added option `stripcrsfromname` to `gam <UserTypeEntity> print|show filepath` that causes carriage returns,
