@@ -6354,8 +6354,8 @@ The following right-hand side characters are part of the meta-syntax: <>()*|
         namedranges|
         properties|
         sheets|
-        spreadcheetid|
-        spreadcheeturl
+        spreadsheetid|
+        spreadsheeturl
 <SpreadsheetFieldList> ::= "<SpreadsheetField>(,<SpreadsheetField>)*"
 <SpreadsheetRange> ::= <String>
 <SpreadsheetRangeList> ::= "'<SpreadsheetRange>'(,'<SpreadsheetRange>')*"
