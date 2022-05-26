@@ -54794,8 +54794,8 @@ SPREADSHEET_FIELDS_CHOICE_MAP = {
   'namedranges': 'namedRanges',
   'properties': 'properties',
   'sheets': 'sheets',
-  'spreadcheetid': 'spreadsheetId',
-  'spreadcheeturl': 'spreadsheetUrl',
+  'spreadsheetid': 'spreadsheetId',
+  'spreadsheeturl': 'spreadsheetUrl',
   }
 
 # gam <UserTypeEntity> info|show sheet <DriveFileEntity>
