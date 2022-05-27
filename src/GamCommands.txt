@@ -4226,8 +4226,12 @@ gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|m
         [region any|europe|us] [showdetails]
 gam delete vaultexport|export <ExportItem> matter <MatterItem>
 gam delete vaultexport|export <MatterItem> <ExportItem>
-gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
-gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
+gam download vaultexport|export <ExportItem> matter <MatterItem>
+        [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
+        [bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+gam download vaultexport|export <MatterItem> <ExportItem>
+        [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
+        [bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
 
 <VaultExportFieldName> ::=
         cloudstoragesink|
@@ -4254,6 +4258,7 @@ gam info vaultexport|export <MatterItem> <ExportItem>
 gam print vaultexports|exports [todrive <ToDriveAttribute>*]
         [matters <MatterItemList>] [exportstatus <ExportStatusList>]
         [fields <VaultExportFieldNameList>] [shownames]
+        [oneitemperrow]
 gam show vaultexports|exports
         [matters <MatterItemList>] [exportstatus <ExportStatusList>]
         [fields <VaultExportFieldNameList>] [shownames]

@@ -1,3 +1,13 @@
+6.22.18
+
+Added option `oneitemperrow` to `gam print vaultexports|exports` to have each of an
+exports cloudStorageSink files displayed on a separate row.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Vault#display-vault-exports
+
+Added options `bucketmatchpattern <RegularExpression>` and `objectmatchpattern <RegularExpression>`
+to `gam download vaultexport|export` to allow selective downloading of export files.
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Vault#download-vault-exports
+
 6.22.17
 
 Added `quick_cros_move` variable to `gam.cfg` that is used to provide the default value for `quickcrosmove [<Boolean>]` in:

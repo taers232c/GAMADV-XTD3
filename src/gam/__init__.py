@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.17'
+__version__ = '6.22.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -33459,6 +33459,7 @@ PRINT_VAULT_EXPORTS_TITLES = ['matterId', 'matterName', 'id', 'name']
 # gam print vaultexports|exports [todrive <ToDriveAttribute>*]
 #	[matters <MatterItemList>] [exportstatus <ExportStatusList>]
 #	[fields <ValutExportFieldNameList>] [shownames]
+#	[oneitemperrow]
 # gam show vaultexports|exports
 #	[matters <MatterItemList>] [exportstatus <ExportStatusList>]
 #	[fields <VaultExportFieldNameList>] [shownames]
@@ -33469,6 +33470,7 @@ def doPrintShowVaultExports():
   exportStatusList = []
   cd = None
   fieldsList = []
+  oneItemPerRow = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -33485,6 +33487,8 @@ def doPrintShowVaultExports():
       cd = buildGAPIObject(API.DIRECTORY)
     elif getFieldsList(myarg, VAULT_EXPORT_FIELDS_CHOICE_MAP, fieldsList, initialField=['id', 'name']):
       pass
+    elif csvPF and myarg == 'oneitemperrow':
+      oneItemPerRow = True
     else:
       unknownArgumentExit()
   fields = getItemFieldsFromFieldsList('exports', fieldsList)
@@ -33552,7 +33556,12 @@ def doPrintShowVaultExports():
         if not exportStatuses or export['status'] in exportStatuses:
           if cd is not None:
             _getExportOrgUnitName(export, cd)
-          csvPF.WriteRowTitles(flattenJSON(export, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS))
+          if not oneItemPerRow or not export.get('cloudStorageSink', {}).get('files'):
+            csvPF.WriteRowTitles(flattenJSON(export, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS))
+          else:
+            for file in export['cloudStorageSink'].pop('files'):
+              export['cloudStorageSink']['files'] = file
+              csvPF.WriteRowTitles(flattenJSON(export, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS))
   if csvPF:
     csvPF.writeCSVfile('Vault Exports')
 
@@ -33578,8 +33587,12 @@ def md5MatchesFile(filename, expected_md5, j=0, jcount=0):
 
 ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
 
-# gam download vaultexport|export <ExportItem> matter <MatterItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
-# gam download vaultexport|export <MatterItem> <ExportItem> [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
+# gam download vaultexport|export <ExportItem> matter <MatterItem>
+#	[targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
+#	[bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+# gam download vaultexport|export <MatterItem> <ExportItem>
+#	[targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
+#	[bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
 def doDownloadVaultExport():
   def extract_nested_zip(zippedFile):
     """ Extract a zip file including any nested zip files
@@ -33613,6 +33626,7 @@ def doDownloadVaultExport():
   else:
     exportName = getString(Cmd.OB_EXPORT_ITEM)
   zipToStdout = False
+  bucketMatchPattern = objectMatchPattern = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'matter':
@@ -33631,6 +33645,10 @@ def doDownloadVaultExport():
     elif myarg == 'ziptostdout':
       zipToStdout = True
       verifyFiles = extractFiles = False
+    elif myarg == 'bucketmatchpattern':
+      bucketMatchPattern = getREPattern(re.IGNORECASE)
+    elif myarg == 'objectmatchpattern':
+      objectMatchPattern = getREPattern(re.IGNORECASE)
     else:
       unknownArgumentExit()
   try:
@@ -33645,7 +33663,10 @@ def doDownloadVaultExport():
     return
   jcount = len(export['cloudStorageSink']['files'])
   if not zipToStdout:
-    entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], jcount, Ent.CLOUD_STORAGE_FILE)
+    if not bucketMatchPattern and not objectMatchPattern:
+      entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], jcount, Ent.CLOUD_STORAGE_FILE)
+    else:
+      entityPerformActionModifierNumItems([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], Msg.MAXIMUM_OF, jcount, Ent.CLOUD_STORAGE_FILE)
   Ind.Increment()
   j = 0
   extCounts = {}
@@ -33653,6 +33674,9 @@ def doDownloadVaultExport():
     j += 1
     bucket = s_file['bucketName']
     s_object = s_file['objectName']
+    if ((bucketMatchPattern and not bucketMatchPattern.match(bucket)) or
+        (objectMatchPattern and not objectMatchPattern.match(s_object))):
+      continue
     filename = os.path.join(targetFolder, s_object.replace('/', '-'))
     if zipToStdout and not ZIP_EXTENSION_PATTERN.match(filename):
       continue
