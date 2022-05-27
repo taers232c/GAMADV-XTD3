@@ -174,6 +174,8 @@ OAUTH2_TXT = 'oauth2_txt'
 OAUTH2SERVICE_JSON = 'oauth2service_json'
 # When retrieving lists of people from API, how many should be retrieved in each chunk
 PEOPLE_MAX_RESULTS = 'people_max_results'
+# Use quick method to move Chromebooks to OU
+QUICK_CROS_MOVE = 'quick_cros_move'
 # Quick info user: nogroups nolicenses noschemas
 QUICK_INFO_USER = 'quick_info_user'
 # resellerId from gam.cfg or retrieved from Google
@@ -240,6 +242,8 @@ TODRIVE_UPLOAD_NODATA = 'todrive_upload_nodata'
 TODRIVE_USER = 'todrive_user'
 # Update CrOS org unit with orgUnitId
 UPDATE_CROS_OU_WITH_ID = 'update_cros_ou_with_id'
+# Use Project ID as Project Name and App Name
+USE_PROJECTID_AS_NAME = 'use_projectid_as_name'
 # When retrieving lists of Users from API, how many should be retrieved in each chunk
 USER_MAX_RESULTS = 'user_max_results'
 # User service account access only, no client access
@@ -308,6 +312,7 @@ Defaults = {
   OAUTH2_TXT: FN_OAUTH2_TXT,
   OAUTH2SERVICE_JSON: FN_OAUTH2SERVICE_JSON,
   PEOPLE_MAX_RESULTS: '100',
+  QUICK_CROS_MOVE: FALSE,
   QUICK_INFO_USER: FALSE,
   RESELLER_ID: '',
   SECTION: '',
@@ -341,6 +346,7 @@ Defaults = {
   TODRIVE_UPLOAD_NODATA: TRUE,
   TODRIVE_USER: '',
   UPDATE_CROS_OU_WITH_ID: FALSE,
+  USE_PROJECTID_AS_NAME: FALSE,
   USER_MAX_RESULTS: '500',
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: FALSE,
   }
@@ -436,6 +442,7 @@ VAR_INFO = {
   OAUTH2_TXT: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: 'OAUTHFILE', VAR_ACCESS: os.R_OK | os.W_OK},
   OAUTH2SERVICE_JSON: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: 'OAUTHSERVICEFILE', VAR_ACCESS: os.R_OK | os.W_OK},
   PEOPLE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, 1000)},
+  QUICK_CROS_MOVE: {VAR_TYPE: TYPE_BOOLEAN},
   QUICK_INFO_USER: {VAR_TYPE: TYPE_BOOLEAN},
   RESELLER_ID: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   SECTION: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
@@ -469,6 +476,7 @@ VAR_INFO = {
   TODRIVE_UPLOAD_NODATA: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_USER: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   UPDATE_CROS_OU_WITH_ID: {VAR_TYPE: TYPE_BOOLEAN},
+  USE_PROJECTID_AS_NAME: {VAR_TYPE: TYPE_BOOLEAN},
   USER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 500)},
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: {VAR_TYPE: TYPE_BOOLEAN},
   }

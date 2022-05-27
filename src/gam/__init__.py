@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.16'
+__version__ = '6.22.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -496,9 +496,9 @@ def accessErrorMessage(cd):
     cd = buildGAPIObject(API.DIRECTORY)
   try:
     callGAPI(cd.customers(), 'get',
-             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+             throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
              customerKey=GC.Values[GC.CUSTOMER_ID], fields='id')
-  except GAPI.badRequest:
+  except (GAPI.badRequest, GAPI.invalidInput):
     return formatKeyValueList('',
                               [Ent.Singular(Ent.CUSTOMER_ID), GC.Values[GC.CUSTOMER_ID],
                                Msg.INVALID],
@@ -9810,8 +9810,8 @@ def _generateProjectSvcAcctId(prefix):
 
 def _getLoginHintProjectInfo(createCmd):
   login_hint = None
-  appInfo = {'applicationTitle': 'GAM', 'supportEmail': ''}
-  projectInfo = {'projectId': '', 'parent': '', 'name': 'GAM Project'}
+  appInfo = {'applicationTitle': '', 'supportEmail': ''}
+  projectInfo = {'projectId': '', 'parent': '', 'name': ''}
   svcAcctInfo = {'name': '', 'displayName': '', 'description': ''}
   if not Cmd.PeekArgumentPresent(['admin', 'appname', 'supportemail', 'project', 'parent', 'projectname', 'saname', 'sadisplayname', 'sadescription']):
     login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
@@ -9848,6 +9848,8 @@ def _getLoginHintProjectInfo(createCmd):
       projectInfo['projectId'] = readStdin('\nWhat is your API project ID? ').strip()
       if not PROJECTID_PATTERN.match(projectInfo['projectId']):
         systemErrorExit(USAGE_ERROR_RC, f'{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]} {Cmd.OB_PROJECT_ID}: {Msg.EXPECTED} <{PROJECTID_FORMAT_REQUIRED}>')
+  if not projectInfo['name']:
+    projectInfo['name'] = 'GAM Project' if not GC.Values[GC.USE_PROJECTID_AS_NAME] else projectInfo['projectId']
   if not svcAcctInfo['name']:
     svcAcctInfo['name'] = projectInfo['projectId']
   if not svcAcctInfo['displayName']:
@@ -9855,6 +9857,8 @@ def _getLoginHintProjectInfo(createCmd):
   if not svcAcctInfo['description']:
     svcAcctInfo['description'] = svcAcctInfo['displayName']
   login_hint = _getValidateLoginHint(login_hint, projectInfo['projectId'])
+  if not appInfo['applicationTitle']:
+    appInfo['applicationTitle'] = 'GAM' if not GC.Values[GC.USE_PROJECTID_AS_NAME] else projectInfo['projectId']
   if not appInfo['supportEmail']:
     appInfo['supportEmail'] = login_hint
   httpObj, crm = getCRMService(login_hint)
@@ -13572,11 +13576,11 @@ def setTrueCustomerId(cd=None):
       cd = buildGAPIObject(API.DIRECTORY)
     try:
       customerInfo = callGAPI(cd.customers(), 'get',
-                              throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                              throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                               customerKey=GC.MY_CUSTOMER,
                               fields='id')
       GC.Values[GC.CUSTOMER_ID] = customerInfo['id']
-    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    except (GAPI.badRequest, GAPI.invalidInput, GAPI.resourceNotFound, GAPI.forbidden):
       pass
 
 def _getCustomerId():
@@ -13611,7 +13615,7 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
     FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   try:
     customerInfo = callGAPI(cd.customers(), 'get',
-                            throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                            throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerKey=customerId)
     if 'customerDomain' not in customerInfo:
       entityActionFailedExit([Ent.CONFIG_FILE, GM.Globals[GM.GAM_CFG_FILE], Ent.SECTION, GM.Globals[GM.GAM_CFG_SECTION_NAME],
@@ -13650,7 +13654,7 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
     _showCustomerAddressPhoneNumber(customerInfo)
     printKeyValueList(['Admin Secondary Email', customerInfo['alternateEmail']])
     _showCustomerLicenseInfo(customerInfo, FJQC)
-  except (GAPI.badRequest, GAPI.domainNotFound, GAPI.notFound, GAPI.resourceNotFound, GAPI.forbidden):
+  except (GAPI.badRequest, GAPI.invalidInput, GAPI.domainNotFound, GAPI.notFound, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
 
 # gam update customer [primary <DomainName>] [adminsecondaryemail|alternateemail <EmailAddress>] [language <LanguageCode] [phone|phonenumber <String>]
@@ -14519,9 +14523,10 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quick
                     ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
     if not GC.Values[GC.UPDATE_CROS_OU_WITH_ID]:
       svcargs['body'] = {'orgUnitPath': orgUnitPath}
+      method = getattr(cd.chromeosdevices(), 'update')
     else:
       svcargs['body'] = {'orgUnitPath': orgUnitPath, 'orgUnitId': orgUnitId}
-    method = getattr(cd.chromeosdevices(), 'patch')
+      method = getattr(cd.chromeosdevices(), 'patch')
     dbatch = cd.new_batch_http_request(callback=_callbackMoveCrOSesToOrgUnit)
     bcount = 0
     j = 0
@@ -14597,7 +14602,7 @@ def _doUpdateOrgs(entityList):
   if checkArgumentPresent(['move', 'add']):
     entityType, items = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, crosAllowed=True)
     orgItemLists = items if isinstance(items, dict) else None
-    quickCrOSMove = False
+    quickCrOSMove = GC.Values[GC.QUICK_CROS_MOVE]
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if entityType == Cmd.ENTITY_CROS and myarg == 'quickcrosmove':
@@ -14625,7 +14630,7 @@ def _doUpdateOrgs(entityList):
       syncMembersSet = set(syncMembers)
     removeToOrgUnitPath = '/'
     removeToOrgUnitId = None
-    quickCrOSMove = False
+    quickCrOSMove = GC.Values[GC.QUICK_CROS_MOVE]
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if entityType == Cmd.ENTITY_CROS and myarg == 'quickcrosmove':
@@ -20014,7 +20019,8 @@ def updateCrOSDevices(entityList):
   update_body = {}
   action_body = {}
   orgUnitPath = updateNotes = None
-  ackWipe = quickCrOSMove = False
+  ackWipe = False
+  quickCrOSMove = GC.Values[GC.QUICK_CROS_MOVE]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in UPDATE_CROS_ARGUMENT_TO_PROPERTY_MAP:
@@ -28216,9 +28222,9 @@ def doPrintGroupMembers():
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
             try:
               row['name'] = callGAPI(cd.customers(), 'get',
-                                     throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                                     throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                      customerKey=memberId, fields='customerDomain')['customerDomain']
-            except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+            except (GAPI.badRequest, GAPI.invalidInput, GAPI.resourceNotFound, GAPI.forbidden):
               pass
       csvPF.WriteRow(row)
   csvPF.SetSortTitles(GROUPMEMBERS_DEFAULT_FIELDS)

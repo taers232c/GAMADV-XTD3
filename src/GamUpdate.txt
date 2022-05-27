@@ -1,3 +1,36 @@
+6.22.17
+
+Added `quick_cros_move` variable to `gam.cfg` that is used to provide the default value for `quickcrosmove [<Boolean>]` in:
+```
+gam update cros <CrOSEntity> <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatchupdate]
+gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatchupdate]
+gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
+gam update org|ou <OrgUnitItem> sync <CrOSTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
+```
+
+Added `use_projectid_as_name` variable to `gam.cfg` that modifies `gam create project` to set
+the default project name to the project ID instead of 'GAM Project' and to set the
+default app name to the project ID instead of 'GAM'.
+
+Improved error handling for the following error that occurs when the Customer ID is invalid.
+```
+ERROR: 400: invalidInput - Invalid Input
+```
+
+6.22.16
+
+Corrected spelling of `spreadcheetid` to `spreadsheetid' and `spreadcheeturl` to `spreadsheeturl`
+in `<SpreadsheetField>` used by `gam <UserTypeEntity> info|print|show sheet <DriveFileEntity>`.
+```
+<SpreadsheetField> ::=
+        developermetadata|
+        namedranges|
+        properties|
+        sheets|
+        spreadsheetid|
+        spreadsheeturl
+```
+
 6.22.15
 
 Updated code to handle the following Oauth2 error:
