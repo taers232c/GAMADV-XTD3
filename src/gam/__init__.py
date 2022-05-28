@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.18'
+__version__ = '6.22.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -1398,17 +1398,20 @@ def makeOrgUnitPathRelative(path):
   return path[:-1]
 
 def encodeOrgUnitPath(path):
-  if path.find('+') == -1 and path.find('%') == -1:
-    return path
-  encpath = ''
-  for c in path:
-    if c == '+':
-      encpath += '%2B'
-    elif c == '%':
-      encpath += '%25'
-    else:
-      encpath += c
-  return encpath
+# 6.22.19 - Encoding doesn't work
+# % no longer needs encoding and + is handled incorrectly in API with or without encoding
+  return path
+#  if path.find('+') == -1 and path.find('%') == -1:
+#    return path
+#  encpath = ''
+#  for c in path:
+#    if c == '+':
+#      encpath += '%2B'
+#    elif c == '%':
+#      encpath += '%25'
+#    else:
+#      encpath += c
+#  return encpath
 
 def getOrgUnitItem(pathOnly=False, absolutePath=True, cd=None):
   if Cmd.ArgumentsRemaining():
@@ -5560,8 +5563,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
           ou = callGAPI(cd.orgunits(), 'get',
                         throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
                         customerId=GC.Values[GC.CUSTOMER_ID],
-                        orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(ou)),
-                        fields='orgUnitPath')['orgUnitPath']
+                        orgUnitPath=ou, fields='orgUnitPath')['orgUnitPath']
         except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest,
                 GAPI.invalidCustomerId, GAPI.loginRequired):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)

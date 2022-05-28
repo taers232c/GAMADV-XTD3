@@ -1,3 +1,8 @@
+6.22.19
+
+Updated code to handle OUs with a `%` in their name. OUs with a `+` in their name
+are still handled incorrectly by the API when accessed directly.
+
 6.22.18
 
 Added option `oneitemperrow` to `gam print vaultexports|exports` to have each of an
