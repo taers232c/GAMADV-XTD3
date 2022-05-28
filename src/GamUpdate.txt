@@ -1,3 +1,18 @@
+6.22.20
+
+The following update applies to one or two GAM users, if you're not one of them, stop reading.
+
+When GAM is processing commands with data from a CSV file, `csv_input_row_drop_filter` and
+`csv_input_row_filter` are evaluated and utilized by the GAM main process and are not
+evaluated or processed by the GAM sub processes.
+
+When GAM is processing commands with data from a CSV file, `csv_output_header_drop_filter`,
+`csv_output_header_filter`, `csv_output_row_drop_filter` and `csv_output_row_filter` are
+evaluated by the GAM main process and utilized by the GAM sub processes.
+
+Evaluating the row filters once in the GAM main process means that `<RowValueFilter>`
+forms `data:<DataSelector>` and `notdata:<DataSelector>` only read the data from `<DataSelector>` once.
+
 6.22.19
 
 Updated code to handle OUs with a `%` in their name. OUs with a `+` in their name

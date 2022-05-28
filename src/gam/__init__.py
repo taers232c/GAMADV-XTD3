@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.19'
+__version__ = '6.22.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3758,12 +3758,17 @@ def SetGlobalVariables():
   elif not GM.Globals[GM.CSVFILE]:
     _setCSVFile('-', GM.Globals[GM.STDOUT].get(GM.REDIRECT_MODE, DEFAULT_FILE_WRITE_MODE), GC.Values[GC.CHARSET], True, False)
   initAPICallsRateCheck()
-# Inherit csv_input_row_filter/csv_output_header_filter/csv_output_row_filter if not locally defined
-  if GM.Globals[GM.PID] != 0:
-    if not GC.Values[GC.CSV_INPUT_ROW_FILTER]:
-      GC.Values[GC.CSV_INPUT_ROW_FILTER] = GM.Globals[GM.CSV_INPUT_ROW_FILTER][:]
-    if not GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER]:
-      GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER] = GM.Globals[GM.CSV_INPUT_ROW_DROP_FILTER][:]
+# Main process
+# Clear input row filters from parser, children can define but shouldn't inherit global value
+# Clear output header/row filters from parser, children can define or they will inherit global value if not defined
+  if GM.Globals[GM.PID] == 0:
+    for itemName in sorted(GC.VAR_INFO):
+      varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+      if varType in {GC.TYPE_HEADERFILTER, GC.TYPE_ROWFILTER}:
+        GM.Globals[GM.PARSER].set(sectionName, itemName, '')
+# Child process
+# Inherit main process output header/row filters if not locally defined
+  else:
     if not GC.Values[GC.CSV_OUTPUT_HEADER_FILTER]:
       GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER][:]
     if not GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER]:
