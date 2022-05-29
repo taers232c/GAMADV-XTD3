@@ -1,3 +1,8 @@
+6.22.21
+
+Fixed bug where redirected stderr output from Gam main process was written
+after GAM sub processes redirected stderr output.
+
 6.22.20
 
 The following update applies to one or two GAM users, if you're not one of them, stop reading.

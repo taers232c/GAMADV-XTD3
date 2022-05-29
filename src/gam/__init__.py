@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.20'
+__version__ = '6.22.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8408,12 +8408,16 @@ def MultiprocessGAMCommands(items, showCmds):
   if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
     mpQueueStdout, mpQueueHandlerStdout = initializeStdQueueHandler(GM.STDOUT, GM.Globals, GC.Values)
     mpQueueStdout.put((0, GM.REDIRECT_QUEUE_START, Cmd.AllArguments()))
+    mpQueueStdout.put((0, GM.REDIRECT_QUEUE_DATA, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()))
+    GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].truncate(0)
   else:
     mpQueueStdout = None
   if GM.Globals[GM.STDERR][GM.REDIRECT_MULTIPROCESS]:
     if GM.Globals[GM.STDERR][GM.REDIRECT_NAME] != 'stdout':
       mpQueueStderr, mpQueueHandlerStderr = initializeStdQueueHandler(GM.STDERR, GM.Globals, GC.Values)
       mpQueueStderr.put((0, GM.REDIRECT_QUEUE_START, Cmd.AllArguments()))
+      mpQueueStderr.put((0, GM.REDIRECT_QUEUE_DATA, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()))
+      GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].truncate(0)
     else:
       mpQueueStderr = mpQueueStdout
   else:
