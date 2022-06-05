@@ -1,3 +1,7 @@
+6.22.22
+
+Fixed bug in `gam <UserTypeEntity> create|update contact` where the `relation` property was not properly processed.
+
 6.22.21
 
 Fixed bug where redirected stderr output from Gam main process was written

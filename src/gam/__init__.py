@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.21'
+__version__ = '6.22.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2594,7 +2594,7 @@ def entityNumItemsActionPerformed(entityValueList, itemCount, itemType, i=0, cou
 
 def entityModifierItemValueListActionPerformed(entityValueList, modifier, infoTypeValueList, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
-                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.Performed()} {modifier}']+Ent.FormatEntityValueList(infoTypeValueList),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.Performed()} {modifier}', None]+Ent.FormatEntityValueList(infoTypeValueList),
                                  currentCountNL(i, count)))
 
 def entityModifierNewValueActionPerformed(entityValueList, modifier, newValue, i=0, count=0):
@@ -7055,7 +7055,7 @@ class CSVPrintFile():
       drive = getDriveObject()
       try:
         result = callGAPI(drive.files(), 'get',
-                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
+                          throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=self.todrive['fileId'], fields='id,mimeType,capabilities(canEdit)', supportsAllDrives=True)
         if result['mimeType'] == MIMETYPE_GA_FOLDER:
           invalidTodriveFileIdExit([], Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FILE)), tdfileidLocation)
@@ -8261,7 +8261,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
         del pidData[pid]
       else:
         pid0DataItem = dataItem
-    else:
+    else: #GM.REDIRECT_QUEUE_EOF
       break
   for pid in pidData:
     if pid != 0:
@@ -17843,10 +17843,10 @@ class PeopleManager():
           getDate(entry, checkBlankField)
         elif fieldName == PEOPLE_RELATIONS:
           checkBlankField = 'type'
-          entry[checkBlankField] = getString(Cmd.OB_STRING, minLen=0)
+          entry['person'] = getString(Cmd.OB_STRING, minLen=0)
         else:
           checkBlankField = 'value'
-          entry[checkBlankField] = getString(Cmd.OB_STRING, minLen=0)
+          entry['value'] = getString(Cmd.OB_STRING, minLen=0)
         AppendArrayEntryToFields(fieldName, entry, checkBlankField)
       elif fieldName in PeopleManager.TYPE_VALUE_PNP_FIELDS:
         if CheckClearPersonField(fieldName):
@@ -33855,7 +33855,7 @@ def _setHoldQuery(body, queryParameters):
     if queryParameters.get('coveredData'):
       body['query'][queryType]['coveredData'] = queryParameters['coveredData']
 
-# gam create vaulthold|hold matter <MatterItem> [name <String>] corpus mail|groups
+# gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
 #	[(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
 #	[query <QueryVaultCorpus>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
@@ -34603,7 +34603,7 @@ def doPrintShowVaultMatters():
 PRINT_VAULT_COUNTS_TITLES = ['account', 'count', 'error']
 
 # gam print vaultcounts [todrive <ToDriveAttributes>*]
-#	matter <MatterItem> corpus drive|mail|groups|hangouts_chat|voice
+#	matter <MatterItem> corpus mail|groups
 #	(accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
 #	(shareddrives|teamdrives <TeamDriveIDList>) | (rooms <RoomList>)
 #	[scope <all_data|held_data|unprocessed_data>]
