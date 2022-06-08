@@ -122,16 +122,12 @@ install:
 
 script:
 - $gam version | grep travis # travis should be part of the path (not /tmp or such)
-# determine which Python version GAM is built with and ensure it's at least build version from above.
-#- if [ "${TRAVIS_CPU_ARCH}" != "arm64" ]; then
-#    vline=$($gam version | grep "Python "); python_line=($vline); this_python=${python_line[1]}; $python tools/a_atleast_b.py $this_python $MIN_PYTHON_VERSION
-#  fi
-# determine which OpenSSL version GAM is built with and ensure it's at least build version from above.
-#- if [ "${TRAVIS_CPU_ARCH}" != "arm64" ]; then
-#    vline=$($gam config config tls_min_version TLSv1_3 version extended | grep "OpenSSL "); openssl_line=($vline); this_openssl=${openssl_line[1]}; $python tools/a_atleast_b.py $this_openssl $MIN_OPENSSL_VERSION
-#  fi
+# Determine which Python version GAM is built with and ensure it's at least build version from above.
+- vline=$($gam version | grep "Python "); python_line=($vline); this_python=${python_line[1]}; $python tools/a_atleast_b.py $this_python $MIN_PYTHON_VERSION
+# Determine which OpenSSL version GAM is built with and ensure it's at least build version from above.
+#- vline=$($gam config config tls_min_version TLSv1_3 version extended | grep "OpenSSL "); openssl_line=($vline); this_openssl=${openssl_line[1]}; $python tools/a_atleast_b.py $this_openssl $MIN_OPENSSL_VERSION
 # Builds should default TLS 1.2 or 1.3 to Google
-- $gam version extended | grep TLSv1\.[23]
+#- $gam version extended | grep TLSv1\.[23]
 # expect fail since server doesn't support our TLS version
 - $gam config tls_min_version TLSv1_2 version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]
 
