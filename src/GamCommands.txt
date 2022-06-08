@@ -1574,12 +1574,23 @@ gam print browsertokens [todrive <ToDriveAttribute>*]
 
 gam setup chat
 
+gam create chatspace
+        [displayname <String>]
+        [type chat|group_chat|direct_message|dm]
+        [notification always|less_with_new_threads|less|never}
+        [formatjson]
+
 gam info chatspace space <ChatSpace>
         [formatjson]
 gam show chatspaces
         [formatjson]
 gam print chatspaces [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
+
+gam create chatmember space <ChatSpace> user <UserItem>
+        [type human|bot]
+        [notification always|less_with_new_threads|less|never}
+        [formatjson]
 
 gam info chatmember member <ChatMember>
         [formatjson]
@@ -5080,8 +5091,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         <DriveFileCopyAttribute>*
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
-        [copytopfileparents none] [copytopfolderparents none]
-        [copysubfileparents none] [copysubfolderparents none]
+        [copiedshortcutspointtocopiedfiles [<Boolean>]]
         [copyfilepermissions [<Boolean>]]
         [copyfileinheritedpermissions [<Boolean>]
         [copyfilenoninheritedpermissions [<Boolean>]
@@ -5105,9 +5115,9 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent|mergewithparentretain [<Boolean>]]
+        [createshortcutsfornonmovablefiles [<Boolean>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
-        [copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
         [copymergewithparentfolderpermissions [<Boolean>]]
         [copymergedtopfolderpermissions [<Boolean>]]
         [copytopfolderpermissions [<Boolean>]]

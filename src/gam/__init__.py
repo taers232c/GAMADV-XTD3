@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.22.22'
+__version__ = '6.23.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -22238,6 +22238,54 @@ def _showChatSpace(space, FJQC, i=0, count=0):
     showJSON(None, space)
     Ind.Decrement()
 
+CHAT_SPACE_TYPE_MAP = {
+  'space': 'SPACE',
+  'groupchat': 'GROUP_CHAT',
+  'directmessage': 'DIRECT_MESSAGE',
+  'dm': 'DIRECT_MESSAGE',
+  }
+CHAT_CREATOR_NOTIFICATION_MAP = {
+  'always': 'NOTIFY_ALWAYS',
+  'lesswithnewthreads': 'LESS_WITH_NEW_THREADS',
+  'less': 'NOTIFY_LESS',
+  'never': 'NOTIFY_NEVER',
+  'notifyalways': 'NOTIFY_ALWAYS',
+  'notifylesswithnewthreads': 'LESS_WITH_NEW_THREADS',
+  'notifyless': 'NOTIFY_LESS',
+  'notifynever': 'NOTIFY_NEVER',
+  }
+
+# gam create chatspace
+#	[displayname <String>]
+#       [type chat|group_chat|direct_message|dm]
+#	[notification always|less_with_new_threads|less|never}
+#	[formatjson]
+def doCreateChatSpace():
+  chat = buildChatServiceObject()
+  FJQC = FormatJSONQuoteChar()
+  creatorNotificationSetting = CHAT_CREATOR_NOTIFICATION_MAP['always']
+  body = {'spaceType': CHAT_SPACE_TYPE_MAP['space'], 'displayName': ''}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'displayname':
+      body['displayName'] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == 'type':
+      body['spaceType'] = getChoice(CHAT_SPACE_TYPE_MAP, mapChoice=True)
+    elif myarg == 'notification':
+      creatorNotificationSetting = getChoice(CHAT_CREATOR_NOTIFICATION_MAP, mapChoice=True)
+    else:
+      FJQC.GetFormatJSON(myarg)
+  try:
+    space = callGAPI(chat.spaces(), 'create',
+                     throwReasons=[GAPI.PERMISSION_DENIED],
+                     requestId=str(uuid.uuid4()), creatorNotificationSetting=creatorNotificationSetting,
+                     body=body)
+    _showChatSpace(space, FJQC)
+  except GAPI.notFound as e:
+    exitIfChatNotConfigured(chat, str(e))
+  except GAPI.permissionDenied as e:
+    entityActionFailedWarning([Ent.CHAT_SPACE, body['name']], str(e))
+
 # gam info chatspace space <ChatSpace>
 #	[formatjson]
 def doInfoChatSpaces():
@@ -22316,6 +22364,49 @@ def _showChatMember(member, FJQC, i=0, count=0):
     Ind.Increment()
     showJSON(None, member, timeObjects=CHAT_MEMBER_TIME_OBJECTS)
     Ind.Decrement()
+
+CHAT_MEMBER_TYPE_MAP = {
+  'bot': 'BOT',
+  'human': 'HUMAN'
+  }
+
+# gam create chatmember space <ChatSpace> user <UserItem>
+#       [type human|bot]
+#	[notification always|less_with_new_threads|less|never}
+#	[formatjson]
+def doCreateChatMember():
+  chat = buildChatServiceObject()
+  FJQC = FormatJSONQuoteChar()
+  parent = name = None
+  notificationSetting = CHAT_CREATOR_NOTIFICATION_MAP['always']
+  body = {'member': {'name': '', 'domainId': _getCustomerIdNoC(), 'type': CHAT_MEMBER_TYPE_MAP['human']}}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'space':
+      parent = getChatSpace()
+    elif myarg == 'user':
+      name = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'))
+      body['member']['name'] = f'users/{name}'
+    elif myarg == 'type':
+      body['member']['type'] = getChoice(CHAT_MEMBER_TYPE_MAP, mapChoice=True)
+    elif myarg == 'notification':
+      notificationSetting = getChoice(CHAT_CREATOR_NOTIFICATION_MAP, mapChoice=True)
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if not parent:
+    missingArgumentExit('space')
+  if not name:
+    missingArgumentExit('user')
+  if body['member']['type'] == 'HUMAN':
+    body['notificationSetting'] = notificationSetting
+  try:
+    member = callGAPI(chat.spaces().members(), 'create',
+                      bailOnInternalError=True,
+                      throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                      parent=parent, body=body)
+    _showChatMember(member, FJQC)
+  except (GAPI.permissionDenied, GAPI.internalError) as e:
+    entityActionFailedWarning([Ent.CHAT_MEMBER, name], str(e))
 
 # gam info chatmember member <ChatMember>
 #	[formatjson]
@@ -43395,7 +43486,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
     try:
       result = callGAPI(drive.files(), 'get',
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
-                        fileId=parameters[DFA_PARENTID], fields='id,mimeType', supportsAllDrives=True)
+                        fileId=parameters[DFA_PARENTID], fields='id,name,mimeType', supportsAllDrives=True)
       if result['mimeType'] != MIMETYPE_GA_FOLDER:
         entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
                                         f'parentid: {parameters[DFA_PARENTID]}, {Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))}', i, count)
@@ -47940,16 +48031,18 @@ STAT_FOLDER_NOT_WRITABLE = 5
 STAT_FOLDER_PERMISSIONS_FAILED = 6
 STAT_FILE_TOTAL = 7
 STAT_FILE_COPIED_MOVED = 8
-STAT_FILE_DUPLICATE = 9
-STAT_FILE_FAILED = 10
-STAT_FILE_NOT_COPYABLE_MOVABLE = 11
-STAT_FILE_PERMISSIONS_FAILED = 12
-STAT_FILE_PROTECTEDRANGES_FAILED = 13
-STAT_USER_NOT_ORGANIZER = 14
-STAT_LENGTH = 15
+STAT_FILE_SHORTCUT_CREATED = 9
+STAT_FILE_SHORTCUT_EXISTS = 10
+STAT_FILE_DUPLICATE = 11
+STAT_FILE_FAILED = 12
+STAT_FILE_NOT_COPYABLE_MOVABLE = 13
+STAT_FILE_PERMISSIONS_FAILED = 14
+STAT_FILE_PROTECTEDRANGES_FAILED = 15
+STAT_USER_NOT_ORGANIZER = 16
+STAT_LENGTH = 17
 
 FOLDER_SUBTOTAL_STATS = [STAT_FOLDER_COPIED_MOVED, STAT_FOLDER_DUPLICATE, STAT_FOLDER_MERGED, STAT_FOLDER_FAILED, STAT_FOLDER_NOT_WRITABLE]
-FILE_SUBTOTAL_STATS = [STAT_FILE_COPIED_MOVED, STAT_FILE_DUPLICATE, STAT_FILE_FAILED, STAT_FILE_NOT_COPYABLE_MOVABLE]
+FILE_SUBTOTAL_STATS = [STAT_FILE_COPIED_MOVED, STAT_FILE_SHORTCUT_CREATED, STAT_FILE_SHORTCUT_EXISTS, STAT_FILE_DUPLICATE, STAT_FILE_FAILED, STAT_FILE_NOT_COPYABLE_MOVABLE]
 
 def _initStatistics():
   return [0] * STAT_LENGTH
@@ -48001,6 +48094,8 @@ def _printStatistics(user, statistics, i, count, copy):
                         [Ent.Plural(Ent.DRIVE_FILE),
                          Msg.STATISTICS_MOVE_FILE.format(statistics[STAT_FILE_TOTAL],
                                                          statistics[STAT_FILE_COPIED_MOVED],
+                                                         statistics[STAT_FILE_SHORTCUT_CREATED],
+                                                         statistics[STAT_FILE_SHORTCUT_EXISTS],
                                                          statistics[STAT_FILE_DUPLICATE],
                                                          statistics[STAT_FILE_FAILED],
                                                          statistics[STAT_FILE_NOT_COPYABLE_MOVABLE])],
@@ -48020,9 +48115,6 @@ DUPLICATE_FOLDER_MERGE = 0
 DUPLICATE_FOLDER_DUPLICATE_NAME = 1
 DUPLICATE_FOLDER_UNIQUE_NAME = 2
 DUPLICATE_FOLDER_SKIP = 3
-COPY_NO_PARENTS = 0
-COPY_NONPATH_PARENTS = 1
-COPY_ALL_PARENTS = 2
 
 DEST_PARENT_MYDRIVE_ROOT = 0
 DEST_PARENT_MYDRIVE_FOLDER = 1
@@ -48056,12 +48148,10 @@ def initCopyMoveOptions(copyCmd):
     'showPermissionMessages': False,
     'sendEmailIfRequired': False,
     'useDomainAdminAccess': False,
+    'copiedShortcutsPointToCopiedFiles': True,
+    'createShortcutsForNonmovableFiles': False,
     'duplicateFiles': DUPLICATE_FILE_OVERWRITE_OLDER,
     'duplicateFolders': DUPLICATE_FOLDER_MERGE,
-    'copyTopFileParents': COPY_NO_PARENTS,
-    'copySubFileParents': COPY_NONPATH_PARENTS,
-    'copyTopFolderParents': COPY_NO_PARENTS,
-    'copySubFolderParents': COPY_NONPATH_PARENTS,
     'copyFilePermissions': False,
     'copyFileInheritedPermissions': True,
     'copyFileNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
@@ -48094,9 +48184,6 @@ DUPLICATE_FOLDER_CHOICES = {
   'uniquename': DUPLICATE_FOLDER_UNIQUE_NAME,
   'skip': DUPLICATE_FOLDER_SKIP,
   }
-COPY_TOP_PARENTS_CHOICES = {'none': COPY_NO_PARENTS}
-COPY_SUB_PARENTS_CHOICES = {'none': COPY_NO_PARENTS}
-MOVE_SUB_PARENTS_CHOICES = {'all': COPY_ALL_PARENTS, 'none': COPY_NO_PARENTS, 'nonpath': COPY_NONPATH_PARENTS}
 
 def getCopyMoveOptions(myarg, copyMoveOptions):
 # Copy/Move arguments
@@ -48152,22 +48239,14 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
         copyMoveOptions['mergeWithParentRetain'] = getBoolean()
         if copyMoveOptions['mergeWithParentRetain']:
           copyMoveOptions['mergeWithParent'] = False
-      elif myarg == 'copysubfileparents':
-        copyMoveOptions['copySubFileParents'] = getChoice(MOVE_SUB_PARENTS_CHOICES, mapChoice=True)
-      elif myarg == 'copysubfolderparents':
-        copyMoveOptions['copySubFolderParents'] = getChoice(MOVE_SUB_PARENTS_CHOICES, mapChoice=True)
+      elif myarg == 'createshortcutsfornonmovablefiles':
+        copyMoveOptions['createShortcutsForNonmovableFiles'] = getBoolean()
       else:
         return False
 # Copy arguments
     else:
-      if myarg == 'copytopfileparents':
-        copyMoveOptions['copyTopFileParents'] = getChoice(COPY_TOP_PARENTS_CHOICES, mapChoice=True)
-      elif myarg == 'copytopfolderparents':
-        copyMoveOptions['copyTopFolderParents'] = getChoice(COPY_TOP_PARENTS_CHOICES, mapChoice=True)
-      elif myarg == 'copysubfileparents':
-        copyMoveOptions['copySubFileParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
-      elif myarg == 'copysubfolderparents':
-        copyMoveOptions['copySubFolderParents'] = getChoice(COPY_SUB_PARENTS_CHOICES, mapChoice=True)
+      if myarg == 'copiedshortcutspointtocopiedfiles':
+        copyMoveOptions['copiedShortcutsPointToCopiedFiles'] = getBoolean()
       elif myarg == 'copyfilepermissions':
         copyMoveOptions['copyFilePermissions'] = getBoolean()
       elif myarg == 'copyfileinheritedpermissions':
@@ -48189,19 +48268,12 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
         return False
   return True
 
-CLEAR_COPY_MOVE_PARENT_OPTIONS = {
-  'copyTopFileParents': COPY_NO_PARENTS,
-  'copySubFileParents': COPY_NO_PARENTS,
-  'copyTopFolderParents': COPY_NO_PARENTS,
-  'copySubFolderParents': COPY_NO_PARENTS,
-  }
-
 def _targetFilenameExists(destFilename, mimeType, targetChildren):
   destFilenameLower = destFilename.lower()
   for target in targetChildren:
     if destFilenameLower == target['name'].lower() and mimeType == target['mimeType']:
-      return True
-  return False
+      return target
+  return None
 
 UNIQUE_PREFIX_PATTERN = re.compile(r'^(.+)\((\d+)\)$')
 
@@ -48223,7 +48295,7 @@ def _getFilenamePrefix(destFilename):
   return base
 
 def _getUniqueFilename(destFilename, mimeType, targetChildren):
-  if not _targetFilenameExists(destFilename, mimeType, targetChildren):
+  if _targetFilenameExists(destFilename, mimeType, targetChildren) is None:
     return destFilename
   base, _, ext = _getFilenameParts(destFilename)
   n = 0
@@ -48630,6 +48702,20 @@ def _getCopyFolderNonInheritedPermissions(copyMoveOptions, copyNonInherited, sou
     return 'noCopyNonInheritedPermissions'
   return copyNonInherited
 
+def _checkForExistingShortcut(drive, fileId, fileName, parentId):
+  try:
+    existingShortcuts = callGAPI(drive.files(), 'list',
+                                 throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
+                                 retryReasons=[GAPI.UNKNOWN_ERROR],
+                                 supportsAllDrives=True, includeItemsFromAllDrives=True,
+                                 q=f"shortcutDetails.targetId = '{fileId}' and trashed = False", fields='files(id,name,parents)')['files']
+    for shortcut in existingShortcuts:
+      if parentId in shortcut['parents'] and fileName == shortcut['name']:
+        return shortcut['id']
+  except (GAPI.invalidQuery, GAPI.invalid, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+    pass
+  return None
+
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity>
 #	[newfilename <DriveFileName>] (replacefilename <RegularExpression> <String>)*
 #	[stripnameprefix <String>]
@@ -48640,8 +48726,7 @@ def _getCopyFolderNonInheritedPermissions(copyMoveOptions, copyNonInherited, sou
 #	<DriveFileCopyAttribute>*
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
-#	[copytopfileparents none] [copytopfolderparents none]
-#	[copysubfileparents none] [copysubfolderparents none]
+#	[copiedshortcutspointtocopiedfiles [<Boolean>]]
 #	[copyfilepermissions [<Boolean>]]
 #	[copyfileinheritedpermissions [<Boolean>]
 #	[copyfilenoninheritedpermissions [<Boolean>]
@@ -48662,16 +48747,18 @@ def _getCopyFolderNonInheritedPermissions(copyMoveOptions, copyNonInherited, sou
 #	[sendemailifrequired [<Boolean>]]
 def copyDriveFile(users):
   def _cloneFolderCopy(drive, user, i, count, j, jcount,
-                       source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
+                       source, targetChildren, newFolderName, newParentId, newParentName, mergeParentModifiedTime,
                        statistics, copyMoveOptions, atTop):
     folderId = source.pop('id')
-    folderTitle = source['name']
+    folderName = source['name']
+    folderNameId = f'{folderName}({folderId})'
+    kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, folderNameId]
+    newParentNameId = f'{newParentName}({newParentId})'
+# Merge top parent folder
     if atTop and copyMoveOptions['mergeWithParent']:
       action = Act.Get()
       Act.Set(Act.MERGE)
-      entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
-                                                         Act.MODIFIER_WITH, newFolderTitle,
-                                                         [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
+      entityPerformActionModifierItemValueList(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, newParentNameId], j, jcount)
       Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_MERGED)
       if (copyMoveOptions['copyMergeWithParentFolderPermissions'] and
@@ -48681,47 +48768,52 @@ def copyDriveFile(users):
                                                   'copyTopFolderNonInheritedPermissions',
                                                   source['modifiedTime'], mergeParentModifiedTime)
         _copyPermissions(drive, user, i, count, j, jcount,
-                         Ent.DRIVE_FOLDER, folderId, folderTitle, newParentId, newFolderTitle,
+                         Ent.DRIVE_FOLDER, folderId, folderName, newParentId, newFolderName,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                          copyMoveOptions, True,
                          'copyTopFolderInheritedPermissions',
                          copyFolderNonInheritedPermissions)
-      source.pop('oldparents', None)
-      return (newParentId, True)
+      return (newParentId, newParentName, True)
 # Merge parent folders
     if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
-      newFolderTitleLower = newFolderTitle.lower()
+      newFolderNameLower = newFolderName.lower()
       for target in targetChildren:
-        if not target.get('processed', False) and newFolderTitleLower == target['name'].lower() and source['mimeType'] == target['mimeType']:
+        if not target.get('processed', False) and newFolderNameLower == target['name'].lower() and source['mimeType'] == target['mimeType']:
           target['processed'] = True
           if target['capabilities']['canAddChildren']:
             newFolderId = target['id']
             action = Act.Get()
             Act.Set(Act.MERGE)
-            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
-                                                               Act.MODIFIER_WITH, newFolderTitle,
-                                                               [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
+            entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'], j, jcount)
             Act.Set(action)
             _incrStatistic(statistics, STAT_FOLDER_MERGED)
             if (copyMoveOptions[['copyMergedSubFolderPermissions', 'copyMergedTopFolderPermissions'][atTop]] and
                 (not atTop or copyMoveOptions['destParentType'] != DEST_PARENT_MYDRIVE_ROOT)):
-
               copyFolderNonInheritedPermissions =\
                   _getCopyFolderNonInheritedPermissions(copyMoveOptions,
                                                         ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop],
                                                         source['modifiedTime'], target['modifiedTime'])
               _copyPermissions(drive, user, i, count, j, jcount,
-                               Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
+                               Ent.DRIVE_FOLDER, folderId, folderName, newFolderId, newFolderName,
                                statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                                copyMoveOptions, atTop,
                                ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
                                copyFolderNonInheritedPermissions)
-            return (newFolderId, True)
-          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.NOT_WRITABLE, j, jcount)
+            return (newFolderId, newFolderName, True)
+          entityActionFailedWarning(kvList+[Ent.DRIVE_FOLDER, newParentNameId], Msg.NOT_WRITABLE, j, jcount)
           _incrStatistic(statistics, STAT_FOLDER_NOT_WRITABLE)
-          return (None, False)
+          return (None, None, False)
+    elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
+      newFolderName = _getUniqueFilename(newFolderName, source['mimeType'], targetChildren)
+    elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
+      targetChild = _targetFilenameExists(newFolderName, source['mimeType'], targetChildren)
+      if targetChild is not None:
+        entityModifierItemValueListActionNotPerformedWarning(kvList, Act.MODIFIER_TO,
+                                                             [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f"{newFolderName}({targetChild['id']})"],
+                                                             Msg.DUPLICATE, j, jcount)
+        _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
+        return (None, None, False)
 # Copy parent folders
-    source.pop('oldparents', None)
     body = source.copy()
     body.pop('capabilities', None)
     if copyMoveOptions['sourceDriveId'] or copyMoveOptions['destDriveId']:
@@ -48729,14 +48821,7 @@ def copyDriveFile(users):
       body.pop('writersCanShare', None)
     body.pop('trashed', None)
     body.pop('driveId', None)
-    if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
-      newFolderTitle = _getUniqueFilename(newFolderTitle, source['mimeType'], targetChildren)
-    elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
-      if _targetFilenameExists(newFolderTitle, source['mimeType'], targetChildren):
-        entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.DUPLICATE, j, jcount)
-        _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
-        return (None, False)
-    body['name'] = newFolderTitle
+    body['name'] = newFolderName
     try:
       result = callGAPI(drive.files(), 'create',
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR,
@@ -48746,47 +48831,84 @@ def copyDriveFile(users):
       if returnIdLink:
         writeStdout(f'{result[returnIdLink]}\n')
       else:
-        entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
-                                                           Act.MODIFIER_TO, newFolderTitle,
-                                                           [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
+        entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
+                                                   [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'],
+                                                   j, jcount)
       _incrStatistic(statistics, STAT_FOLDER_COPIED_MOVED)
       if copyMoveOptions[['copySubFolderPermissions', 'copyTopFolderPermissions'][atTop]]:
         _copyPermissions(drive, user, i, count, j, jcount,
-                         Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
+                         Ent.DRIVE_FOLDER, folderId, folderName, newFolderId, newFolderName,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                          copyMoveOptions, False,
                          ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
                          ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop])
-      return (newFolderId, False)
+      return (newFolderId, newFolderName, False)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError,
             GAPI.teamDriveHierarchyTooDeep, GAPI.badRequest) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderName], str(e), j, jcount)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     _incrStatistic(statistics, STAT_FOLDER_FAILED)
     copyMoveOptions['retainSourceFolders'] = True
-    return (None, False)
+    return (None, None, False)
+
+  def _makeCopyShortcut(drive, user, k, kcount, entityType, childId, childName, newChildName, newParentId, newParentName, targetId):
+    kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
+    targetEntityType = Ent.DRIVE_FILE_SHORTCUT if entityType == Ent.DRIVE_FILE else Ent.DRIVE_FOLDER_SHORTCUT
+    newParentNameId = f'{newParentName}({newParentId})'
+    action = Act.Get()
+    existingShortcut = _checkForExistingShortcut(drive, targetId, newChildName, newParentId)
+    if existingShortcut:
+      Act.Set(Act.CREATE_SHORTCUT)
+      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_PREVIOUSLY_IN,
+                                                 [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({existingShortcut})"],
+                                                 k, kcount)
+      Act.Set(action)
+      _incrStatistic(statistics, STAT_FILE_SHORTCUT_EXISTS)
+      return
+    body = {'name': newChildName, 'mimeType': MIMETYPE_GA_SHORTCUT,
+            'parents': [newParentId], 'shortcutDetails': {'targetId': targetId}}
+    try:
+      result = callGAPI(drive.files(), 'create',
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                    GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                    GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                        body=body, fields='id', supportsAllDrives=True)
+      Act.Set(Act.CREATE_SHORTCUT)
+      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
+                                                 [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{newChildName}({result['id']})"],
+                                                 k, kcount)
+      Act.Set(action)
+      _incrStatistic(statistics, STAT_FILE_SHORTCUT_CREATED)
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+      entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), k, kcount)
+      _incrStatistic(statistics, STAT_FILE_FAILED)
 
   def _recursiveFolderCopy(drive, user, i, count, j, jcount,
-                           source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
-                           atTop, depth):
+                           source, targetChildren, newFolderName, newParentId, newParentName, mergeParentModifiedTime, atTop, depth):
     folderId = source['id']
-    newFolderId, existingTargetFolder = _cloneFolderCopy(drive, user, i, count, j, jcount,
-                                                         source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
-                                                         statistics, copyMoveOptions, atTop)
+    newFolderId, newFolderName, existingTargetFolder = _cloneFolderCopy(drive, user, i, count, j, jcount,
+                                                                        source, targetChildren, newFolderName,
+                                                                        newParentId, newParentName, mergeParentModifiedTime,
+                                                                        statistics, copyMoveOptions, atTop)
     if newFolderId is None:
       return
+    newFolderNameId = f'{newFolderName}({newFolderId})'
+    copiedSourceFiles[folderId] = newFolderId
+    copiedTargetFiles.add(newFolderId) # Don't recopy folder copied into a sub-folder
     if maxdepth != -1 and depth > maxdepth:
       return
     depth += 1
-    copiedFiles[newFolderId] = 1
     sourceChildren = callGAPIpages(drive.files(), 'list', 'files',
                                    throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                                    retryReasons=[GAPI.UNKNOWN_ERROR],
                                    q=WITH_PARENTS.format(folderId),
-                                   fields='nextPageToken,files(id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
-                                     'description,folderColorRgb,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare)',
                                    orderBy='folder desc,name,modifiedTime desc',
+                                   fields='nextPageToken,files(id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
+                                     'description,folderColorRgb,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare,'\
+                                     'shortcutDetails(targetId,targetMimeType))',
                                    pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **sourceSearchArgs)
     kcount = len(sourceChildren)
     if kcount > 0:
@@ -48805,39 +48927,46 @@ def copyDriveFile(users):
       for child in sourceChildren:
         k += 1
         childId = child['id']
-        childTitle = child['name']
-        if copiedFiles.get(childId):
+        childName = child['name']
+        childNameId = f'{childName}({childId})'
+        if childId in copiedTargetFiles: # Don't recopy file/folder copied into a sub-folder
           continue
+        kvList = [Ent.USER, user, _getEntityMimeType(child), childNameId]
         trashed = child.pop('trashed', False)
-        if excludeTrashed and trashed:
-          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(child), childTitle],
-                                          Msg.IN_TRASH_AND_EXCLUDE_TRASHED, k, kcount)
+        if (childId == newFolderId) or (excludeTrashed and trashed):
+          entityActionNotPerformedWarning(kvList,
+                                          [Msg.NOT_COPYABLE, Msg.IN_TRASH_AND_EXCLUDE_TRASHED][trashed], k, kcount)
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
-        if childId == newFolderId:
-          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(child), childTitle], Msg.NOT_COPYABLE, k, kcount)
-          _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
+        if copyMoveOptions['replaceFilename']:
+          newChildName = processFilenameReplacements(childName, copyMoveOptions['replaceFilename'])
+        else:
+          newChildName = childName
+# If source child has already been copied, make shortcut to its copy
+        if childId in copiedSourceFiles:
+          _makeCopyShortcut(drive, user, k, kcount, _getEntityMimeType(child), childId, childName,
+                            newChildName, newFolderId, newFolderName, copiedSourceFiles[childId])
           continue
         child.pop('parents', [])
         child['parents'] = [newFolderId]
-        if copyMoveOptions['replaceFilename']:
-          newChildTitle = processFilenameReplacements(childTitle, copyMoveOptions['replaceFilename'])
-        else:
-          newChildTitle = childTitle
         if child['mimeType'] == MIMETYPE_GA_FOLDER:
           _recursiveFolderCopy(drive, user, i, count, k, kcount,
-                               child, subTargetChildren, newFolderId, newChildTitle, child['modifiedTime'],
+                               child, subTargetChildren, newChildName, newFolderId, newFolderName, child['modifiedTime'],
                                False, depth)
+        elif child['mimeType'] == MIMETYPE_GA_SHORTCUT:
+          shortcutsToCreate.append({'childName': childName, 'childId': childId, 'newChildName': newChildName,
+                                    'newFolderId': newFolderId, 'newFolderName': newFolderName,
+                                    'targetId': child['shortcutDetails']['targetId'], 'mimeType': child['shortcutDetails']['targetMimeType']})
         else:
           if not child.pop('capabilities')['canCopy']:
-            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], Msg.NOT_COPYABLE, k, kcount)
+            entityActionFailedWarning(kvList, Msg.NOT_COPYABLE, k, kcount)
             _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
             continue
           if existingTargetFolder:
-            if _checkForDuplicateTargetFile(drive, user, k, kcount, child, newChildTitle, subTargetChildren, copyMoveOptions, statistics):
+            if _checkForDuplicateTargetFile(drive, user, k, kcount, child, newChildName, subTargetChildren, copyMoveOptions, statistics):
               continue
           else:
-            child['name'] = newChildTitle
+            child['name'] = newChildName
           child.pop('id')
           if copyMoveOptions['destDriveId']:
             child.pop('copyRequiresWriterPermission', None)
@@ -48850,17 +48979,19 @@ def copyDriveFile(users):
                               bailOnInternalError=True,
                               throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR],
                               fileId=childId, body=child, fields='id,name', supportsAllDrives=True)
-            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, childTitle],
-                                                               Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], k, kcount)
+            entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
+                                                       [Ent.DRIVE_FOLDER, newFolderNameId, Ent.DRIVE_FILE, f"{result['name']}({result['id']})"],
+                                                       k, kcount)
             _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
-            copiedFiles[result['id']] = 1
+            copiedSourceFiles[childId] = result['id']
+            copiedTargetFiles.add(result['id']) # Don't recopy file copied into a sub-folder
             if (child['mimeType'] == MIMETYPE_GA_SPREADSHEET and
                 (copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] or
                  copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
-              protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, k, kcount, childId, childTitle,
+              protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, k, kcount, childId, childName,
                                                               statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
               _copyPermissions(drive, user, i, count, k, kcount,
-                               Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
+                               Ent.DRIVE_FILE, childId, childName, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED,
                                copyMoveOptions, False,
                                'copySheetProtectedRangesInheritedPermissions',
@@ -48869,7 +49000,7 @@ def copyDriveFile(users):
                                           statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
             elif copyMoveOptions['copyFilePermissions']:
               _copyPermissions(drive, user, i, count, k, kcount,
-                               Ent.DRIVE_FILE, childId, childTitle, result['id'], result['name'],
+                               Ent.DRIVE_FILE, childId, childName, result['id'], result['name'],
                                statistics, STAT_FILE_PERMISSIONS_FAILED,
                                copyMoveOptions, False,
                                'copyFileInheritedPermissions',
@@ -48877,7 +49008,7 @@ def copyDriveFile(users):
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                   GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
                   GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
-            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
+            entityActionFailedWarning(kvList, str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
       Ind.Decrement()
 
@@ -48926,7 +49057,9 @@ def copyDriveFile(users):
       _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
       if not sheet:
         continue
-    copiedFiles = {}
+    copiedSourceFiles = {}
+    copiedTargetFiles = set()
+    shortcutsToCreate = []
     statistics = _initStatistics()
     Ind.Increment()
     j = 0
@@ -48942,10 +49075,12 @@ def copyDriveFile(users):
 # Source at root of My Drive or Shared Drive?
         if source['mimeType'] == MIMETYPE_GA_FOLDER and source.get('driveId') and source['name'] == TEAM_DRIVE and not source.get('parents', []):
           source['name'] = _getSharedDriveNameFromId(drive, source['driveId'])
-        sourceFilename = source['name']
+        sourceName = source['name']
+        sourceNameId = f"{sourceName}({source['id']})"
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
-        if excludeTrashed and source['trashed']:
-          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename],
+        trashed = source.pop('trashed', False)
+        if excludeTrashed and trashed:
+          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceNameId],
                                           Msg.IN_TRASH_AND_EXCLUDE_TRASHED, j, jcount)
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
@@ -48962,17 +49097,19 @@ def copyDriveFile(users):
           newParents = parentBody['parents']
           numNewParents = len(newParents)
           if numNewParents > 1:
-            entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename],
+            entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceNameId],
                                             Msg.MULTIPLE_PARENTS_SPECIFIED.format(numNewParents), j, jcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
             continue
         else:
           newParents = sourceParents if sourceParents else [ROOT]
-        newParentId = newParents[0]
         source['parents'] = newParents
+        newParentId = newParents[0]
         dest = _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statistics)
         if dest is None:
           continue
+        newParentName = dest['name']
+        newParentNameId = f'{newParentName}({newParentId})'
         copyMoveOptions['destDriveId'] = dest['driveId']
         copyMoveOptions['destParentType'] = dest['destParentType']
         if copyMoveOptions['destDriveId']:
@@ -48984,67 +49121,85 @@ def copyDriveFile(users):
             parentParms[DFA_SEARCHARGS] = {'driveId': copyMoveOptions['destDriveId'], 'corpora': 'drive',
                                            'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
         if copyMoveOptions['newFilename']:
-          destFilename = copyMoveOptions['newFilename']
+          destName = copyMoveOptions['newFilename']
         elif copyMoveOptions['mergeWithParent']:
-          destFilename = dest['name']
+          destName = dest['name']
         elif ((newParentsSpecified and newParentId not in sourceParents) or
               ((newParentId in sourceParents and
                 (source['mimeType'] == MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFolders'] != DUPLICATE_FOLDER_MERGE) or
                 (source['mimeType'] != MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])))):
           if copyMoveOptions['replaceFilename']:
-            destFilename = processFilenameReplacements(sourceFilename, copyMoveOptions['replaceFilename'])
+            destName = processFilenameReplacements(sourceName, copyMoveOptions['replaceFilename'])
           else:
-            destFilename = sourceFilename
+            destName = sourceName
         elif copyMoveOptions['replaceFilename']:
-          destFilename = processFilenameReplacements(sourceFilename, copyMoveOptions['replaceFilename'])
+          destName = processFilenameReplacements(sourceName, copyMoveOptions['replaceFilename'])
         else:
-          destFilename = f'Copy of {sourceFilename}'
-        if copyMoveOptions['stripNamePrefix'] and destFilename.startswith(copyMoveOptions['stripNamePrefix']):
-          destFilename = destFilename[len(copyMoveOptions['stripNamePrefix']):]
-        targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
+          destName = f'Copy of {sourceName}'
+        if copyMoveOptions['stripNamePrefix'] and destName.startswith(copyMoveOptions['stripNamePrefix']):
+          destName = destName[len(copyMoveOptions['stripNamePrefix']):]
+        targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destName, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
-        copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
+# Copy folder
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
-# If the parent folder is within the source tree, don't copy it
-          copiedFiles[newParentId] = 1
+          kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId]
+          copiedTargetFiles.add(newParentId) # Don't recopy folder copied into a sub-folder
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):
-              entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceFilename], Msg.NOT_COPYABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)
+              entityActionNotPerformedWarning(kvList, Msg.NOT_COPYABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_FAILED)
               continue
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
-            destFilename = _getUniqueFilename(destFilename, source['mimeType'], targetChildren)
+            destName = _getUniqueFilename(destName, source['mimeType'], targetChildren)
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
-            if _targetFilenameExists(destFilename, source['mimeType'], targetChildren):
-              entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, destFilename], Msg.DUPLICATE, j, jcount)
+            targetChild = _targetFilenameExists(destName, source['mimeType'], targetChildren)
+            if targetChild is not None:
+              entityModifierItemValueListActionNotPerformedWarning(kvList, Act.MODIFIER_TO,
+                                                                   [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f"{destName}({targetChild['id']})"],
+                                                                   Msg.DUPLICATE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
               continue
           if recursive:
             _recursiveFolderCopy(drive, user, i, count, j, jcount,
-                                 source, targetChildren, newParentId, destFilename, dest['modifiedTime'],
+                                 source, targetChildren, destName, newParentId, newParentName, dest['modifiedTime'],
                                  True, 0)
+            kcount = len(shortcutsToCreate)
+            if kcount > 0:
+              entityPerformActionNumItems([Ent.USER, user], kcount, Ent.DRIVE_FILE_SHORTCUT, i, count)
+              Ind.Increment()
+              k = 0
+              for shortcut in shortcutsToCreate:
+                k += 1
+                targetId = shortcut['targetId']
+                if targetId in copiedSourceFiles and copyMoveOptions['copiedShortcutsPointToCopiedFiles']:
+                  targetId = copiedSourceFiles[targetId]
+                _makeCopyShortcut(drive, user, k, kcount, _getEntityMimeType(shortcut), shortcut['childId'], shortcut['childName'],
+                                  shortcut['newChildName'], shortcut['newFolderId'], shortcut['newFolderName'], targetId)
+              Ind.Decrement()
           else:
             source.update(copyBody)
             _cloneFolderCopy(drive, user, i, count, j, jcount,
-                             source, targetChildren, newParentId, destFilename, dest['modifiedTime'],
+                             source, targetChildren, destName, newParentId, newParentName, dest['modifiedTime'],
                              statistics, copyMoveOptions, True)
+# Copy file
         else:
+          kvList = [Ent.USER, user, Ent.DRIVE_FILE, sourceNameId]
           if not source.pop('capabilities')['canCopy']:
-            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename], Msg.NOT_COPYABLE, j, jcount)
+            entityActionFailedWarning(kvList, Msg.NOT_COPYABLE, j, jcount)
             _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
             continue
           if copyMoveOptions['duplicateFiles'] in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER] and _identicalSourceTarget(fileId, targetChildren):
-            entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename], Msg.NOT_COPYABLE_SAME_NAME_CURRENT_FOLDER_OVERWRITE, j, jcount)
+            entityActionNotPerformedWarning(kvList, Msg.NOT_COPYABLE_SAME_NAME_CURRENT_FOLDER_OVERWRITE, j, jcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
             continue
-          if _checkForDuplicateTargetFile(drive, user, j, jcount, source, destFilename, targetChildren, copyMoveOptions, statistics):
+          if _checkForDuplicateTargetFile(drive, user, j, jcount, source, destName, targetChildren, copyMoveOptions, statistics):
             continue
           sourceId = source.pop('id')
-          source.pop('trashed', None)
           if copyMoveOptions['destDriveId']:
             source.pop('copyRequiresWriterPermission', None)
             source.pop('writersCanShare', None)
+          source.pop('driveId', None)
           if source['mimeType'] == MIMETYPE_GA_SHORTCUT:
             source.pop('folderColorRgb', None)
           source.update(copyBody)
@@ -49058,16 +49213,17 @@ def copyDriveFile(users):
           if returnIdLink:
             writeStdout(f'{result[returnIdLink]}\n')
           else:
-            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename],
-                                                               Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FILE_ID, result['id']], j, jcount)
-          _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
+            entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
+                                                       [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FILE, f"{result['name']}({result['id']})"],
+                                                       j, jcount)
+            _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
           if (source['mimeType'] == MIMETYPE_GA_SPREADSHEET and
               (copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] or
                copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
-            protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, j, jcount, sourceId, sourceFilename,
+            protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, j, jcount, sourceId, sourceName,
                                                             statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
             _copyPermissions(drive, user, i, count, j, jcount,
-                             Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
+                             Ent.DRIVE_FILE, sourceId, sourceName, result['id'], result['name'],
                              statistics, STAT_FILE_PERMISSIONS_FAILED,
                              copyMoveOptions, False,
                              'copySheetProtectedRangesInheritedPermissions',
@@ -49076,14 +49232,14 @@ def copyDriveFile(users):
                                         statistics, STAT_FILE_PROTECTEDRANGES_FAILED)
           elif copyMoveOptions['copyFilePermissions']:
             _copyPermissions(drive, user, i, count, j, jcount,
-                             Ent.DRIVE_FILE, sourceId, sourceFilename, result['id'], result['name'],
+                             Ent.DRIVE_FILE, sourceId, sourceName, result['id'], result['name'],
                              statistics, STAT_FILE_PERMISSIONS_FAILED,
                              copyMoveOptions, False,
                              'copyFileInheritedPermissions',
                              'copyFileNonInheritedPermissions')
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
-              GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
+              GAPI.invalid, GAPI.badRequest, GAPI.cannotCopyFile, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
+              GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         _incrStatistic(statistics, STAT_FILE_FAILED)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -49098,9 +49254,9 @@ def copyDriveFile(users):
 #	[summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
 #	[<DriveFileParentAttribute>]
 #       [mergewithparent|mergewithparentretain [<Boolean>]]
+#	[createshortcutsfornonmovablefiles [<Boolean>]]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
-#	[copysubfileparents nonpath|none|all] [copysubfolderparents nonpath|none|all]
 #	[copymergewithparentfolderpermissions [<Boolean>]]
 #	[copymergedtopfolderpermissions [<Boolean>]]
 #	[copytopfolderpermissions [<Boolean>]]
@@ -49117,16 +49273,18 @@ def copyDriveFile(users):
 #	[sendemailifrequired [<Boolean>]]
 def moveDriveFile(users):
   def _cloneFolderMove(drive, user, i, count, j, jcount,
-                       source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
+                       source, targetChildren, newFolderName, newParentId, newParentName, mergeParentModifiedTime,
                        statistics, copyMoveOptions, atTop):
     folderId = source.pop('id')
-    folderTitle = source['name']
+    folderName = source['name']
+    folderNameId = f'{folderName}({folderId})'
+    kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, folderNameId]
+    newParentNameId = f'{newParentName}({newParentId})'
+# Merge top parent folder
     if atTop and (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain']):
       action = Act.Get()
       Act.Set(Act.MERGE)
-      entityPerformActionModifierNewValueItemValueList([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
-                                                       Act.MODIFIER_CONTENTS_WITH, newFolderTitle,
-                                                       [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
+      entityPerformActionModifierItemValueList(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, newParentNameId], j, jcount)
       Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_MERGED)
       if (copyMoveOptions['copyMergeWithParentFolderPermissions'] and
@@ -49136,25 +49294,24 @@ def moveDriveFile(users):
                                                   'copyTopFolderNonInheritedPermissions',
                                                   source['modifiedTime'], mergeParentModifiedTime)
         _copyPermissions(drive, user, i, count, j, jcount,
-                         Ent.DRIVE_FOLDER, folderId, folderTitle, newParentId, newFolderTitle,
+                         Ent.DRIVE_FOLDER, folderId, folderName, newParentId, newFolderName,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                          copyMoveOptions, True,
                          'copyTopFolderInheritedPermissions',
                          copyFolderNonInheritedPermissions)
       source.pop('oldparents', None)
-      return (newParentId, True)
+      return (newParentId, newParentName, True)
+# Merge parent folders
     if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
-      newFolderTitleLower = newFolderTitle.lower()
+      newFolderNameLower = newFolderName.lower()
       for target in targetChildren:
-        if not target.get('processed', False) and newFolderTitleLower == target['name'].lower() and source['mimeType'] == target['mimeType']:
+        if not target.get('processed', False) and newFolderNameLower == target['name'].lower() and source['mimeType'] == target['mimeType']:
           target['processed'] = True
           if target['capabilities']['canAddChildren']:
             newFolderId = target['id']
             action = Act.Get()
             Act.Set(Act.MERGE)
-            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
-                                                               Act.MODIFIER_WITH, newFolderTitle,
-                                                               [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
+            entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'], j, jcount)
             Act.Set(action)
             _incrStatistic(statistics, STAT_FOLDER_MERGED)
             if (copyMoveOptions[['copyMergedSubFolderPermissions', 'copyMergedTopFolderPermissions'][atTop]] and
@@ -49164,26 +49321,30 @@ def moveDriveFile(users):
                                                         ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop],
                                                         source['modifiedTime'], target['modifiedTime'])
               _copyPermissions(drive, user, i, count, j, jcount,
-                               Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
+                               Ent.DRIVE_FOLDER, folderId, folderName, newFolderId, newFolderName,
                                statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                                copyMoveOptions, atTop,
                                ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
                                copyFolderNonInheritedPermissions)
-            return (newFolderId, True)
-          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.NOT_WRITABLE, j, jcount)
+            return (newFolderId, newFolderName, True)
+          entityActionFailedWarning(kvList+[Ent.DRIVE_FOLDER, newParentNameId], Msg.NOT_WRITABLE, j, jcount)
           _incrStatistic(statistics, STAT_FOLDER_NOT_WRITABLE)
-          return (None, False)
+          copyMoveOptions['retainSourceFolders'] = True
+          return (None, None, False)
     elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
-      newFolderTitle = _getUniqueFilename(newFolderTitle, source['mimeType'], targetChildren)
+      newFolderName = _getUniqueFilename(newFolderName, source['mimeType'], targetChildren)
     elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
-      if _targetFilenameExists(newFolderTitle, source['mimeType'], targetChildren):
-        entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], Msg.DUPLICATE, j, jcount)
+      targetChild = _targetFilenameExists(newFolderName, source['mimeType'], targetChildren)
+      if targetChild is not None:
+        entityModifierItemValueListActionNotPerformedWarning(kvList, Act.MODIFIER_TO,
+                                                             [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f"{newFolderName}({targetChild['id']})"],
+                                                             Msg.DUPLICATE, j, jcount)
         _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
-        return (None, False)
-    if (not copyMoveOptions['retainSourceFolders'] and
-        (copyMoveOptions['copySubFileParents'] == COPY_NONPATH_PARENTS) and (copyMoveOptions['copySubFolderParents'] == COPY_NONPATH_PARENTS) and
-        (copyMoveOptions['sourceDriveId'] or not copyMoveOptions['destDriveId'])):
-      body = {'name': newFolderTitle}
+        copyMoveOptions['retainSourceFolders'] = True
+        return (None, None, False)
+# Update parents on: not retain and MD->MD, SD->MD, SD->SD
+    if (not copyMoveOptions['retainSourceFolders'] and (copyMoveOptions['sourceDriveId'] or not copyMoveOptions['destDriveId'])):
+      body = {'name': newFolderName}
       removeParents = ','.join([parentId for parentId in source.pop('oldparents', []) if parentId not in source['parents']])
       try:
         callGAPI(drive.files(), 'update',
@@ -49196,22 +49357,23 @@ def moveDriveFile(users):
                                                                GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
                  fileId=folderId,
                  addParents=newParentId, removeParents=removeParents,
-                 body=body, fields='id', supportsAllDrives=True)
-        entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
-                                                           Act.MODIFIER_TO, newFolderTitle,
-                                                           [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
+                 body=body, fields=None, supportsAllDrives=True)
+        entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
+                                                   [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f'{newFolderName}({folderId})'],
+                                                   j, jcount)
         _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
-        return (None, False)
+        return (None, None, False)
       except (GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
               GAPI.fileWriterTeamDriveMoveInDisabled,
               GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive,
               GAPI.crossDomainMoveRestriction) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, folderTitle], str(e), j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folderName], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       _incrStatistic(statistics, STAT_FILE_FAILED)
       copyMoveOptions['retainSourceFolders'] = True
-      return (None, False)
+      return (None, None, False)
+# Create new  parent on: retain or MD->SD
     source.pop('oldparents', None)
     body = source.copy()
     body.pop('capabilities', None)
@@ -49221,38 +49383,111 @@ def moveDriveFile(users):
     body.pop('trashed', None)
     if not copyMoveOptions['destDriveId']:
       body.pop('driveId', None)
-    body['name'] = newFolderTitle
+    body['name'] = newFolderName
     try:
-      newFolderId = callGAPI(drive.files(), 'create',
-                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR,
-                                                                         GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
-                             body=body, fields='id', supportsAllDrives=True)['id']
-      entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, folderTitle],
-                                                         Act.MODIFIER_TO, newFolderTitle,
-                                                         [Ent.DRIVE_FOLDER_ID, newFolderId], j, jcount)
+      result = callGAPI(drive.files(), 'create',
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INTERNAL_ERROR,
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.BAD_REQUEST],
+                        body=body, fields='id', supportsAllDrives=True)
+      newFolderId = result['id']
+      action = Act.Get()
+      Act.Set(Act.RECREATE)
+      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
+                                                 [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'],
+                                                 j, jcount)
+      Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_COPIED_MOVED)
       if copyMoveOptions[['copySubFolderPermissions', 'copyTopFolderPermissions'][atTop]]:
         _copyPermissions(drive, user, i, count, j, jcount,
-                         Ent.DRIVE_FOLDER, folderId, folderTitle, newFolderId, newFolderTitle,
+                         Ent.DRIVE_FOLDER, folderId, folderName, newFolderId, newFolderName,
                          statistics, STAT_FOLDER_PERMISSIONS_FAILED,
                          copyMoveOptions, False,
                          ['copySubFolderInheritedPermissions', 'copyTopFolderInheritedPermissions'][atTop],
                          ['copySubFolderNonInheritedPermissions', 'copyTopFolderNonInheritedPermissions'][atTop])
-      return (newFolderId, False)
-    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError, GAPI.teamDriveHierarchyTooDeep) as e:
-      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderTitle], str(e), j, jcount)
+      return (newFolderId, newFolderName, False)
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.internalError,
+            GAPI.teamDriveHierarchyTooDeep, GAPI.badRequest) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, newFolderName], str(e), j, jcount)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     _incrStatistic(statistics, STAT_FOLDER_FAILED)
     copyMoveOptions['retainSourceFolders'] = True
-    return (None, False)
+    return (None, None, False)
+
+  def _makeMoveShortcut(drive, user, k, kcount, entityType, childId, childName, newParentId, newParentName):
+    kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
+    targetEntityType = Ent.DRIVE_FILE_SHORTCUT if entityType == Ent.DRIVE_FILE else Ent.DRIVE_FOLDER_SHORTCUT
+    newParentNameId = f'{newParentName}({newParentId})'
+    action = Act.Get()
+    existingShortcut = _checkForExistingShortcut(drive, childId, childName, newParentId)
+    if existingShortcut:
+      Act.Set(Act.CREATE_SHORTCUT)
+      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_PREVIOUSLY_IN,
+                                                 [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({existingShortcut})"],
+                                                 k, kcount)
+      Act.Set(action)
+      _incrStatistic(statistics, STAT_FILE_SHORTCUT_EXISTS)
+      return
+    body = {'name': childName, 'mimeType': MIMETYPE_GA_SHORTCUT,
+            'parents': [newParentId], 'shortcutDetails': {'targetId': childId}}
+    try:
+      result = callGAPI(drive.files(), 'create',
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                    GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                    GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                        body=body, fields='id', supportsAllDrives=True)
+      Act.Set(Act.CREATE_SHORTCUT)
+      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
+                                                 [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({result['id']})"],
+                                                 k, kcount)
+      Act.Set(action)
+      _incrStatistic(statistics, STAT_FILE_SHORTCUT_CREATED)
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+      entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), k, kcount)
+      _incrStatistic(statistics, STAT_FILE_FAILED)
+
+  def _moveFile(drive, user, i, count, k, kcount, entityType, childId, childName, newChildName, newParentId, newParentName, removeParents, body):
+    kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
+    newParentNameId = f'{newParentName}({newParentId})'
+    try:
+      callGAPI(drive.files(), 'update',
+               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
+                                                             GAPI.FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE,
+                                                             GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
+                                                             GAPI.FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED,
+                                                             GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE,
+                                                             GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE,
+                                                             GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
+               fileId=childId, addParents=newParentId, removeParents=removeParents,
+               body=body, fields='', supportsAllDrives=True)
+      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
+                                                 [Ent.DRIVE_FOLDER, newParentNameId, entityType, f'{newChildName}({childId})'],
+                                                 k, kcount)
+      _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
+    except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.unknownError, GAPI.badRequest,
+            GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive) as e:
+      entityActionFailedWarning(kvList, str(e), k, kcount)
+      _incrStatistic(statistics, STAT_FILE_FAILED)
+      copyMoveOptions['retainSourceFolders'] = True
+    except (GAPI.insufficientFilePermissions, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
+            GAPI.fileWriterTeamDriveMoveInDisabled,
+            GAPI.crossDomainMoveRestriction) as e:
+      if not copyMoveOptions['createShortcutsForNonmovableFiles']:
+        entityActionFailedWarning(kvList, str(e), k, kcount)
+        _incrStatistic(statistics, STAT_FILE_FAILED)
+      else:
+        _makeMoveShortcut(drive, user, k, kcount, entityType, childId, childName, newParentId, newParentName)
+      copyMoveOptions['retainSourceFolders'] = True
 
   def _recursiveFolderMove(drive, user, i, count, j, jcount,
-                           source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime, atTop):
+                           source, targetChildren, newFolderName, newParentId, newParentName, mergeParentModifiedTime, atTop):
     folderId = source['id']
-    newFolderId, existingTargetFolder = _cloneFolderMove(drive, user, i, count, j, jcount,
-                                                         source, targetChildren, newParentId, newFolderTitle, mergeParentModifiedTime,
-                                                         statistics, copyMoveOptions, atTop)
+    newFolderId, newFolderName, existingTargetFolder = _cloneFolderMove(drive, user, i, count, j, jcount,
+                                                                        source, targetChildren, newFolderName,
+                                                                        newParentId, newParentName, mergeParentModifiedTime,
+                                                                        statistics, copyMoveOptions, atTop)
     if newFolderId is None:
       return
     movedFiles[newFolderId] = 1
@@ -49281,73 +49516,45 @@ def moveDriveFile(users):
       for child in sourceChildren:
         k += 1
         childId = child['id']
-        childTitle = child['name']
+        childName = child['name']
+        childNameId = f'{childName}({childId})'
         if movedFiles.get(childId):
           continue
+        kvList = [Ent.USER, user, _getEntityMimeType(child), childNameId]
         trashed = child.pop('trashed', False)
         if (childId == newFolderId) or (copyMoveOptions['destDriveId'] and trashed):
-          entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(child), childTitle],
+          entityActionNotPerformedWarning(kvList,
                                           [Msg.NOT_MOVABLE, Msg.NOT_MOVABLE_IN_TRASH][trashed], k, kcount)
           _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
           continue
         childParents = child.pop('parents', [])
         child['parents'] = [newFolderId]
         if child['mimeType'] == MIMETYPE_GA_FOLDER:
-          if copyMoveOptions['copySubFolderParents'] != COPY_NO_PARENTS:
-            for parentId in childParents:
-              if parentId != folderId or copyMoveOptions['copySubFolderParents'] == COPY_ALL_PARENTS:
-                child['parents'].append(parentId)
           child['oldparents'] = childParents
           _recursiveFolderMove(drive, user, i, count, k, kcount,
-                               child, subTargetChildren, newFolderId, childTitle, child['modifiedTime'], False)
+                               child, subTargetChildren, childName, newFolderId, newFolderName, child['modifiedTime'], False)
         else:
-          if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, childTitle, subTargetChildren, copyMoveOptions, statistics):
+          if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, childName, subTargetChildren, copyMoveOptions, statistics):
             copyMoveOptions['retainSourceFolders'] = True
             continue
           body = {'name': child['name']}
-          if copyMoveOptions['copySubFileParents'] == COPY_NONPATH_PARENTS:
-            removeParents = folderId
-          elif copyMoveOptions['copySubFileParents'] == COPY_NO_PARENTS:
-            removeParents = ','.join(childParents)
-          else: #COPY_ALL_PARENTS
-            removeParents = ''
-          try:
-            result = callGAPI(drive.files(), 'update',
-                              throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
-                                                                            GAPI.FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE,
-                                                                            GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
-                                                                            GAPI.FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED,
-                                                                            GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE,
-                                                                            GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE,
-                                                                            GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
-                              fileId=childId, addParents=newFolderId, removeParents=removeParents,
-                              body=body, fields='id,name', supportsAllDrives=True)
-            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, childTitle],
-                                                               Act.MODIFIER_TO, result['name'],
-                                                               [Ent.DRIVE_FILE_ID, result['id']], k, kcount)
-            _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
-          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-                  GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
-                  GAPI.fileWriterTeamDriveMoveInDisabled,
-                  GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive,
-                  GAPI.crossDomainMoveRestriction) as e:
-            entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, childTitle], str(e), k, kcount)
-            _incrStatistic(statistics, STAT_FILE_FAILED)
-            copyMoveOptions['retainSourceFolders'] = True
+          removeParents = ','.join(childParents)
+          _moveFile(drive, user, i, count, k, kcount, Ent.DRIVE_FILE, childId, childName, childName, newFolderId, newFolderName, removeParents, body)
       Ind.Decrement()
     if (atTop and copyMoveOptions['mergeWithParentRetain']) or copyMoveOptions['retainSourceFolders'] or source['name'] in [MY_DRIVE, TEAM_DRIVE]:
       Act.Set(Act.RETAIN)
-      entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, source['name'], Ent.DRIVE_FOLDER_ID, folderId], i, count)
+      entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, f"{source['name']}({folderId})"], i, count)
     else:
       Act.Set(Act.DELETE)
+      kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, f"{source['name']}({folderId})"]
       try:
         callGAPI(drive.files(), 'delete',
                  throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                  fileId=folderId, supportsAllDrives=True)
-        entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, source['name'], Ent.DRIVE_FOLDER_ID, folderId], i, count)
+        entityActionPerformed(kvList, i, count)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.fileNeverWritable) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER_ID, folderId], str(e), j, jcount)
+        entityActionFailedWarning(kvList, str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
     Act.Set(Act.MOVE)
@@ -49395,7 +49602,8 @@ def moveDriveFile(users):
                           fields='id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
                             'description,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare',
                           supportsAllDrives=True)
-        sourceFilename = source['name']
+        sourceName = source['name']
+        sourceNameId = f"{sourceName}({source['id']})"
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
         if copyMoveOptions['sourceDriveId']:
 # If moving from a Shared Drive, user has to be an organizer
@@ -49403,7 +49611,7 @@ def moveDriveFile(users):
             _incrStatistic(statistics, STAT_USER_NOT_ORGANIZER)
             continue
           if source['trashed']:
-            entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename],
+            entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceNameId],
                                             Msg.NOT_MOVABLE_IN_TRASH, j, jcount)
             _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
             continue
@@ -49415,29 +49623,31 @@ def moveDriveFile(users):
           newParents = parentBody['parents']
           numNewParents = len(newParents)
           if numNewParents > 1:
-            entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceFilename],
+            entityActionNotPerformedWarning([Ent.USER, user, _getEntityMimeType(source), sourceNameId],
                                             Msg.MULTIPLE_PARENTS_SPECIFIED.format(numNewParents), j, jcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
             continue
         else:
           newParents = sourceParents if sourceParents else [ROOT]
-        newParentId = newParents[0]
         source['parents'] = newParents
+        newParentId = newParents[0]
         dest = _getCopyMoveParentInfo(drive, user, i, count, j, jcount, newParentId, statistics)
         if dest is None:
           continue
+        newParentName = dest['name']
+        newParentNameId = f'{newParentName}({newParentId})'
         copyMoveOptions['destDriveId'] = dest['driveId']
         copyMoveOptions['destParentType'] = dest['destParentType']
         if copyMoveOptions['destDriveId'] and not parentParms[DFA_SEARCHARGS]:
           parentParms[DFA_SEARCHARGS] = {'driveId': copyMoveOptions['destDriveId'], 'corpora': 'drive',
                                          'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
         if copyMoveOptions['newFilename']:
-          destFilename = copyMoveOptions['newFilename']
+          destName = copyMoveOptions['newFilename']
         elif copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain']:
-          destFilename = dest['name']
+          destName = dest['name']
         else:
-          destFilename = sourceFilename
-        targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilename, newParentId, statistics, parentParms)
+          destName = sourceName
+        targetChildren = _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destName, newParentId, statistics, parentParms)
         if targetChildren is None:
           continue
         if copyMoveOptions['destDriveId']:
@@ -49445,60 +49655,50 @@ def moveDriveFile(users):
           if not _verifyUserIsOrganizer(drive, user, i, count, copyMoveOptions['destDriveId']):
             _incrStatistic(statistics, STAT_USER_NOT_ORGANIZER)
             continue
-# If moving from My Drive to a Shared Drive, parents have to be recreated.
-          if not copyMoveOptions['sourceDriveId']:
-            copyMoveOptions.update(CLEAR_COPY_MOVE_PARENT_OPTIONS)
 # Move folder
         if source['mimeType'] == MIMETYPE_GA_FOLDER:
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):
-              entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceFilename], Msg.NOT_MOVABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)
+              entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId], Msg.NOT_MOVABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_FAILED)
               continue
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
-            destFilename = _getUniqueFilename(destFilename, source['mimeType'], targetChildren)
+            destName = _getUniqueFilename(destName, source['mimeType'], targetChildren)
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
-            if _targetFilenameExists(destFilename, source['mimeType'], targetChildren):
-              entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, destFilename], Msg.DUPLICATE, j, jcount)
+            targetChild = _targetFilenameExists(destName, source['mimeType'], targetChildren)
+            if targetChild is not None:
+              entityModifierItemValueListActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId], Act.MODIFIER_TO,
+                                                                   [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f"{destName}({targetChild['id']})"],
+                                                                   Msg.DUPLICATE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)
               continue
           if ((not copyMoveOptions['sourceDriveId'] and copyMoveOptions['destDriveId']) or
               (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain'] or copyMoveOptions['retainSourceFolders']) or
-              (copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destFilename, source['mimeType'], targetChildren)) or
-              (copyMoveOptions['copySubFileParents'] != COPY_NONPATH_PARENTS or copyMoveOptions['copySubFolderParents'] != COPY_NONPATH_PARENTS) or
+              (copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destName, source['mimeType'], targetChildren) is not None) or
               anyFolderPermissionOperations()):
             source['oldparents'] = sourceParents
             _recursiveFolderMove(drive, user, i, count, j, jcount,
-                                 source, targetChildren, newParentId, destFilename, dest['modifiedTime'], True)
+                                 source, targetChildren, destName, newParentId, newParentName, dest['modifiedTime'], True)
             continue
-          body = {'name': destFilename}
+          entityType = Ent.DRIVE_FOLDER
 # Move file
         else:
           if copyMoveOptions['duplicateFiles'] in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER] and _identicalSourceTarget(fileId, targetChildren):
-            entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename], Msg.NOT_MOVABLE_SAME_NAME_CURRENT_FOLDER_OVERWRITE, j, jcount)
+            entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, sourceNameId], Msg.NOT_MOVABLE_SAME_NAME_CURRENT_FOLDER_OVERWRITE, j, jcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
             continue
-          if _checkForDuplicateTargetFile(drive, user, j, jcount, source, destFilename, targetChildren, copyMoveOptions, statistics):
+          if _checkForDuplicateTargetFile(drive, user, j, jcount, source, destName, targetChildren, copyMoveOptions, statistics):
             continue
-          body = {'name': source['name']}
+          destName = source['name'] # duplicatefiles uniquename may cause rename
+          entityType = Ent.DRIVE_FILE
+# Simple move file/folder
+        body = {'name': destName}
 # All parents removed from top level moved item as non-path parents can't be determined
         removeParents = ','.join(sourceParents)
-        result = callGAPI(drive.files(), 'update',
-                          throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
-                                                                        GAPI.FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE,
-                                                                        GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
-                                                                        GAPI.FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED,
-                                                                        GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE,
-                                                                        GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE,
-                                                                        GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
-                          fileId=fileId, addParents=newParentId, removeParents=removeParents,
-                          body=body, fields='name', supportsAllDrives=True)
-        entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, sourceFilename],
-                                                           Act.MODIFIER_TO, result['name'], [Ent.DRIVE_FOLDER_ID, newParentId], j, jcount)
-        _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
-              GAPI.unknownError, GAPI.cannotCopyFile,
-              GAPI.badRequest, GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
+        _moveFile(drive, user, i, count, j, jcount, entityType, fileId, sourceName, destName, newParentId, newParentName, removeParents, body)
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.invalid, GAPI.badRequest, GAPI.cannotCopyFile,
+              GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
               GAPI.fileWriterTeamDriveMoveInDisabled,
               GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive,
               GAPI.crossDomainMoveRestriction) as e:
@@ -50975,6 +51175,7 @@ def transferOwnership(users):
         fileEntry = fileTree.get(fileId)
         if not fileEntry:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
+          continue
         fileEntryInfo = fileEntry['info']
       else:
         try:
@@ -60733,7 +60934,9 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_BROWSERTOKEN:		doCreateBrowserToken,
   Cmd.ARG_BUILDING:		doCreateBuilding,
   Cmd.ARG_CAALEVEL:		doCreateCAALevel,
+  Cmd.ARG_CHATMEMBER:		doCreateChatMember,
   Cmd.ARG_CHATMESSAGE:		doCreateChatMessage,
+  Cmd.ARG_CHATSPACE:		doCreateChatSpace,
   Cmd.ARG_CHROMEPOLICYIMAGE:	doCreateChromePolicyImage,
   Cmd.ARG_CIGROUP:		doCreateCIGroup,
   Cmd.ARG_CONTACT:		doCreateDomainContact,

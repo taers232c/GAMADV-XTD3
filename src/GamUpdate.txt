@@ -1,3 +1,35 @@
+6.23.00
+
+Updated `gam <UserTypeEntity> copy|move drivefile` to produce more
+informative progress messages. The source file name(ID) are shown
+as well as the target parent folder name(ID) and target file/folder name(ID).
+
+Deleted options `copytopfileparents`, `copytopfolderparents` `copysubfileparents` and `copysubfolderparents`
+from `gam <UserTypeEntity> copy drivefile` as multi-parent file/folders can not be copied with multiple parents.
+
+Updated `gam <UserTypeEntity> copy drivefile` to use shortcuts when the same file appears more that once in the copy.
+The first time the file is processed, it is copied; if it is processed again (because of multiple parents within the source
+folder structure), a shortcut is created that points to the first copy.
+
+Added option `copiedshortcutspointtocopiedfiles [<Boolean>]` to `gam <UserTypeEntity> copy drivefile`.
+In previous versions, copying shortcuts caused an error because shortcuts can't be copied, they must be re-created.
+
+If a shortcut in the source structure points to a file/folder that is not in the source structure:
+ * The shortcut is re-created to point to the original file/folder.
+If a shortcut in the source structure points to a file/folder that is in the source structure:
+* `copiedshortcutspointtocopiedfiles` omitted or `copiedshortcutspointtocopiedfiles true` - The shortcut is re-created to point to the copied file/folder.
+* `copiedshortcutspointtocopiedfiles false` - The shortcut is re-created to point to the original file/folder.
+
+Deleted options `copysubfileparents` and `copysubfolderparents`
+from `gam <UserTypeEntity> move drivefile` as multi-parent file/folders can not be moved with multiple parents.
+
+Added option `createshortcutsfornonmovablefiles [<Boolean>]` to `gam <UserTypeEntity> move drivefile`
+to control processing of non-movable files; for example, files owned by users outside of your domain.
+that causes GAM to create a shortcut in the target folders for files in the source folders that are not movable.
+* `createshortcutsfornonmovablefiles` omitted or `createshortcutsfornonmovablefiles false` - No shortcuts
+are created and an error message is given explaining why the file can't be moved.
+* `createshortcutsfornonmovablefiles true` - A shortcut is created that points to the non-movable file.
+
 6.22.22
 
 Fixed bug in `gam <UserTypeEntity> create|update contact` where the `relation` property was not properly processed.
@@ -58,7 +90,7 @@ ERROR: 400: invalidInput - Invalid Input
 
 6.22.16
 
-Corrected spelling of `spreadcheetid` to `spreadsheetid' and `spreadcheeturl` to `spreadsheeturl`
+Corrected spelling of `spreadcheetid` to `spreadsheetid` and `spreadcheeturl` to `spreadsheeturl`
 in `<SpreadsheetField>` used by `gam <UserTypeEntity> info|print|show sheet <DriveFileEntity>`.
 ```
 <SpreadsheetField> ::=

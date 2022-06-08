@@ -42,6 +42,7 @@ class GamAction():
   COPY = 'copy'
   CREATE = 'crea'
   CREATE_PREVIEW = 'crep'
+  CREATE_SHORTCUT = 'crsc'
   DEDUP = 'dedu'
   DELETE = 'dele'
   DELETE_EMPTY = 'delm'
@@ -76,6 +77,7 @@ class GamAction():
   PROCESS = 'proc'
   PROCESS_PREVIEW = 'prop'
   PURGE = 'purg'
+  RECREATE = 'recr'
   REENABLE = 'reen'
   REFRESH = 'refr'
   RELABEL = 'rela'
@@ -148,6 +150,7 @@ class GamAction():
     COPY: ['Copied', 'Copy'],
     CREATE: ['Created', 'Create'],
     CREATE_PREVIEW: ['Created (Preview)', 'Create (Preview)'],
+    CREATE_SHORTCUT: ['Created Shortcut', 'Create SHORTCUT'],
     DEDUP: ['Duplicates Deleted', 'Delete Duplicates'],
     DELETE: ['Deleted', 'Delete'],
     DELETE_EMPTY: ['Deleted', 'Delete Empty'],
@@ -181,6 +184,7 @@ class GamAction():
     PROCESS: ['Processed', 'Process'],
     PROCESS_PREVIEW: ['Processed (Preview)', 'Process (Preview)'],
     PURGE: ['Purged', 'Purge'],
+    RECREATE: ['Recreated', 'Recreate'],
     REENABLE: ['Reenabled', 'Reenable'],
     REFRESH: ['Refreshed', 'Refresh'],
     RELABEL: ['Relabeled', 'Relabel'],
@@ -236,10 +240,11 @@ class GamAction():
   MODIFIER_FROM = 'from'
   MODIFIER_IN = 'in'
   MODIFIER_INTO = 'into'
+  MODIFIER_PREVIOUSLY_IN = 'previously in'
+  MODIFIER_TO = 'to'
   MODIFIER_WITH_COTEACHER_OWNER = 'with co-teacher as owner'
   MODIFIER_WITH_NEW_TEACHER_OWNER = 'with new teacher as owner'
   MODIFIER_WITH_CURRENT_OWNER = 'with current owner'
-  MODIFIER_TO = 'to'
   MODIFIER_WITH = 'with'
   MODIFIER_WITH_CONTENT_FROM = 'with content from'
   PREFIX_NOT = 'Not'

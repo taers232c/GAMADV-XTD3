@@ -157,6 +157,7 @@ class GamEntity():
   DRIVE_FILE = 'dfil'
   DRIVE_FILE_ID = 'fili'
   DRIVE_FILE_NAME = 'filn'
+  DRIVE_FILE_RENAMED = 'firn'
   DRIVE_FILE_REVISION = 'filr'
   DRIVE_FILE_SHORTCUT = 'fils'
   DRIVE_FILE_OR_FOLDER = 'fifo'
@@ -165,6 +166,8 @@ class GamEntity():
   DRIVE_FOLDER = 'fold'
   DRIVE_FOLDER_ID = 'foli'
   DRIVE_FOLDER_NAME = 'foln'
+  DRIVE_FOLDER_RENAMED = 'forn'
+  DRIVE_FOLDER_SHORTCUT = 'fols'
   DRIVE_ORPHAN_FILE_OR_FOLDER = 'orph'
   DRIVE_PARENT_FOLDER = 'fipf'
   DRIVE_PARENT_FOLDER_ID = 'fipi'
@@ -448,6 +451,7 @@ class GamEntity():
     DRIVE_FILE_ID: ['Drive File IDs', 'Drive File ID'],
     DRIVE_FILE_NAME: ['Drive File Names', 'Drive File Name'],
     DRIVE_FILE_REVISION: ['Drive File Revisions', 'Drive File Revision'],
+    DRIVE_FILE_RENAMED: ['Drive Files Renamed', 'Drive File Renamed'],
     DRIVE_FILE_SHORTCUT: ['Drive File Shortcuts', 'Drive File Shortcut'],
     DRIVE_FILE_OR_FOLDER: ['Drive Files/Folders', 'Drive File/Folder'],
     DRIVE_FILE_OR_FOLDER_ACL: ['Drive File/Folder ACLs', 'Drive File/Folder ACL'],
@@ -455,6 +459,8 @@ class GamEntity():
     DRIVE_FOLDER: ['Drive Folders', 'Drive Folder'],
     DRIVE_FOLDER_ID: ['Drive Folder IDs', 'Drive Folder ID'],
     DRIVE_FOLDER_NAME: ['Drive Folder Names', 'Drive Folder Name'],
+    DRIVE_FOLDER_RENAMED: ['Drive Folders Renamed', 'Drive Folder Renamed'],
+    DRIVE_FOLDER_SHORTCUT: ['Drive Folder Shortcuts', 'Drive Folder Shortcut'],
     DRIVE_ORPHAN_FILE_OR_FOLDER: ['Drive Orphan Files/Folders', 'Drive Orphan File/Folder'],
     DRIVE_PARENT_FOLDER: ['Drive Parent Folders', 'Drive Parent Folder'],
     DRIVE_PARENT_FOLDER_ID: ['Drive Parent Folder IDs', 'Drive Parent Folder ID'],
