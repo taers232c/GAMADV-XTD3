@@ -25,7 +25,7 @@ from `gam <UserTypeEntity> move drivefile` as multi-parent file/folders can not 
 
 Added option `createshortcutsfornonmovablefiles [<Boolean>]` to `gam <UserTypeEntity> move drivefile`
 to control processing of non-movable files; for example, files owned by users outside of your domain.
-that causes GAM to create a shortcut in the target folders for files in the source folders that are not movable.
+It causes GAM to create a shortcut in the target folders for files in the source folders that are not movable.
 * `createshortcutsfornonmovablefiles` omitted or `createshortcutsfornonmovablefiles false` - No shortcuts
 are created and an error message is given explaining why the file can't be moved.
 * `createshortcutsfornonmovablefiles true` - A shortcut is created that points to the non-movable file.
