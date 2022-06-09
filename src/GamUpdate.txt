@@ -1,3 +1,15 @@
+6.23.01
+
+Updated `gam <UserTypeEntity> create|update|show|print form` to handle the following error:
+```
+ERROR: 403: permissionDenied - Google Forms API has not been used in project XXXXXXX before or it is disabled.
+```
+If you get this error do:
+```
+gam update project
+gam user user@domain.com check serviceaccount
+```
+
 6.23.00
 
 Updated `gam <UserTypeEntity> copy|move drivefile` to produce more

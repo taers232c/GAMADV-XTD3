@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.23.00'
+__version__ = '6.23.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -58561,7 +58561,7 @@ def createForm(users):
                         body=body, fields='id,name', supportsAllDrives=True)
       formId = result['id']
       form = callGAPI(gform.forms(), 'batchUpdate',
-                      throwReasons=[GAPI.INVALID_ARGUMENT],
+                      throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                       formId=formId, body=ubody)
       if returnIdOnly:
         writeStdout(f'{formId}\n')
@@ -58577,6 +58577,8 @@ def createForm(users):
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep,
             GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.FORM, title, Ent.DRIVE_FILE, body['name']], str(e), i, count)
+    except GAPI.permissionDenied as e:
+      entityActionFailedExit([Ent.USER, user, Ent.FORM, title], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvPF:
@@ -58614,11 +58616,13 @@ def updateForm(users):
       j += 1
       try:
         callGAPI(gform.forms(), 'batchUpdate',
-                 throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                  formId=formId, body=ubody)
         entityActionPerformed([Ent.USER, user, Ent.FORM, formId], j, jcount)
       except (GAPI.notFound, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
+      except GAPI.permissionDenied as e:
+        entityActionFailedExit([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
     Ind.Decrement()
 
 # gam <UserTypeEntity> print forms <DriveFileEntity> [todrive <ToDriveAttribute>*]
@@ -58651,7 +58655,7 @@ def printShowForms(users):
       j += 1
       try:
         result = callGAPI(gform.forms(), 'get',
-                          throwReasons=[GAPI.NOT_FOUND],
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                           formId=formId)
         if not csvPF:
           if not FJQC.formatJSON:
@@ -58673,7 +58677,9 @@ def printShowForms(users):
             baserow['JSON'] = json.dumps(cleanJSON(result), ensure_ascii=False, sort_keys=True)
             csvPF.WriteRowNoFilter(baserow)
       except GAPI.notFound as e:
-        entityActionFailedWarning([Ent.FORM, formId], str(e), j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
+      except GAPI.permissionDenied as e:
+        entityActionFailedExit([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Forms')
@@ -58722,7 +58728,7 @@ def printShowFormResponses(users):
       j += 1
       try:
         results = callGAPIpages(gform.forms().responses(), 'list', 'responses',
-                                throwReasons=[GAPI.NOT_FOUND],
+                                throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                                 filter=frfilter, formId=formId)
         kcount = len(results)
         if not csvPF:
@@ -58755,7 +58761,9 @@ def printShowFormResponses(users):
                                       'JSON': json.dumps(cleanJSON(response, timeObjects=FORM_RESPONSE_TIME_OBJECTS)
                                                          , ensure_ascii=False, sort_keys=True)})
       except GAPI.notFound as e:
-        entityActionFailedWarning([Ent.FORM, formId], str(e), j, jcount)
+        entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
+      except GAPI.permissionDenied as e:
+        entityActionFailedExit([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Form Responses')
