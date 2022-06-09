@@ -77,6 +77,7 @@ YOUR_GAM_PROJECT_IS_CREATED_AND_READY_TO_USE = 'That\'s it! Your GAM Project is 
 SYSTEM_TIME_STATUS = 'System time status'
 YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE = 'Your system time differs from {0} by {1}'
 PRESS_ENTER_ONCE_AUTHORIZATION_IS_COMPLETE = 'Press enter once authorization is complete.'
+SERVICE_ACCOUNT_API_DISABLED = '{0} not enabled. Please run "gam update project" and "gam user user@domain.com check serviceaccount"'
 SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authentication'
 SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE = 'Service Account Private Key age; Google recommends rotating keys on a routine basis'
 SERVICE_ACCOUNT_PRIVATE_KEY_AGE = 'Service Account Private Key age: {0} days'

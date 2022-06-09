@@ -1,13 +1,12 @@
 6.23.01
 
-Updated `gam <UserTypeEntity> create|update|show|print form` to handle the following error:
+Updated `gam <UserTypeEntity> create|update|show|print form` to give a better error message when the Forms API is not enabled.
 ```
-ERROR: 403: permissionDenied - Google Forms API has not been used in project XXXXXXX before or it is disabled.
+ERROR: 403: permissionDenied - Google Forms API has not been used in project XXXXXXX before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/forms.googleapis.com/overview?project=XXXXXXX then retry. If you enabled this API recently, wait a few minutes for the action to propagate to our systems and retry.
 ```
-If you get this error do:
+is replaced with
 ```
-gam update project
-gam user user@domain.com check serviceaccount
+ERROR: Forms API not enabled. Please run "gam update project" and "gam user user@domain.com check serviceaccount"
 ```
 
 6.23.00

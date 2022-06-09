@@ -547,6 +547,10 @@ def SvcAcctAPIAccessDeniedExit():
                                                          GM.Globals[GM.CURRENT_SVCACCT_USER]))
   systemErrorExit(API_ACCESS_DENIED_RC, None)
 
+def SvcAcctAPIDisabledExit():
+  stderrErrorMsg(Msg.SERVICE_ACCOUNT_API_DISABLED.format(API.getAPIName(GM.Globals[GM.CURRENT_SVCACCT_API])))
+  systemErrorExit(API_ACCESS_DENIED_RC, None)
+
 def APIAccessDeniedExit():
   if not GM.Globals[GM.CURRENT_SVCACCT_USER] and GM.Globals[GM.CURRENT_CLIENT_API]:
     ClientAPIAccessDeniedExit()
@@ -58577,8 +58581,8 @@ def createForm(users):
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep,
             GAPI.invalidArgument) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.FORM, title, Ent.DRIVE_FILE, body['name']], str(e), i, count)
-    except GAPI.permissionDenied as e:
-      entityActionFailedExit([Ent.USER, user, Ent.FORM, title], str(e), i, count)
+    except GAPI.permissionDenied:
+      SvcAcctAPIDisabledExit()
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvPF:
@@ -58621,8 +58625,8 @@ def updateForm(users):
         entityActionPerformed([Ent.USER, user, Ent.FORM, formId], j, jcount)
       except (GAPI.notFound, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
-      except GAPI.permissionDenied as e:
-        entityActionFailedExit([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
+      except GAPI.permissionDenied:
+        SvcAcctAPIDisabledExit()
     Ind.Decrement()
 
 # gam <UserTypeEntity> print forms <DriveFileEntity> [todrive <ToDriveAttribute>*]
@@ -58678,8 +58682,8 @@ def printShowForms(users):
             csvPF.WriteRowNoFilter(baserow)
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
-      except GAPI.permissionDenied as e:
-        entityActionFailedExit([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
+      except GAPI.permissionDenied:
+        SvcAcctAPIDisabledExit()
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Forms')
@@ -58762,8 +58766,8 @@ def printShowFormResponses(users):
                                                          , ensure_ascii=False, sort_keys=True)})
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
-      except GAPI.permissionDenied as e:
-        entityActionFailedExit([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
+      except GAPI.permissionDenied:
+        SvcAcctAPIDisabledExit()
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Form Responses')
