@@ -301,6 +301,8 @@ class GamEntity():
   SVCACCT = 'svac'
   SVCACCT_KEY = 'svky'
   TARGET_USER = 'tgt'
+  TASK = 'task'
+  TASKLIST = 'tali'
   TEACHER = 'teac'
   THREAD = 'thre'
   TOKEN = 'tokn'
@@ -594,6 +596,8 @@ class GamEntity():
     SVCACCT: ['Service Accounts', 'Service Account'],
     SVCACCT_KEY: ['Service Account Keys', 'Service Account Key'],
     TARGET_USER: ['Target Users', 'Target User'],
+    TASK: ['Tasks', 'Task'],
+    TASKLIST: ['Tasklists', 'Tasklist'],
     TEACHER: ['Teachers', 'Teacher'],
     THREAD: ['Threads', 'Thread'],
     TOKEN: ['Tokens', 'Token'],

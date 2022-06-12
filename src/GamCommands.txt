@@ -482,6 +482,9 @@ If an item contains spaces, it should be surrounded by ".
 <SMTPHostName> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
 <Tag> ::= <String>
+<TaskID> ::= <String>
+<TaskListID> ::= <String>
+<TasklistIDTaskID> ::= <TasklistID>/<TaskID>
 <SharedDriveACLRole> ::=
         commenter|
         contentmanager|fileorganizer|
@@ -606,6 +609,8 @@ If an item contains spaces, it should be surrounded by ".
 <SharedDriveACLRoleList> ::= "<SharedDriveACLRole>(,<SharedDriveACLRole>)*"
 <SharedDriveIDList> ::= "<SharedDriveID>(,<SharedDriveID>)*"
 <StringList> ::= "<String>(,<String>)*"
+<TasklistIDList> ::= "<TasklistID>(,<TasklistID>)*"
+<TasklistIDTaskIDList> ::= "<TasklistIDTaskID>(,<TasklistIDTaskID>)*"
 <ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
 <TimeList> ::= "<Time>(,<Time>)*"
 <UserList> ::= "<UserItem>(,<UserItem>)*"
@@ -949,8 +954,10 @@ Specify a collection of items by directly specifying them; the item type is dete
         <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <SiteEntity> ::=
         <SiteList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<ThreadIDEntity> ::=
-        <ThreadIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<TasklistIDEntity> ::=
+        <TasklistIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<TasklistIDTaskIDEntity> ::=
+        <TasklistIDTaskIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <UserEntity> ::=
         <UserList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
@@ -6308,6 +6315,58 @@ gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [file
 gam <UserTypeEntity> profile share|shared|unshare|unshared
 
 gam <UserTypeEntity> show profile
+
+# Users - Tasks
+
+<TaskAttribute> ::=
+        (title <String>)|
+        (notes <String>)|
+	(status needsaction|completed)
+
+gam <UserTypeEntity> create task <TasklistIDEntity>
+        <TaskAttribute>* [parent <TaskID>] [previous <TaskID>]
+        [compact|formatjson|returnidonly]
+gam <UserTypeEntity> update task <TasklistIDTaskIDEntity>
+        <TaskAttribute>*
+        [compact|formatjson]
+gam <UserTypeEntity> delete task <TasklistIDTaskIDEntity>
+gam <UserTypeEntity> move task <TasklistIDTaskIDEntity>
+        [parent <TaskID>] [previous <TaskID>]
+        [compact|formatjson]
+
+gam <UserTypeEntity> info task <TasklistIDTaskIDEntity>
+        [compact|formatjson]
+gam <UserTypeEntity> show tasks [tasklists <TasklistIDEntity>]
+        [completedmin <Time>] [completedmax <Time>]
+        [duemin <Time>] [duemax <Time>]
+        [updatedmin <Time>]
+        [showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
+        [compact|formatjson]
+gam <UserTypeEntity> print tasks [tasklists <TasklistIDEntity>] [todrive <ToDriveAttribute>*]
+        [completedmin <Time>] [completedmax <Time>]
+        [duemin <Time>] [duemax <Time>]
+        [updatedmin <Time>]
+        [showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
+        [formatjson [quotechar <Character>]]
+
+<TasklistAttribute> ::=
+        (title <String>)
+
+gam <UserTypeEntity> create tasklist
+        <TasklistAttribute>*
+        [returnidonly] [formatjson]
+gam <UserTypeEntity> update tasklist <TasklistIDEntity>
+        <TasklistAttribute>*
+        [formatjson]
+gam <UserTypeEntity> delete tasklist <TasklistIDEntity>
+gam <UserTypeEntity> clear tasklist <TasklistIDEntity>
+
+gam <UserTypeEntity> info tasklist <TasklistIDEntity>
+        [formatjson]
+gam <UserTypeEntity> show tasklists
+        [formatjson]
+gam <UserTypeEntity> print tasklists [todrive <ToDriveAttribute>*]
+        [formatjson [quotechar <Character>]]
 
 # Users - Team Drives
 

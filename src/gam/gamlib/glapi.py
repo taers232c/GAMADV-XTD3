@@ -74,6 +74,7 @@ SHEETSTD = 'sheetstd'
 SITES = 'sites'
 SITEVERIFICATION = 'siteVerification'
 STORAGE = 'storage'
+TASKS = 'tasks'
 VAULT = 'vault'
 #
 JWT_APIS = {
@@ -152,6 +153,7 @@ PROJECT_APIS = [
   'sheets.googleapis.com',
   'siteverification.googleapis.com',
   'storage-api.googleapis.com',
+  'tasks.googleapis.com',
   'vault.googleapis.com',
   ]
 
@@ -209,6 +211,7 @@ _INFO = {
   SITES: {'name': 'Sites API', 'version': 'v1', 'v2discovery': False},
   SITEVERIFICATION: {'name': 'Site Verification API', 'version': 'v1', 'v2discovery': True},
   STORAGE: {'name': 'Cloud Storage API', 'version': 'v1', 'v2discovery': True},
+  TASKS: {'name': 'Tasks API', 'version': 'v1', 'v2discovery': True},
   VAULT: {'name': 'Vault API', 'version': 'v1', 'v2discovery': True},
   }
 
@@ -543,6 +546,10 @@ _SVCACCT_SCOPES = [
    'api': SITES,
    'subscopes': [],
    'scope': 'https://sites.google.com/feeds'},
+  {'name': 'Tasks API',
+   'api': TASKS,
+   'subscopes': READONLY,
+   'scope': 'https://www.googleapis.com/auth/tasks'},
   ]
 
 _SVCACCT_SPECIAL_SCOPES = [

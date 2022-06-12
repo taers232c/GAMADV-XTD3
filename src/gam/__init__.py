@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.23.01'
+__version__ = '6.24.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -548,8 +548,12 @@ def SvcAcctAPIAccessDeniedExit():
   systemErrorExit(API_ACCESS_DENIED_RC, None)
 
 def SvcAcctAPIDisabledExit():
-  stderrErrorMsg(Msg.SERVICE_ACCOUNT_API_DISABLED.format(API.getAPIName(GM.Globals[GM.CURRENT_SVCACCT_API])))
-  systemErrorExit(API_ACCESS_DENIED_RC, None)
+  if not GM.Globals[GM.CURRENT_SVCACCT_USER] and GM.Globals[GM.CURRENT_CLIENT_API]:
+    ClientAPIAccessDeniedExit()
+  if GM.Globals[GM.CURRENT_SVCACCT_API]:
+    stderrErrorMsg(Msg.SERVICE_ACCOUNT_API_DISABLED.format(API.getAPIName(GM.Globals[GM.CURRENT_SVCACCT_API])))
+    systemErrorExit(API_ACCESS_DENIED_RC, None)
+  systemErrorExit(API_ACCESS_DENIED_RC, Msg.API_ACCESS_DENIED)
 
 def APIAccessDeniedExit():
   if not GM.Globals[GM.CURRENT_SVCACCT_USER] and GM.Globals[GM.CURRENT_CLIENT_API]:
@@ -13531,7 +13535,7 @@ CUSTOMER_LICENSE_MAP = {
   'accounts:gsuite_basic_total_licenses': 'G Suite Basic Licenses',
   'accounts:gsuite_basic_used_licenses': 'G Suite Basic Users',
   'accounts:gsuite_enterprise_total_licenses': 'Workspace Enterprise Plus Licenses',
-  'accounts:gsuite_enterprise_used_licenses': 'Workspace Enterprise PLus Users',
+  'accounts:gsuite_enterprise_used_licenses': 'Workspace Enterprise Plus Users',
   'accounts:gsuite_unlimited_total_licenses': 'G Suite Business Licenses',
   'accounts:gsuite_unlimited_used_licenses': 'G Suite Business Users',
   'accounts:vault_total_licenses': 'Google Vault Licenses',
@@ -18107,7 +18111,7 @@ def _getPeopleOtherContacts(people, entityType, user, i=0, count=0):
       resourceName = contact.pop('resourceName')
       otherContacts[resourceName] = contact
     return otherContacts
-  except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+  except (GAPI.serviceNotAvailable, GAPI.forbidden):
     entityUnknownWarning(entityType, user, i, count)
   return None
 
@@ -18168,7 +18172,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
       showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
       writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.OTHER_CONTACT, totalItems))))
     return entityList
-  except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+  except (GAPI.serviceNotAvailable, GAPI.forbidden):
     entityUnknownWarning(entityType, user, i, count)
   return None
 
@@ -18188,7 +18192,7 @@ def getPeopleContactGroupsInfo(people, entityType, entityName, i, count):
         if group['formattedName'] != group['name']:
           contactGroupNames.setdefault(group['name'], [])
           contactGroupNames[group['name']].append(group['resourceName'])
-  except (GAPI.forbidden, GAPI.permissionDenied):
+  except GAPI.forbidden:
     entityServiceNotApplicableWarning(entityType, entityName, i, count)
     return (contactGroupIDs, False)
   except GAPI.serviceNotAvailable:
@@ -18270,7 +18274,7 @@ def createUserPeopleContact(users):
       entityActionPerformed([entityType, user, peopleEntityType, person['resourceName']], i, count)
     except GAPI.invalidArgument as e:
       entityActionFailedWarning([entityType, user, peopleEntityType, None], str(e), i, count)
-    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+    except (GAPI.serviceNotAvailable, GAPI.forbidden):
       ClientAPIAccessDeniedExit()
 
 def localPeopleContactSelects(contactQuery, contact):
@@ -18432,7 +18436,7 @@ def _clearUpdatePeopleContacts(users, updateContacts):
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
 
@@ -18586,7 +18590,7 @@ def dedupReplaceDomainUserPeopleContacts(users):
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
 
@@ -18640,7 +18644,7 @@ def deleteUserPeopleContacts(users):
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
 
@@ -18891,7 +18895,7 @@ def _infoPeople(users, entityType, source):
       except GAPI.invalidArgument as e:
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
         continue
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
       if showContactGroups and contactGroupIDs:
         addContactGroupNamesToContacts([result], contactGroupIDs, False)
@@ -19069,7 +19073,7 @@ def copyUserPeopleOtherContacts(users):
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
         continue
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
 
@@ -19299,7 +19303,7 @@ def _printShowPeople(source):
                                pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                sources=sources, mergeSources=mergeSources,
                                readMask=fields, fields='nextPageToken,people', **kwargs)
-  except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+  except (GAPI.serviceNotAvailable, GAPI.forbidden):
     ClientAPIAccessDeniedExit()
   if not countsOnly:
     _printPersonEntityList(peopleEntityType, entityList, Ent.DOMAIN, GC.Values[GC.DOMAIN], 0, 0, csvPF, FJQC, parameters, None)
@@ -19401,7 +19405,7 @@ def printShowUserPeopleProfiles(users):
     except GAPI.notFound:
       entityUnknownWarning(Ent.PEOPLE_PROFILE, user, i, count)
       continue
-    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+    except (GAPI.serviceNotAvailable, GAPI.forbidden):
       ClientAPIAccessDeniedExit()
     if not csvPF:
       _showPerson(entityType, user, Ent.PEOPLE_PROFILE, result, i, count, FJQC, parameters)
@@ -19543,7 +19547,7 @@ def _processPeopleContactPhotos(users, function):
         entityDoesNotHaveItemWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], j, jcount)
       except (OSError, IOError) as e:
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName, Ent.PHOTO, filename], str(e), j, jcount)
-      except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+      except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
         break
     Ind.Decrement()
@@ -19582,7 +19586,7 @@ def createUserPeopleContactGroup(users):
       continue
     try:
       result = callGAPI(people.contactGroups(), 'create',
-                        throwReasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                        throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                         body={'contactGroup': body}, fields='resourceName')
       entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, result['resourceName']], i, count)
     except GAPI.forbidden:
@@ -19632,7 +19636,7 @@ def updateUserPeopleContactGroup(users):
                                       Ent.TypeNameMessage(Ent.CONTACT_GROUP, newContactGroup, Msg.DUPLICATE), i, count)
             continue
         callGAPI(people.contactGroups(), 'update',
-                 throwReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                 throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                  resourceName=groupId, body={'contactGroup': body, 'updateGroupFields': fields})
         entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactGroup], j, jcount)
       except GAPI.notFound as e:
@@ -19677,7 +19681,7 @@ def deleteUserPeopleContactGroups(users):
             continue
           break
         callGAPI(people.contactGroups(), 'delete',
-                 throwReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                 throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                  resourceName=groupId)
         entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactGroup], j, jcount)
       except GAPI.notFound as e:
@@ -19776,7 +19780,7 @@ def infoUserPeopleContactGroups(users):
             continue
           break
         group = callGAPI(people.contactGroups(), 'get',
-                         throwReasons=[GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                         throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                          resourceName=groupId, groupFields=fields)
         _showContactGroup(entityType, user, Ent.CONTACT_GROUP, group, j, jcount, FJQC)
       except GAPI.notFound as e:
@@ -19828,7 +19832,7 @@ def printShowUserPeopleContactGroups(users):
                                  throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                                  pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                  groupFields=fields, fields='nextPageToken,contactGroups')
-    except (GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+    except (GAPI.serviceNotAvailable, GAPI.forbidden):
       ClientAPIAccessDeniedExit()
     _printPersonEntityList(Ent.PEOPLE_CONTACT_GROUP, entityList, entityType, user, i, count, csvPF, FJQC, parameters, None)
   if csvPF:
@@ -28146,7 +28150,7 @@ def doPrintGroupMembers():
           for name in info['names']:
             if name['metadata']['source']['type'] == sourceType:
               return name['displayName']
-    except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.forbidden, GAPI.permissionDenied):
+    except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.forbidden):
       pass
     return ''
 
@@ -50403,6 +50407,37 @@ def transferDrive(users):
   def _setUpdateRole(permission):
     return {'role': permission['role']}
 
+#  def _makeXferShortcut(drive, user, j, jcount, entityType, childId, childName, newParentId, newParentName):
+#    kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
+#    targetEntityType = Ent.DRIVE_FILE_SHORTCUT if entityType == Ent.DRIVE_FILE else Ent.DRIVE_FOLDER_SHORTCUT
+#    newParentNameId = f'{newParentName}({newParentId})'
+#    action = Act.Get()
+#    existingShortcut = _checkForExistingShortcut(drive, childId, childName, newParentId)
+#    if existingShortcut:
+#      Act.Set(Act.CREATE_SHORTCUT)
+#      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_PREVIOUSLY_IN,
+#                                                 [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({existingShortcut})"],
+#                                                 j, jcount)
+#      Act.Set(action)
+#      return
+#    body = {'name': childName, 'mimeType': MIMETYPE_GA_SHORTCUT,
+#            'parents': [newParentId], 'shortcutDetails': {'targetId': childId}}
+#    try:
+#      result = callGAPI(drive.files(), 'create',
+#                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+#                                                                    GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+#                                                                    GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+#                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+#                        body=body, fields='id', supportsAllDrives=True)
+#      Act.Set(Act.CREATE_SHORTCUT)
+#      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
+#                                                 [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({result['id']})"],
+#                                                 j, jcount)
+#      Act.Set(action)
+#    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
+#            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+#      entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), j, jcount)
+
   def _transferFile(childEntry, i, count, j, jcount, atSelectTop):
     childEntryInfo = childEntry['info']
     childFileId = childEntryInfo['id']
@@ -50465,9 +50500,14 @@ def transferDrive(users):
                    fileId=childFileId,
                    addParents=','.join(addTargetParents), removeParents=','.join(removeTargetParents), fields='')
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.badRequest, GAPI.sharingRateLimitExceeded) as e:
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.unknownError,
+              GAPI.badRequest, GAPI.sharingRateLimitExceeded, GAPI.insufficientFilePermissions) as e:
         entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
+#      except (GAPI.insufficientFilePermissions) as e:
+#        if not createShortcutsForNonmovableFiles:
+#          entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
+#        else:
+#          _makeXferShortcut(targetDrive, targetUuser, j, jcount, childFileType, childFileId, childFileName, newParentId, newParentName)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, actionUser, childFileType, childFileName, Ent.PERMISSION_ID, targetPermissionId], j, jcount)
       except GAPI.invalidSharingRequest as e:
@@ -50830,6 +50870,7 @@ def transferDrive(users):
   targetUserFolderPattern = '#user# old files'
   targetUserOrphansFolderPattern = '#user# orphaned files'
   targetIds = [None, None]
+#  createShortcutsForNonmovableFiles = False
   mergeWithTarget = False
   thirdPartyOwners = {}
   skipFileIdEntity = initDriveFileEntity()
@@ -50866,6 +50907,8 @@ def transferDrive(users):
       buildTree = False
     elif myarg == 'mergewithtarget':
       mergeWithTarget = getBoolean()
+#    elif myarg == 'createshortcutsfornonmovablefiles':
+#      createShortcutsForNonmovableFiles = getBoolean()
     elif myarg == 'skipids':
       skipFileIdEntity = getDriveFileEntity()
     elif myarg == 'preview':
@@ -53790,7 +53833,7 @@ def _getDataStudioAssetByID(ds, user, i, count, assetId):
     return callGAPI(ds.assets(), 'get',
                     throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
                     name=f'assets/{assetId}')
-  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.permissionDenied) as e:
+  except (GAPI.invalidArgument, GAPI.badRequest) as e:
     entityActionFailedWarning([Ent.USER, user], str(e), i, count)
   except GAPI.serviceNotAvailable:
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -53807,7 +53850,7 @@ def _getDataStudioAssets(ds, user, i, count, parameters, assetTypes, fields, ord
                                   pageMessage=getPageMessage(),
                                   throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
                                   **parameters, orderBy=orderBy, fields=fields))
-    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.permissionDenied) as e:
+    except (GAPI.invalidArgument, GAPI.badRequest) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
       return (None, 0)
     except GAPI.serviceNotAvailable:
@@ -54022,7 +54065,7 @@ def processDataStudioPermissions(users):
           entityActionPerformed([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title'], Ent.DATASTUDIO_PERMISSION, ''], j, jcount)
           if showDetails:
             _showDataStudioPermissions(user, asset, results, j, jcount, None)
-        except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
+        except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title']], str(e), j, jcount)
           continue
         except GAPI.serviceNotAvailable:
@@ -54092,7 +54135,7 @@ def printShowDataStudioPermissions(users):
         permissions = callGAPI(ds.assets(), 'getPermissions',
                                throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
                                name=asset['name'], role=role)
-      except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
+      except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title']], str(e), j, jcount)
         continue
       except GAPI.serviceNotAvailable:
@@ -58625,8 +58668,6 @@ def updateForm(users):
         entityActionPerformed([Ent.USER, user, Ent.FORM, formId], j, jcount)
       except (GAPI.notFound, GAPI.invalidArgument) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
-      except GAPI.permissionDenied:
-        SvcAcctAPIDisabledExit()
     Ind.Decrement()
 
 # gam <UserTypeEntity> print forms <DriveFileEntity> [todrive <ToDriveAttribute>*]
@@ -58682,8 +58723,6 @@ def printShowForms(users):
             csvPF.WriteRowNoFilter(baserow)
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
-      except GAPI.permissionDenied:
-        SvcAcctAPIDisabledExit()
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Forms')
@@ -58766,8 +58805,6 @@ def printShowFormResponses(users):
                                                          , ensure_ascii=False, sort_keys=True)})
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
-      except GAPI.permissionDenied:
-        SvcAcctAPIDisabledExit()
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Form Responses')
@@ -60201,7 +60238,7 @@ def createNote(users):
         _showNote(note, FJQC=FJQC, compact=compact)
       else:
         entityActionPerformed(entityKVList, i, count)
-    except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+    except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.NOTE, body['title']], str(e), i, count)
     except GAPI.serviceNotAvailable:
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -60269,7 +60306,7 @@ def deleteInfoNotes(users):
                    throwReasons=GAPI.KEEP_THROW_REASONS,
                    name=name)
           entityActionPerformed([Ent.USER, user, Ent.NOTE, name], j, jcount)
-      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+      except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.NOTE, name], str(e), i, count)
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -60363,7 +60400,7 @@ def printShowNotes(users):
               row['JSON'] = json.dumps(cleanJSON(note, timeObjects=NOTES_TIME_OBJECTS),
                                        ensure_ascii=False, sort_keys=True)
               csvPF.WriteRowNoFilter(row)
-    except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+    except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.NOTE, None], str(e), i, count)
     except GAPI.serviceNotAvailable:
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -60490,7 +60527,7 @@ def getNoteAttachments(users):
               userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
             Act.Set(Act.DOWNLOAD)
         Ind.Decrement()
-      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+      except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning([Ent.NOTE, name], str(e), j, jcount)
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -60549,7 +60586,7 @@ def createNotesACLs(users):
           Ind.Increment()
           _showNotePermissions(permissions['permissions'])
           Ind.Decrement()
-      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+      except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning(entityKVList, str(e), i, count)
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -60616,11 +60653,420 @@ def deleteNotesACLs(users):
                  throwReasons=GAPI.KEEP_THROW_REASONS,
                  parent=name, body=rbody)
         entityNumItemsActionPerformed(entityKVList, kcount, Ent.NOTE_ACL, j, jcount)
-      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound) as e:
+      except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
         entityActionFailedWarning(entityKVList, str(e), i, count)
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
+
+TASK_SKIP_OBJECTS = ['selfLink']
+TASK_TIME_OBJECTS = ['due', 'completed', 'updated']
+
+def _showTask(tasklist, task, j=0, jcount=0, FJQC=None, compact=False):
+  task['tasklistId'] = tasklist
+  task['taskId'] = f"{tasklist}/{task['id']}"
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(task, skipObjects=TASK_SKIP_OBJECTS, timeObjects=TASK_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
+  printEntity([Ent.TASK, task['taskId']], j, jcount)
+  Ind.Increment()
+  showJSON(None, task, skipObjects=TASK_SKIP_OBJECTS+['notes'], timeObjects=TASK_TIME_OBJECTS)
+  field = 'notes'
+  if field in task:
+    if not compact:
+      printKeyValueList([field, None])
+      Ind.Increment()
+      printKeyValueList([Ind.MultiLineText(task[field])])
+      Ind.Decrement()
+    else:
+      printKeyValueList(['notes', escapeCRsNLs(task[field])])
+  Ind.Decrement()
+
+TASK_STATUS_MAP = {
+  'completed': 'completed',
+  'needsaction': 'needsAction',
+  }
+
+def getTaskAttribute(myarg, body):
+  if myarg == 'title':
+    body[myarg] = getString(Cmd.OB_STRING, minLen=0)
+  elif myarg == 'notes':
+    body[myarg] = getStringWithCRsNLs()
+  elif myarg == 'status':
+    body[myarg] = getChoice(TASK_STATUS_MAP, mapChoice=True)
+  else:
+    return False
+  return True
+
+def getTaskMoveAttribute(myarg, kwargs):
+  if myarg == 'parent':
+    kwargs[myarg] = getString(Cmd.OB_TASK_ID)
+  elif myarg == 'previous':
+    kwargs[myarg] = getString(Cmd.OB_TASK_ID)
+  else:
+    return False
+  return True
+
+# gam <UserTypeEntity> create task <TasklistIDEntity>
+#	<TaskAttribute>* [parent <TaskID>] [previous <TaskID>]
+#	[compact|formatjson|returnidonly]
+# gam <UserTypeEntity> update task <TasklistIDTaskIDEntity>
+#	<TaskAttribute>*
+#	[compact|formatjson]
+# gam <UserTypeEntity> info task <TasklistIDTaskIDEntity>
+#	[compact|formatjson]
+# gam <UserTypeEntity> delete task <TasklistIDTaskIDEntity>
+# gam <UserTypeEntity> move task <TasklistIDTaskIDEntity>
+#	[parent <TaskID>] [previous <TaskID>]
+#	[compact|formatjson]
+def processTasks(users):
+  action = Act.Get()
+  if action != Act.CREATE:
+    tasklistTaskEntity = getUserObjectEntity(Cmd.OB_TASKLIST_ID_ENTITY, Ent.TASKLIST)
+  else:
+    tasklistTaskEntity = getUserObjectEntity(Cmd.OB_TASKLIST_ID_TASK_ID_ENTITY, Ent.TASKLIST)
+  if action in {Act.DELETE, Act.CLEAR}:
+    FJQC = None
+    checkForExtraneousArguments()
+  else:
+    FJQC = FormatJSONQuoteChar()
+    body = {}
+    kwargs = {}
+    compact = returnIdOnly = False
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if action in {Act.CREATE, Act.UPDATE} and getTaskAttribute(myarg, body):
+        pass
+      elif action in {Act.CREATE, Act.MOVE} and getTaskMoveAttribute(myarg, kwargs):
+        pass
+      elif action == Act.CREATE and myarg == 'returnidonly':
+        returnIdOnly = True
+      elif myarg == 'compact':
+        compact = True
+      else:
+        FJQC.GetFormatJSON(myarg)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, svc, tasklistTasks, jcount = _validateUserGetObjectList(user, i, count, tasklistTaskEntity,
+                                                                  api=API.TASKS, showAction=FJQC is None or not FJQC.formatJSON)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for tasklistTask in tasklistTasks:
+      j += 1
+      if action != Act.CREATE:
+        if '/' not in tasklistTask:
+          continue
+        tasklist, task = tasklistTask.split('/', 1)
+      else:
+        tasklist = tasklistTask
+      try:
+        if action == Act.DELETE:
+          callGAPI(svc.tasks(), 'delete',
+                   throwReasons=GAPI.TASK_THROW_REASONS,
+                   tasklist=tasklist, task=task)
+          entityActionPerformed([Ent.USER, user, Ent.TASKLIST, tasklist, Ent.TASK, task], j, jcount)
+        elif action == Act.INFO:
+          result = callGAPI(svc.tasks(), 'get',
+                            throwReasons=GAPI.TASK_THROW_REASONS,
+                            tasklist=tasklist, task=task)
+          _showTask(tasklist, result, j, jcount, FJQC, compact)
+        else:
+          if action == Act.CREATE:
+            result = callGAPI(svc.tasks(), 'insert',
+                              throwReasons=GAPI.TASK_THROW_REASONS,
+                              tasklist=tasklist, body=body, **kwargs)
+            if returnIdOnly:
+              writeStdout(f"{result['id']}\n")
+              continue
+          elif action == Act.UPDATE:
+            result = callGAPI(svc.tasks(), 'patch',
+                              throwReasons=GAPI.TASK_THROW_REASONS,
+                              tasklist=tasklist, task=task, body=body)
+          else: #elif action == Act.MOVE
+            result = callGAPI(svc.tasks(), 'move',
+                              throwReasons=GAPI.TASK_THROW_REASONS,
+                              tasklist=tasklist, task=task, **kwargs)
+          if not FJQC.formatJSON:
+            entityActionPerformed([Ent.USER, user, Ent.TASKLIST, tasklist, Ent.TASK, result['id']], j, jcount)
+          Ind.Increment()
+          _showTask(tasklist, result, j, jcount, FJQC, compact)
+          Ind.Decrement()
+      except (GAPI.badRequest, GAPI.permissionDenied, GAPI.invalid, GAPI.notFound) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, tasklist, Ent.TASK, task], str(e), j, jcount)
+      except GAPI.serviceNotAvailable:
+        Ind.Decrement()
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+    Ind.Decrement()
+
+TASK_QUERY_TIME_MAP = {
+  'completedmin': 'completedMin',
+  'completedmax': 'completedMax',
+  'duemin': 'dueMin',
+  'duemax': 'dueMax',
+  'updatedmin': 'updatedMin',
+  }
+TASK_QUERY_STATE_MAP = {
+  'showcompleted': 'showCompleted',
+  'showdeleted': 'showDeleted',
+  'showhidden': 'showHidden',
+  }
+
+# gam <UserTypeEntity> show tasks [tasklists <TasklistIDEntity>]
+#	[completedmin <Time>] [completedmax <Time>]
+#	[duemin <Time>] [duemax <Time>]
+#	[updatedmin <Time>]
+#	[showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
+#	[compact|formatjson]
+# gam <UserTypeEntity> print tasks [tasklists <TasklistIDEntity>] [todrive <ToDriveAttribute>*]
+#	[completedmin <Time>] [completedmax <Time>]
+#	[duemin <Time>] [duemax <Time>]
+#	[updatedmin <Time>]
+#	[showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
+#	[formatjson [quotechar <Character>]]
+def printShowTasks(users):
+  csvPF = CSVPrintFile(['User', 'tasklistId', 'id', 'taskId', 'title', 'status', 'due', 'updated', 'completed'], 'sortall') if Act.csvFormat() else None
+  if csvPF:
+    csvPF.SetEscapeChar(None)
+  FJQC = FormatJSONQuoteChar(csvPF)
+  tasklistEntity = None
+  tlkwargs = {'maxResults': 100}
+  kwargs = {'maxResults': 100}
+  compact = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in {'tasklist', 'taskslists'}:
+      tasklistEntity = getUserObjectEntity(Cmd.OB_TASKLIST_ID_ENTITY, Ent.TASKLIST)
+    elif myarg in TASK_QUERY_TIME_MAP:
+      kwargs[TASK_QUERY_TIME_MAP[myarg]] = getTimeOrDeltaFromNow()
+    elif myarg in TASK_QUERY_STATE_MAP:
+      kwargs[TASK_QUERY_STATE_MAP[myarg]] = getBoolean()
+    elif myarg == 'showall':
+      for field in TASK_QUERY_STATE_MAP.values():
+        kwargs[field] = True
+    elif not csvPF and myarg == 'compact':
+      compact = True
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
+  if csvPF and FJQC.formatJSON:
+    csvPF.SetJSONTitles(['User', 'tasklistId', 'id', 'taskId', 'title', 'JSON'])
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if tasklistEntity is None:
+      user, svc = buildGAPIServiceObject(API.TASKS, user, i, count)
+      if not svc:
+        continue
+      printGettingEntityItemForWhom(Ent.TASKLIST, user, i, count)
+      try:
+        results = callGAPIpages(svc.tasklists(), 'list', 'items',
+                                pageMessage=getPageMessage(),
+                                throwReasons=GAPI.TASKLIST_THROW_REASONS,
+                                **tlkwargs)
+      except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, None], str(e), i, count)
+        continue
+      except GAPI.serviceNotAvailable:
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        continue
+      tasklists = [tasklist['id'] for tasklist in results]
+      jcount = len(tasklists)
+    else:
+      user, svc, tasklists, jcount = _validateUserGetObjectList(user, i, count, tasklistEntity, api=API.TASKS, showAction=FJQC is None or not FJQC.formatJSON)
+      if jcount == 0:
+        continue
+    Ind.Increment()
+    j = 0
+    for tasklist in tasklists:
+      j += 1
+      if csvPF:
+        printGettingEntityItemForWhom(Ent.TASK, tasklist, j, jcount)
+      try:
+        tasks = callGAPIpages(svc.tasks(), 'list', 'items',
+                                  throwReasons=GAPI.TASK_THROW_REASONS,
+                                  tasklist=tasklist, **kwargs)
+        if not csvPF:
+          kcount = len(tasks)
+          if not FJQC.formatJSON:
+            entityPerformActionNumItems([Ent.TASKLIST, tasklist], kcount, Ent.TASK, j, jcount)
+          Ind.Increment()
+          k = 0
+          for task in tasks:
+            k += 1
+            _showTask(tasklist, task, k, kcount, FJQC, compact)
+          Ind.Decrement()
+        else:
+          for task in tasks:
+            task['tasklistId'] = tasklist
+            task['taskId'] = f"{tasklist}/{task['id']}"
+            row = flattenJSON(task, flattened={'User': user}, skipObjects=TASK_SKIP_OBJECTS, timeObjects=TASK_TIME_OBJECTS)
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(row)
+            elif csvPF.CheckRowTitles(row):
+              row = {'User': user, 'id': task['id'], 'tasklistId': tasklist, 'taskId': task['taskId'], 'title': task.get('title', '')}
+              row['JSON'] = json.dumps(cleanJSON(task, skipObjects=TASK_SKIP_OBJECTS, timeObjects=TASK_TIME_OBJECTS),
+                                       ensure_ascii=False, sort_keys=True)
+              csvPF.WriteRowNoFilter(row)
+      except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, tasklist, Ent.TASK, None], str(e), i, count)
+      except GAPI.serviceNotAvailable:
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+    Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Tasks')
+
+TASKLIST_SKIP_OBJECTS = ['selfLink']
+TASKLIST_TIME_OBJECTS = ['updated']
+
+def _showTasklist(tasklist, j=0, jcount=0, FJQC=None, compact=False):
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(tasklist, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
+  printEntity([Ent.TASKLIST, tasklist['id']], j, jcount)
+  Ind.Increment()
+  showJSON(None, tasklist, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS)
+  Ind.Decrement()
+
+# gam <UserTypeEntity> create tasklist
+#	[title <String>]
+#	[returnidonly] [formatjson]
+# gam <UserTypeEntity> update tasklist <TasklistIDEntity>
+#	[title <String>]
+#	[formatjson]
+# gam <UserTypeEntity> info tasklist <TasklistIDEntity>
+#	[formatjson]
+# gam <UserTypeEntity> delete tasklist <TasklistIDEntity>
+# gam <UserTypeEntity> clear tasklist <TasklistIDEntity>
+def processTasklists(users):
+  action = Act.Get()
+  if action != Act.CREATE:
+    tasklistEntity = getUserObjectEntity(Cmd.OB_TASKLIST_ID_ENTITY, Ent.TASKLIST)
+  if action in {Act.DELETE, Act.CLEAR}:
+    FJQC = None
+    checkForExtraneousArguments()
+  else:
+    FJQC = FormatJSONQuoteChar()
+    body = {}
+    returnIdOnly = False
+    while Cmd.ArgumentsRemaining():
+      myarg = getArgument()
+      if action in {Act.CREATE, Act.UPDATE} and myarg == 'title':
+        body['title'] = getString(Cmd.OB_STRING, minLen=0)
+      elif action == Act.CREATE and myarg == 'returnidonly':
+        returnIdOnly = True
+      else:
+        FJQC.GetFormatJSON(myarg)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, svc, tasklists, jcount = _validateUserGetObjectList(user, i, count, tasklistEntity,
+                                                              api=API.TASKS, showAction=FJQC is None or not FJQC.formatJSON)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for tasklist in tasklists:
+      j += 1
+      try:
+        if action == Act.DELETE:
+          callGAPI(svc.tasklists(), 'delete',
+                   throwReasons=GAPI.TASK_THROW_REASONS,
+                   tasklist=tasklist)
+          entityActionPerformed([Ent.USER, user, Ent.TASKLIST, tasklist], j, jcount)
+        elif action == Act.CLEAR:
+          callGAPI(svc.tasks(), 'clear',
+                   throwReasons=GAPI.TASK_THROW_REASONS,
+                   tasklist=tasklist)
+          entityActionPerformed([Ent.USER, user, Ent.TASKLIST, tasklist], j, jcount)
+        elif action == Act.INFO:
+          result = callGAPI(svc.tasklists(), 'get',
+                            throwReasons=GAPI.TASK_THROW_REASONS,
+                            tasklist=tasklist)
+          _showTasklist(result, j, jcount, FJQC)
+        else:
+          if action == Act.CREATE:
+            result = callGAPI(svc.tasklists(), 'insert',
+                              throwReasons=GAPI.TASK_THROW_REASONS,
+                              body=body)
+            if returnIdOnly:
+              writeStdout(f"{result['id']}\n")
+              continue
+          else: # Act.UPDATE
+            result = callGAPI(svc.tasklists(), 'patch',
+                              throwReasons=GAPI.TASK_THROW_REASONS,
+                              tasklist=tasklist, body=body)
+          if not FJQC.formatJSON:
+            entityActionPerformed([Ent.USER, user, Ent.TASKLIST, result['id']], i, count)
+          Ind.Increment()
+          _showTasklist(result, j, jcount, FJQC)
+          Ind.Decrement()
+      except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, tasklist], str(e), j, jcount)
+      except GAPI.serviceNotAvailable:
+        Ind.Decrement()
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+    Ind.Decrement()
+
+# gam <UserTypeEntity> show tasklists
+#	[formatjson]
+# gam <UserTypeEntity> print tasklists [todrive <ToDriveAttribute>*]
+#	[formatjson [quotechar <Character>]]
+def printShowTasklists(users):
+  csvPF = CSVPrintFile(['User', 'id', 'title']) if Act.csvFormat() else None
+  if csvPF:
+    csvPF.SetEscapeChar(None)
+  FJQC = FormatJSONQuoteChar(csvPF)
+  kwargs = {'maxResults': 100}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, svc = buildGAPIServiceObject(API.TASKS, user, i, count)
+    if not svc:
+      continue
+    printGettingAllEntityItemsForWhom(Ent.TASKLIST, user, i, count)
+    try:
+      tasklists = callGAPIpages(svc.tasklists(), 'list', 'items',
+                                pageMessage=getPageMessage(),
+                                throwReasons=GAPI.TASKLIST_THROW_REASONS,
+                                **kwargs)
+      if not csvPF:
+        jcount = len(tasklists)
+        if not  FJQC.formatJSON:
+          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TASKLIST, i, count)
+        Ind.Increment()
+        j = 0
+        for tasklist in tasklists:
+          j += 1
+          _showTasklist(tasklist, j, jcount, FJQC)
+        Ind.Decrement()
+      else:
+        for tasklist in tasklists:
+          row = flattenJSON(tasklist, flattened={'User': user}, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS)
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(row)
+          elif csvPF.CheckRowTitles(row):
+            row = {'User': user, 'id': tasklist['id'], 'title': tasklist.get('title', '')}
+            row['JSON'] = json.dumps(cleanJSON(tasklist, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS),
+                                     ensure_ascii=False, sort_keys=True)
+            csvPF.WriteRowNoFilter(row)
+    except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, None], str(e), i, count)
+    except GAPI.serviceNotAvailable:
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Tasklists')
 
 def getCRMOrgId():
   setTrueCustomerId()
@@ -61905,6 +62351,8 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_SITE:			createUserSite,
   Cmd.ARG_SITEACL:		processUserSiteACLs,
   Cmd.ARG_SMIME:		createSmime,
+  Cmd.ARG_TASK:			processTasks,
+  Cmd.ARG_TASKLIST:		processTasklists,
   }
 
 USER_COMMANDS_WITH_OBJECTS = {
@@ -61949,7 +62397,8 @@ USER_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_GUARDIAN:		clearGuardians,
       Cmd.ARG_PEOPLECONTACT:	clearUserPeopleContacts,
       Cmd.ARG_SHEETRANGE:	clearSheetRanges,
-     }
+      Cmd.ARG_TASKLIST:		processTasklists,
+   }
     ),
   'collect':
     (Act.COLLECT,
@@ -62010,6 +62459,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SMIME:		deleteSmime,
       Cmd.ARG_SHAREDDRIVE:	deleteSharedDrive,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
+      Cmd.ARG_TASK:		processTasks,
+      Cmd.ARG_TASKLIST:		processTasklists,
       Cmd.ARG_THREAD:		processThreads,
       Cmd.ARG_TOKEN:		deleteTokens,
       Cmd.ARG_USER:		deleteUsers,
@@ -62066,6 +62517,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SHEET:		infoPrintShowSheets,
       Cmd.ARG_SITE:		infoUserSites,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
+      Cmd.ARG_TASK:		processTasks,
+      Cmd.ARG_TASKLIST:		processTasklists,
       Cmd.ARG_USER:		infoUsers,
      }
     ),
@@ -62086,6 +62539,7 @@ USER_COMMANDS_WITH_OBJECTS = {
      {Cmd.ARG_DRIVEFILE:	moveDriveFile,
       Cmd.ARG_EVENT:		moveCalendarEvents,
       Cmd.ARG_OTHERCONTACT:	processUserPeopleOtherContacts,
+      Cmd.ARG_TASK:		processTasks,
      }
     ),
   'purge':
@@ -62147,6 +62601,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SITE:		printShowUserSites,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
       Cmd.ARG_SITEACTIVITY:	printUserSiteActivity,
+      Cmd.ARG_TASK:		printShowTasks,
+      Cmd.ARG_TASKLIST:		printShowTasklists,
       Cmd.ARG_THREAD:		printShowThreads,
       Cmd.ARG_TOKEN:		printShowTokens,
       Cmd.ARG_USER:		doPrintUserEntity,
@@ -62217,6 +62673,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SITE:		printShowUserSites,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
       Cmd.ARG_SMIME:		printShowSmimes,
+      Cmd.ARG_TASK:		printShowTasks,
+      Cmd.ARG_TASKLIST:		printShowTasklists,
       Cmd.ARG_THREAD:		printShowThreads,
       Cmd.ARG_TOKEN:		printShowTokens,
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
@@ -62308,6 +62766,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_SMIME:		updateSmime,
       Cmd.ARG_SITE:		updateUserSites,
       Cmd.ARG_SITEACL:		processUserSiteACLs,
+      Cmd.ARG_TASK:		processTasks,
+      Cmd.ARG_TASKLIST:		processTasklists,
       Cmd.ARG_USER:		updateUsers,
      }
     ),
@@ -62407,6 +62867,8 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_SITES:		Cmd.ARG_SITE,
   Cmd.ARG_SITEACLS:		Cmd.ARG_SITEACL,
   Cmd.ARG_SMIMES:		Cmd.ARG_SMIME,
+  Cmd.ARG_TASKS:		Cmd.ARG_TASK,
+  Cmd.ARG_TASKLISTS:		Cmd.ARG_TASKLIST,
   Cmd.ARG_TEAMDRIVE:		Cmd.ARG_SHAREDDRIVE,
   Cmd.ARG_TEAMDRIVES:		Cmd.ARG_SHAREDDRIVE,
   Cmd.ARG_TEAMDRIVEACLS:	Cmd.ARG_SHAREDDRIVEACLS,
@@ -62559,6 +63021,8 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
     printErrorMessage(MEMORY_ERROR_RC, Msg.GAM_OUT_OF_MEMORY)
     showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
+  except (GAPI.permissionDenied, GAPI.accessNotConfigured):
+    SvcAcctAPIDisabledExit()
   except SystemExit as e:
     GM.Globals[GM.SYSEXITRC] = e.code
     if GM.Globals[GM.SYSEXITRC] != STDOUT_STDERR_ERROR_RC and not inLoop:
