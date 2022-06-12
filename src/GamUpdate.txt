@@ -1,3 +1,10 @@
+6.24.01
+
+Updated `gam <UserTypeEntity> print|show tasks` to display tasks in hierarchical order.
+
+Added option `orderby completed|due|updated` to `gam <UserTypeEntity> print|show tasks` to
+display tasks in date order within the hierarchy.
+
 6.24.00
 
 Added commands to manage and display Google Tasks.

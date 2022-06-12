@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.00'
+__version__ = '6.24.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -60802,6 +60802,12 @@ def processTasks(users):
         break
     Ind.Decrement()
 
+TASK_ORDERBY_CHOICE_MAP = {
+  'completed': ('completed', 'No date'),
+  'due': ('due', 'No date'),
+  'updated': ('updated', 'No date'),
+  }
+
 TASK_QUERY_TIME_MAP = {
   'completedmin': 'completedMin',
   'completedmax': 'completedMax',
@@ -60820,14 +60826,49 @@ TASK_QUERY_STATE_MAP = {
 #	[duemin <Time>] [duemax <Time>]
 #	[updatedmin <Time>]
 #	[showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
+#	[orderby completed|due|updated]
 #	[compact|formatjson]
 # gam <UserTypeEntity> print tasks [tasklists <TasklistIDEntity>] [todrive <ToDriveAttribute>*]
 #	[completedmin <Time>] [completedmax <Time>]
 #	[duemin <Time>] [duemax <Time>]
 #	[updatedmin <Time>]
 #	[showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
+#	[orderby completed|due|updated]
 #	[formatjson [quotechar <Character>]]
 def printShowTasks(users):
+  def _showTaskAndChildren(tasklist, taskId, k, compact):
+    if taskId in taskParentsProcessed:
+      return k
+    taskParentsProcessed.add(taskId)
+    if taskId in taskData:
+      k += 1
+      _showTask(tasklist, taskData[taskId], k, kcount, FJQC, compact)
+      Ind.Increment()
+    for task in taskParents.get(taskId, []):
+      k = _showTaskAndChildren(tasklist, task['taskId'], k, compact)
+    if taskId in taskData:
+      Ind.Decrement()
+    return k
+
+  def _printTaskAndChildren(tasklist, taskId):
+    if taskId in taskParentsProcessed:
+      return
+    taskParentsProcessed.add(taskId)
+    if taskId in taskData:
+      task = taskData[taskId]
+      task['tasklistId'] = tasklist
+      task['taskId'] = f"{tasklist}/{task['id']}"
+      row = flattenJSON(task, flattened={'User': user}, skipObjects=TASK_SKIP_OBJECTS, timeObjects=TASK_TIME_OBJECTS)
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(row)
+      elif csvPF.CheckRowTitles(row):
+        row = {'User': user, 'id': task['id'], 'tasklistId': tasklist, 'taskId': task['taskId'], 'title': task.get('title', '')}
+        row['JSON'] = json.dumps(cleanJSON(task, skipObjects=TASK_SKIP_OBJECTS, timeObjects=TASK_TIME_OBJECTS),
+                                 ensure_ascii=False, sort_keys=True)
+        csvPF.WriteRowNoFilter(row)
+      for task in taskParents.get(taskId, []):
+        _printTaskAndChildren(tasklist, task['taskId'])
+
   csvPF = CSVPrintFile(['User', 'tasklistId', 'id', 'taskId', 'title', 'status', 'due', 'updated', 'completed'], 'sortall') if Act.csvFormat() else None
   if csvPF:
     csvPF.SetEscapeChar(None)
@@ -60836,6 +60877,7 @@ def printShowTasks(users):
   tlkwargs = {'maxResults': 100}
   kwargs = {'maxResults': 100}
   compact = False
+  orderBy = orderByNoDataValue = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -60851,6 +60893,8 @@ def printShowTasks(users):
         kwargs[field] = True
     elif not csvPF and myarg == 'compact':
       compact = True
+    elif myarg == 'orderby':
+      orderBy, orderByNoDataValue = getChoice(TASK_ORDERBY_CHOICE_MAP, mapChoice=True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if csvPF and FJQC.formatJSON:
@@ -60890,28 +60934,37 @@ def printShowTasks(users):
         tasks = callGAPIpages(svc.tasks(), 'list', 'items',
                                   throwReasons=GAPI.TASK_THROW_REASONS,
                                   tasklist=tasklist, **kwargs)
+        taskParents = {None: []}
+        taskData = {}
+        taskParentsProcessed = set()
+        for task in tasks:
+          taskData[task['id']] = task
+          parent = task.get('parent', None)
+          taskParents.setdefault(parent, [])
+          taskInfo = {'taskId': task['id'], 'position': task['position']}
+          if orderBy is not None:
+            taskInfo[orderBy] = task.get(orderBy, orderByNoDataValue)
+          taskParents[parent].append(taskInfo)
+        if orderBy is None:
+          for parent in taskParents:
+            taskParents[parent].sort(key=lambda k: k['position'])
+        else:
+          for parent in taskParents:
+            taskParents[None].sort(key=lambda k: (k[orderBy], k['position']))
         if not csvPF:
           kcount = len(tasks)
           if not FJQC.formatJSON:
             entityPerformActionNumItems([Ent.TASKLIST, tasklist], kcount, Ent.TASK, j, jcount)
           Ind.Increment()
           k = 0
-          for task in tasks:
-            k += 1
-            _showTask(tasklist, task, k, kcount, FJQC, compact)
+          for parent in taskParents.values():
+            for task in parent:
+              k = _showTaskAndChildren(tasklist, task['taskId'], k, compact)
           Ind.Decrement()
         else:
-          for task in tasks:
-            task['tasklistId'] = tasklist
-            task['taskId'] = f"{tasklist}/{task['id']}"
-            row = flattenJSON(task, flattened={'User': user}, skipObjects=TASK_SKIP_OBJECTS, timeObjects=TASK_TIME_OBJECTS)
-            if not FJQC.formatJSON:
-              csvPF.WriteRowTitles(row)
-            elif csvPF.CheckRowTitles(row):
-              row = {'User': user, 'id': task['id'], 'tasklistId': tasklist, 'taskId': task['taskId'], 'title': task.get('title', '')}
-              row['JSON'] = json.dumps(cleanJSON(task, skipObjects=TASK_SKIP_OBJECTS, timeObjects=TASK_TIME_OBJECTS),
-                                       ensure_ascii=False, sort_keys=True)
-              csvPF.WriteRowNoFilter(row)
+          for parent in taskParents.values():
+            for task in parent:
+              _printTaskAndChildren(tasklist, task['taskId'])
       except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, tasklist, Ent.TASK, None], str(e), i, count)
       except GAPI.serviceNotAvailable:
@@ -60923,7 +60976,7 @@ def printShowTasks(users):
 TASKLIST_SKIP_OBJECTS = ['selfLink']
 TASKLIST_TIME_OBJECTS = ['updated']
 
-def _showTasklist(tasklist, j=0, jcount=0, FJQC=None, compact=False):
+def _showTasklist(tasklist, j=0, jcount=0, FJQC=None):
   if FJQC is not None and FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(tasklist, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
     return

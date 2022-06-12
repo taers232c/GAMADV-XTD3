@@ -955,9 +955,9 @@ Specify a collection of items by directly specifying them; the item type is dete
 <SiteEntity> ::=
         <SiteList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <TasklistIDEntity> ::=
-        <TasklistIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+        <TasklistIDList> | <FileSelector> | <CSVFileSelector>
 <TasklistIDTaskIDEntity> ::=
-        <TasklistIDTaskIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+        <TasklistIDTaskIDList> | <FileSelector> | <CSVFileSelector>
 <UserEntity> ::=
         <UserList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
@@ -6341,12 +6341,14 @@ gam <UserTypeEntity> show tasks [tasklists <TasklistIDEntity>]
         [duemin <Time>] [duemax <Time>]
         [updatedmin <Time>]
         [showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
+        [orderby completed|due|updated]
         [compact|formatjson]
 gam <UserTypeEntity> print tasks [tasklists <TasklistIDEntity>] [todrive <ToDriveAttribute>*]
         [completedmin <Time>] [completedmax <Time>]
         [duemin <Time>] [duemax <Time>]
         [updatedmin <Time>]
         [showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
+        [orderby completed|due|updated]
         [formatjson [quotechar <Character>]]
 
 <TasklistAttribute> ::=
