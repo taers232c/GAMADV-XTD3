@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.04'
+__version__ = '6.24.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -50959,7 +50959,7 @@ def transferDrive(users):
                                              Ent.Singular(Ent.DRIVE_FOLDER_ID), targetFolderId,
                                              Msg.NOT_OWNED_BY.format(targetUser)],
                                             '\n'))
-        targetFolderId = targetfolder['id']
+        targetFolderId = targetFolder['id']
         targetFolderName = targetFolder['name']
       elif targetFolderName:
         result = callGAPIpages(targetDrive.files(), 'list', 'files',
@@ -60938,20 +60938,24 @@ def printShowTasks(users):
         taskParents = {None: []}
         taskData = {}
         taskParentsProcessed = set()
-        for task in tasks:
-          taskData[task['id']] = task
-          parent = task.get('parent', None)
-          taskParents.setdefault(parent, [])
-          taskInfo = {'taskId': task['id'], 'position': task['position']}
-          if orderBy is not None:
-            taskInfo[orderBy] = task.get(orderBy, orderByNoDataValue)
-          taskParents[parent].append(taskInfo)
         if orderBy is None:
+          for task in tasks:
+            taskData[task['id']] = task
+            parent = task.get('parent', None)
+            taskInfo = {'taskId': task['id'], 'parent': parent, 'position': task['position']}
+            taskParents.setdefault(parent, [])
+            taskParents[parent].append(taskInfo)
           for parent in taskParents:
             taskParents[parent].sort(key=lambda k: k['position'])
         else:
-          for parent in taskParents:
-            taskParents[None].sort(key=lambda k: (k[orderBy], k['position']))
+          for task in tasks:
+            taskData[task['id']] = task
+            if orderBy not in task:
+              task[orderBy] = orderByNoDataValue
+            taskInfo = {'taskId': task['id'], orderBy: task[orderBy],
+                        'parent': task.get('parent', ' '), 'position': task['position']}
+            taskParents[None].append(taskInfo)
+          taskParents[None].sort(key=lambda k: (k[orderBy], k['parent'], k['position']))
         if not csvPF:
           kcount = len(tasks)
           if not FJQC.formatJSON:

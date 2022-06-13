@@ -1,3 +1,10 @@
+6.25.05
+
+Updated option `orderby completed|due|updated` to `gam <UserTypeEntity> print|show tasks` to
+display tasks in date order regardless of the hierarchy.
+
+Fixed bug in 6.24.03 bug fix in `gam <UserTypeEntity> transfer drive <UserItem> ... targetfolderid root ...`.
+
 6.24.04
 
 Updated `gam update chromepolicy` to allow zero-length values for `TYPE_STRING` policy values;
