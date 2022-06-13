@@ -1,3 +1,8 @@
+6.24.03
+
+Fixed bug in `gam <UserTypeEntity> transfer drive <UserItem> ... targetfolderid root ...` that
+transferred data to the source user's root folder, not the target user's root folder.
+
 6.24.02
 
 Fixed bug in `gam print crostelemetry` that included a spurious column header, `devicdId`, in the output.
