@@ -1,3 +1,7 @@
+6.24.02
+
+Fixed bug in `gam print crostelemetry` that included a spurious column header, `devicdId`, in the output.
+
 6.24.01
 
 Updated `gam <UserTypeEntity> print|show tasks` to display tasks in hierarchical order.

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.01'
+__version__ = '6.24.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -21552,7 +21552,7 @@ def doInfoPrintShowCrOSTelemetry():
     Act.Set(Act.SHOW)
   else:
     pfilter = None
-  csvPF = CSVPrintFile(['devicdId'], CROS_TELEMETRY_SCALAR_FIELDS) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['deviceId'], CROS_TELEMETRY_SCALAR_FIELDS) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   diskPercentOnly = showOrgUnitPath = False
   listLimit = 0
