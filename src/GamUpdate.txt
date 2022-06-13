@@ -1,3 +1,8 @@
+6.24.04
+
+Updated `gam update chromepolicy` to allow zero-length values for `TYPE_STRING` policy values;
+this is required to be able to clear a value from such a policy.
+
 6.24.03
 
 Fixed bug in `gam <UserTypeEntity> transfer drive <UserItem> ... targetfolderid root ...` that

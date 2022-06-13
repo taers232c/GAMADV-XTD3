@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.03'
+__version__ = '6.24.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -22908,8 +22908,8 @@ def doUpdateChromePolicy():
           Cmd.Backup()
           missingChoiceExit(schemas[myarg]['settings'])
         casedField = schemas[myarg]['settings'][field]['name']
-        value = getString(Cmd.OB_STRING)
         vtype = schemas[myarg]['settings'][field]['type']
+        value = getString(Cmd.OB_STRING, minLen=0 if vtype == 'TYPE_STRING' else 1)
         if vtype in ['TYPE_INT64', 'TYPE_INT32', 'TYPE_UINT64']:
           if not value.isnumeric():
             Cmd.Backup()
