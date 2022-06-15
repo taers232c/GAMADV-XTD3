@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.05'
+__version__ = '6.24.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -46956,6 +46956,7 @@ def printShowFileCounts(users):
     csvPF.SetZeroBlankMimeTypeCounts(True)
   fieldsList = ['mimeType']
   DLP = DriveListParameters({'allowChoose': False, 'allowCorpora': True, 'allowQuery': True, 'mimeTypeInQuery': True})
+  sharedDriveId = sharedDriveName = ''
   showSize = False
   summary = FILECOUNT_SUMMARY_NONE
   summaryUser = FILECOUNT_SUMMARY_USER
@@ -47007,7 +47008,7 @@ def printShowFileCounts(users):
     user, drive = _validateUserSharedDrive(user, i, count, fileIdEntity)
     if not drive:
       continue
-    sharedDriveId = fileIdEntity.get('shareddrive', {}).get('driveId', None)
+    sharedDriveId = fileIdEntity.get('shareddrive', {}).get('driveId', '')
     if sharedDriveId:
       sharedDriveName = _getSharedDriveNameFromId(drive, sharedDriveId)
     else:
@@ -47082,7 +47083,8 @@ def printShowFileCounts(users):
     showMimeTypeCounts(user, mimeTypeCounts, sizeTotals['User'], sharedDriveId, sharedDriveName, i, count)
     incrementSizeSummary()
   if summary != FILECOUNT_SUMMARY_NONE:
-    showMimeTypeCounts(summaryUser, summaryMimeTypeCounts, sizeTotals['Summary'], '', '', 0, 0)
+    showMimeTypeCounts(summaryUser, summaryMimeTypeCounts, sizeTotals['Summary'],
+                       '' if count > 1 else sharedDriveId, '' if count > 1 else sharedDriveName, 0, 0)
   if csvPF:
     csvPF.writeCSVfile('Drive File Counts')
 

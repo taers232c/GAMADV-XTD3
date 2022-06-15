@@ -1,4 +1,9 @@
-6.25.05
+6.24.06
+
+Improved `gam user user@domain.com print filecounts select teamdriveid "<DriveFileID>" summary only`
+to display the Shared Drive ID and name on the summary line.
+
+6.24.05
 
 Updated option `orderby completed|due|updated` to `gam <UserTypeEntity> print|show tasks` to
 display tasks in date order regardless of the hierarchy.
