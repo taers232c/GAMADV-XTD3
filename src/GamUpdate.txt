@@ -1,3 +1,10 @@
+6.24.07
+
+Updated commands that process group settings to handle the following error:
+```
+ERROR: 401: authError - Authorization Failed
+```
+
 6.24.06
 
 Improved `gam user user@domain.com print filecounts select teamdriveid "<DriveFileID>" summary only`
