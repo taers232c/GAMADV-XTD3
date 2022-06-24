@@ -5285,10 +5285,12 @@ gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttr
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [stripcrsfromname]
 
-gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed]
+gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem>
+        [<DriveFileParentAttribute>] [includetrashed]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
-gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
+gam <UserTypeEntity> claim ownership <DriveFileEntity>
+        [<DriveFileParentAttribute>] [includetrashed]
         [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
         [restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]]
         [keepuser | (retainrole commenter|reader|writer|editor|fileorganizer|none)] [noretentionmessages]

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.07'
+__version__ = '6.24.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51088,16 +51088,18 @@ def transferDrive(users):
   if csvPF:
     csvPF.writeCSVfile('Files to Transfer')
 
-def validateUserGetPermissionId(user, i=0, count=0):
-  _, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
+def validateUserGetPermissionId(user, i=0, count=0, drive=None):
+  if drive is None:
+    _, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
   if drive:
     try:
-      return callGAPI(drive.about(), 'get',
-                      throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
-                      fields='user(permissionId)')['user']['permissionId']
+      result = callGAPI(drive.about(), 'get',
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
+                        fields='user(permissionId)')
+      return (drive, result['user']['permissionId'])
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-  return None
+  return (None, None)
 
 def getPermissionIdForEmail(user, i, count, email):
   currentSvcAcctAPI = GM.Globals[GM.CURRENT_SVCACCT_API]
@@ -51115,7 +51117,8 @@ def getPermissionIdForEmail(user, i, count, email):
       systemErrorExit(GM.Globals[GM.SYSEXITRC], None)
   return None
 
-# gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem> [includetrashed]
+# gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem>
+#	[<DriveFileParentAttribute>] [includetrashed]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
 def transferOwnership(users):
@@ -51161,8 +51164,11 @@ def transferOwnership(users):
   body = {}
   newOwner = getEmailAddress()
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
-  filepath = includeTrashed = False
+  changeParents = filepath = includeTrashed = False
   csvPF = fileTree = None
+  addParents = ''
+  parentBody = {}
+  parentParms = initDriveFileAttributes()
   buildTree = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -51178,12 +51184,18 @@ def transferOwnership(users):
       csvPF = CSVPrintFile(['OldOwner', 'NewOwner', 'type', 'id', 'name'])
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif getDriveFileParentAttribute(myarg, parentParms):
+      changeParents = True
     else:
       unknownArgumentExit()
   Act.Set(Act.TRANSFER_OWNERSHIP)
-  permissionId = validateUserGetPermissionId(newOwner)
+  targetDrive, permissionId = validateUserGetPermissionId(newOwner)
   if not permissionId:
     return
+  if changeParents:
+    if not _getDriveFileParentInfo(targetDrive, newOwner, 0, 0, parentBody, parentParms):
+      return
+    addParents = ','.join(parentBody['parents'])
   if csvPF:
     if filepath:
       csvPF.AddTitles('paths')
@@ -51249,6 +51261,9 @@ def transferOwnership(users):
       if includeTrashed or not fileEntryInfo['trashed']:
         if fileEntryInfo['ownedByMe'] and fileEntryInfo['name'] != MY_DRIVE:
           filesToTransfer[fileId] = {'name': fileEntryInfo['name'], 'type': entityType}
+          if changeParents:
+            filesToTransfer[fileId]['addParents'] = addParents
+            filesToTransfer[fileId]['removeParents'] = ','.join(fileEntryInfo.get('parents', []))
         if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER:
           if buildTree:
             _identifyFilesToTransfer(fileEntry)
@@ -51266,15 +51281,24 @@ def transferOwnership(users):
       entityPerformActionNumItemsModifier([Ent.USER, user], kcount, Ent.DRIVE_FILE_OR_FOLDER, f'{Act.MODIFIER_TO} {Ent.Singular(Ent.USER)}: {newOwner}', i, count)
       Ind.Increment()
       k = 0
-      for xferFileId in filesToTransfer:
+      for xferFileId, fileInfo in iter(filesToTransfer.items()):
         k += 1
-        entityType = filesToTransfer[xferFileId]['type']
-        fileDesc = f'{filesToTransfer[xferFileId]["name"]} ({xferFileId})'
+        entityType = fileInfo['type']
+        fileDesc = f'{fileInfo["name"]} ({xferFileId})'
+        kvList = [Ent.USER, user, entityType, fileDesc]
         try:
+          if changeParents and 'removeParents' in fileInfo:
+            callGAPI(drive.files(), 'update',
+                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                     fileId=xferFileId, removeParents=fileInfo['removeParents'], fields='', supportsAllDrives=True)
+            action = Act.Get()
+            Act.Set(Act.REMOVE)
+            entityModifierNewValueItemValueListActionPerformed(kvList, Act.MODIFIER_FROM, None, [Ent.DRIVE_FOLDER, fileInfo['removeParents']], k, kcount)
+            Act.Set(action)
           callGAPI(drive.permissions(), 'update',
                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND],
                    fileId=xferFileId, permissionId=permissionId, transferOwnership=True, body=body, fields='')
-          entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_TO, None, [Ent.USER, newOwner], k, kcount)
+          entityModifierNewValueItemValueListActionPerformed(kvList, Act.MODIFIER_TO, None, [Ent.USER, newOwner], k, kcount)
         except GAPI.permissionNotFound:
           # this might happen if target user isn't explicitly in ACL (i.e. shared with anyone)
           try:
@@ -51284,34 +51308,59 @@ def transferOwnership(users):
             callGAPI(drive.permissions(), 'update',
                      throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND],
                      fileId=xferFileId, permissionId=permissionId, transferOwnership=True, body=body, fields='')
-            entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_TO, None, [Ent.USER, newOwner], k, kcount)
+            entityModifierNewValueItemValueListActionPerformed(kvList, Act.MODIFIER_TO, None, [Ent.USER, newOwner], k, kcount)
           except GAPI.invalidSharingRequest as e:
-            entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), k, kcount)
+            entityActionFailedWarning(kvList, Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), k, kcount)
+            continue
           except GAPI.permissionNotFound:
-            entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileDesc, Ent.PERMISSION_ID, permissionId], k, kcount)
+            entityDoesNotHaveItemWarning(kvList+[Ent.PERMISSION_ID, permissionId], k, kcount)
+            continue
           except GAPI.fileNotFound:
-            entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Msg.DOES_NOT_EXIST, k, kcount)
+            entityActionFailedWarning(kvList, Msg.DOES_NOT_EXIST, k, kcount)
+            continue
           except (GAPI.forbidden, GAPI.insufficientFilePermissions) as e:
-            entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], str(e), k, kcount)
+            entityActionFailedWarning(kvList, str(e), k, kcount)
+            continue
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
             userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+            continue
         except GAPI.fileNotFound:
-          entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Msg.DOES_NOT_EXIST, k, kcount)
+          entityActionFailedWarning(kvList, Msg.DOES_NOT_EXIST, k, kcount)
+          continue
         except (GAPI.forbidden, GAPI.insufficientFilePermissions) as e:
-          entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], str(e), k, kcount)
+          entityActionFailedWarning(kvList, str(e), k, kcount)
+          continue
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           break
+        if changeParents and 'addParents' in fileInfo:
+          kvList = [Ent.USER, newOwner, entityType, fileDesc]
+          try:
+            callGAPI(targetDrive.files(), 'update',
+                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.CANNOT_ADD_PARENT],
+                     fileId=xferFileId, addParents=fileInfo['addParents'], fields='', supportsAllDrives=True)
+            action = Act.Get()
+            Act.Set(Act.ADD)
+            entityModifierNewValueItemValueListActionPerformed(kvList, Act.MODIFIER_TO, None, [Ent.DRIVE_FOLDER, fileInfo['addParents']], k, kcount)
+            Act.Set(action)
+          except GAPI.fileNotFound:
+            entityActionFailedWarning(kvList, Msg.DOES_NOT_EXIST, k, kcount)
+          except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.cannotAddParent) as e:
+            entityActionFailedWarning(kvList, str(e), k, kcount)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(newOwner, str(e), 0, 0)
       Ind.Decrement()
       Ind.Decrement()
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Files to Transfer Ownership')
 
-# gam <UserTypeEntity> claim ownership <DriveFileEntity> [includetrashed]
+# gam <UserTypeEntity> claim ownership <DriveFileEntity>
+#	[<DriveFileParentAttribute>] [includetrashed]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
-#	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]] [keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
+#	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]]
+#	[keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
 #	[preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]d
 def claimOwnership(users):
   def _identifyFilesToClaim(fileEntry):
@@ -51384,6 +51433,9 @@ def claimOwnership(users):
   skipusers = []
   subdomains = []
   filepath = includeTrashed = False
+  addParents = ''
+  parentBody = {}
+  parentParms = initDriveFileAttributes()
   sourceRetainRoleBody = {'role': 'writer'}
   showRetentionMessages = True
   oldOwnerPermissionIds = {}
@@ -51422,6 +51474,8 @@ def claimOwnership(users):
       csvPF = CSVPrintFile(['OldOwner', 'NewOwner', 'type', 'id', 'name'])
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif getDriveFileParentAttribute(myarg, parentParms):
+      changeParents = True
     else:
       unknownArgumentExit()
   Act.Set(Act.CLAIM_OWNERSHIP)
@@ -51438,9 +51492,13 @@ def claimOwnership(users):
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity)
     if not drive:
       continue
-    permissionId = validateUserGetPermissionId(user, i, count)
+    _, permissionId = validateUserGetPermissionId(user, i, count, drive)
     if not permissionId:
       continue
+    if changeParents:
+      if not _getDriveFileParentInfo(drive, user, i, count, parentBody, parentParms):
+        return
+      addParents = ','.join(parentBody['parents'])
     entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DRIVE_FILE_OR_FOLDER, i, count)
     if jcount == 0:
       continue
@@ -51482,7 +51540,7 @@ def claimOwnership(users):
           fileEntryInfo = callGAPI(drive.files(), 'get',
                                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                                    fileId=fileId,
-                                   fields='id,name,parents,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId)')
+                                   fields='id,name,mimeType,ownedByMe,trashed,owners(emailAddress,permissionId)')
         except GAPI.fileNotFound:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId], Msg.NOT_FOUND, j, jcount)
           continue
@@ -51500,6 +51558,9 @@ def claimOwnership(users):
           filesToClaim.setdefault(owner, {})
           if fileId not in filesToClaim[owner]:
             filesToClaim[owner][fileId] = {'name': fileEntryInfo['name'], 'type': entityType}
+            if changeParents:
+              filesToClaim[owner][fileId]['addParents'] = addParents
+              filesToClaim[owner][fileId]['removeParents'] = True
         if buildTree:
           _identifyFilesToClaim(fileEntry)
         else:
@@ -51529,56 +51590,94 @@ def claimOwnership(users):
                                               f'{Act.MODIFIER_FROM} {Ent.Singular(Ent.USER)}: {oldOwner}', k, kcount)
           Ind.Increment()
           l = 0
-          for ofileId, fileInfo in iter(filesToClaim[oldOwner].items()):
+          for xferFileId, fileInfo in iter(filesToClaim[oldOwner].items()):
             l += 1
-            if bodyShare:
-              callGAPI(sourceDrive.files(), 'update',
-                       fileId=ofileId, body=bodyShare, fields='')
             entityType = fileInfo['type']
-            fileDesc = f'{fileInfo["name"]} ({ofileId})'
+            fileDesc = f'{fileInfo["name"]} ({xferFileId})'
+            kvList = [Ent.USER, oldOwner, entityType, fileDesc]
             try:
+              if bodyShare:
+                callGAPI(sourceDrive.files(), 'update',
+                         fileId=xferFileId, body=bodyShare, fields='')
+              if changeParents and 'removeParents' in fileInfo:
+                result = callGAPI(sourceDrive.files(), 'get',
+                                  throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                  fileId=xferFileId, fields='parents')
+                removeParents = ','.join(result.get('parents', []))
+                if removeParents:
+                  callGAPI(sourceDrive.files(), 'update',
+                           throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS,
+                           fileId=xferFileId, removeParents=removeParents, fields='', supportsAllDrives=True)
+                  action = Act.Get()
+                  Act.Set(Act.REMOVE)
+                  entityModifierNewValueItemValueListActionPerformed(kvList, Act.MODIFIER_FROM, None,
+                                                                     [Ent.DRIVE_FOLDER, removeParents], l, lcount)
+                  Act.Set(action)
               callGAPI(sourceDrive.permissions(), 'update',
                        throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND],
-                       fileId=ofileId, permissionId=permissionId, transferOwnership=True, body=body, fields='')
-              entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, [Ent.USER, oldOwner], l, lcount)
-              _processRetainedRole(user, i, count, oldOwner, entityType, ofileId, fileDesc, l, lcount)
+                       fileId=xferFileId, permissionId=permissionId, transferOwnership=True, body=body, fields='')
+              kvList = [Ent.USER, user, entityType, fileDesc]
+              entityModifierNewValueItemValueListActionPerformed(kvList, Act.MODIFIER_FROM, None, [Ent.USER, oldOwner], l, lcount)
+              _processRetainedRole(user, i, count, oldOwner, entityType, xferFileId, fileDesc, l, lcount)
             except GAPI.permissionNotFound:
               # if claimer not in ACL (file might be visible for all with link)
               try:
                 callGAPI(sourceDrive.permissions(), 'create',
                          throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INVALID_SHARING_REQUEST],
-                         fileId=ofileId, sendNotificationEmail=False, body=bodyAdd, fields='')
+                         fileId=xferFileId, sendNotificationEmail=False, body=bodyAdd, fields='')
                 callGAPI(sourceDrive.permissions(), 'update',
                          throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.PERMISSION_NOT_FOUND],
-                         fileId=ofileId, permissionId=permissionId, transferOwnership=True, body=body, fields='')
-                entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, entityType, fileDesc], Act.MODIFIER_FROM, None, [Ent.USER, oldOwner], l, lcount)
-                _processRetainedRole(user, i, count, oldOwner, entityType, ofileId, fileDesc, l, lcount)
+                         fileId=xferFileId, permissionId=permissionId, transferOwnership=True, body=body, fields='')
+                entityModifierNewValueItemValueListActionPerformed(kvList, Act.MODIFIER_FROM, None, [Ent.USER, oldOwner], l, lcount)
+                _processRetainedRole(user, i, count, oldOwner, entityType, xferFileId, fileDesc, l, lcount)
               except GAPI.invalidSharingRequest as e:
-                entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), l, lcount)
+                entityActionFailedWarning(kvList, Ent.TypeNameMessage(Ent.PERMISSION_ID, permissionId, str(e)), l, lcount)
+                continue
               except GAPI.permissionNotFound:
-                entityDoesNotHaveItemWarning([Ent.USER, user, entityType, fileDesc, Ent.PERMISSION_ID, permissionId], l, lcount)
+                entityDoesNotHaveItemWarning(kvList+[Ent.PERMISSION_ID, permissionId], l, lcount)
+                continue
               except GAPI.fileNotFound:
-                entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Msg.DOES_NOT_EXIST, l, lcount)
+                entityActionFailedWarning(kvList, Msg.DOES_NOT_EXIST, l, lcount)
+                continue
               except (GAPI.forbidden, GAPI.insufficientFilePermissions) as e:
-                entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], str(e), l, lcount)
+                entityActionFailedWarning(kvList, str(e), l, lcount)
+                continue
               except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
                 userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+                continue
             except GAPI.fileNotFound:
-              entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], Msg.DOES_NOT_EXIST, l, lcount)
+              entityActionFailedWarning(kvList, Msg.DOES_NOT_EXIST, l, lcount)
+              continue
             except (GAPI.forbidden, GAPI.insufficientFilePermissions) as e:
-              entityActionFailedWarning([Ent.USER, user, entityType, fileDesc], str(e), l, lcount)
+              entityActionFailedWarning(kvList, str(e), l, lcount)
+              continue
             except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
               userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
               break
+            if changeParents and 'addParents' in fileInfo:
+              try:
+                callGAPI(drive.files(), 'update',
+                         throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.CANNOT_ADD_PARENT],
+                         fileId=xferFileId, addParents=fileInfo['addParents'], fields='', supportsAllDrives=True)
+                action = Act.Get()
+                Act.Set(Act.ADD)
+                entityModifierNewValueItemValueListActionPerformed(kvList, Act.MODIFIER_TO, None, [Ent.DRIVE_FOLDER, fileInfo['addParents']], l, lcount)
+                Act.Set(action)
+              except GAPI.fileNotFound:
+                entityActionFailedWarning(kvList, Msg.DOES_NOT_EXIST, l, lcount)
+              except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.cannotAddParent) as e:
+                entityActionFailedWarning(kvList, str(e), l, lcount)
+              except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+                userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
           Ind.Decrement()
         else:
           entityPerformActionModifierNumItemsModifier([Ent.USER, user], 'Not Performed', kcount, Ent.DRIVE_FILE_OR_FOLDER,
                                                       f'{Act.MODIFIER_FROM} {Ent.Singular(Ent.USER)}: {oldOwner}', j, jcount)
           Ind.Increment()
           l = 0
-          for ofileId, fileInfo in iter(filesToClaim[oldOwner].items()):
+          for xferFileId, fileInfo in iter(filesToClaim[oldOwner].items()):
             l += 1
-            entityActionNotPerformedWarning([Ent.USER, user, fileInfo['type'], f'{fileInfo["name"]} ({ofileId})'],
+            entityActionNotPerformedWarning([Ent.USER, user, fileInfo['type'], f'{fileInfo["name"]} ({xferFileId})'],
                                             Msg.USER_IN_OTHER_DOMAIN.format(Ent.Singular(Ent.USER), oldOwner), l, lcount)
           Ind.Decrement()
       Ind.Decrement()

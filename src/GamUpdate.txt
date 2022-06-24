@@ -1,3 +1,16 @@
+6.24.08
+
+Added option `[<DriveFileParentAttribute>]` to `gam <UserTypeEntity> claim ownership <DriveFileEntity>`.
+By default, `claim ownership` does not change the parents of `<DriveFileEntity>`; this options allows
+specification of a parent folder in the My Drive of the claiming user `<UserTypeEntity>`.
+
+Added option `[<DriveFileParentAttribute>]` to `gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem>`.
+By default, `transfer ownership` does not change the parents of `<DriveFileEntity>`; this options allows
+specification of a parent folder in the My Drive of the target user `<UserItem>`.
+
+* Upgraded to Python 3.10.5
+* Upgraded to OpenSSL 1.1.1p
+
 6.24.07
 
 Updated commands that process group settings to handle the following error:
