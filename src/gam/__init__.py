@@ -3338,7 +3338,7 @@ def SetGlobalVariables():
 
   def _readGamCfgFile(config, fileName):
     try:
-      with open(fileName, 'r') as f:
+      with open(fileName, DEFAULT_FILE_READ_MODE, encoding=GM.Globals[GM.SYS_ENCODING]) as f:
         config.read_file(f)
     except (configparser.DuplicateOptionError, configparser.DuplicateSectionError,
             configparser.MissingSectionHeaderError, configparser.ParsingError) as e:
@@ -3352,7 +3352,7 @@ def SetGlobalVariables():
   def _writeGamCfgFile(config, fileName, action):
     GM.Globals[GM.SECTION] = None # No need to save section for inner gams
     try:
-      with open(fileName, DEFAULT_FILE_WRITE_MODE) as f:
+      with open(fileName, DEFAULT_FILE_WRITE_MODE, encoding=GM.Globals[GM.SYS_ENCODING]) as f:
         config.write(f)
       printKeyValueList([Ent.Singular(Ent.CONFIG_FILE), fileName, Act.PerformedName(action)])
     except IOError as e:
@@ -3451,7 +3451,7 @@ def SetGlobalVariables():
       GM.Globals[GM.SAVED_STDOUT] = None
     GM.Globals[stdtype][GM.REDIRECT_STD] = False
     if fileName == 'null':
-      GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, mode)
+      GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, mode, encoding=UTF8)
     elif fileName == '-':
       GM.Globals[stdtype][GM.REDIRECT_STD] = True
       if stdtype == GM.STDOUT:
@@ -8119,7 +8119,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
 
   def reopenSTDFile(stdtype):
     if GM.Globals[stdtype][GM.REDIRECT_NAME] == 'null':
-      GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, GM.Globals[stdtype][GM.REDIRECT_MODE])
+      GM.Globals[stdtype][GM.REDIRECT_FD] = open(os.devnull, GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=UTF8)
     elif GM.Globals[stdtype][GM.REDIRECT_NAME] == '-':
       GM.Globals[stdtype][GM.REDIRECT_FD] = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][stdtype == GM.STDOUT]),
                                                       GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
@@ -8243,7 +8243,7 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
   pidData = {}
   if GM.Globals[GM.WINDOWS]:
     if GM.Globals[stdtype][GM.REDIRECT_NAME] == 'null':
-      fd = open(os.devnull, GM.Globals[stdtype][GM.REDIRECT_MODE])
+      fd = open(os.devnull, GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=UTF8)
     elif GM.Globals[stdtype][GM.REDIRECT_NAME] == '-':
       fd = os.fdopen(os.dup([sys.stderr.fileno(), sys.stdout.fileno()][GM.Globals[stdtype][GM.REDIRECT_QUEUE] == 'stdout']),
                      GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=GM.Globals[GM.SYS_ENCODING])
@@ -9096,7 +9096,7 @@ def _waitForHttpClient(d):
   local_server.server_close()
 
 def _waitForUserInput(d):
-  sys.stdin = open(0, DEFAULT_FILE_READ_MODE)
+  sys.stdin = open(0, DEFAULT_FILE_READ_MODE, encoding=UTF8)
   d['code'] = input(Msg.ENTER_VERIFICATION_CODE_OR_URL)
 
 class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
@@ -53238,7 +53238,8 @@ def updateSharedDrive(users, useDomainAdminAccess=False):
 def doUpdateSharedDrive():
   updateSharedDrive([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> delete shareddrive <SharedDriveEntity> [allowitemdeletion]
+# gam <UserTypeEntity> delete shareddrive <SharedDriveEntity>
+#	[adminaccess|asadmin [allowitemdeletion]
 def deleteSharedDrive(users):
   fileIdEntity = getSharedDriveEntity()
   allowItemDeletion = useDomainAdminAccess = False
@@ -53246,6 +53247,8 @@ def deleteSharedDrive(users):
     myarg = getArgument()
     if myarg in {'nukefromorbit', 'allowitemdeletion'}:
       allowItemDeletion = useDomainAdminAccess = True
+    elif myarg in ADMIN_ACCESS_OPTIONS:
+      useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)

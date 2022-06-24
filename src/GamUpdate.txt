@@ -1,5 +1,8 @@
 6.24.08
 
+Added option `adminaccess` to `gam [<UserTypeEntity>] delete teamdrive <SharedDriveEntity>`
+to allow Super Admins to delete Shared Drives even if they are not an organizer.
+
 Added option `[<DriveFileParentAttribute>]` to `gam <UserTypeEntity> claim ownership <DriveFileEntity>`.
 By default, `claim ownership` does not change the parents of `<DriveFileEntity>`; this options allows
 specification of a parent folder in the My Drive of the claiming user `<UserTypeEntity>`.
