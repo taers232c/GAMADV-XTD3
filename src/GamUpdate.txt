@@ -1,3 +1,11 @@
+6.24.10
+
+Updated `gam print devices` to refresh the access token between listing the devices
+and listing the device users to try to avoid the following error:
+```
+ERROR: 400: invalidArgument - Request contains an invalid argument.
+```
+
 6.24.09
 
 Updated `gam print devices|deviceusers` to handle the following error:
