@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.08'
+__version__ = '6.24.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -23404,6 +23404,7 @@ def getCIDeviceEntity():
   try:
     devices = callGAPIpages(ci.devices(), 'list', 'devices',
                             throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             pageMessage=pageMessage,
                             customer=customer, filter=query,
                             fields='nextPageToken,devices(name)', pageSize=100)
@@ -23438,6 +23439,7 @@ def getCIDeviceUserEntity():
   try:
     deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
                                 throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 pageMessage=pageMessage,
                                 customer=customer, filter=query, parent='devices/-',
                                 fields='nextPageToken,deviceUsers(name)', pageSize=20)
@@ -23636,6 +23638,7 @@ def doSyncCIDevices():
     try:
       result = callGAPIpages(ci.devices(), 'list', 'devices',
                              throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                              pageMessage=pageMessage,
                              customer=customer, filter=query, view='COMPANY_INVENTORY',
                              fields=fields, pageSize=100)
@@ -23902,6 +23905,7 @@ def doPrintCIDevices():
     try:
       devices += callGAPIpages(ci.devices(), 'list', 'devices',
                                throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                               retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                pageMessage=pageMessage,
                                customer=customer, filter=query,
                                orderBy=OBY.orderBy, view=view, fields=fields, pageSize=100)
@@ -23917,6 +23921,7 @@ def doPrintCIDevices():
       try:
         deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
                                     throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                                    retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     pageMessage=pageMessage,
                                     customer=customer, filter=query, parent=parent,
                                     fields=userFields, pageSize=20)
@@ -24071,6 +24076,7 @@ def doPrintCIDeviceUsers():
     try:
       deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
                                   throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                   pageMessage=pageMessage,
                                   customer=customer, filter=query,
                                   orderBy=OBY.orderBy, parent='devices/-', fields=fields, pageSize=20)

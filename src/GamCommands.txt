@@ -3909,7 +3909,7 @@ gam update teamdrive <SharedDriveEntity> [name <Name>]
         (<SharedDriveRestrictionsFieldName> <Boolean>)*
         [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 gam delete teamdrive <SharedDriveEntity>
-       [adminaccess] [allowitemdeletion]
+       [adminaccess|asadmin] [allowitemdeletion]
 gam hide teamdrive <SharedDriveEntity>
 gam unhide teamdrive <SharedDriveEntity>
 gam info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
@@ -3941,7 +3941,8 @@ gam <UserTypeEntity> create|add teamdrive <Name> adminaccess
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
         [csv [todrive <ToDriveAttribute>*]] [returnidonly]
-gam <UserTypeEntity> delete teamdrive <SharedDriveEntity> adminaccess [allowitemdeletion]
+gam <UserTypeEntity> delete teamdrive <SharedDriveEntity>
+        adminaccess [allowitemdeletion]
 gam <UserTypeEntity> info teamdrive <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>]
         [formatjson]
 gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>]
@@ -6391,6 +6392,7 @@ gam <UserTypeEntity> update teamdrive <SharedDriveEntity> [adminaccess|asadmin] 
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 gam <UserTypeEntity> delete teamdrive <SharedDriveEntity>
+        [adminaccess|asadmin] [allowitemdeletion]
 gam <UserTypeEntity> hide teamdrive <SharedDriveEntity>
 gam <UserTypeEntity> unhide teamdrive <SharedDriveEntity>
 gam <UserTypeEntity> info teamdrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
