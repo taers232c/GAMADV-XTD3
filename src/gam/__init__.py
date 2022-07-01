@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.10'
+__version__ = '6.24.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -21991,8 +21991,8 @@ def doPrintShowBrowsers():
       while True:
         try:
           feed = callGAPI(cbcm.chromebrowsers(), 'list',
-                          pageToken=pageToken,
                           throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                          pageToken=pageToken,
                           customer=customerId, orgUnitPath=orgUnitPath, query=query, projection=projection,
                           orderBy=orderBy, sortOrder=sortOrder, fields=fields)
         except GAPI.invalidInput as e:
@@ -23357,7 +23357,10 @@ def doShowChromeSchemasStd():
 
 # Device command utilities
 def buildGAPICIDeviceServiceObject():
-  _, ci = buildGAPIServiceObject(API.CLOUDIDENTITY_DEVICES, _getAdminEmail(), displayError=True)
+  if not GC.Values[GC.ENABLE_DASA]:
+    _, ci = buildGAPIServiceObject(API.CLOUDIDENTITY_DEVICES, _getAdminEmail(), displayError=True)
+  else:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_DEVICES)
   if not ci:
     sys.exit(GM.Globals[GM.SYSEXITRC])
   return ci
@@ -23873,6 +23876,7 @@ def doPrintCIDevices():
   queries = [None]
   view, entityType = DEVICE_VIEW_CHOICE_MAP['all']
   getDeviceUsers = True
+  deviceSkipObjects = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -23895,53 +23899,121 @@ def doPrintCIDevices():
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  field = 'createTime'
+  if fieldsList and field not in fieldsList:
+    fieldsList.append(field)
+    deviceSkipObjects = {field}
+  if userFieldsList and field not in userFieldsList:
+    userFieldsList.append(field)
+    deviceSkipObjects = {field}
   fields = getItemFieldsFromFieldsList('devices', fieldsList)
   userFields = getItemFieldsFromFieldsList('deviceUsers', userFieldsList)
   substituteQueryTimes(queries, queryTimes)
+  if not OBY.orderBy:
+    OBY.SetItems(DEVICE_ORDERBY_CHOICE_MAP['createtime'])
   for query in queries:
-    devices = []
     printGettingAllAccountEntities(entityType, query)
     pageMessage = getPageMessage()
-    try:
-      devices += callGAPIpages(ci.devices(), 'list', 'devices',
-                               throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                               retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                               pageMessage=pageMessage,
-                               customer=customer, filter=query,
-                               orderBy=OBY.orderBy, view=view, fields=fields, pageSize=100)
-    except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
-      entityActionFailedWarning([entityType, None], str(e))
-      continue
-    if getDeviceUsers:
-      ci._http.credentials.refresh(transportCreateRequest())
-      deviceDict = {}
-      for device in devices:
-        deviceDict[device['name']] = device
-      printGettingAllAccountEntities(Ent.DEVICE_USER, query)
-      pageMessage = getPageMessage()
+    devices = {}
+    pageToken = None
+    start = int(time.time())
+    totalItems = 0
+    pfilter = query
+    newestCreateTime = ''
+    workaroundPossible = (OBY.orderBy == 'create_time') and (query is None or 'register' not in query)
+    while True:
       try:
-        deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
-                                    throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                                    retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                                    pageMessage=pageMessage,
-                                    customer=customer, filter=query, parent=parent,
-                                    fields=userFields, pageSize=20)
-        for deviceUser in deviceUsers:
-          mg = DEVICE_USERNAME_PATTERN.match(deviceUser['name'])
-          if mg:
-            deviceName = mg.group(1)
-            if deviceName in deviceDict:
-              deviceDict[deviceName].setdefault('users', [])
-              deviceDict[deviceName]['users'].append(deviceUser)
+        result = callGAPI(ci.devices(), 'list',
+                          throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                          pageToken=pageToken,
+                          customer=customer, filter=pfilter,
+                          orderBy=OBY.orderBy, view=view, fields=fields, pageSize=100)
+        pageToken, totalItems = _processGAPIpagesResult(result, 'devices', None, totalItems, pageMessage, None, entityType)
+        if result:
+          for device in result.get('devices', []):
+            devices[device['name']] = device
+            createTime = device.get('createTime', NEVER_TIME)[:-1].split('.')[0]
+            if createTime > newestCreateTime:
+              newestCreateTime = createTime
+          del result
+        if not pageToken:
+          _finalizeGAPIpagesResult(pageMessage)
+          printGotAccountEntities(totalItems)
+          break
+      except GAPI.invalidArgument as e:
+        now = int(time.time())
+        if now-start < 60:
+          entityActionFailedWarning([entityType, None], str(e))
+          break
+        stderrWarningMsg(Msg.DEVICE_LIST_BUG)
+        if OBY.orderBy != 'create_time':
+          systemErrorExit(GOOGLE_API_ERROR_RC, Msg.DEVICE_LIST_BUG_WORKAROUND_NOT_POSSIBLE)
+        writeStderr(Msg.DEVICE_LIST_BUG_ATTEMPTING_WORKAROUND.format(newestCreateTime))
+        flushStderr()
+        pfilter = f'register:{newestCreateTime}.. {query}' if query is not None else f'register:{newestCreateTime}..'
+        pageToken = None
+        start = now
       except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied) as e:
         entityActionFailedWarning([entityType, None], str(e))
-    for device in devices:
-      row = flattenJSON(device, timeObjects=DEVICE_TIME_OBJECTS)
+        break
+    if getDeviceUsers:
+      ci._http.credentials.refresh(transportCreateRequest())
+      printGettingAllAccountEntities(Ent.DEVICE_USER, query)
+      pageMessage = getPageMessage()
+      pageToken = None
+      start = int(time.time())
+      totalItems = 0
+      pfilter = query
+      newestCreateTime = ''
+      while True:
+        try:
+          result = callGAPI(ci.devices().deviceUsers(), 'list',
+                            throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                            pageToken=pageToken,
+                            customer=customer, filter=pfilter, parent=parent,
+                            orderBy=OBY.orderBy, fields=userFields, pageSize=20)
+          pageToken, totalItems = _processGAPIpagesResult(result, 'deviceUsers', None, totalItems, pageMessage, None, Ent.DEVICE_USER)
+          if result:
+            for deviceUser in result.get('deviceUsers', []):
+              createTime = deviceUser.get('createTime', NEVER_TIME)[:-1].split('.')[0]
+              if createTime > newestCreateTime:
+                newestCreateTime = createTime
+              mg = DEVICE_USERNAME_PATTERN.match(deviceUser['name'])
+              if mg:
+                deviceName = mg.group(1)
+                if deviceName in devices:
+                  devices[deviceName].setdefault('users', [])
+                  devices[deviceName]['users'].append(deviceUser)
+            del result
+          if not pageToken:
+            _finalizeGAPIpagesResult(pageMessage)
+            printGotAccountEntities(totalItems)
+            break
+        except GAPI.invalidArgument as e:
+          now = int(time.time())
+          if now-start < 60:
+            entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
+            break
+          stderrWarningMsg(Msg.DEVICE_LIST_BUG)
+          if not workaroundPossible:
+            systemErrorExit(GOOGLE_API_ERROR_RC, Msg.DEVICE_LIST_BUG_WORKAROUND_NOT_POSSIBLE)
+          writeStderr(Msg.DEVICE_LIST_BUG_ATTEMPTING_WORKAROUND.format(newestCreateTime))
+          flushStderr()
+          pfilter = f'register:{newestCreateTime}.. {query}' if query is not None else f'register:{newestCreateTime}..'
+          pageToken = None
+          start = now
+        except (GAPI.invalid, GAPI.permissionDenied) as e:
+          entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
+          break
+    for device in devices.values():
+      row = flattenJSON(device, skipObjects=deviceSkipObjects, timeObjects=DEVICE_TIME_OBJECTS)
       if not FJQC.formatJSON:
         csvPF.WriteRowTitles(row)
       elif csvPF.CheckRowTitles(row):
         csvPF.WriteRowNoFilter({'name': device['name'],
-                                'JSON': json.dumps(cleanJSON(device, timeObjects=DEVICE_TIME_OBJECTS),
+                                'JSON': json.dumps(cleanJSON(device, skipObjects=deviceSkipObjects, timeObjects=DEVICE_TIME_OBJECTS),
                                                    ensure_ascii=False, sort_keys=True)})
   csvPF.writeCSVfile('Devices')
 
@@ -24050,9 +24122,10 @@ def doPrintCIDeviceUsers():
   csvPF = CSVPrintFile(['name'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   OBY = OrderBy(DEVICE_ORDERBY_CHOICE_MAP)
-  fieldsList = []
+  userFieldsList = []
   queryTimes = {}
   queries = [None]
+  deviceSkipObjects = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -24063,34 +24136,66 @@ def doPrintCIDeviceUsers():
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
     elif myarg == 'orderby':
       OBY.GetChoice()
-    elif getFieldsList(myarg, DEVICEUSER_FIELDS_CHOICE_MAP, fieldsList, initialField='name'):
+    elif getFieldsList(myarg, DEVICEUSER_FIELDS_CHOICE_MAP, userFieldsList, initialField='name'):
       pass
     elif myarg == 'sortheaders':
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  fields = getItemFieldsFromFieldsList('deviceUsers', fieldsList)
+  field = 'createTime'
+  if userFieldsList and field not in userFieldsList:
+    userFieldsList.append(field)
+    deviceSkipObjects = {field}
+  userFields = getItemFieldsFromFieldsList('deviceUsers', userFieldsList)
   substituteQueryTimes(queries, queryTimes)
+  if not OBY.orderBy:
+    OBY.SetItems(DEVICE_ORDERBY_CHOICE_MAP['createtime'])
   for query in queries:
     printGettingAllAccountEntities(Ent.DEVICE_USER, query)
     pageMessage = getPageMessage()
-    try:
-      deviceUsers = callGAPIpages(ci.devices().deviceUsers(), 'list', 'deviceUsers',
-                                  throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
-                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                                  pageMessage=pageMessage,
-                                  customer=customer, filter=query,
-                                  orderBy=OBY.orderBy, parent='devices/-', fields=fields, pageSize=20)
-      for deviceUser in deviceUsers:
-        row = flattenJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS)
-        if not FJQC.formatJSON:
-          csvPF.WriteRowTitles(row)
-        elif csvPF.CheckRowTitles(row):
-          csvPF.WriteRowNoFilter({'name': deviceUser['name'],
-                                  'JSON': json.dumps(cleanJSON(deviceUser, timeObjects=DEVICE_TIME_OBJECTS),
-                                                     ensure_ascii=False, sort_keys=True)})
-    except (GAPI.invalid, GAPI.permissionDenied) as e:
-      entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
+    pageToken = None
+    start = int(time.time())
+    totalItems = 0
+    pfilter = query
+    newestCreateTime = ''
+    workaroundPossible = (OBY.orderBy == 'create_time') and (query is None or 'register' not in query)
+    while True:
+      try:
+        result = callGAPI(ci.devices().deviceUsers(), 'list',
+                          throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                          pageToken=pageToken,
+                          customer=customer, filter=pfilter,
+                          orderBy=OBY.orderBy, parent='devices/-', fields=userFields, pageSize=20)
+        pageToken, totalItems = _processGAPIpagesResult(result, 'deviceUsers', None, totalItems, pageMessage, None, Ent.DEVICE_USER)
+        if result:
+          for deviceUser in result.get('deviceUsers', []):
+            createTime = deviceUser.get('createTime', NEVER_TIME)[:-1].split('.')[0]
+            if createTime > newestCreateTime:
+              newestCreateTime = createTime
+            row = flattenJSON(deviceUser, skipObjects=deviceSkipObjects, timeObjects=DEVICE_TIME_OBJECTS)
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(row)
+            elif csvPF.CheckRowTitles(row):
+              csvPF.WriteRowNoFilter({'name': deviceUser['name'],
+                                      'JSON': json.dumps(cleanJSON(deviceUser, skipObjects=deviceSkipObjects, timeObjects=DEVICE_TIME_OBJECTS),
+                                                         ensure_ascii=False, sort_keys=True)})
+      except GAPI.invalidArgument as e:
+        now = int(time.time())
+        if now-start < 60:
+          entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
+          break
+        stderrWarningMsg(Msg.DEVICE_LIST_BUG)
+        if not workaroundPossible:
+          systemErrorExit(GOOGLE_API_ERROR_RC, Msg.DEVICE_LIST_BUG_WORKAROUND_NOT_POSSIBLE)
+        writeStderr(Msg.DEVICE_LIST_BUG_ATTEMPTING_WORKAROUND.format(newestCreateTime))
+        flushStderr()
+        pfilter = f'register:{newestCreateTime}.. {query}' if query is not None else f'register:{newestCreateTime}..'
+        pageToken = None
+        start = now
+      except (GAPI.invalid, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.DEVICE_USER, None], str(e))
+        break
   csvPF.writeCSVfile('Device Users')
 
 DEVICE_USER_COMPLIANCE_STATE_CHOICE_MAP = {
@@ -31765,9 +31870,9 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['attachments'].append({'title': getString(Cmd.OB_STRING), 'fileUrl': getString(Cmd.OB_URL)})
   elif function == 'update' and myarg == 'clearattachments':
     body['attachments'] = []
-  elif myarg == 'hangoutsmeet':
-    body['conferenceData'] = {'createRequest': {'requestId': f'{str(uuid.uuid4())}'}}
-  elif function == 'update' and myarg == 'clearhangoutsmeet':
+  elif myarg in {'hangoutsmeet', 'googlemeet'}:
+    body['conferenceData'] = {'createRequest': {'conferenceSolutionKey': {'type': 'hangoutsMeet'}, 'requestId': f'{str(uuid.uuid4())}'}}
+  elif function == 'update' and myarg in {'clearhangoutsmeet', 'cleargooglemeet'}:
     body['conferenceData'] = None
   elif myarg == 'recurrence':
     body.setdefault('recurrence', [])
@@ -42934,7 +43039,13 @@ def printShowCalendarEvents(users):
     csvPF.writeCSVfile('Calendar Events')
 
 def _getEntityMimeType(fileEntry):
-  return Ent.DRIVE_FOLDER if fileEntry['mimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE
+  if fileEntry['mimeType'] == MIMETYPE_GA_FOLDER:
+    return Ent.DRIVE_FOLDER
+  if fileEntry['mimeType'] != MIMETYPE_GA_SHORTCUT:
+    return Ent.DRIVE_FILE
+  if 'shortcutDetails' not in fileEntry:
+    return Ent.DRIVE_SHORTCUT
+  return Ent.DRIVE_FOLDER_SHORTCUT if fileEntry['shortcutDetails']['targetMimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE_SHORTCUT
 
 def _getTargetEntityMimeType(fileEntry):
   return Ent.DRIVE_FOLDER if fileEntry['shortcutDetails']['targetMimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE

@@ -174,6 +174,7 @@ class GamEntity():
   DRIVE_PARENT_FOLDER_REFERENCE = 'pfrf'
   DRIVE_PATH = 'drvp'
   DRIVE_SETTINGS = 'drvs'
+  DRIVE_SHORTCUT = 'drsc'
   DRIVE_TRASH = 'drvt'
   EMAIL = 'emai'
   EMAIL_ALIAS = 'emal'
@@ -469,6 +470,7 @@ class GamEntity():
     DRIVE_PARENT_FOLDER_REFERENCE: ['Drive Parent Folder References', 'Drive Parent Folder Reference'],
     DRIVE_PATH: ['Drive Paths', 'Drive Path'],
     DRIVE_SETTINGS: ['Drive Settings', 'Drive Settings'],
+    DRIVE_SHORTCUT: ['Drive Shortcuts', 'Drive Shortcut'],
     DRIVE_TRASH: ['Drive Trash', 'Drive Trash'],
     EMAIL: ['Email Addresses', 'Email Address'],
     EMAIL_ALIAS: ['Email Aliases', 'Email Alias'],

@@ -1,3 +1,11 @@
+6.24.11
+
+Following Jay's lead, updated `gam print devices|deviceusers` to try to work around
+a Google API internal bug (237397223) that generates the following error after an hour:
+```
+ERROR: 400: invalidArgument - Request contains an invalid argument.
+```
+
 6.24.10
 
 Updated `gam print devices` to refresh the access token between listing the devices
