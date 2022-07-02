@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.11'
+__version__ = '6.24.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -18122,38 +18122,39 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
     if not contactQuery['otherContacts']:
       printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=contactQuery['query'])
       pageMessage = getPageMessage()
-      mfields = fields
-      stripMemberships = False
-      if contactQuery['contactGroup']:
-        if 'memberships' not in mfields:
-          stripMemberships = True
-          mfields += ',memberships'
-      if not contactQuery['query']:
-        entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
-                                   pageMessage=pageMessage,
-                                   throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                                   pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
-                                   resourceName='people/me', sources=sources, personFields=mfields,
-                                   sortOrder=sortOrder, fields='nextPageToken,connections')
-      else:
-        results = callGAPI(people.people(), 'searchContacts',
-                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                           sources=sources, readMask=mfields, query=contactQuery['query'])
-        entityList = [person['person'] for person in results.get('results', [])]
-        totalItems = len(entityList)
-        showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-        writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
+# Contact group not selected
       if not contactQuery['contactGroup']:
-        return entityList
-      cgEntityList = []
-      for contact in entityList:
-        for membership in contact.get('memberships', []):
-          if membership.get('contactGroupMembership', {}).get('contactGroupResourceName', '') == contactQuery['group']:
-            if stripMemberships:
-              contact.pop('memberships')
-            cgEntityList.append(contact)
-            break
-      return cgEntityList
+        if not contactQuery['query']:
+          entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
+                                     pageMessage=pageMessage,
+                                     throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                     pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
+                                     resourceName='people/me', sources=sources, personFields=fields,
+                                     sortOrder=sortOrder, fields='nextPageToken,connections')
+        else:
+          results = callGAPI(people.people(), 'searchContacts',
+                             throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                             sources=sources, readMask=fields, query=contactQuery['query'])
+          entityList = [person['person'] for person in results.get('results', [])]
+        totalItems = len(entityList)
+# Contact group selected
+      else:
+        totalItems = callGAPI(people.contactGroups(), 'get',
+                              throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                              resourceName=contactQuery['contactGroup'], groupFields='memberCount').get('memberCount', 0)
+        entityList = []
+        if totalItems > 0:
+          results = callGAPI(people.contactGroups(), 'get',
+                             throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                             resourceName=contactQuery['contactGroup'], maxMembers=totalItems, groupFields='name')
+          for resourceName in results.get('memberResourceNames', []):
+            result = callGAPI(people.people(), 'get',
+                              resourceName=resourceName, sources=sources, personFields=fields)
+
+            entityList.append(result)
+      showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
+      return entityList
 # Other contacts
     printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=contactQuery['query'])
     pageMessage = getPageMessage()
@@ -18616,7 +18617,7 @@ def deleteUserPeopleContacts(users):
         continue
       contactQuery['group'] = groupId
     if queriedContacts:
-      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships', None, entityType, user, i, count)
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
       if entityList is None:
         continue
     j = 0
@@ -19471,7 +19472,7 @@ def _processPeopleContactPhotos(users, function):
         continue
       contactQuery['group'] = groupId
     if queriedContacts:
-      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,memberships,photos', None, entityType, user, i, count)
+      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses,photos', None, entityType, user, i, count)
       if entityList is None:
         continue
     j = 0

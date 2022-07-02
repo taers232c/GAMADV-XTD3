@@ -1,3 +1,10 @@
+6.24.12
+
+Changed how `selectcontactgroup <ContactGroupItem>` is processed in commands that process
+user contacts. Previously, GAM would download all of a user's contacts and locally filter
+to get only the contacts in `<ContactGroupItem>`. Now, the People API is used to get the
+list of contacts in `<ContactGroupItem>` and they are are individually downloaded for processing.
+
 6.24.11
 
 Following Jay's lead, updated `gam print devices|deviceusers` to try to work around
