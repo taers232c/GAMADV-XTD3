@@ -20985,7 +20985,7 @@ def doPrintCrOSDevices(entityList=None):
   FJQC = FormatJSONQuoteChar(csvPF)
   projection = orderBy = sortOrder = None
   ous = ['/']
-  includeChildOrgunits = False
+  includeChildOrgunits = True
   queries = [None]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
