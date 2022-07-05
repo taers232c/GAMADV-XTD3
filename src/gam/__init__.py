@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.13'
+__version__ = '6.24.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -18143,12 +18143,12 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
       else:
         totalItems = callGAPI(people.contactGroups(), 'get',
                               throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                              resourceName=contactQuery['contactGroup'], groupFields='memberCount').get('memberCount', 0)
+                              resourceName=contactQuery['group'], groupFields='memberCount').get('memberCount', 0)
         entityList = []
         if totalItems > 0:
           results = callGAPI(people.contactGroups(), 'get',
                              throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                             resourceName=contactQuery['contactGroup'], maxMembers=totalItems, groupFields='name')
+                             resourceName=contactQuery['group'], maxMembers=totalItems, groupFields='name')
           for resourceName in results.get('memberResourceNames', []):
             result = callGAPI(people.people(), 'get',
                               resourceName=resourceName, sources=sources, personFields=fields)

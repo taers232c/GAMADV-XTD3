@@ -1,3 +1,7 @@
+6.24.14
+
+Fixed bug introduced in 6.24.13 that prevented specifying a contact group by name.
+
 6.24.13
 
 The Customer ID value that the Cloud Channel API describes is not the Google Workspace Customer ID value; it is unique to the Cloud Channel API.
