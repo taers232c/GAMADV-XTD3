@@ -1734,7 +1734,9 @@ gam print chromehistory releases [todrive <ToDriveAttribute>*]
         deprovision_same_model_replace|
         deprovision_upgrade_transfer|
         disable|
-        reenable
+        reenable|
+        pre_provisioned_disable|
+        pre_provisioned_reenable
 
 gam update cros <CrOSEntity> action <CrOSAction> [acknowledge_device_touch_requirement]
 gam <CrOSTypeEntity> update action <CrOSAction> [acknowledge_device_touch_requirement]

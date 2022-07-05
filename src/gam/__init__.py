@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.14'
+__version__ = '6.24.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5754,40 +5754,26 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
   elif entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN}:
     cd = buildGAPIObject(API.DIRECTORY)
     ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN])
-    directlyInOU = entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS}
+    includeChildOrgunits = entityType in {Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS_AND_CHILDREN}
     numOus = len(ous)
-    allQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus)) if directlyInOU else Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))
+    allQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus)) if not includeChildOrgunits else Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))
     for ou in ous:
       ou = makeOrgUnitPathAbsolute(ou)
-      ouList = [ou]
-      if not directlyInOU:
-        try:
-          orgs = callGAPI(cd.orgunits(), 'list',
-                          throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
-                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
-                          type='all', fields='organizationUnits(orgUnitPath)')
-        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
-          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
-          continue
-        ouList.extend([subou['orgUnitPath'] for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
-      for subou in ouList:
-        subou = makeOrgUnitPathAbsolute(subou)
-        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-        printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, subou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-        try:
-          result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
-                                 pageMessage=getPageMessage(),
-                                 throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
-                                               GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                                 customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=subou,
-                                 fields='nextPageToken,chromeosdevices(deviceId)',
-                                 maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-        except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, subou)
-          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
-          continue
-        entityList.extend([device['deviceId'] for device in result])
+      oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if not includeChildOrgunits else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+      printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+      try:
+        result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
+                               pageMessage=getPageMessage(),
+                               throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                             GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                               customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, includeChildOrgunits=includeChildOrgunits,
+                               fields='nextPageToken,chromeosdevices(deviceId)',
+                               maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+      except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+        _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
+        continue
+      entityList.extend([device['deviceId'] for device in result])
     Ent.SetGettingQualifier(Ent.CROS_DEVICE, allQualifier)
     Ent.SetGettingForWhom(','.join(ous))
     printGotEntityItemsForWhom(len(entityList))
@@ -15102,7 +15088,7 @@ def doPrintOrgs():
                           throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                         GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                           pageToken=pageToken,
-                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath,
+                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath, includeChildOrgunits=False,
                           fields='nextPageToken,chromeosdevices(status)', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
         except GAPI.invalidInput as e:
           message = str(e)
@@ -15144,7 +15130,7 @@ def doPrintOrgs():
         for k, v in sorted(iter(crosCounts[orgUnitPath].items())):
           row[f'CrOS{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{k}'] = v
           total += v
-        row['CrOS{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}Total'] = total
+        row[f'CrOS{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}Total'] = total
         if ((minCrOSCounts != -1 and total < minCrOSCounts) or
             (maxCrOSCounts != -1 and total > maxCrOSCounts)):
           continue
@@ -20026,7 +20012,9 @@ CROS_ACTION_CHOICE_MAP = {
   'deprovisionupgradetransfer': ('deprovision', 'upgrade_transfer'),
   'deprovisionretiringdevice': ('deprovision', 'retiring_device'),
   'disable': ('disable', None),
-  'reenable': ('reenable', None)
+  'reenable': ('reenable', None),
+  'preprovisioneddisable': ('pre_provisioned_disable', None),
+  'preprovisionedreenable': ('pre_provisioned_reenable', None)
   }
 
 CROS_ACTION_NAME_MAP = {
