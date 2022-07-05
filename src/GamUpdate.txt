@@ -5,6 +5,8 @@ Added `pre_provisioned_disable` and `pre_provisioned_reenable` to `<CrOSAction>`
 Updated code to take advantage of an update to the directory API that simplifies getting
 ChromeOS devices from an OU and its children.
 
+Fixed bug in `gam create|update adminrole` where child privileges were not recognized in `<PrivilegesList>`.
+
 6.24.14
 
 Fixed bug introduced in 6.24.13 that prevented specifying a contact group by name.

@@ -73,6 +73,8 @@ class GamAction():
   NOACTION = 'noac'
   NOACTION_PREVIEW = 'noap'
   PERFORM = 'perf'
+  PRE_PROVISIONED_DISABLE ='ppdi'
+  PRE_PROVISIONED_REENABLE ='ppre'
   PRINT = 'prin'
   PROCESS = 'proc'
   PROCESS_PREVIEW = 'prop'
@@ -180,6 +182,8 @@ class GamAction():
     NOACTION: ['No Action', 'No Action'],
     NOACTION_PREVIEW: ['No Action (Preview)', 'No Action (Preview)'],
     PERFORM: ['Action Performed', 'Perform Action'],
+    PRE_PROVISIONED_DISABLE: ['PreProvisioned Disabled', 'PreProvisioned Disable'],
+    PRE_PROVISIONED_REENABLE: ['PreProvisioned Reenabled', 'PreProvisioned Reenable'],
     PRINT: ['Printed', 'Print'],
     PROCESS: ['Processed', 'Process'],
     PROCESS_PREVIEW: ['Processed (Preview)', 'Process (Preview)'],

@@ -5767,8 +5767,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
                                throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                              GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, includeChildOrgunits=includeChildOrgunits,
-                               fields='nextPageToken,chromeosdevices(deviceId)',
-                               maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+                               fields='nextPageToken,chromeosdevices(deviceId)', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
       except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
         checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
         _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
@@ -13880,6 +13879,11 @@ def getRoleId():
 # gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
 # gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
 def doCreateUpdateAdminRoles():
+  def expandChildPrivileges(privilege):
+    for childPrivilege in privilege.get('childPrivileges', []):
+      childPrivileges[childPrivilege['privilegeName']] = childPrivilege['serviceId']
+      expandChildPrivileges(childPrivilege)
+
   cd = buildGAPIObject(API.DIRECTORY)
   updateCmd = Act.Get() == Act.UPDATE
   if not updateCmd:
@@ -13887,25 +13891,33 @@ def doCreateUpdateAdminRoles():
   else:
     body = {}
     _, roleId = getRoleId()
-  privileges = _listPrivileges(cd)
+  allPrivileges = {}
+  ouPrivileges = {}
+  childPrivileges = {}
+  for privilege in _listPrivileges(cd):
+    allPrivileges[privilege['privilegeName']] = privilege['serviceId']
+    if privilege['isOuScopable']:
+      ouPrivileges[privilege['privilegeName']] = privilege['serviceId']
+    expandChildPrivileges(privilege)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'privileges':
       privs = getString(Cmd.OB_PRIVILEGE_LIST).upper()
       if privs == 'ALL':
-        body['rolePrivileges'] = [{'privilegeName': p['privilegeName'], 'serviceId': p['serviceId']} for p in privileges]
+        body['rolePrivileges'] = [{'privilegeName': p, 'serviceId': v} for p, v in allPrivileges.items()]
       elif privs == 'ALL_OU':
-        body['rolePrivileges'] = [{'privilegeName': p['privilegeName'], 'serviceId': p['serviceId']} for p in privileges if p.get('isOuScopable')]
+        body['rolePrivileges'] = [{'privilegeName': p, 'serviceId': v} for p, v in ouPrivileges.items()]
       else:
         body.setdefault('rolePrivileges', [])
-        privs = privs.split(',')
-        for priv in privs:
-          for p in privileges:
-            if priv == p['privilegeName']:
-              body['rolePrivileges'].append({'privilegeName': p['privilegeName'], 'serviceId': p['serviceId']})
-              break
+        for p in privs.split(','):
+          if p in allPrivileges:
+            body['rolePrivileges'].append({'privilegeName': p, 'serviceId': allPrivileges[p]})
+          elif p in ouPrivileges:
+            body['rolePrivileges'].append({'privilegeName': p, 'serviceId': ouPrivileges[p]})
+          elif p in childPrivileges:
+            body['rolePrivileges'].append({'privilegeName': p, 'serviceId': childPrivileges[p]})
           else:
-            invalidChoiceExit(priv, [p['privilegeName'] for p in privileges], True)
+            invalidChoiceExit(p, list(allPrivileges.keys())+list(ouPrivileges.keys())+list(childPrivileges.keys()), True)
     elif myarg == 'description':
       body['roleDescription'] = getString(Cmd.OB_STRING)
     elif myarg == 'name':
@@ -20021,6 +20033,8 @@ CROS_ACTION_NAME_MAP = {
   'deprovision': Act.DEPROVISION,
   'disable': Act.DISABLE,
   'reenable': Act.REENABLE,
+  'pre_provisioned_disable': Act.PRE_PROVISIONED_DISABLE,
+  'pre_provisioned_reenable': Act.PRE_PROVISIONED_REENABLE
   }
 
 # gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatchupdate]
@@ -20970,7 +20984,8 @@ def doPrintCrOSDevices(entityList=None):
   csvPF = CSVPrintFile(fieldsList, indexedTitles=CROS_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
   projection = orderBy = sortOrder = None
-  ous = [None]
+  ous = ['/']
+  includeChildOrgunits = False
   queries = [None]
   listLimit = 0
   startDate = endDate = startTime = endTime = None
@@ -20978,7 +20993,6 @@ def doPrintCrOSDevices(entityList=None):
   queryTimes = {}
   selectionAllowed = entityList is None
   allFields = noLists = oneRow = showDVRstorageFreePercentage = sortHeaders = False
-  directlyInOU = True
   activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -20987,12 +21001,12 @@ def doPrintCrOSDevices(entityList=None):
     elif selectionAllowed and myarg == 'limittoou':
       ous = [getOrgUnitItem()]
       selectionAllowed = False
-      directlyInOU = True
+      includeChildOrgunits = False
     elif selectionAllowed and myarg in CROS_ENTITIES_MAP:
       myarg = CROS_ENTITIES_MAP[myarg]
       ous = convertEntityToList(getString(Cmd.OB_CROS_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN])
       selectionAllowed = False
-      directlyInOU = myarg in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OUS}
+      includeChildOrgunits = myarg in {Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS_AND_CHILDREN}
     elif (selectionAllowed or queries == [None]) and myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
     elif myarg.startswith('querytime'):
@@ -21067,71 +21081,53 @@ def doPrintCrOSDevices(entityList=None):
     sortRows = False
     fields = getItemFieldsFromFieldsList('chromeosdevices', fieldsList)
     for ou in ous:
-      if ou is not None:
-        ou = makeOrgUnitPathAbsolute(ou)
-      ouList = [ou]
-      if not directlyInOU:
-        try:
-          orgs = callGAPI(cd.orgunits(), 'list',
-                          throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
-                          customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
-                          type='all', fields='organizationUnits(orgUnitPath)')
-        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
-          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-          return
-        ouList.extend([subou['orgUnitPath'] for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
-      for subou in ouList:
-        if subou is not None:
-          orgUnitPath = makeOrgUnitPathAbsolute(subou)
-        else:
-          orgUnitPath = subou
-        for query in queries:
-          if orgUnitPath is not None:
-            oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-            printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-          else:
-            printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
-          pageMessage = getPageMessage()
-          pageToken = None
-          totalItems = 0
-          tokenRetries = 0
-          while True:
-            try:
-              feed = callGAPI(cd.chromeosdevices(), 'list',
-                              throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
-                                            GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                              pageToken=pageToken,
-                              customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
-                              orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-            except GAPI.invalidInput as e:
-              message = str(e)
+      ou = makeOrgUnitPathAbsolute(ou)
+      for query in queries:
+        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if not includeChildOrgunits else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+        printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou,
+                                          query=query, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+        pageMessage = getPageMessage()
+        pageToken = None
+        totalItems = 0
+        tokenRetries = 0
+        while True:
+          try:
+            feed = callGAPI(cd.chromeosdevices(), 'list',
+                            throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,
+                                          GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                            pageToken=pageToken,
+                            customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection,
+                            orgUnitPath=ou, includeChildOrgunits=includeChildOrgunits,
+                            orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+          except GAPI.invalidInput as e:
+            message = str(e)
 # Invalid Input: xyz - Check for invalid pageToken!!
 # 0123456789012345
-              if message[15:] == pageToken:
-                tokenRetries += 1
-                if tokenRetries <= 2:
-                  writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
-                  time.sleep(tokenRetries*5)
-                  continue
-                entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
-                return
-              entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query) if query is not None else message)
+            if message[15:] == pageToken:
+              tokenRetries += 1
+              if tokenRetries <= 2:
+                writeStderr(f'{WARNING_PREFIX}{Msg.LIST_CHROMEOS_INVALID_INPUT_PAGE_TOKEN_RETRY}')
+                time.sleep(tokenRetries*5)
+                continue
+              entityActionFailedWarning([Ent.CROS_DEVICE, None], message)
               return
-            except GAPI.invalidOrgunit as e:
-              entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
-              return
-            except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-              accessErrorExit(cd)
-            tokenRetries = 0
-            pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
-            if feed:
-              for cros in feed.get('chromeosdevices', []):
-                _printCrOS(cros)
-              del feed
-            if not pageToken:
-              _finalizeGAPIpagesResult(pageMessage)
-              printGotAccountEntities(totalItems)
-              break
+            entityActionFailedWarning([Ent.CROS_DEVICE, None], invalidQuery(query) if query is not None else message)
+            return
+          except GAPI.invalidOrgunit as e:
+            entityActionFailedWarning([Ent.CROS_DEVICE, None], str(e))
+            return
+          except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+            accessErrorExit(cd)
+          tokenRetries = 0
+          pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
+          if feed:
+            for cros in feed.get('chromeosdevices', []):
+              _printCrOS(cros)
+            del feed
+          if not pageToken:
+            _finalizeGAPIpagesResult(pageMessage)
+            printGotAccountEntities(totalItems)
+            break
   else:
     sortRows = True
     if allFields or len(set(fieldsList)) > 1:
