@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.12'
+__version__ = '6.24.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13213,7 +13213,7 @@ def doPrintShowChannelItems(entityType):
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   resellerId = normalizeChannelResellerID(GC.Values[GC.RESELLER_ID] if GC.Values[GC.RESELLER_ID] else GC.Values[GC.CUSTOMER_ID])
-  customerId = normalizeChannelCustomerID(GC.Values[GC.CUSTOMER_ID])
+  customerId = normalizeChannelCustomerID(GC.Values[GC.CHANNEL_CUSTOMER_ID])
   name = None
   productId = 'products/-'
   kwargs = {'pageSize': channelEntityMap['pageSize']}
@@ -13223,8 +13223,8 @@ def doPrintShowChannelItems(entityType):
       csvPF.GetTodriveParameters()
     elif myarg == 'resellerid':
       resellerId = normalizeChannelResellerID(getString(Cmd.OB_RESELLER_ID))
-    elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg == 'customerid':
-      customerId = normalizeChannelCustomerID(getString(Cmd.OB_CUSTOMER_ID))
+    elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg in {'customerid', 'channelcustomerid'}:
+      customerId = normalizeChannelCustomerID(getString(Cmd.OB_CHANNEL_CUSTOMER_ID))
     elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg == 'name':
       name = getString(Cmd.OB_STRING)
     elif (entityType in {Ent.CHANNEL_OFFER, Ent.CHANNEL_PRODUCT, Ent.CHANNEL_SKU}) and myarg == 'language':
@@ -13275,8 +13275,8 @@ def doPrintShowChannelItems(entityType):
     for item in results:
       j += 1
       if not FJQC.formatJSON:
-        Ind.Increment()
         printEntity([entityType, item['name']], j, jcount)
+        Ind.Increment()
         showJSON(None, item, timeObjects=channelEntityMap['timeObjects'])
         Ind.Decrement()
       else:
@@ -13316,12 +13316,14 @@ def doPrintShowChannelCustomers():
   doPrintShowChannelItems(Ent.CHANNEL_CUSTOMER)
 
 # gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
-#	([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<AccountID/customers/<CustomerID>)
+#	([resellerid <ResellerID>] [customerid <ChannelCustomerID>])|
+#	(name accounts/<AccountID/customers/<ChannelCustomerID>)
 #	[fields <ChannelCustomerEntitlementFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelcustomerentitlements
-#	([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<AccountID/customers/<CustomerID>)
+#	([resellerid <ResellerID>] [customerid <ChannelCustomerID>])|
+#	(name accounts/<AccountID/customers/<ChannelCustomerID>)
 #	[fields <ChannelCustomerEntitlementFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]

@@ -298,6 +298,7 @@ If an item contains spaces, it should be surrounded by ".
 <GIGroupAlias> ::= <EmailAddress>|<String>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
 <CIGroupType> ::= customer|group|other|serviceaccount|user
+<ChannelCustomerID> ::= <String>
 <ChatMember> ::= spaces/<String>/members/<String>
 <ChatMessage> ::= spaces/<String>/messages/<String>
 <ChatSpace> ::= spaces/<String> | <String>
@@ -2210,12 +2211,14 @@ gam show channelcustomers
 <ChannelCustomerEntitlementFieldList> ::= "<ChannelCustomerEntitlementField>(,<ChannelCustomerEntitlementField>)*"
 
 gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
-        ([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<ResellerID>/customers/<CustomerID>)
+        ([resellerid <ResellerID>] [customerid <ChannelCustomerID>])
+        (name accounts/<ResellerID>/customers/<ChannelCustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
         [maxresults <Number>]
         [formatjson [quotechar <Character>]]
 gam show channelcustomerentitlements
-        ([resellerid <ResellerID>] [customerid <CustomerID>])|(name accounts/<AccountID/customers/<CustomerID>)
+        ([resellerid <ResellerID>] [customerid <ChannelCustomerID>])|
+        (name accounts/<AccountID/customers/<ChannelCustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
         [maxresults <Number>]
         [formatjson]

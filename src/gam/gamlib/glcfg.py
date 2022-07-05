@@ -65,6 +65,8 @@ CACERTS_PEM = 'cacerts_pem'
 CACHE_DIR = 'cache_dir'
 # GAM cache discovery only. If no_cache is False, only API discovery calls will be cached
 CACHE_DISCOVERY_ONLY = 'cache_discovery_only'
+# Channel custmerId from gam.cfg
+CHANNEL_CUSTOMER_ID = 'channel_customer_id'
 # Character set of batch, csv, data files
 CHARSET = 'charset'
 # When retrieving lists of Google Classroom items from API, how many should be retrieved in each chunk
@@ -260,6 +262,7 @@ Defaults = {
   CACHE_DIR: '',
   CACHE_DISCOVERY_ONLY: TRUE,
   CHARSET: DEFAULT_CHARSET,
+  CHANNEL_CUSTOMER_ID: '',
   CLASSROOM_MAX_RESULTS: '0',
   CLIENT_SECRETS_JSON: FN_CLIENT_SECRETS_JSON,
   CLOCK_SKEW_IN_SECONDS: '10',
@@ -390,6 +393,7 @@ VAR_INFO = {
   CACHE_DIR: {VAR_TYPE: TYPE_DIRECTORY, VAR_ENVVAR: 'GAMCACHEDIR'},
   CACHE_DISCOVERY_ONLY: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'allcache.txt', VAR_SFFT: (TRUE, FALSE)},
   CHARSET: {VAR_TYPE: TYPE_STRING, VAR_ENVVAR: 'GAM_CHARSET', VAR_LIMITS: (1, None)},
+  CHANNEL_CUSTOMER_ID: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   CLASSROOM_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, 1000)},
   CLIENT_SECRETS_JSON: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: 'CLIENTSECRETS', VAR_ACCESS: os.R_OK},
   CLOCK_SKEW_IN_SECONDS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (10, 3600)},

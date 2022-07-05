@@ -1,3 +1,10 @@
+6.24.13
+
+The Customer ID value that the Cloud Channel API describes is not the Google Workspace Customer ID value; it is unique to the Cloud Channel API.
+
+Added `channel_customer_id` variable to `gam.cfg` that is used in `gam print|show channelcustomercentitlements` to specify the default value for `customerid`
+rather than `customer_id` from `gam.cfg`.
+
 6.24.12
 
 Changed how `selectcontactgroup <ContactGroupItem>` is processed in commands that process

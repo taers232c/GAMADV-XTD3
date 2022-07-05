@@ -685,6 +685,7 @@ class GamCLArgs():
   OB_BUILDING_ID = 'BuildingID'
   OB_CALENDAR_ENTITY = 'CalendarEntity'
   OB_CALENDAR_ITEM = 'CalendarItem'
+  OB_CHANNEL_CUSTOMER_ID = 'ChannelCustomerID'
   OB_CHARACTER = 'Character'
   OB_CHAR_SET = 'CharacterSet'
   OB_CHAT_MEMBER = 'ChatMember'
