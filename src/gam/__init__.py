@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.15'
+__version__ = '6.24.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -20112,7 +20112,7 @@ def updateCrOSDevices(entityList):
       if updateNotes:
         oldNotes = callGAPI(cd.chromeosdevices(), 'get',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                            customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, fields='notes')['notes']
+                            customerId=GC.Values[GC.CUSTOMER_ID], deviceId=deviceId, fields='notes').get('notes', '')
         update_body['notes'] = updateNotes.replace('#notes#', oldNotes)
       callGAPI(cd.chromeosdevices(), function,
                throwReasons=[GAPI.INVALID, GAPI.CONDITION_NOT_MET, GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT,

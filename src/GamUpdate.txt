@@ -1,3 +1,8 @@
+6.24.16
+
+Fixed bug in `gam update cros <CrOSEntity> ... updatenotes "#notes#"abc"` that caused a trap
+when the ChromeOS device didn't previously have notes.
+
 6.24.15
 
 Added `pre_provisioned_disable` and `pre_provisioned_reenable` to `<CrOSAction>`.
