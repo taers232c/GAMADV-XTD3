@@ -1,3 +1,7 @@
+6.24.17
+
+Updated `gam report user` to avoid a trap due to an unexpected change in the Reports API.
+
 6.24.16
 
 Fixed bug in `gam update cros <CrOSEntity> ... updatenotes "#notes#"abc"` that caused a trap
