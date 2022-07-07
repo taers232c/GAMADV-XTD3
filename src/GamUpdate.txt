@@ -1,3 +1,7 @@
+6.24.19
+
+* Upgraded to OpenSSL 1.1.1q
+
 6.24.18
 
 Added the following items to `<CrOSTypeEntity>`:
@@ -13,6 +17,10 @@ cros_ous_and_children_queries <OrgUnitList> <QueryCrOSList>
 ```
 These allow specifying an OU, or a list of OUs, and a query or a list of queries
 that apply to those OUs.
+
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/Collections-of-ChromeOS-Devices
+
+Example:
 ```
 gam cros_ou_query /StudentChromebooks "sync:..2019-01-01" update ou "/OldChromebooks"
 ```
