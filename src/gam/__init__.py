@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.17'
+__version__ = '6.24.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5751,28 +5751,55 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
       totalLen = len(entityList)
       printGotAccountEntities(totalLen-prevLen)
       prevLen = totalLen
-  elif entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN}:
+  elif entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS, Cmd.ENTITY_CROS_OUS_AND_CHILDREN,
+                      Cmd.ENTITY_CROS_OU_QUERY, Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERY, Cmd.ENTITY_CROS_OUS_QUERY, Cmd.ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+                      Cmd.ENTITY_CROS_OU_QUERIES, Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERIES, Cmd.ENTITY_CROS_OUS_QUERIES, Cmd.ENTITY_CROS_OUS_AND_CHILDREN_QUERIES}:
     cd = buildGAPIObject(API.DIRECTORY)
-    ous = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType in [Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN])
-    includeChildOrgunits = entityType in {Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS_AND_CHILDREN}
+    ous = convertEntityToList(entity, shlexSplit=True,
+                              nonListEntityType=entityType in {Cmd.ENTITY_CROS_OU, Cmd.ENTITY_CROS_OU_AND_CHILDREN,
+                                                               Cmd.ENTITY_CROS_OU_QUERY, Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+                                                               Cmd.ENTITY_CROS_OU_QUERIES, Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERIES})
     numOus = len(ous)
+    includeChildOrgunits = entityType in {Cmd.ENTITY_CROS_OU_AND_CHILDREN, Cmd.ENTITY_CROS_OUS_AND_CHILDREN,
+                                          Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERY, Cmd.ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+                                          Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERIES, Cmd.ENTITY_CROS_OUS_AND_CHILDREN_QUERIES}
     allQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus)) if not includeChildOrgunits else Msg.IN_THE.format(Ent.Choose(Ent.ORGANIZATIONAL_UNIT, numOus))
+    if entityType in {Cmd.ENTITY_CROS_OU_QUERY, Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERY, Cmd.ENTITY_CROS_OUS_QUERY, Cmd.ENTITY_CROS_OUS_AND_CHILDREN_QUERY}:
+      queries = getQueries('query')
+    elif entityType in {Cmd.ENTITY_CROS_OU_QUERIES, Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERIES, Cmd.ENTITY_CROS_OUS_QUERIES, Cmd.ENTITY_CROS_OUS_AND_CHILDREN_QUERIES}:
+      queries = getQueries('queries')
+    else:
+      queries = [None]
     for ou in ous:
       ou = makeOrgUnitPathAbsolute(ou)
       oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if not includeChildOrgunits else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-      printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-      try:
-        result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
-                               pageMessage=getPageMessage(),
-                               throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
-                                             GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                               customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=ou, includeChildOrgunits=includeChildOrgunits,
-                               fields='nextPageToken,chromeosdevices(deviceId)', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
-      except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-        _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
-        continue
-      entityList.extend([device['deviceId'] for device in result])
+      for query in queries:
+        printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou,
+                                          query=query, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+        pageMessage = getPageMessage()
+        try:
+          result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
+                                 pageMessage=getPageMessage(),
+                                 throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                               GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                                 customerId=GC.Values[GC.CUSTOMER_ID], query=query,
+                                 orgUnitPath=ou, includeChildOrgunits=includeChildOrgunits,
+                                 fields='nextPageToken,chromeosdevices(deviceId)', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+        except GAPI.invalidInput:
+          Cmd.Backup()
+          usageErrorExit(Msg.INVALID_QUERY)
+        except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
+          continue
+        if query is None:
+          entityList.extend([device['deviceId'] for device in result])
+        else:
+          for device in result:
+            deviceId = device['deviceId']
+            if deviceId not in entitySet:
+              entitySet.add(deviceId)
+              entityList.append(deviceId)
     Ent.SetGettingQualifier(Ent.CROS_DEVICE, allQualifier)
     Ent.SetGettingForWhom(','.join(ous))
     printGotEntityItemsForWhom(len(entityList))
@@ -6219,6 +6246,10 @@ def getEntityToModify(defaultEntityType=None, browserAllowed=False, crosAllowed=
     return (entityClass,
             {'entityType': entityType, 'entity': entityItem, 'isSuspended': isSuspended, 'isArchived': isArchived,
              'groupMemberType': groupMemberType})
+  if entityClass == Cmd.ENTITY_CROS:
+    if entityType in {Cmd.ENTITY_CROS_OU_QUERY, Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERY, Cmd.ENTITY_CROS_OUS_QUERY, Cmd.ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+                      Cmd.ENTITY_CROS_OU_QUERIES, Cmd.ENTITY_CROS_OU_AND_CHILDREN_QUERIES, Cmd.ENTITY_CROS_OUS_QUERIES, Cmd.ENTITY_CROS_OUS_AND_CHILDREN_QUERIES}:
+      Cmd.Advance()
   return (entityClass,
           {'entityType': entityType, 'entity': entityItem})
 
@@ -21082,8 +21113,8 @@ def doPrintCrOSDevices(entityList=None):
     fields = getItemFieldsFromFieldsList('chromeosdevices', fieldsList)
     for ou in ous:
       ou = makeOrgUnitPathAbsolute(ou)
+      oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if not includeChildOrgunits else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
       for query in queries:
-        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)) if not includeChildOrgunits else Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
         printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou,
                                           query=query, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
         pageMessage = getPageMessage()

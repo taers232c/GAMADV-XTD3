@@ -39,6 +39,14 @@ class GamCLArgs():
   ENTITY_CROS_OU_AND_CHILDREN = 'cros_ou_and_children'
   ENTITY_CROS_OUS = 'cros_ous'
   ENTITY_CROS_OUS_AND_CHILDREN = 'cros_ous_and_children'
+  ENTITY_CROS_OU_QUERY = 'cros_ou_query'
+  ENTITY_CROS_OU_AND_CHILDREN_QUERY = 'cros_ou_and_children_query'
+  ENTITY_CROS_OUS_QUERY = 'cros_ous_query'
+  ENTITY_CROS_OUS_AND_CHILDREN_QUERY = 'cros_ous_and_children_query'
+  ENTITY_CROS_OU_QUERIES = 'cros_ou_queries'
+  ENTITY_CROS_OU_AND_CHILDREN_QUERIES = 'cros_ou_and_children_queries'
+  ENTITY_CROS_OUS_QUERIES = 'cros_ous_queries'
+  ENTITY_CROS_OUS_AND_CHILDREN_QUERIES = 'cros_ous_and_children_queries'
   ENTITY_CROS_SN = 'cros_sn'
   ENTITY_DOMAINS = 'domains'
   ENTITY_DOMAINS_NS = 'domains_ns'
@@ -94,6 +102,14 @@ class GamCLArgs():
     ENTITY_CROS_OU_AND_CHILDREN,
     ENTITY_CROS_OUS,
     ENTITY_CROS_OUS_AND_CHILDREN,
+    ENTITY_CROS_OU_QUERY,
+    ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    ENTITY_CROS_OUS_QUERY,
+    ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    ENTITY_CROS_OU_QUERIES,
+    ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    ENTITY_CROS_OUS_QUERIES,
+    ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
     ENTITY_CROS_SN,
     ]
   USER_ENTITIES = [
@@ -151,6 +167,7 @@ class GamCLArgs():
     'crosou_and_child': ENTITY_CROS_OU_AND_CHILDREN,
     'crosou_and_childen': ENTITY_CROS_OU_AND_CHILDREN,
     'crosous_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
+    'crosous_and_children': ENTITY_CROS_OUS_AND_CHILDREN,
     'cros_org': ENTITY_CROS_OU,
     'cros_org_and_child': ENTITY_CROS_OU_AND_CHILDREN,
     'cros_org_and_children': ENTITY_CROS_OU_AND_CHILDREN,
@@ -160,6 +177,47 @@ class GamCLArgs():
     'cros_ou_and_child': ENTITY_CROS_OU_AND_CHILDREN,
     'cros_ou_and_childen': ENTITY_CROS_OU_AND_CHILDREN,
     'cros_ous_and_child': ENTITY_CROS_OUS_AND_CHILDREN,
+    'cros_ous_and_children': ENTITY_CROS_OUS_AND_CHILDREN,
+    'crosorg_query': ENTITY_CROS_OU_QUERY,
+    'crosorg_and_child_query': ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    'crosorg_and_children_query': ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    'crosorgs_query': ENTITY_CROS_OUS_QUERY,
+    'crosorgs_and_child_query': ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    'crosorgs_and_children_query': ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    'crosou_and_child_query': ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    'crosou_and_childen_query': ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    'crosous_and_child_query': ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    'crosous_and_children_query': ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    'cros_org_query': ENTITY_CROS_OU_QUERY,
+    'cros_org_and_child_query': ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    'cros_org_and_children_query': ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    'cros_orgs_query': ENTITY_CROS_OUS_QUERY,
+    'cros_orgs_and_child_query': ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    'cros_orgs_and_children_query': ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    'cros_ou_and_child_query': ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    'cros_ou_and_childen_query': ENTITY_CROS_OU_AND_CHILDREN_QUERY,
+    'cros_ous_and_child_query': ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    'cros_ous_and_children_query': ENTITY_CROS_OUS_AND_CHILDREN_QUERY,
+    'crosorg_queries': ENTITY_CROS_OU_QUERIES,
+    'crosorg_and_child_queries': ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    'crosorg_and_children_queries': ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    'crosorgs_queries': ENTITY_CROS_OUS_QUERIES,
+    'crosorgs_and_child_queries': ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
+    'crosorgs_and_children_queries': ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
+    'crosou_and_child_queries': ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    'crosou_and_childen_queries': ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    'crosous_and_child_queries': ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
+    'crosous_and_children_queries': ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
+    'cros_org_queries': ENTITY_CROS_OU_QUERIES,
+    'cros_org_and_child_queries': ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    'cros_org_and_children_queries': ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    'cros_orgs_queries': ENTITY_CROS_OUS_QUERIES,
+    'cros_orgs_and_child_queries': ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
+    'cros_orgs_and_children_queries': ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
+    'cros_ou_and_child_queries': ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    'cros_ou_and_childen_queries': ENTITY_CROS_OU_AND_CHILDREN_QUERIES,
+    'cros_ous_and_child_queries': ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
+    'cros_ous_and_children_queries': ENTITY_CROS_OUS_AND_CHILDREN_QUERIES,
     'license': ENTITY_LICENSES,
     'licence': ENTITY_LICENSES,
     'licences': ENTITY_LICENSES,

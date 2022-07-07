@@ -644,10 +644,18 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (all cros)|
         (cros <CrOSIDList>)|
         (cros_sn <SerialNumberList>)|
-        (cros_ou|cros_org <OrgUnitItem>)|
-        (cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
-        (cros_ous|cros_orgs <OrgUnitList>)|
-        (cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)|
+        (cros_ou <OrgUnitItem>)|
+        (cros_ou_and_children <OrgUnitItem>)|
+        (cros_ous <OrgUnitList>)|
+        (cros_ous_and_children <OrgUnitList>)|
+        (cros_ou_query <OrgUnitItem> <QueryCrOS>)|
+        (cros_ou_and_children_query <OrgUnitItem> <QueryCrOS>)|
+        (cros_ous_query <OrgUnitList> <QueryCrOS>)|
+        (cros_ous_and_children_query <OrgUnitList> <QueryCrOS>)|
+        (cros_ou_queries <OrgUnitItem> <QueryCrOSList>)|
+        (cros_ou_and_children_queries <OrgUnitItem> <QueryCrOSList>)|
+        (cros_ous_queries <OrgUnitList> <QueryCrOSList>)|
+        (cros_ous_and_children_queries <OrgUnitList> <QueryCrOSList>)|
         (crosquery <QueryCrOS>)|
         (crosqueries <QueryCrOSList>)|
         (crosfile|crosfile_sn
@@ -1834,8 +1842,8 @@ gam <CrOSTypeEntity> info
 
 Print fields for selected CrOS devices; use these options to select CrOS devices:
         [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
-         [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
-          (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
+         [(limittoou|cros_ou <OrgUnitItem>)|(cros_ou_and_children <OrgUnitItem>)|
+          (cros_ous <OrgUnitList>)|(cros_ous_and_children <OrgUnitList>)]]
 If none of these options are chosen, all CrOS devices are selected.
 
 gam print cros [todrive <ToDriveAttribute>*]
@@ -1892,8 +1900,8 @@ gam <CrOSTypeEntity> print cros
 
 Print activity for selected CrOS devices; use these options to select CrOS devices:
         [(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
-         [(limittoou|cros_ou|cros_org <OrgUnitItem>)|(cros_ou_and_children|cros_org_and_children <OrgUnitItem>)|
-          (cros_ous|cros_orgs <OrgUnitList>)|(cros_ous_and_children|cros_orgs_and_children <OrgUnitList>)]]
+         [(limittoou|cros_ou <OrgUnitItem>)|(cros_ou_and_children <OrgUnitItem>)|
+          (cros_ous <OrgUnitList>)|(cros_ous_and_children <OrgUnitList>)]]
 If none of these options are chosen, all CrOS devices are selected.
 
 gam print crosactivity [todrive <ToDriveAttribute>*]

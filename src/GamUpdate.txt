@@ -1,3 +1,22 @@
+6.24.18
+
+Added the following items to `<CrOSTypeEntity>`:
+```
+cros_ou_query <OrgUnitItem> <QueryCrOS>
+cros_ou_and_children_query <OrgUnitItem> <QueryCrOS>
+cros_ous_query <OrgUnitList> <QueryCrOS>
+cros_ous_and_children_query <OrgUnitList> <QueryCrOS>
+cros_ou_queries <OrgUnitItem> <QueryCrOSList>
+cros_ou_and_children_queries <OrgUnitItem> <QueryCrOSList>
+cros_ous_queries <OrgUnitList> <QueryCrOSList>
+cros_ous_and_children_queries <OrgUnitList> <QueryCrOSList>
+```
+These allow specifying an OU, or a list of OUs, and a query or a list of queries
+that apply to those OUs.
+```
+gam cros_ou_query /StudentChromebooks "sync:..2019-01-01" update ou "/OldChromebooks"
+```
+
 6.24.17
 
 Updated `gam report user` to avoid a trap due to an unexpected change in the Reports API.
