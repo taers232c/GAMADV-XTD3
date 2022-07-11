@@ -1,3 +1,7 @@
+6.24.20
+
+Fixed bug in `gam <UserTypeEntity> claim ownership` that caused a trap.
+
 6.24.19
 
 * Upgraded to OpenSSL 1.1.1q

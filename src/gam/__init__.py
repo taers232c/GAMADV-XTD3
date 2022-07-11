@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.19'
+__version__ = '6.24.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51576,7 +51576,7 @@ def claimOwnership(users):
   showRetentionMessages = True
   oldOwnerPermissionIds = {}
   csvPF = fileTree = None
-  buildTree = False
+  buildTree = changeParents = False
   bodyShare = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
