@@ -1,4 +1,4 @@
-lxml == 4.8.0; sys_platform == 'darwin'
+lxml == 4.9.1; sys_platform == 'darwin'
 lxml == 4.9.1; sys_platform != 'darwin'
 cryptography
 distro; sys_platform == 'linux'
