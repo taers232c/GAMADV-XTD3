@@ -137,6 +137,7 @@ SERVICE_NOT_AVAILABLE = 'serviceNotAvailable'
 SHARE_OUT_NOT_PERMITTED = 'shareOutNotPermitted'
 SHARE_OUT_NOT_PERMITTED_TO_USER = 'shareOutNotPermittedToUser'
 SHARING_RATE_LIMIT_EXCEEDED = 'sharingRateLimitExceeded'
+SHORTCUT_TARGET_INVALID = 'shortcutTargetInvalid'
 SYSTEM_ERROR = 'systemError'
 TEAMDRIVE_ALREADY_EXISTS = 'teamDriveAlreadyExists'
 TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION = 'teamDriveDomainUsersOnlyRestriction'
@@ -527,6 +528,8 @@ class shareOutNotPermittedToUser(Exception):
   pass
 class sharingRateLimitExceeded(Exception):
   pass
+class shortcutTargetInvalid(Exception):
+  pass
 class systemError(Exception):
   pass
 class teamDriveAlreadyExists(Exception):
@@ -675,6 +678,7 @@ REASON_EXCEPTION_MAP = {
   SHARE_OUT_NOT_PERMITTED: shareOutNotPermitted,
   SHARE_OUT_NOT_PERMITTED_TO_USER: shareOutNotPermittedToUser,
   SHARING_RATE_LIMIT_EXCEEDED: sharingRateLimitExceeded,
+  SHORTCUT_TARGET_INVALID: shortcutTargetInvalid,
   SYSTEM_ERROR: systemError,
   TEAMDRIVE_ALREADY_EXISTS: teamDriveAlreadyExists,
   TEAMDRIVE_DOMAIN_USERS_ONLY_RESTRICTION: teamDriveDomainUsersOnlyRestriction,

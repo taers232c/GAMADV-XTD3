@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.20'
+__version__ = '6.24.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -47795,7 +47795,7 @@ def createDriveFileShortcut(users):
                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                         GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
                                                                         GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-                                                                        GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                                                                        GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.SHORTCUT_TARGET_INVALID],
                             body=body, fields='id,name', supportsAllDrives=True)
           removeParents.append(parentId)
           if returnIdOnly:
@@ -47806,7 +47806,8 @@ def createDriveFileShortcut(users):
           else:
             csvPF.WriteRow({'User': user, 'name': result['name'], 'id': result['id'], 'targetName': targetName, 'targetId': fileId})
         except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-                GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+                GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed,
+                GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
           entityActionFailedWarning([Ent.USER, user, targetEntityType, targetName, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), k, numNewParents)
       Ind.Decrement()
       if convertParents and removeParents:
@@ -49019,7 +49020,7 @@ def copyDriveFile(users):
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                     GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
                                                                     GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.SHORTCUT_TARGET_INVALID],
                         body=body, fields='id', supportsAllDrives=True)
       Act.Set(Act.CREATE_SHORTCUT)
       entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
@@ -49028,7 +49029,8 @@ def copyDriveFile(users):
       Act.Set(action)
       _incrStatistic(statistics, STAT_FILE_SHORTCUT_CREATED)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed,
+            GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
       entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), k, kcount)
       _incrStatistic(statistics, STAT_FILE_FAILED)
 
@@ -49581,7 +49583,7 @@ def moveDriveFile(users):
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                     GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
                                                                     GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.SHORTCUT_TARGET_INVALID],
                         body=body, fields='id', supportsAllDrives=True)
       Act.Set(Act.CREATE_SHORTCUT)
       entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
@@ -49590,7 +49592,8 @@ def moveDriveFile(users):
       Act.Set(action)
       _incrStatistic(statistics, STAT_FILE_SHORTCUT_CREATED)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed,
+            GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
       entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), k, kcount)
       _incrStatistic(statistics, STAT_FILE_FAILED)
 
@@ -50565,7 +50568,7 @@ def transferDrive(users):
 #                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
 #                                                                    GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
 #                                                                    GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-#                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+#                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.SHORTCUT_TARGET_INVALID],
 #                        body=body, fields='id', supportsAllDrives=True)
 #      Act.Set(Act.CREATE_SHORTCUT)
 #      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
@@ -50573,7 +50576,8 @@ def transferDrive(users):
 #                                                 j, jcount)
 #      Act.Set(action)
 #    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-#            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+#            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed,
+#	     GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
 #      entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), j, jcount)
 
   def _transferFile(childEntry, i, count, j, jcount, atSelectTop):
