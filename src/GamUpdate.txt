@@ -1,3 +1,8 @@
+6.24.22
+
+Added option `license <SKUID> [product|productid <ProductID>]` to `gam create user` that assigns a
+license to a user at the time of creation.
+
 6.24.21
 
 Fixed bug in `gam <UserTypeEntity> move drivefile ... createshortcutsfornonmovablefiles` that caused the following error:

@@ -4475,6 +4475,7 @@ gam <UserTypeEntity> show vaultholds|holds
 gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
+        [license <SKUID> [product|productid <ProductID>]]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]

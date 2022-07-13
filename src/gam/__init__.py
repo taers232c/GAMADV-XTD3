@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.21'
+__version__ = '6.24.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -36052,6 +36052,9 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     'noActionIfAlias': False,
     'notifyOnUpdate': True,
     'setChangePasswordOnCreate': False,
+    'lic': None,
+    LICENSE_PRODUCTID: None,
+    LICENSE_SKUID: None,
     }
   if updateCmd:
     body = {}
@@ -36096,6 +36099,14 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       parameters['notifyOnUpdate'] = getBoolean()
     elif updateCmd and myarg == 'setchangepasswordoncreate':
       parameters['setChangePasswordOnCreate'] = getBoolean()
+    elif not updateCmd and myarg in {'licence', 'license'}:
+      if parameters['lic'] is None:
+        parameters['lic'] = buildGAPIObject(API.LICENSING)
+      parameters[LICENSE_PRODUCTID], parameters[LICENSE_SKUID] = getGoogleSKU()
+      if checkArgumentPresent(['product', 'productid']):
+        parameters[LICENSE_PRODUCTID] = getGoogleProduct()
+      elif not parameters[LICENSE_PRODUCTID]:
+        invalidChoiceExit(parameters[LICENSE_SKUID], SKU.getSortedSKUList(), True)
     elif updateCmd and myarg == 'updateoufromgroup':
       groupOrgUnitMap = _getGroupOrgUnitMap()
     elif updateCmd and myarg == 'updateprimaryemail':
@@ -36454,6 +36465,7 @@ def createUserAddAliases(cd, user, aliasList, i, count):
 # gam create user <EmailAddress> <UserAttribute>
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 #	[alias|aliases <EmailAddressList>]
+#	[license <SKUID> [product|productid <ProductID>]]
 #	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
@@ -36486,6 +36498,14 @@ def doCreateUser():
       createUserAddAliases(cd, result['primaryEmail'], addAliases, 0, 0)
     if notify.get('recipients'):
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
+    if parameters[LICENSE_SKUID] is not None:
+      try:
+        callGAPI(parameters['lic'].licenseAssignments(), 'insert',
+                 throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+                 productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
+        entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])])
+      except (GAPI.duplicate, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid, GAPI.userNotFound, GAPI.backendError) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e))
   except GAPI.duplicate:
     duplicateAliasGroupUserWarning(cd, [Ent.USER, user])
   except GAPI.invalidSchemaValue:
