@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.22'
+__version__ = '6.24.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10068,7 +10068,7 @@ def doCreateProject():
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], str(e))
     operation_name = create_operation['name']
     time.sleep(5) # Google recommends always waiting at least 5 seconds
-    for i in range(1, 5):
+    for i in range(1, 10):
       sys.stdout.write(Msg.CHECKING_PROJECT_CREATION_STATUS)
       status = callGAPI(crm.operations(), 'get',
                         name=operation_name)
@@ -10107,7 +10107,7 @@ def doCreateProject():
         systemErrorExit(1, str(status)+'\n')
       if status.get('done', False):
         break
-      sleep_time = i ** 2
+      sleep_time = min(2 ** i, 60)
       sys.stdout.write(Msg.PROJECT_STILL_BEING_CREATED_SLEEPING.format(sleep_time))
       time.sleep(sleep_time)
     if create_again:

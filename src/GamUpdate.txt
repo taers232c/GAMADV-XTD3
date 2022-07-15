@@ -1,3 +1,7 @@
+6.24.23
+
+Increase wait time in `gam create project` as Google is taking much longer to create projects.
+
 6.24.22
 
 Added option `license <SKUID> [product|productid <ProductID>]` to `gam create user` that assigns a
