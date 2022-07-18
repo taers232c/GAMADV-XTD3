@@ -1,3 +1,7 @@
+6.24.24
+
+Added `gradebooksettings` to `<CourseFieldName>`.
+
 6.24.23
 
 Increase wait time in `gam create project` as Google is taking much longer to create projects.
