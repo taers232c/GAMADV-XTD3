@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.24'
+__version__ = '6.24.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -27712,6 +27712,7 @@ def doPrintGroups():
     while True:
       pageToken, totalItems = _processGAPIpagesResult(response, items, groupData[i][items], totalItems, pageMessage, 'email', ri[RI_ROLE])
       if not pageToken:
+        _finalizeGAPIpagesResult(pageMessage)
         break
       try:
         response = callGAPI(cd.members(), 'list',

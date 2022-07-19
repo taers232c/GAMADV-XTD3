@@ -1,3 +1,7 @@
+6.24.25
+
+Corrected progress messages for `gam print groups showownedby`.
+
 6.24.24
 
 Added `gradebooksettings` to `<CourseFieldName>`.
