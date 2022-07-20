@@ -10,10 +10,8 @@ extra_files = [
     ('cacerts.pem', '.'),
     ('admin-directory_v1.1beta1.json', '.'),
     ('cbcm-v1.1beta1.json', '.'),
-    ('contacts-v3.json', '.'),
     ('contactdelegation-v1.json', '.'),
     ('datastudio-v1.json', '.'),
-    ('sites-v1.json', '.')
     ]
 extra_files += copy_metadata('google-api-python-client')
 
