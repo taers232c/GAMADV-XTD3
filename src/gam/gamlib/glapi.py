@@ -158,11 +158,11 @@ PROJECT_APIS = [
   ]
 
 _INFO = {
-  ACCESSCONTEXTMANAGER: {'name': 'Access Context Manager API', 'version': 'v1', 'v2discovery': True, 'localjson': False},
+  ACCESSCONTEXTMANAGER: {'name': 'Access Context Manager API', 'version': 'v1', 'v2discovery': True},
   ALERTCENTER: {'name': 'AlertCenter API', 'version': 'v1beta1', 'v2discovery': True},
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': True, 'mappedAPI': 'calendar-json'},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
-  CHAT: {'name': 'Chat API', 'version': 'v1', 'v2discovery': True, 'localjson': False},
+  CHAT: {'name': 'Chat API', 'version': 'v1', 'v2discovery': True},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
   CHROMEMANAGEMENT: {'name': 'Chrome Management API', 'version': 'v1', 'v2discovery': True},
   CHROMEMANAGEMENT_TELEMETRY: {'name': 'Chrome Management API - Telemetry', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'chromemanagement'},

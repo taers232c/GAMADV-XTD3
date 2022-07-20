@@ -1,3 +1,7 @@
+6.24.26
+
+Updated handling of shortcuts in `gam <UserTypeEntity> claim|transfer ownership`.
+
 6.24.25
 
 Corrected progress messages for `gam print groups showownedby`.
