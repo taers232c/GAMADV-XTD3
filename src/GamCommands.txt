@@ -293,7 +293,7 @@ If an item contains spaces, it should be surrounded by ".
 <CAALevelName> ::= <String>
 <CalendarACLScope> ::=
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
-        domain:<DomainName>)|domain|default
+        domain:<DomainName>|domain|default
 <CalendarItem> ::= <EmailAddress>|<String>
 <GIGroupAlias> ::= <EmailAddress>|<String>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
@@ -1196,7 +1196,7 @@ gam whatis <EmailItem> [noinfo] [noinivitablecheck]
 <CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
-<CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
+<CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarACLScopeEntity> ::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
@@ -3793,7 +3793,7 @@ gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>
         [formatjson [quotechar <Character>]]
 
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
-<CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
+<CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarACLScopeEntity> ::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
@@ -4700,7 +4700,7 @@ gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttrib
         <CalendarSelectProperty>*
 
 <CalendarACLScope> ::=
-        <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>)|domain|default
+        <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <CalendarACLScopeList> ::=
         <CalendarACLScope>(,<CalendarACLScope>)*
 <CalendarACLScopeEntity> ::=

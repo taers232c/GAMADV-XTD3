@@ -1,3 +1,7 @@
+6.24.27
+
+Following Jay's lead, updated Cloud Identity API from v1beta1 to v1 for `userinvitations` commands.
+
 6.24.26
 
 Updated handling of shortcuts in `gam <UserTypeEntity> claim|transfer ownership`.
