@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.00'
+__version__ = '6.25.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -55254,11 +55254,13 @@ def _createLicenses(lic, parameters, count, users):
     try:
       if not parameters['preview']:
         callGAPI(lic.licenseAssignments(), 'insert',
-                 throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+                 throwReasons=[GAPI.INTERNAL_ERROR, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
+                               GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
         message = Act.SUCCESS
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.duplicate, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid) as e:
+    except (GAPI.internalError, GAPI.duplicate, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid, GAPI.serviceNotAvailable) as e:
       message = str(e)
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], message, i, count)
     except (GAPI.userNotFound, GAPI.backendError) as e:
@@ -55291,12 +55293,13 @@ def updateLicense(users):
         callGAPI(lic.licenseAssignments(), 'patch',
                  bailOnInternalError=True,
                  throwReasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
-                               GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+                               GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_OLDSKUID], userId=user, body=body, fields='')
         message = Act.SUCCESS
       entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(parameters[LICENSE_SKUID])],
                                             Act.MODIFIER_FROM, SKU.skuIdToDisplayName(parameters[LICENSE_OLDSKUID]), i, count)
-    except (GAPI.internalError, GAPI.notFound, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid) as e:
+    except (GAPI.internalError, GAPI.notFound, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid, GAPI.serviceNotAvailable) as e:
       message = str(e)
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], message, i, count)
     except (GAPI.userNotFound, GAPI.backendError) as e:
@@ -55318,11 +55321,13 @@ def _deleteLicenses(lic, parameters, count, users):
     try:
       if not parameters['preview']:
         callGAPI(lic.licenseAssignments(), 'delete',
-                 throwReasons=[GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
+                 throwReasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
+                               GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                  productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
         message = Act.SUCCESS
       entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.notFound, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid) as e:
+    except (GAPI.internalError, GAPI.notFound, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid, GAPI.serviceNotAvailable) as e:
       message = str(e)
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], message, i, count)
     except (GAPI.userNotFound, GAPI.backendError) as e:

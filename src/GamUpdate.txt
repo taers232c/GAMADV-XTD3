@@ -1,3 +1,12 @@
+6.25.01
+
+Updated license commands to retry the following error:
+```
+ERROR: 503: serviceNotAvailable - The service is currently unavailable.
+```
+
+Updated `https://apps.google.com/user/hub` to `https://workspace.google.com/dashboard` in the new user email message; thanks to @jay-eleven.
+
 6.25.00
 
 Added initial support for the Drive Labels API. GAM can display drive labels and it can apply them to files
