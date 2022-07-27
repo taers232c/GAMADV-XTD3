@@ -101,6 +101,10 @@ INVALID_RESOURCE = 'invalidResource'
 INVALID_SCHEMA_VALUE = 'invalidSchemaValue'
 INVALID_SCOPE_VALUE = 'invalidScopeValue'
 INVALID_SHARING_REQUEST = 'invalidSharingRequest'
+LABEL_MULTIPLE_VALUES_FOR_SINGULAR_FIELD = 'labelMultipleValuesForSingularField'
+LABEL_MUTATION_FORBIDDEN = 'labelMutationForbidden'
+LABEL_MUTATION_ILLEGAL_SELECTION = 'labelMutationIllegalSelection'
+LABEL_MUTATION_UNKNOWN_FIELD = 'labelMutationUnknownField'
 LIMIT_EXCEEDED = 'limitExceeded'
 LOGIN_REQUIRED = 'loginRequired'
 MEMBER_NOT_FOUND = 'memberNotFound'
@@ -210,6 +214,11 @@ DRIVE3_DELETE_ACL_THROW_REASONS = [BAD_REQUEST, CANNOT_REMOVE_OWNER,
                                    CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, SHARING_RATE_LIMIT_EXCEEDED,
                                    NOT_FOUND, PERMISSION_NOT_FOUND]
+DRIVE3_MODIFY_LABEL_THROW_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND, NOT_FOUND, FORBIDDEN, INTERNAL_ERROR,
+                                                              INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, INSUFFICIENT_FILE_PERMISSIONS,
+                                                              UNKNOWN_ERROR, INVALID_INPUT, BAD_REQUEST,
+                                                              LABEL_MULTIPLE_VALUES_FOR_SINGULAR_FIELD, LABEL_MUTATION_FORBIDDEN,
+                                                              LABEL_MUTATION_ILLEGAL_SELECTION, LABEL_MUTATION_UNKNOWN_FIELD]
 GMAIL_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST]
 GMAIL_LIST_THROW_REASONS = [FAILED_PRECONDITION, PERMISSION_DENIED, INVALID, INVALID_ARGUMENT]
 GMAIL_SMIME_THROW_REASONS = [SERVICE_NOT_AVAILABLE, BAD_REQUEST, INVALID_ARGUMENT, FORBIDDEN, NOT_FOUND]
@@ -456,6 +465,14 @@ class invalidScopeValue(Exception):
   pass
 class invalidSharingRequest(Exception):
   pass
+class labelMultipleValuesForSingularField(Exception):
+  pass
+class labelMutationForbidden(Exception):
+  pass
+class labelMutationIllegalSelection(Exception):
+  pass
+class labelMutationUnknownField(Exception):
+  pass
 class limitExceeded(Exception):
   pass
 class loginRequired(Exception):
@@ -642,6 +659,10 @@ REASON_EXCEPTION_MAP = {
   INVALID_SCHEMA_VALUE: invalidSchemaValue,
   INVALID_SCOPE_VALUE: invalidScopeValue,
   INVALID_SHARING_REQUEST: invalidSharingRequest,
+  LABEL_MULTIPLE_VALUES_FOR_SINGULAR_FIELD: labelMultipleValuesForSingularField,
+  LABEL_MUTATION_FORBIDDEN: labelMutationForbidden,
+  LABEL_MUTATION_ILLEGAL_SELECTION: labelMutationIllegalSelection,
+  LABEL_MUTATION_UNKNOWN_FIELD: labelMutationUnknownField,
   LIMIT_EXCEEDED: limitExceeded,
   LOGIN_REQUIRED: loginRequired,
   MEMBER_NOT_FOUND: memberNotFound,

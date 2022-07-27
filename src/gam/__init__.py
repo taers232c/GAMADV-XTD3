@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.24.27'
+__version__ = '6.25.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4538,7 +4538,7 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
       systemErrorExit(HTTP_ERROR_RC, eContent)
   if 'error' in error:
     http_status = error['error']['code']
-    if 'errors' in error['error']:
+    if 'errors' in error['error'] and 'message' in error['error']['errors'][0]:
       message = error['error']['errors'][0]['message']
       status = ''
     else:
@@ -4546,7 +4546,7 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
       status = error['error'].get('status', '')
     lmessage = message.lower() if message is not None else ''
     if http_status == 500:
-      if not lmessage:
+      if not lmessage or status == 'UNKNOWN':
         message = Msg.UNKNOWN
         error = makeErrorDict(http_status, GAPI.UNKNOWN_ERROR, message)
       elif 'backend error' in lmessage:
@@ -6280,8 +6280,8 @@ def getEntityList(item, shlexSplit=False):
 def getNormalizedEmailAddressEntity(shlexSplit=False, noUid=True):
   return [normalizeEmailAddressOrUID(emailAddress, noUid) for emailAddress in getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY, shlexSplit)]
 
-def getUserObjectEntity(clObject, itemType):
-  entity = {'item': itemType, 'list': getEntityList(clObject), 'dict': None}
+def getUserObjectEntity(clObject, itemType, shlexSplit=False):
+  entity = {'item': itemType, 'list': getEntityList(clObject, shlexSplit), 'dict': None}
   if isinstance(entity['list'], dict):
     entity['dict'] = entity['list']
   return entity
@@ -6976,7 +6976,7 @@ class CSVPrintFile():
     for sheetEntity in iter(self.TDSHEET_ENTITY_MAP.values()):
       tdsheetLocation[sheetEntity] = Cmd.Location()
     self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None,
-                    'sheetEntity': None, 'addsheet': False, 'updatesheet': False,
+                    'sheetEntity': None, 'addsheet': False, 'updatesheet': False, 'sheettitle': None,
                     'cellwrap': None, 'clearfilter': GC.Values[GC.TODRIVE_CLEARFILTER],
                     'backupSheetEntity': None, 'copySheetEntity': None,
                     'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
@@ -6994,7 +6994,7 @@ class CSVPrintFile():
         tduserLocation = Cmd.Location()
         localUser = True
       elif myarg == 'tdtitle':
-        self.todrive['title'] = getString(Cmd.OB_STRING)
+        self.todrive['title'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'tddescription':
         self.todrive['description'] = getString(Cmd.OB_STRING)
       elif myarg in self.TDSHEET_ENTITY_MAP:
@@ -7023,6 +7023,8 @@ class CSVPrintFile():
         self.todrive['timestamp'] = getBoolean()
       elif myarg == 'tdtimeformat':
         self.todrive['timeformat'] = getString(Cmd.OB_STRING, minLen=0)
+      elif myarg == 'tdsheettitle':
+        self.todrive['sheettitle'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'tdsheettimestamp':
         self.todrive['sheettimestamp'] = getBoolean()
       elif myarg == 'tdsheettimeformat':
@@ -7435,14 +7437,20 @@ class CSVPrintFile():
       writerDialect = setDialect('\n')
       writer = csv.DictWriter(csvFile, titlesList, extrasaction=extrasaction, **writerDialect)
       if writeCSVData(writer):
-        if self.todrive['title'] is None or (not self.todrive['title'] and not self.todrive['timestamp']):
+        if ((self.todrive['title'] is None) or
+             (not self.todrive['title'] and not self.todrive['timestamp'])):
           title = f'{GC.Values[GC.DOMAIN]} - {list_type}'
         else:
           title = self.todrive['title']
-        if self.todrive['sheetEntity'] is None or (not self.todrive['sheetEntity']['sheetTitle'] and not self.todrive['sheettimestamp']):
-          sheetTitle = title
+        if ((self.todrive['sheettitle'] is None) or
+            (not self.todrive['sheettitle'] and not self.todrive['sheettimestamp'])):
+          if ((self.todrive['sheetEntity'] is None) or
+              (not self.todrive['sheetEntity']['sheetTitle'])):
+            sheetTitle = title
+          else:
+            sheetTitle = self.todrive['sheetEntity']['sheetTitle']
         else:
-          sheetTitle = self.todrive['sheetEntity']['sheetTitle']
+          sheetTitle = self.todrive['sheettitle']
         tdbasetime = tdtime = datetime.datetime.now(GC.Values[GC.TIMEZONE])
         if self.todrive['daysoffset'] is not None or self.todrive['hoursoffset'] is not None:
           tdtime = tdbasetime+relativedelta(days=-self.todrive['daysoffset'] if self.todrive['daysoffset'] is not None else 0,
@@ -7539,6 +7547,9 @@ class CSVPrintFile():
                                                        'destination': {'sheetId': self.todrive['backupSheetEntity']['sheetId']}, 'pasteType': 'PASTE_NORMAL'}})
               if self.todrive['clearfilter']:
                 body['requests'].append({'clearBasicFilter': {'sheetId': self.todrive['sheetEntity']['sheetId']}})
+              if self.todrive['sheettitle']:
+                body['requests'].append({'updateSheetProperties':
+                                           {'properties': {'sheetId': self.todrive['sheetEntity']['sheetId'], 'title': sheetTitle}, 'fields': 'title'}})
             body['requests'].append({'updateCells': {'range': {'sheetId': self.todrive['sheetEntity']['sheetId']}, 'fields': '*'}})
             body['requests'].append({'pasteData': {'coordinate': {'sheetId': self.todrive['sheetEntity']['sheetId'], 'rowIndex': '0', 'columnIndex': '0'},
                                                    'data': csvFile.read(), 'type': 'PASTE_NORMAL', 'delimiter': self.columnDelimiter}})
@@ -19782,7 +19793,7 @@ def infoUserPeopleContactGroups(users):
     elif myarg == 'showmetadata':
       parameters['strip'] = False
     else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
+      FJQC.GetFormatJSON(myarg)
   fields = _getPersonFields(PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList, parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -30341,7 +30352,7 @@ def doInfoAlert():
   FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    FJQC.GetFormatJSONQuoteChar(myarg, False)
+    FJQC.GetFormatJSON(myarg)
   user, ac = buildGAPIServiceObject(API.ALERTCENTER, _getAdminEmail())
   if not ac:
     return
@@ -45061,15 +45072,27 @@ def _stripControlCharsFromName(name):
     name = name.replace(cc, '')
   return name
 
+SHOWLABELS_CHOICES = {'details', 'ids'}
+
+def _formatFileDriveLabels(showLabels, labels, result, printMode, delimiter):
+  if showLabels == 'details':
+    result['labels'] = labels
+  else:
+    if printMode:
+      result['labels'] = len(labels)
+    result['labelsIds'] = delimiter.join([label['id'] for label in labels])
+
 # gam <UserTypeEntity> info drivefile <DriveFileEntity>
 #	[filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[showparentsidsaslist] [showshareddrivepermissions]
+#	[showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+#	[showparentsidsaslist]
 #	[stripcrsfromname]
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity>
 #	[filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[showparentsidsaslist] [showshareddrivepermissions]
+#	[showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+#	[showparentsidsaslist]
 #	[stripcrsfromname]
 def showFileInfo(users):
   def _setSelectionFields():
@@ -45080,6 +45103,7 @@ def showFileInfo(users):
       _setSkipObjects(skipObjects, ['driveId'], DFF.fieldsList)
 
   getPermissionsForSharedDrives = filepath = fullpath = showParentsIdsAsList = showNoParents = stripCRsFromName = False
+  showLabels = None
   simpleLists = []
   skipObjects = set()
   fileIdEntity = getDriveFileEntity()
@@ -45096,6 +45120,8 @@ def showFileInfo(users):
       filepath = fullpath = True
     elif myarg == 'stripcrsfromname':
       stripCRsFromName = True
+    elif myarg == 'showlabels':
+      showLabels = getChoice(SHOWLABELS_CHOICES)
     elif myarg == 'showshareddrivepermissions':
       getPermissionsForSharedDrives = True
       permissionsFields = 'nextPageToken,permissions'
@@ -45167,6 +45193,11 @@ def showFileInfo(users):
             if fields != '*':
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
               continue
+        if showLabels is not None:
+          labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
+                                 throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                 fileId=fileId)
+          _formatFileDriveLabels(showLabels, labels, result, False, ' ')
         if not FJQC.formatJSON:
           printEntity([_getEntityMimeType(result), f'{result["name"]} ({fileId})'], j, jcount)
           Ind.Increment()
@@ -45195,8 +45226,9 @@ def showFileInfo(users):
           _mapDriveParents(result, DFF.parentsSubFields)
           _mapDriveProperties(result)
         if not FJQC.formatJSON:
-          showJSON(None, result, skipObjects, timeObjects, simpleLists,
-                   {'owners': 'displayName', 'parents': 'id', 'permissions': ['name', 'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
+          showJSON(None, result, skipObjects=skipObjects, timeObjects=timeObjects, simpleLists=simpleLists,
+                   dictObjectsKey={'owners': 'displayName', 'fields': 'id', 'labels': 'id', 'user': 'emailAddress', 'parents': 'id',
+                                   'permissions': ['name', 'displayName'][GC.Values[GC.DRIVE_V3_NATIVE_NAMES]]})
           Ind.Decrement()
         else:
           printLine(json.dumps(cleanJSON(result, skipObjects=skipObjects, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
@@ -46365,7 +46397,8 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
 #	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-#	[showdrivename] [showparentsidsaslist] [showpermissionslast] [showshareddrivepermissions]
+#	[showdrivename] [showlabels details|ids]] [showshareddrivepermissions]
+#	[showparentsidsaslist] [showpermissionslast]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 #	[stripcrsfromname]
 #	[formatjson [quotechar <Character>]]
@@ -46507,21 +46540,24 @@ def printFileList(users):
                                retryReasons=[GAPI.UNKNOWN_ERROR],
                                q=q, orderBy=DFF.orderBy, fields=pagesFields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeItemsFromAllDrives=True, supportsAllDrives=True)
+      for childEntryInfo in children:
+        childFileId = childEntryInfo['id']
+        if showLabels is not None:
+          labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
+                                 throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                 fileId=childFileId)
+          _formatFileDriveLabels(showLabels, labels, childEntryInfo, True, delimiter)
+        if filepath:
+          fileTree.setdefault(childFileId, {'info': childEntryInfo})
+        if childFileId not in filesPrinted:
+          filesPrinted.add(childFileId)
+          _printFileInfo(drive, user, childEntryInfo.copy())
+        if childEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
+          _printChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
     except (GAPI.invalidQuery, GAPI.invalid):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
-      return
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-      return
-    for childEntryInfo in children:
-      childFileId = childEntryInfo['id']
-      if filepath:
-        fileTree.setdefault(childFileId, {'info': childEntryInfo})
-      if childFileId not in filesPrinted:
-        filesPrinted.add(childFileId)
-        _printFileInfo(drive, user, childEntryInfo.copy())
-      if childEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
-        _printChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
 
   def writeMimeTypeCountsRow(user, sourceId, sourceName, mimeTypeCounts, sizeTotal):
     total = 0
@@ -46547,6 +46583,7 @@ def printFileList(users):
   FJQC = FormatJSONQuoteChar(csvPF)
   addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = getPermissionsForSharedDrives = \
     noRecursion = showParentsIdsAsList = showDepth = showParent = showSize = showSource = stripCRsFromName = False
+  showLabels = None
   rootFolderId = ROOT
   rootFolderName = MY_DRIVE
   maxdepth = -1
@@ -46631,6 +46668,8 @@ def printFileList(users):
       csvPF.SetShowPermissionsLast(True)
     elif myarg == 'stripcrsfromname':
       stripCRsFromName = True
+    elif myarg == 'showlabels':
+      showLabels = getChoice(SHOWLABELS_CHOICES)
     elif myarg == 'showshareddrivepermissions':
       getPermissionsForSharedDrives = True
       permissionsFields = 'nextPageToken,permissions'
@@ -46785,6 +46824,12 @@ def printFileList(users):
           break
         pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, pageMessage, None, Ent.DRIVE_FILE_OR_FOLDER)
         if feed:
+          if showLabels is not None:
+            for f_file in feed.get('files', []):
+              labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
+                                     throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                     fileId=f_file['id'])
+              _formatFileDriveLabels(showLabels, labels, f_file, True, delimiter)
           if not incrementalPrint:
             extendFileTree(fileTree, feed.get('files', []), DLP, stripCRsFromName)
           else:
@@ -46832,6 +46877,11 @@ def printFileList(users):
                                    fileId=fileId, fields=fields, supportsAllDrives=True)
           if stripCRsFromName:
             fileEntryInfo['name'] = _stripControlCharsFromName(fileEntryInfo['name'])
+          if showLabels is not None:
+            labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
+                                   throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                   fileId=fileId)
+            _formatFileDriveLabels(showLabels, labels, fileEntryInfo, True, delimiter)
           if filepath:
             fileTree[fileId] = {'info': fileEntryInfo}
         except GAPI.fileNotFound:
@@ -53043,6 +53093,281 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
 
 def doPrintShowDriveFileACLs():
   printShowDriveFileACLs([_getAdminEmail()], True)
+
+DRIVELABELS_PROJECTION_CHOICE_MAP = {'basic': 'LABEL_VIEW_BASIC', 'full': 'LABEL_VIEW_FULL'}
+DRIVELABELS_MINIMUM_ROLE_MAP = {
+  'applier': 'APPLIER',
+  'editor': 'EDITOR',
+  'organizer': 'ORGANIZER',
+  'reader': 'READER',
+  }
+DRIVELABELS_TIME_OBJECTS = {'createTime', 'publishTime', 'disableTime', 'revisionCreateTime'}
+
+def _getDisplayDriveLabelsParameters(myarg, parameters):
+  if myarg in DRIVELABELS_PROJECTION_CHOICE_MAP:
+    parameters['view'] = DRIVELABELS_PROJECTION_CHOICE_MAP[myarg]
+  elif myarg == 'language':
+    parameters['languageCode'] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
+  elif myarg in ADMIN_ACCESS_OPTIONS:
+    parameters['useAdminAccess'] = True
+  elif myarg == 'publishedonly':
+    parameters['publishedOnly'] = getBoolean()
+  elif myarg == 'minimumrole':
+    parameters['minimumRole'] = getChoice(DRIVELABELS_MINIMUM_ROLE_MAP, mapChoice=True)
+  else:
+    return False
+  return True
+
+def normalizeDriveLabelID(driveLabelID):
+  atLoc = driveLabelID.find('@')
+  if atLoc != -1:
+    driveLabelID = driveLabelID[:atLoc]
+  if driveLabelID.startswith('labels/'):
+    return driveLabelID[7:]
+  return driveLabelID
+
+def normalizeDriveLabelName(driveLabelName):
+  if driveLabelName.startswith('labels/'):
+    return driveLabelName
+  return f'labels/{driveLabelName}'
+
+def _showDriveLabel(label, j, jcount, FJQC):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(label, timeObjects=DRIVELABELS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
+  printEntity([Ent.DRIVE_LABEL_NAME, f'{label["name"]}'], j, jcount)
+  Ind.Increment()
+  showJSON(None, label, timeObjects=DRIVELABELS_TIME_OBJECTS, dictObjectsKey={'fields': 'id', 'choices': 'id'})
+  Ind.Decrement()
+
+# gam [<UserTypeEntity>] info drivelabels <DriveLabelNameEntity>
+#	[[basic|full] [languagecode <LanguageCode>]
+#	[formatjson] [adminaccess|asadmin]
+def infoDriveLabels(users, useAdminAccess=False):
+  driveLabelNameEntity = getUserObjectEntity(Cmd.OB_DRIVE_LABEL_NAME, Ent.DRIVE_LABEL_NAME, shlexSplit=True)
+  FJQC = FormatJSONQuoteChar()
+  parameters = {'useAdminAccess': useAdminAccess}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if _getDisplayDriveLabelsParameters(myarg, parameters):
+      pass
+    else:
+      FJQC.GetFormatJSON(myarg)
+  api = API.DRIVELABELS_ADMIN if parameters['useAdminAccess'] else API.DRIVELABELS_USER
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive, noteNames, jcount = _validateUserGetObjectList(user, i, count, driveLabelNameEntity,
+                                                                api=api, showAction=FJQC is None or not FJQC.formatJSON)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for name in noteNames:
+      j += 1
+      name = normalizeDriveLabelName(name)
+      try:
+        label = callGAPI(drive.labels(), 'get',
+                         bailOnInternalError=True,
+                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                         name=name, **parameters)
+        _showDriveLabel(label, j, jcount, FJQC)
+      except GAPI.notFound as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_LABEL_NAME, name], str(e), j, jcount)
+      except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.internalError) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_LABEL_NAME, name], str(e), j, jcount)
+        break
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        break
+
+def doInfoDriveLabels():
+  infoDriveLabels([_getAdminEmail()], True)
+
+# gam [<UserTypeEntity>] print drivelabels> [todrive <ToDriveAttribute>*]
+#	[basic|full] [languagecode <LanguageCode>]
+#	[publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
+#	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
+# gam [<UserTypeEntity>] show drivelabels
+#	[publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
+#	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
+#	[formatjson] [adminaccess|asadmin]
+def printShowDriveLabels(users, useAdminAccess=False):
+  csvPF = CSVPrintFile(['User', 'name', 'description', 'id'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  parameters = {'useAdminAccess': useAdminAccess}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif _getDisplayDriveLabelsParameters(myarg, parameters):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if csvPF and FJQC.formatJSON:
+    csvPF.SetJSONTitles(['User', 'name', 'JSON'])
+  api = API.DRIVELABELS_ADMIN if parameters['useAdminAccess'] else API.DRIVELABELS_USER
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = buildGAPIServiceObject(api, user, i, count)
+    if not drive:
+      continue
+    if csvPF:
+      printGettingAllEntityItemsForWhom(Ent.DRIVE_LABEL, user, i, count)
+      pageMessage = getPageMessageForWhom()
+    else:
+      pageMessage = None
+    try:
+      labels = callGAPIpages(drive.labels(), 'list', 'labels',
+                             pageMessage=pageMessage,
+                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.PERMISSION_DENIED],
+                             **parameters, fields='nextPageToken,labels', pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+      if not csvPF:
+        jcount = len(labels)
+        if not FJQC.formatJSON:
+          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DRIVE_LABEL, i, count)
+        Ind.Increment()
+        j = 0
+        for label in labels:
+          j += 1
+          _showDriveLabel(label, j, jcount, FJQC)
+        Ind.Decrement()
+      else:
+        for label in labels:
+          row = flattenJSON(label, flattened={'User': user}, timeObjects=DRIVELABELS_TIME_OBJECTS)
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(row)
+          elif csvPF.CheckRowTitles(row):
+            row = {'User': user, 'name': label['name']}
+            row['JSON'] = json.dumps(cleanJSON(label, timeObjects=DRIVELABELS_TIME_OBJECTS),
+                                     ensure_ascii=False, sort_keys=True)
+            csvPF.WriteRowNoFilter(row)
+    except GAPI.permissionDenied as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_LABEL, None], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  if csvPF:
+    csvPF.writeCSVfile('Drive Labels')
+
+def doPrintShowDriveLabels():
+  printShowDriveLabels([_getAdminEmail()], True)
+
+DRIVELABEL_FIELD_TYPE_MAP = {
+  'text': 'setTextValues',
+  'selection': 'setSelectionValues',
+  'integer': 'setIntegerValues',
+  'date': 'setDateValues',
+  'user': 'setUserValues',
+  }
+
+# gam <UserTypeEntity> process filedrivelabels <DriveFileEntity>
+#	(addlabel <DriveLabelIDList>)*
+#	(deletelabel <DriveLabelIDList>)*
+#	(addlabelfield <DriveLabelID> <DriveLabelFieldID>
+#	    (text <String>)|selection <DriveLabelSelectionIDList>)|
+#	    (integer <Number>)|(date <Date>)|(user <EmailAddressList>))*
+#	(deletelabelfield <DriveLabelID> <DriveLabelFieldID>)*
+#	[nodetails]
+def processFileDriveLabels(users):
+  fileIdEntity = getDriveFileEntity()
+  actionList = {'addlabel': {'action': Act.CREATE, 'list': []},
+                'deletelabel': {'action': Act.DELETE, 'list': []},
+                'addlabelfield': {'action': Act.CREATE, 'list': []},
+                'deletelabelfield': {'action': Act.DELETE, 'list': []},
+               }
+  showDetails = True
+  kcount = 0
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'addlabel':
+      labelIds = getEntityList(Cmd.OB_DRIVE_LABEL_ID, shlexSplit=True)
+      for labelId in labelIds:
+        actionList[myarg]['list'].append({'labelModifications': [{'labelId': normalizeDriveLabelID(labelId)}]})
+        kcount += 1
+    elif myarg == 'deletelabel':
+      labelIds = getEntityList(Cmd.OB_DRIVE_LABEL_ID, shlexSplit=True)
+      for labelId in labelIds:
+        actionList[myarg]['list'].append({'labelModifications': [{'labelId': normalizeDriveLabelID(labelId), 'removeLabel': True}]})
+        kcount += 1
+    elif myarg == 'addlabelfield':
+      labelId = normalizeDriveLabelID(getString(Cmd.OB_DRIVE_LABEL_ID))
+      fieldId = getString(Cmd.OB_DRIVE_LABEL_FIELD_ID)
+      fieldType = getChoice(DRIVELABEL_FIELD_TYPE_MAP, mapChoice=True)
+      if fieldType == 'setTextValues':
+        valueList = [getString(Cmd.OB_STRING, minLen=0)]
+      elif fieldType == 'setSelectionValues':
+        valueList = convertEntityToList(getString(Cmd.OB_DRIVE_LABEL_SELECTION_ID_LIST, minLen=0), shlexSplit=True)
+      elif fieldType == 'setIntegerValues':
+        valueList = [getInteger()]
+      elif fieldType == 'setDateValues':
+        valueList = [getYYYYMMDD()]
+      else: #elif fieldType == 'setUserValues':
+        valueList = convertEntityToList(getString(Cmd.OB_EMAIL_ADDRESS_LIST, minLen=0))
+      actionList[myarg]['list'].append({'labelModifications': [{'labelId': labelId,
+                                                                'fieldModifications': [{'fieldId': fieldId, fieldType: valueList}]}]})
+      kcount += 1
+    elif myarg == 'deletelabelfield':
+      labelId = normalizeDriveLabelID(getString(Cmd.OB_DRIVE_LABEL_ID))
+      fieldId = getString(Cmd.OB_DRIVE_LABEL_FIELD_ID)
+      actionList[myarg]['list'].append({'labelModifications': [{'labelId': labelId,
+                                                                'fieldModifications': [{'fieldId': fieldId, 'unsetValues': True}]}]})
+      kcount += 1
+    elif myarg == 'nodetails':
+      showDetails = False
+    else:
+      unknownArgumentExit()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=None)
+    if jcount == 0:
+      continue
+    Act.Set(Act.PROCESS)
+    entityPerformActionSubItemModifierNumItems([Ent.USER, user], Ent.DRIVE_LABEL, Act.MODIFIER_FOR, jcount, Ent.DRIVE_FILE_OR_FOLDER)
+    Ind.Increment()
+    j = 0
+    userError = False
+    for fileId in fileIdEntity['list']:
+      j += 1
+      k = 0
+      kvList = [Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId]
+      Act.Set(Act.PROCESS)
+      entityPerformActionNumItems(kvList, kcount, Ent.DRIVE_LABEL)
+      Ind.Increment()
+      for operation in ['deletelabelfield', 'deletelabel', 'addlabel', 'addlabelfield']:
+        Act.Set(actionList[operation]['action'])
+        for action in actionList[operation]['list']:
+          k += 1
+          xkvList = kvList.copy()
+          xkvList.extend([Ent.DRIVE_LABEL_ID, action['labelModifications'][0]['labelId']])
+          if 'fieldModifications' in action['labelModifications'][0]:
+            xkvList.extend([Ent.DRIVE_LABEL_FIELD_ID, action['labelModifications'][0]['fieldModifications'][0]['fieldId']])
+          try:
+            label = callGAPI(drive.files(), 'modifyLabels',
+                             throwReasons=GAPI.DRIVE3_MODIFY_LABEL_THROW_REASONS,
+                             fileId=fileId, body=action)
+            entityActionPerformed(xkvList, k, kcount)
+            if showDetails:
+              Ind.Increment()
+              showJSON(None, label, timeObjects=DRIVELABELS_TIME_OBJECTS, dictObjectsKey={'fields': 'id', 'modifiedLabels': 'id'})
+              Ind.Decrement()
+          except GAPI.fileNotFound as e:
+            entityActionFailedWarning(kvList, str(e), j, jcount)
+            break
+          except (GAPI.notFound, GAPI.forbidden, GAPI.internalError,
+                  GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.invalidInput, GAPI.badRequest,
+                  GAPI.labelMutationUnknownField, GAPI.labelMutationIllegalSelection, GAPI.labelMutationForbidden,
+                  GAPI.labelMultipleValuesForSingularField) as e:
+            entityActionFailedWarning(xkvList, str(e), k, kcount)
+          except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+            userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+            userError = True
+            break
+      Ind.Decrement()
+      if userError:
+        break
+    Ind.Decrement()
 
 # gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
 # gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
@@ -60595,10 +60920,11 @@ def deleteInfoNotes(users):
                    name=name)
           entityActionPerformed([Ent.USER, user, Ent.NOTE, name], j, jcount)
       except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.NOTE, name], str(e), i, count)
+        entityActionFailedWarning([Ent.USER, user, Ent.NOTE, name], str(e), j, jcount)
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
         break
+    Ind.Decrement()
 
 NOTES_ROLE_CHOICE_MAP = {
   'owner': 'OWNER',
@@ -61220,8 +61546,8 @@ def printShowTasks(users):
         printGettingEntityItemForWhom(Ent.TASK, tasklist, j, jcount)
       try:
         tasks = callGAPIpages(svc.tasks(), 'list', 'items',
-                                  throwReasons=GAPI.TASK_THROW_REASONS,
-                                  tasklist=tasklist, **kwargs)
+                              throwReasons=GAPI.TASK_THROW_REASONS,
+                              tasklist=tasklist, **kwargs)
         taskParents = {None: []}
         taskData = {}
         taskParentsProcessed = set()
@@ -61557,17 +61883,17 @@ def CAABuildCondition():
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'ipsubnetworks':
-      condition['ipSubnetworks'] = getString(Cmd.OB_STRING).split(',')
+      condition['ipSubnetworks'] = getString(Cmd.OB_STRING_LIST).split(',')
     elif myarg == 'devicepolicy':
       condition['devicePolicy'] = CAABuildDevicePolicy()
     elif myarg == 'requiredaccesslevels':
-      condition['requiredAccessLevels'] = getString(Cmd.OB_STRING).split(',')
+      condition['requiredAccessLevels'] = getString(Cmd.OB_STRING_LIST).split(',')
     elif myarg == 'negate':
       condition['negate'] = getBoolean()
     elif myarg == 'members':
-      condition['members'] = getString(Cmd.OB_STRING).split(',')
+      condition['members'] = getString(Cmd.OB_STRING_LIST).split(',')
     elif myarg == 'regions':
-      condition['regions'] = getString(Cmd.OB_STRING).upper().split(',')
+      condition['regions'] = getString(Cmd.OB_STRING_LIST).upper().split(',')
       for region in condition['regions']:
         validateISO3166_1_alpha2_code(region)
     elif myarg == 'endcondition':
@@ -61926,6 +62252,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DOMAINALIAS:	doInfoDomainAlias,
       Cmd.ARG_DOMAINCONTACT:	doInfoDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doInfoDriveFileACLs,
+      Cmd.ARG_DRIVELABEL:	doInfoDriveLabels,
       Cmd.ARG_INSTANCE:		doInfoInstance,
       Cmd.ARG_GAL:		doInfoGAL,
       Cmd.ARG_GROUP:		doInfoGroups,
@@ -62010,6 +62337,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
       Cmd.ARG_DOMAINCONTACT:	doPrintShowDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
+      Cmd.ARG_DRIVELABEL:	doPrintShowDriveLabels,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
       Cmd.ARG_GROUP:		doPrintGroups,
@@ -62116,6 +62444,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DOMAINALIAS:	doPrintShowDomainAliases,
       Cmd.ARG_DOMAINCONTACT:	doPrintShowDomainContacts,
       Cmd.ARG_DRIVEFILEACL:	doPrintShowDriveFileACLs,
+      Cmd.ARG_DRIVELABEL:	doPrintShowDriveLabels,
       Cmd.ARG_FEATURE:		doPrintShowFeatures,
       Cmd.ARG_GAL:		doPrintShowGAL,
       Cmd.ARG_GROUPMEMBERS:	doShowGroupMembers,
@@ -62283,6 +62612,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_PEOPLECONTACT,
   Cmd.ARG_DOMAINPROFILES:	Cmd.ARG_PEOPLEPROFILE,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
+  Cmd.ARG_DRIVELABELS:		Cmd.ARG_DRIVELABEL,
   Cmd.ARG_EXPORT:		Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_EXPORTS:		Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_FEATURES:		Cmd.ARG_FEATURE,
@@ -62850,6 +63180,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CIGROUPMEMBERS:	infoCIGroupMembers,
       Cmd.ARG_DRIVEFILE:	showFileInfo,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,
+      Cmd.ARG_DRIVELABEL:	infoDriveLabels,
       Cmd.ARG_EVENT:		infoCalendarEvents,
       Cmd.ARG_FILTER:		infoFilters,
       Cmd.ARG_FORWARDINGADDRESS:	infoForwardingAddresses,
@@ -62908,6 +63239,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DELEGATE:		printShowDelegates,
       Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
       Cmd.ARG_DRIVEFILEACL:	printShowDriveFileACLs,
+      Cmd.ARG_DRIVELABEL:	printShowDriveLabels,
       Cmd.ARG_DRIVESETTINGS:	printShowDriveSettings,
       Cmd.ARG_EMPTYDRIVEFOLDERS:	printEmptyDriveFolders,
       Cmd.ARG_EVENT:		printShowCalendarEvents,
@@ -62955,6 +63287,11 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
      }
     ),
+  'process':
+    (Act.PROCESS,
+     {Cmd.ARG_FILEDRIVELABEL:	processFileDriveLabels,
+     }
+    ),
   'remove':
     (Act.REMOVE,
      {Cmd.ARG_CALENDAR:		removeCalendars,
@@ -62980,6 +63317,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DELEGATE:		printShowDelegates,
       Cmd.ARG_DRIVEACTIVITY:	printDriveActivity,
       Cmd.ARG_DRIVEFILEACL:	printShowDriveFileACLs,
+      Cmd.ARG_DRIVELABEL:	printShowDriveLabels,
       Cmd.ARG_DRIVESETTINGS:	printShowDriveSettings,
       Cmd.ARG_EVENT:		printShowCalendarEvents,
       Cmd.ARG_FILECOUNT:	printShowFileCounts,
@@ -63165,7 +63503,9 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_DOMAINCONTACT:	Cmd.ARG_PEOPLECONTACT,
   Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_PEOPLECONTACT,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
+  Cmd.ARG_FILEDRIVELABELS:	Cmd.ARG_FILEDRIVELABEL,
   Cmd.ARG_DRIVEFILESHORTCUTS:	Cmd.ARG_DRIVEFILESHORTCUT,
+  Cmd.ARG_DRIVELABELS:		Cmd.ARG_DRIVELABEL,
   Cmd.ARG_EVENTS:		Cmd.ARG_EVENT,
   Cmd.ARG_FILECOUNTS:		Cmd.ARG_FILECOUNT,
   Cmd.ARG_FILEPATHS:		Cmd.ARG_FILEPATH,

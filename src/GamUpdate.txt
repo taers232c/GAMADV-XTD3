@@ -1,3 +1,18 @@
+6.25.00
+
+Added initial support for the Drive Labels API. GAM can display drive labels and it can apply them to files
+and display drive labels on files. Please test/experiment and report any issues.
+
+To use these commands you must add the 'Drive Labels API' to your project and update your service account authorization.
+```
+gam update project
+gam user user@domain.com check serviceaccount
+```
+Supported editions for this feature: Business Standard and Business Plus; Enterprise; Education Standard and Education Plus; G Suite Business; Essentials.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Labels
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Display
+
 6.24.27
 
 Following Jay's lead, updated Cloud Identity API from v1beta1 to v1 for `userinvitations` commands.
@@ -54,7 +69,7 @@ cros_ous_and_children_queries <OrgUnitList> <QueryCrOSList>
 These allow specifying an OU, or a list of OUs, and a query or a list of queries
 that apply to those OUs.
 
-See: https://github.com/taers232c/GAMADV-XTD3/wiki/Collections-of-ChromeOS-Devices
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Collections-of-ChromeOS-Devices
 
 Example:
 ```

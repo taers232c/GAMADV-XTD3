@@ -242,7 +242,6 @@ If an item contains spaces, it should be surrounded by ".
         wsentstan | workspaceenterprisestandard | 1010020026 |
         wsentstanarchived | workspaceenterprisestandardarchived | 1010340004 |
         wsess | workspaceesentials | gsuiteessentials | essentials | d4e | driveenterprise | drive4enterprise | 1010060001
-<SKUIDList> ="<SKUID>(,<SKUID>)*"
 
 ## Items built from primitives
 
@@ -377,6 +376,10 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
 <DriveFileRevisionID> ::= <String>
+<DriveLabelID> ::= <String>
+<DriveLabelFieldID> ::= <String>
+<DriveLabelSelectionID> ::= <String>
+<DriveLabelName> ::= labels/<DriveLabelID>[@latest|@published|@<Number>]
 <EmailAddress> ::= <String>@<DomainName>
 <EmailItem> ::= <EmailAddress>|<UniqueID>|<String>
 <EmailReplacement> ::= <String>
@@ -512,6 +515,7 @@ If an item contains spaces, it should be surrounded by ".
         (tdparent (id:<DriveFolderID>)|<DriveFolderName>)|
         (tdsheet (id:<Number>)|<String>)|
         (tdsheettimestamp [<Boolean>] [tdsheettimeformat <String>])
+        (tdsheettitle <String>)|
         ([tdsheetdaysoffset <Number>] [tdsheethoursoffset <Number])|
         (tdtimestamp [<Boolean>] [tdtimeformat <String>]
             [tddaysoffset <Number>] [tdhoursoffset <Number])|
@@ -526,7 +530,6 @@ If an item contains spaces, it should be surrounded by ".
 <URL> ::= <String>
 <UserItem> ::= <EmailAddress>|<UniqueID>|<String>
 <UserName> ::= <<String>
-
 ## Lists of basic items
 
 <APIScopeURLList> ::= "<APIScopeURL>(,<APIScopeURL>)*"
@@ -565,6 +568,10 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 <DriveFileRevisionIDList> ::= "<DriveFileRevisionID>(,<DriveFileRevisionID>)*"
 <DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
+<DriveLabelIDList> ::= "<DriveLabelID>(,<DriveLabelID)*"
+<DriveLabelNameList> ::= "<DriveLabelName>(,<DriveLabelName)*"
+<DriveLabelFieldIDList> ::= "<DriveLabelFieldID>(,<DriveLabelFieldID)*"
+<DriveLabelSelectionIDList> ::= "<DriveLabelSelectionID>(,<DriveLabelSelectionID)*"
 <EmailAddressList> ::= "<EmailAddress>(,<EmailAddress>)*"
 <EmailItemList> ::= "<EmailItem>(,<EmailItem>)*"
 <EventIDList> ::= "<EventID>(,<EventID>)*"
@@ -899,6 +906,8 @@ Specify a collection of items by directly specifying them; the item type is dete
         (first|last|allexceptfirst|allexceptlast <Number>)|
         (before|after <Time>) | (range <Time> <Time>)|
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DriveLabelNameEntity> ::=
+        <DriveLabelNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
 <EmailAddressEntity> ::=
         <EmailAddressList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <FilterIDEntity> ::=
@@ -967,6 +976,8 @@ Specify a collection of items by directly specifying them; the item type is dete
         <TasklistIDList> | <FileSelector> | <CSVFileSelector>
 <TasklistIDTaskIDEntity> ::=
         <TasklistIDTaskIDList> | <FileSelector> | <CSVFileSelector>
+<ThreadIDEntity> ::=
+        <ThreadIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <UserEntity> ::=
         <UserList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
@@ -2889,6 +2900,20 @@ gam show peopleprofile
         [mergesources <PeopleMergeSourceName>]
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
+
+# Drive Labels
+
+gam [<UserTypeEntity>] info drivelabels <DriveLabelNameEntity>
+        [[basic|full] [languagecode <LanguageCode>]
+        [formatjson] [adminaccess|asadmin]
+gam [<UserTypeEntity>] print drivelabels> [todrive <ToDriveAttribute>*]
+        [basic|full] [languagecode <LanguageCode>]
+        [publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
+        [formatjson [quotechar <Character>]] [adminaccess|asadmin]
+gam [<UserTypeEntity>] show drivelabels
+        [basic|full] [languagecode <LanguageCode>]
+        [publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
+        [formatjson] [adminaccess|asadmin]
 
 # Email Audit Monitor
 
@@ -5172,8 +5197,8 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 gam <UserTypeEntity> info drivefile <DriveFileEntity>
         [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [showparentsidsaslist] [showshareddrivepermissions]
-        [showdrivename|showshareddrivename|showteamdrivename]
+        [showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+        [showparentsidsaslist]
         [stripcrsfromname]
         [formatjson]
 
@@ -5260,6 +5285,28 @@ gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissi
         <PermissionMatch>* [<PermissionMatchAction>]
 gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity>
         <PermissionMatch>* [<PermissionMatchAction>]
+
+gam [<UserTypeEntity>] info drivelabels <DriveLabelNameEntity>
+        [[basic|full] [languagecode <LanguageCode>]
+        [formatjson] [adminaccess|asadmin]
+
+gam [<UserTypeEntity>] print drivelabels> [todrive <ToDriveAttribute>*]
+        [basic|full] [languagecode <LanguageCode>]
+        [publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
+        [formatjson [quotechar <Character>]] [adminaccess|asadmin]
+gam [<UserTypeEntity>] show drivelabels
+        [publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
+        [formatjson [quotechar <Character>]] [adminaccess|asadmin]
+        [formatjson] [adminaccess|asadmin]
+
+gam <UserTypeEntity> process filedrivelabels <DriveFileEntity>
+        (addlabel <DriveLabelIDList>)*
+        (deletelabel <DriveLabelIDList>)*
+        (addlabelfield <DriveLabelID> <DriveLabelFieldID>
+            (text <String>)|selection <DriveLabelSelectionIDList>)|
+            (integer <Number>)|(date <Date>)|(user <EmailAddressList>))*
+        (deletelabelfield <DriveLabelID> <DriveLabelFieldID>)*
+        [nodetails]
 
 gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
 gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*]
@@ -5547,8 +5594,8 @@ gam <UserTypeEntity> collect orphans
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
         [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [showparentsidsaslist] [showshareddrivepermissions]
-        [showdrivename|showshareddrivename|showteamdrivename]
+        [showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+        [showparentsidsaslist]
         [stripcrsfromname]
         [formatjson]
 
@@ -5633,7 +5680,8 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
         [filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
         [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-        [showdrivename] [showparentsidsaslist] [showpermissionslast] [showshareddrivepermissions]
+        [showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+        [showparentsidsaslist] [showpermissionslast]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
         [stripcrsfromname]
         [formatjson [quotechar <Character>]]
