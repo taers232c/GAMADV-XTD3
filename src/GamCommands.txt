@@ -6115,6 +6115,7 @@ gam <UserTypeEntity> create note [title <String>]
         ((text <String>)|
          (textfile <FileName> [charset <CharSet>])|
          (gdoc <UserGoogleDoc>)|
+         (([missingtextvalue <String>] (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))))
          (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))
         [copyacls [copyowneraswriter]]
         [compact|formatjson|nodetails]

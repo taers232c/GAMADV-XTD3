@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.01'
+__version__ = '6.25.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -60763,13 +60763,31 @@ def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
 #	((text <String>)|
 #        (textfile <FileName> [charset <CharSet>])|
 #	 (gdoc <UserGoogleDoc>)|
-#        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))
+#        (([missingtextvalue <String>] (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))))
 #	[copyacls [copyowneraswriter]
 #	[compact|formatjson|nodetails]
 def createNote(users):
+  def fixTextItem(item):
+    if 'text' in item:
+      if item['text']:
+        item['text'] = unescapeCRsNLs(item['text'])
+        return
+    if missingTextValue:
+      item['text'] = missingTextValue
+
+  def fixListItem(item):
+    if 'listItems' in item:
+      if item['listItems']:
+        for listItem in item['listItems']:
+          fixTextItem(listItem['text'])
+        return
+    if missingTextValue:
+      item['listItems'] = [{'checked': False, 'text': {'text': missingTextValue}}]
+
   FJQC = FormatJSONQuoteChar()
   compact = False
   showDetails = True
+  missingTextValue = ''
   copyACLs = copyOwnerAsWriter = False
   body = {'title': '', 'body': {}}
   copyUsers = []
@@ -60780,15 +60798,19 @@ def createNote(users):
     if myarg == 'title':
       body['title'] = getString(Cmd.OB_STRING, minLen=1, maxLen=1000)
     elif myarg in SORF_TEXT_ARGUMENTS:
-      msgText, _, _ = getStringOrFile(myarg, unescapeCRLF=True)
+      msgText, _, _ = getStringOrFile(myarg, minLen=1, unescapeCRLF=True)
       body['body']['text'] = {'text': msgText}
+    elif myarg == 'missingtextvalue':
+      missingTextValue = getString(Cmd.OB_STRING, minLen=1)
     elif myarg == 'json':
       jsonData = getJSON([])
       if not body['title']:
-        body['title'] = jsonData.get('title', '')
+        body['title'] = jsonData.get('title', missingTextValue)
       body['body'] = jsonData.get('body', {})
-      if 'text' in body['body'] and 'text' in body['body']['text']:
-        body['body']['text']['text'] = unescapeCRsNLs(body['body']['text']['text'])
+      if 'text' in body['body']:
+        fixTextItem(body['body']['text'])
+      elif 'list' in body['body']:
+        fixListItem(body['body']['list'])
       for permission in jsonData.get('permissions', []):
         if permission['role'] == 'WRITER':
           if 'user' in permission:

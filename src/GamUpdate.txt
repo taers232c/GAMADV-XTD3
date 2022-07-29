@@ -1,3 +1,10 @@
+6.25.02
+
+Added option `missingtextvalue <String>` to gam <UserTypeEntity> create note json ...` that causes GAM
+to supply a value for JSON `list` and `text` items that are missing text fields. This option must appear
+before the `json` option. If not specified and a text field is missing, you'll get the following error:
+`Request contains an invalid argument.`
+
 6.25.01
 
 Updated license commands to retry the following error:
