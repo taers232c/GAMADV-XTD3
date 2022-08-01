@@ -16,6 +16,7 @@ OPTIONS:
    -u      Admin user email address to use with GAM. Default is to prompt.
    -r      Regular user email address. Used to test service account access to user data. Default is to prompt.
    -v      Version to install (latest, prerelease, draft, 3.8, etc). Default is latest.
+   -s      Strip gamadv-xtd3 component from extracted files, files will be downloaded directly to $target_dir
 EOF
 }
 
@@ -31,6 +32,7 @@ adminuser=""
 regularuser=""
 gam_x86_64_glibc_vers="2.31 2.27 2.23 2.19 2.15"
 gam_arm64_glibc_vers="2.31 2.27 2.23"
+strip_gamadv_xtd3="--strip-components 0"
 
 while getopts "hd:a:o:b:lp:u:r:v:" OPTION
 do
@@ -45,6 +47,7 @@ do
          u) adminuser="$OPTARG";;
          r) regularuser="$OPTARG";;
          v) gamversion="$OPTARG";;
+         s) strip_gamadv_xtd3="--strip-components 1"; target_gam="gam";;
          ?) usage; exit;;
      esac
 done
@@ -226,7 +229,7 @@ echo_yellow "Downloading file $name from $browser_download_url to $temp_archive_
 mkdir -p "$target_dir"
 
 echo_yellow "Extracting archive to $target_dir"
-tar xf $temp_archive_dir/$name -C "$target_dir"
+tar $strip_gamadv_xtd3 -xf $temp_archive_dir/$name -C "$target_dir"
 rc=$?
 if (( $rc != 0 )); then
   echo_red "ERROR: extracting the GAM archive with tar failed with error $rc. Exiting."
