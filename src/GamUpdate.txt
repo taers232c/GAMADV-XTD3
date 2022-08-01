@@ -1,6 +1,12 @@
+6.25.03
+
+Updated `gam print users` to properly display the `languages` attribute based on the output format:
+* `default` - `languages` column has the value `en+`
+* `formatjson` - `JSON` column contains `"languages": [{"languageCode": "en", "preference": "preferred"}]`
+
 6.25.02
 
-Added option `missingtextvalue <String>` to gam <UserTypeEntity> create note json ...` that causes GAM
+Added option `missingtextvalue <String>` to `gam <UserTypeEntity> create note json ...` that causes GAM
 to supply a value for JSON `list` and `text` items that are missing text fields. This option must appear
 before the `json` option. If not specified and a text field is missing, you'll get the following error:
 `Request contains an invalid argument.`

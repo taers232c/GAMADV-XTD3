@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.02'
+__version__ = '6.25.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -37599,7 +37599,7 @@ def doPrintUsers(entityList=None):
       if printOptions['emailParts']:
         if userEmail.find('@') != -1:
           userEntity['primaryEmailLocal'], userEntity['primaryEmailDomain'] = splitEmailAddress(userEmail)
-      if 'languages' in userEntity:
+      if 'languages' in userEntity and not FJQC.formatJSON:
         userEntity['languages'] = _formatLanguagesList(userEntity.pop('languages'), delimiter)
       for location in userEntity.get('locations', []):
         location['buildingName'] = _getBuildingNameById(cd, location.get('buildingId', ''))
