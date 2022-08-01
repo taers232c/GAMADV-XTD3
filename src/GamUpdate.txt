@@ -1,3 +1,7 @@
+6.25.04
+
+Updated `gam create|update course ... copyfrom <CourseID> ... copytopics true` to preserve the topics order.
+
 6.25.03
 
 Updated `gam print users` to properly display the `languages` attribute based on the output format:

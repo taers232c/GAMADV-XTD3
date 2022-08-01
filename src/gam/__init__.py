@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.03'
+__version__ = '6.25.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -38440,6 +38440,7 @@ class CourseAttributes():
     self.courseWorks = []
     self.copyTopics = False
     self.topicsById = {}
+    self.reversedTopicIdList = []
     self.currDateTime = None
     self.csvPF = None
 
@@ -38656,6 +38657,8 @@ class CourseAttributes():
                                      pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS])
         for topic in courseTopics:
           self.topicsById[topic['topicId']] = topic['name']
+          self.reversedTopicIdList.append(topic['topicId'])
+        self.reversedTopicIdList.reverse()
       except (GAPI.notFound, GAPI.insufficientPermissions, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.COURSE, self.courseId], str(e))
         return False
@@ -38750,7 +38753,8 @@ class CourseAttributes():
         entityActionFailedWarning([Ent.COURSE, newCourseId], str(e), i, count)
       jcount = len(self.topicsById)
       j = 0
-      for topicId, topicName in self.topicsById.items():
+      for topicId in self.reversedTopicIdList:
+        topicName = self.topicsById[topicId]
         j += 1
         if topicName in newTopicsByName:
           entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, Ent.COURSE_TOPIC, topicName], Act.MODIFIER_FROM,
