@@ -34,7 +34,7 @@ gam_x86_64_glibc_vers="2.31 2.27 2.23 2.19 2.15"
 gam_arm64_glibc_vers="2.31 2.27 2.23"
 strip_gamadv_xtd3="--strip-components 0"
 
-while getopts "hd:a:o:b:lp:u:r:v:" OPTION
+while getopts "hd:a:o:b:lp:u:r:v:s:" OPTION
 do
      case $OPTION in
          h) usage; exit;;
