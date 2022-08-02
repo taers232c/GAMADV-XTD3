@@ -1,3 +1,19 @@
+6.25.05
+
+Added option `maxrows <Integer>` to `gam csv|loop` that allows you to limit the number of rows
+read from the CSV file/Google Sheet. This can be used during testing in order to verify the functioning
+of the command on a few rows before committing to all of the rows.
+```
+gam csv|loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
+        [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        (matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
+        [maxrows <Integer>]
+        gam <GAMArgumentList>
+```
+* `maxrows -1` - All rows are read, this is the default
+* `maxrow 0` - No rows are read
+* `maxrows N` - N rows are read
+
 6.25.04
 
 Updated `gam create|update course ... copyfrom <CourseID> ... copytopics true` to preserve the topics order.

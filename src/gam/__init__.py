@@ -8601,12 +8601,14 @@ def ThreadBatchGAMCommands(items, showCmds):
     batchWriteStderr(f'{currentISOformatTimeStamp()},0/{numItems},Complete\n')
 
 def _getShowCommands():
-  showCmds = checkArgumentPresent('showcmds')
-  if showCmds:
-    showCmds = getBoolean()
-  else:
-    showCmds = GC.Values[GC.SHOW_COMMANDS]
-  return showCmds
+  if checkArgumentPresent('showcmds'):
+    return getBoolean()
+  return GC.Values[GC.SHOW_COMMANDS]
+
+def _getMaxRows():
+  if checkArgumentPresent('maxrows'):
+    return getInteger(minVal=-1)
+  return -1
 
 # gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 def doBatch(threadBatch=False):
@@ -8754,7 +8756,9 @@ def processSubFields(GAM_argv, row, subFields):
 
 # gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
 #	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-#	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAM argument list>
+#	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
+#	[maxrows <Integer>]
+#	gam <GAM argument list>
 def doCSV(testMode=False):
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
@@ -8763,6 +8767,7 @@ def doCSV(testMode=False):
   f, csvFile, fieldnames = openCSVFileReader(filename)
   matchFields, skipFields = getMatchSkipFields(fieldnames)
   showCmds = _getShowCommands()
+  maxRows = _getMaxRows()
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
@@ -8773,7 +8778,11 @@ def doCSV(testMode=False):
   if GC.Values[GC.CSV_INPUT_ROW_FILTER] or GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER]:
     CheckInputRowFilterHeaders(fieldnames, GC.Values[GC.CSV_INPUT_ROW_FILTER], GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER])
   items = []
+  i = 0
   for row in csvFile:
+    i += 1
+    if maxRows >= 0 and i > maxRows:
+      break
     if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
       items.append(processSubFields(GAM_argv, row, subFields))
   closeFile(f)
@@ -8797,7 +8806,9 @@ def doCSVTest():
 
 # gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]
 #	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-#	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]] gam <GAM argument list>
+#	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
+#	[maxrows <Integer>]
+#	gam <GAM argument list>
 def doLoop(loopCmd):
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
@@ -8806,6 +8817,7 @@ def doLoop(loopCmd):
   f, csvFile, fieldnames = openCSVFileReader(filename)
   matchFields, skipFields = getMatchSkipFields(fieldnames)
   showCmds = _getShowCommands()
+  maxRows = _getMaxRows()
   checkArgumentPresent(Cmd.GAM_CMD, required=True)
   if not Cmd.ArgumentsRemaining():
     missingArgumentExit(Cmd.OB_GAM_ARGUMENT_LIST)
@@ -8836,7 +8848,11 @@ def doLoop(loopCmd):
   if LoopGlobals[GM.CMDLOG_LOGGER]:
     writeGAMCommandLog(LoopGlobals, loopCmd, '*')
   if not showCmds:
+    i = 0
     for row in csvFile:
+      i += 1
+      if maxRows >= 0 and i > maxRows:
+        break
       if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
         item = processSubFields(GAM_argv, row, subFields)
         logCmd = Cmd.QuotedArgumentList(item)
@@ -8848,7 +8864,11 @@ def doLoop(loopCmd):
     closeFile(f)
   else:
     items = []
+    i = 0
     for row in csvFile:
+      i += 1
+      if maxRows >= 0 and i > maxRows:
+        break
       if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
         items.append(processSubFields(GAM_argv, row, subFields))
     closeFile(f)
