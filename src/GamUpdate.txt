@@ -11,7 +11,7 @@ gam csv|loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnif
         gam <GAMArgumentList>
 ```
 * `maxrows -1` - All rows are read, this is the default
-* `maxrow 0` - No rows are read
+* `maxrows 0` - No rows are read
 * `maxrows N` - N rows are read
 
 6.25.04
