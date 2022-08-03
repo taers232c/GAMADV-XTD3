@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.06'
+__version__ = '6.25.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8608,7 +8608,7 @@ def _getShowCommands():
 def _getMaxRows():
   if checkArgumentPresent('maxrows'):
     return getInteger(minVal=0)
-  return -1
+  return 0
 
 # gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 def doBatch(threadBatch=False):

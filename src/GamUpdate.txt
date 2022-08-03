@@ -1,3 +1,7 @@
+6.25.07
+
+Fixed bug introduced in 6.25.06 where only one row of a CSV file/Google Sheet was read by default.
+
 6.25.06
 
 Updated option `maxrows <Integer>` for `gam csv|loop` to be applied after input row filtering;
