@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.05'
+__version__ = '6.25.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8607,7 +8607,7 @@ def _getShowCommands():
 
 def _getMaxRows():
   if checkArgumentPresent('maxrows'):
-    return getInteger(minVal=-1)
+    return getInteger(minVal=0)
   return -1
 
 # gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
@@ -8780,11 +8780,11 @@ def doCSV(testMode=False):
   items = []
   i = 0
   for row in csvFile:
-    i += 1
-    if maxRows >= 0 and i > maxRows:
-      break
     if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
       items.append(processSubFields(GAM_argv, row, subFields))
+      i += 1
+      if maxRows and i >= maxRows:
+        break
   closeFile(f)
   if not testMode:
     MultiprocessGAMCommands(items, showCmds)
@@ -8850,9 +8850,6 @@ def doLoop(loopCmd):
   if not showCmds:
     i = 0
     for row in csvFile:
-      i += 1
-      if maxRows >= 0 and i > maxRows:
-        break
       if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
         item = processSubFields(GAM_argv, row, subFields)
         logCmd = Cmd.QuotedArgumentList(item)
@@ -8861,16 +8858,19 @@ def doLoop(loopCmd):
           writeGAMCommandLog(LoopGlobals, logCmd, sysRC)
         if (sysRC > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
           break
+        i += 1
+        if maxRows and i >= maxRows:
+          break
     closeFile(f)
   else:
     items = []
     i = 0
     for row in csvFile:
-      i += 1
-      if maxRows >= 0 and i > maxRows:
-        break
       if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
         items.append(processSubFields(GAM_argv, row, subFields))
+        i += 1
+        if maxRows and i >= maxRows:
+          break
     closeFile(f)
     numItems = len(items)
     pid = 0

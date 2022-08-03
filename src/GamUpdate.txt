@@ -1,3 +1,10 @@
+6.25.06
+
+Updated option `maxrows <Integer>` for `gam csv|loop` to be applied after input row filtering;
+this allows limiting the number of filtered rows processed as opposed to the number of rows read.
+* `maxrows 0` - All rows are processed, this is the default
+* `maxrows N` - N filtered rows are processed
+
 6.25.05
 
 Added option `maxrows <Integer>` to `gam csv|loop` that allows you to limit the number of rows
