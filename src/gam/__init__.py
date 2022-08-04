@@ -4541,7 +4541,7 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
     if 'errors' in error['error'] and 'message' in error['error']['errors'][0]:
       message = error['error']['errors'][0]['message']
       status = ''
-    elif 'errors' in error['error'] and 'Unknown error' in error['error']['message'] and 'reason' in error['error']['errors'][0]:
+    elif 'errors' in error['error'] and 'Unknown Error' in error['error']['message'] and 'reason' in error['error']['errors'][0]:
       message = error['error']['errors'][0]['reason']
       status = error['error'].get('status', '')
     else:
