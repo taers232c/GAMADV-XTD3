@@ -1,3 +1,7 @@
+6.25.08
+
+Added error checking to `gam create datatransfer` to avoid a trap.
+
 6.25.07
 
 Fixed bug introduced in 6.25.06 where only one row of a CSV file/Google Sheet was read by default.

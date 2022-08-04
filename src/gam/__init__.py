@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.07'
+__version__ = '6.25.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4541,13 +4541,17 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
     if 'errors' in error['error'] and 'message' in error['error']['errors'][0]:
       message = error['error']['errors'][0]['message']
       status = ''
+    elif 'errors' in error['error'] and 'Unknown error' in error['error']['message'] and 'reason' in error['error']['errors'][0]:
+      message = error['error']['errors'][0]['reason']
+      status = error['error'].get('status', '')
     else:
       message = error['error']['message']
       status = error['error'].get('status', '')
     lmessage = message.lower() if message is not None else ''
     if http_status == 500:
       if not lmessage or status == 'UNKNOWN':
-        message = Msg.UNKNOWN
+        if not lmessage:
+          message = Msg.UNKNOWN
         error = makeErrorDict(http_status, GAPI.UNKNOWN_ERROR, message)
       elif 'backend error' in lmessage:
         error = makeErrorDict(http_status, GAPI.BACKEND_ERROR, message)
@@ -9180,7 +9184,10 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
         parsed_params = parse_qs(parsed_url.query)
         code = parsed_params.get('code', [None])[0]
       try:
-        self.fetch_token(code=code)
+        fetch_args = {'code': code}
+        if GC.Values[GC.CACERTS_PEM]:
+          fetch_args['verify'] = GC.Values[GC.CACERTS_PEM]
+        self.fetch_token(**fetch_args)
         break
       except Exception as e:
         if not userInput:
@@ -14313,8 +14320,12 @@ def doCreateDataTransfer():
         _assignAppParameter('RELEASE_RESOURCES', ['TRUE'])
     else:
       _assignAppParameter(Cmd.Previous().upper(), getString(Cmd.OB_PARAMETER_VALUE).upper().split(','), True)
-  result = callGAPI(dt.transfers(), 'insert',
-                    body=body, fields='id')
+  try:
+    result = callGAPI(dt.transfers(), 'insert',
+                      throwReasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN],
+                      body=body, fields='id')
+  except (GAPI.unknownError, GAPI.forbidden) as e:
+    entityActionFailedExit([Ent.USER, body['oldOwnerUserId']], str(e))
   entityActionPerformed([Ent.TRANSFER_REQUEST, None])
   Ind.Increment()
   printEntity([Ent.TRANSFER_ID, result['id']])
