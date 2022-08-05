@@ -14325,7 +14325,7 @@ def doCreateDataTransfer():
                       throwReasons=[GAPI.UNKNOWN_ERROR, GAPI.FORBIDDEN],
                       body=body, fields='id')
   except (GAPI.unknownError, GAPI.forbidden) as e:
-    entityActionFailedExit([Ent.USER, body['oldOwnerUserId']], str(e))
+    entityActionFailedExit([Ent.USER, old_owner], str(e))
   entityActionPerformed([Ent.TRANSFER_REQUEST, None])
   Ind.Increment()
   printEntity([Ent.TRANSFER_ID, result['id']])
