@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.08'
+__version__ = '6.25.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3979,7 +3979,7 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
           if set(jsonDict.get('scopes', API.REQUIRED_SCOPES)) == API.REQUIRED_SCOPES_SET:
             if exitOnError:
               systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
-            return (None, None)
+            return (False, None)
         else:
           GM.Globals[GM.CREDENTIALS_SCOPES] = set(jsonDict.pop('scopes', API.REQUIRED_SCOPES))
         token_expiry = jsonDict.get('token_expiry', REFRESH_EXPIRY)
@@ -3993,7 +3993,7 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
           creds._id_token = jsonDict['id_token_jwt']
           GM.Globals[GM.DECODED_ID_TOKEN] = jsonDict['id_token']
         creds.expiry = datetime.datetime.strptime(token_expiry, YYYYMMDDTHHMMSSZ_FORMAT)
-        return (True, creds)
+        return (not noScopes, creds)
       if jsonDict and exitOnError:
         invalidOauth2TxtExit(Msg.INVALID)
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
@@ -4001,7 +4001,7 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
         invalidOauth2TxtExit(str(e))
   if exitOnError:
     systemErrorExit(OAUTH2_TXT_REQUIRED_RC, Msg.NO_CLIENT_ACCESS_ALLOWED)
-  return (None, None)
+  return (False, None)
 
 def _getValueFromOAuth(field, credentials=None):
   if not GM.Globals[GM.DECODED_ID_TOKEN]:

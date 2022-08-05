@@ -1,3 +1,7 @@
+6.25.09
+
+Fixed bug in `gam oauth info` that deleted the scopes in oauth2.txt if it had expired.
+
 6.25.08
 
 Added error checking to `gam create datatransfer` to avoid a trap.
