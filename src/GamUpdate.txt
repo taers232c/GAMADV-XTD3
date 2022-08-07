@@ -1,3 +1,8 @@
+6.25.10
+
+Added option `norecursion [<Boolean>]` to `gam <UserTypeEntity> transfer ownership` to allow
+ownership transfer of a folder but not its contents.
+
 6.25.09
 
 Fixed bug in `gam oauth info` that deleted the scopes in oauth2.txt if it had expired.

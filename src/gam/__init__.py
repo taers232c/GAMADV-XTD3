@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.09'
+__version__ = '6.25.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -46422,7 +46422,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[choose <DriveFileNameEntity>|<DriveFileEntityShortcut>]
 #	[corpora <CorporaAttribute>]
 #	[select <DriveFileEntity>> [selectsubquery <QueryDriveFile>]
-#	    [norecursion|(depth <Number>)] [showparent]]
+#	    [(norecursion [<Boolean>])|(depth <Number>)] [showparent]]
 #	[anyowner|(showownedby any|me|others)]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
@@ -51365,7 +51365,7 @@ def getPermissionIdForEmail(user, i, count, email):
   return None
 
 # gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem>
-#	[<DriveFileParentAttribute>] [includetrashed]
+#	[<DriveFileParentAttribute>] [includetrashed] [norecursion [<Boolean>]]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
 def transferOwnership(users):
@@ -51411,7 +51411,7 @@ def transferOwnership(users):
   body = {}
   newOwner = getEmailAddress()
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
-  changeParents = filepath = includeTrashed = False
+  changeParents = filepath = includeTrashed = noRecursion = False
   csvPF = fileTree = None
   addParents = ''
   parentBody = {}
@@ -51421,6 +51421,8 @@ def transferOwnership(users):
     myarg = getArgument()
     if myarg == 'includetrashed':
       includeTrashed = True
+    elif myarg == 'norecursion':
+      noRecursion = getBoolean()
     elif myarg == 'orderby':
       OBY.GetChoice()
     elif myarg == 'filepath':
@@ -51511,7 +51513,7 @@ def transferOwnership(users):
           if changeParents:
             filesToTransfer[fileId]['addParents'] = addParents
             filesToTransfer[fileId]['removeParents'] = ','.join(fileEntryInfo.get('parents', []))
-        if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER:
+        if fileEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and not noRecursion:
           if buildTree:
             _identifyFilesToTransfer(fileEntry)
           else:

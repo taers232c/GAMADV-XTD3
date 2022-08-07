@@ -5354,7 +5354,7 @@ gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttr
         [stripcrsfromname]
 
 gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem>
-        [<DriveFileParentAttribute>] [includetrashed]
+        [<DriveFileParentAttribute>] [includetrashed] [norecursion [<Boolean>]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> claim ownership <DriveFileEntity>
@@ -5674,7 +5674,7 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [choose <DriveFileNameEntity>|<DriveFileEntityShortcut>]
         [corpora <CorporaAttribute>]
         [select <DriveFileEntity> [selectsubquery <QueryDriveFile>]
-            [norecursion|(depth <Number>)] [showparent]]
+            [(norecursion [<Boolean>])|(depth <Number>)] [showparent]]
         [anyowner|(showownedby any|me|others)]
         [showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
         [filenamematchpattern <RegularExpression>]
