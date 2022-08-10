@@ -1,3 +1,7 @@
+6.25.11
+
+Updated error handling for `gam create|delete admin`.
+
 6.25.10
 
 Added option `norecursion [<Boolean>]` to `gam <UserTypeEntity> transfer ownership` to allow

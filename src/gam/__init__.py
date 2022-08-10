@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.10'
+__version__ = '6.25.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14121,7 +14121,9 @@ def doCreateAdmin():
       unknownArgumentExit()
   try:
     result = callGAPI(cd.roleAssignments(), 'insert',
-                      throwReasons=[GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID_ORGUNIT, GAPI.DUPLICATE],
+                      throwReasons=[GAPI.INTERNAL_ERROR, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND,
+                                    GAPI.FORBIDDEN, GAPI.UNKNOWN_ERROR,
+                                    GAPI.INVALID_ORGUNIT, GAPI.DUPLICATE],
                       customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='roleAssignmentId')
     entityActionPerformedMessage([Ent.ROLE_ASSIGNMENT_ID, result['roleAssignmentId']],
                                  f'{Ent.Singular(Ent.USER)} {user}, {Ent.Singular(Ent.ROLE)} {role}, {Ent.Singular(Ent.SCOPE)} {scope}')
@@ -14129,7 +14131,7 @@ def doCreateAdmin():
     pass
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
-  except GAPI.forbidden as e:
+  except (GAPI.forbidden, GAPI.unknownError) as e:
     entityActionFailedWarning([Ent.ADMINISTRATOR, user, Ent.ROLE, role], str(e))
   except GAPI.invalidOrgunit:
     entityActionFailedWarning([Ent.ADMINISTRATOR, user], Msg.INVALID_ORGUNIT)
@@ -14143,10 +14145,14 @@ def doDeleteAdmin():
   checkForExtraneousArguments()
   try:
     callGAPI(cd.roleAssignments(), 'delete',
-             throwReasons=[GAPI.NOT_FOUND, GAPI.OPERATION_NOT_SUPPORTED, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
+             throwReasons=[GAPI.NOT_FOUND, GAPI.OPERATION_NOT_SUPPORTED, GAPI.FORBIDDEN,
+                           GAPI.INVALID_INPUT, GAPI.SERVICE_NOT_AVAILABLE,
+                           GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND],
+             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=GC.Values[GC.CUSTOMER_ID], roleAssignmentId=roleAssignmentId)
     entityActionPerformed([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId])
-  except (GAPI.notFound, GAPI.operationNotSupported, GAPI.forbidden) as e:
+  except (GAPI.notFound, GAPI.operationNotSupported, GAPI.forbidden,
+          GAPI.invalidInput, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
@@ -36654,7 +36660,7 @@ def updateUsers(entityList):
                             throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
                                           GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
                                           GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.DUPLICATE,
-                                          GAPI.INSUFFICIENT_ARCHIVED_USER_LICENSES],
+                                          GAPI.INSUFFICIENT_ARCHIVED_USER_LICENSES, GAPI.CONFLICT],
                             userKey=userKey, body=body, fields=fields)
           entityActionPerformed([Ent.USER, user], i, count)
           if PwdOpts.filename and PwdOpts.password:
@@ -36704,7 +36710,7 @@ def updateUsers(entityList):
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
             GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter, GAPI.insufficientArchivedUserLicenses,
-            GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
+            GAPI.conflict, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam update users <UserTypeEntity> ...
