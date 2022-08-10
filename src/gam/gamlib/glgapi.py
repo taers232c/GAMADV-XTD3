@@ -52,6 +52,7 @@ CANNOT_UPDATE_PERMISSION = 'cannotUpdatePermission'
 CONDITION_NOT_MET = 'conditionNotMet'
 CONFLICT = 'conflict'
 CROSS_DOMAIN_MOVE_RESTRICTION = 'crossDomainMoveRestriction'
+CUSTOMER_EXCEEDED_ROLE_ASSIGNMENTS_LIMIT = 'CUSTOMER_EXCEEDED_ROLE_ASSIGNMENTS_LIMIT'
 CUSTOMER_NOT_FOUND = 'customerNotFound'
 CYCLIC_MEMBERSHIPS_NOT_ALLOWED = 'cyclicMembershipsNotAllowed'
 DAILY_LIMIT_EXCEEDED = 'dailyLimitExceeded'
@@ -371,6 +372,8 @@ class conflict(Exception):
   pass
 class crossDomainMoveRestriction(Exception):
   pass
+class customerExceededRoleAssignmentsLimit(Exception):
+  pass
 class customerNotFound(Exception):
   pass
 class cyclicMembershipsNotAllowed(Exception):
@@ -612,6 +615,7 @@ REASON_EXCEPTION_MAP = {
   CONDITION_NOT_MET: conditionNotMet,
   CONFLICT: conflict,
   CROSS_DOMAIN_MOVE_RESTRICTION: crossDomainMoveRestriction,
+  CUSTOMER_EXCEEDED_ROLE_ASSIGNMENTS_LIMIT: customerExceededRoleAssignmentsLimit,
   CUSTOMER_NOT_FOUND: customerNotFound,
   CYCLIC_MEMBERSHIPS_NOT_ALLOWED: cyclicMembershipsNotAllowed,
   DELETED: deleted,
