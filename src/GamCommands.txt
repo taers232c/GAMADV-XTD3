@@ -6019,14 +6019,14 @@ gam <UserTypeEntity> print gmailprofile [todrive <ToDriveAttribute>*]
 # Users - Gmail - Send As/Signature/Vacation
 
 gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
-        [signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+        [(signature|sig|htmlsig <String>)|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
         [smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
          smtpmsa.username <UserName> smtpmsa.password <Password>
          [smtpmsa.securitymode none|ssl|starttls]]
 gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
-        [signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+        [(signature|sig|htmlsig <String>)|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
             (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 gam <UserTypeEntity> delete sendas <EmailAddressEntity>
@@ -6037,7 +6037,7 @@ gam <UserTypeEntity> print sendas [compact]
         [primary|default] [verifyonly] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> signature|sig
-        <String>|(htmlsig <String>)|(file|htmlfile <FileName> [charset <Charset>])|(gdoc|ghtml <UserGoogleDoc>)
+        (<String>)|(htmlsig <String>)|(file|htmlfile <FileName> [charset <Charset>])|(gdoc|ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)*
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
         [name <String>]
@@ -6216,8 +6216,8 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
         (website clear|(app_install_page|blog|ftp|home|home_page|other|profile|reservations|work|<String> <URL> notprimary|primary))
 
 <PeopleUserContactSelection> ::=
-        [query <QueryContact>]
-        [selectcontactgroup <ContactGroupItem>]
+        [(selectcontactgroup <PeopleContactGroupItem>)|
+            [query <QueryContact>]]
         [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
 
 gam <UserTypeEntity> create contact
@@ -6258,8 +6258,8 @@ gam <UserTypeEntity> info contacts
         [formatjson]
 
 <PeoplePrintShowUserContactSelection> ::=
-        [query <QueryContact>]
-        [(selectcontactgroup <ContactGroupItem>)|selectothercontacts]
+        [(selectcontactgroup <PeopleContactGroupItem>)|
+            ([query <QueryContact>] [selectmaincontacts|selectothercontacts])]
         [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
 
 gam <UserTypeEntity> show contacts

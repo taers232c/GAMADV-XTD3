@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.11'
+__version__ = '6.25.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -16691,7 +16691,7 @@ def _initContactQueryAttributes():
   return {'query': None, 'projection': 'full', 'url_params': {'max-results': str(GC.Values[GC.CONTACT_MAX_RESULTS])},
           'emailMatchPattern': None, 'emailMatchType': None}
 
-def _getContactQueryAttributes(contactQuery, myarg, unknownAction, allowOutputAttributes):
+def _getContactQueryAttributes(contactQuery, myarg, unknownAction, printShowCmd):
   if myarg == 'query':
     contactQuery['query'] = getString(Cmd.OB_QUERY)
   elif myarg == 'emailmatchpattern':
@@ -16702,7 +16702,7 @@ def _getContactQueryAttributes(contactQuery, myarg, unknownAction, allowOutputAt
     contactQuery['url_params']['updated-min'] = getYYYYMMDD()
   elif myarg == 'endquery':
     return False
-  elif not allowOutputAttributes:
+  elif not printShowCmd:
     if unknownAction < 0:
       unknownArgumentExit()
     if unknownAction > 0:
@@ -16724,14 +16724,14 @@ def _getContactQueryAttributes(contactQuery, myarg, unknownAction, allowOutputAt
 
 CONTACT_SELECT_ARGUMENTS = {'query', 'emailmatchpattern', 'emailmatchtype', 'updatedmin'}
 
-def _getContactEntityList(unknownAction, allowOutputAttributes):
+def _getContactEntityList(unknownAction, printShowCmd):
   contactQuery = _initContactQueryAttributes()
   if Cmd.PeekArgumentPresent(CONTACT_SELECT_ARGUMENTS):
     entityList = None
     queriedContacts = True
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
-      if not _getContactQueryAttributes(contactQuery, myarg, unknownAction, allowOutputAttributes):
+      if not _getContactQueryAttributes(contactQuery, myarg, unknownAction, printShowCmd):
         break
   else:
     entityList = getEntityList(Cmd.OB_CONTACT_ENTITY)
@@ -18060,16 +18060,17 @@ PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
   'contacts': 'DIRECTORY_MERGE_SOURCE_TYPE_CONTACT',
   }
 
-def _initPeopleContactQueryAttributes():
+def _initPeopleContactQueryAttributes(printShowCmd):
   return {'query': None, 'updateTime': None,
-          'contactGroup': None, 'group': None, 'otherContacts': False, 'emailMatchPattern': None, 'emailMatchType': None}
+          'contactGroup': None, 'group': None, 'mainContacts': True, 'otherContacts': printShowCmd, 'emailMatchPattern': None, 'emailMatchType': None}
 
-def _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, allowOutputAttributes):
+def _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, printShowCmd):
   if myarg == 'query':
     contactQuery['query'] = getString(Cmd.OB_QUERY)
   elif myarg in {'contactgroup', 'selectcontactgroup'}:
     if entityType == Ent.USER:
       contactQuery['contactGroup'] = getString(Cmd.OB_CONTACT_GROUP_ITEM)
+      contactQuery['mainContacts'] = True
       contactQuery['otherContacts'] = False
     else:
       unknownArgumentExit()
@@ -18082,16 +18083,24 @@ def _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, unknownAct
     getYYYYMMDD()
   elif myarg == 'endquery':
     return False
-  elif not allowOutputAttributes:
+  elif not printShowCmd:
     if unknownAction < 0:
       unknownArgumentExit()
     if unknownAction > 0:
       Cmd.Backup()
     return False
+  elif myarg in {'maincontacts', 'selectmaincontacts'}:
+    if entityType == Ent.USER:
+      contactQuery['contactGroup'] = None
+      contactQuery['mainContacts'] = True
+      contactQuery['otherContacts'] = False
+    else:
+      unknownArgumentExit()
   elif myarg in {'othercontacts', 'selectothercontacts'}:
     if entityType == Ent.USER:
-      contactQuery['otherContacts'] = True
       contactQuery['contactGroup'] = None
+      contactQuery['mainContacts'] = False
+      contactQuery['otherContacts'] = True
     else:
       unknownArgumentExit()
   elif myarg == 'orderby':
@@ -18111,6 +18120,7 @@ def _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, unknownAct
 
 PEOPLE_CONTACT_SELECT_ARGUMENTS = {
   'query', 'contactgroup', 'selectcontactgroup',
+  'maincontacts', 'selectmaincontacts',
   'othercontacts', 'selectothercontacts',
   'emailmatchpattern', 'emailmatchtype',
   }
@@ -18119,7 +18129,7 @@ PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS = {
   }
 
 def _getPeopleContactEntityList(entityType, unknownAction, dedupCommand=False):
-  contactQuery = _initPeopleContactQueryAttributes()
+  contactQuery = _initPeopleContactQueryAttributes(False)
   if dedupCommand and (not Cmd.ArgumentsRemaining() or Cmd.PeekArgumentPresent('matchtype')):
     # <PeopleResourceNameEntity>|<PeopleUserContactSelection> are optional in dedup contacts
     entityList = None
@@ -18198,44 +18208,47 @@ def _getPeopleOtherContacts(people, entityType, user, i=0, count=0):
 def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, user, i=0, count=0):
   sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['domaincontact' if entityType == Ent.DOMAIN else 'contact']]
   try:
-# Not other contacts
-    if not contactQuery['otherContacts']:
-      printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=contactQuery['query'])
-      pageMessage = getPageMessage()
+    printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=contactQuery['query'])
+    pageMessage = getPageMessage()
 # Contact group not selected
-      if not contactQuery['contactGroup']:
-        if not contactQuery['query']:
-          entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
-                                     pageMessage=pageMessage,
-                                     throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                                     pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
-                                     resourceName='people/me', sources=sources, personFields=fields,
-                                     sortOrder=sortOrder, fields='nextPageToken,connections')
-        else:
-          results = callGAPI(people.people(), 'searchContacts',
-                             throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                             sources=sources, readMask=fields, query=contactQuery['query'])
-          entityList = [person['person'] for person in results.get('results', [])]
-        totalItems = len(entityList)
-# Contact group selected
+    if not contactQuery['contactGroup']:
+      if not contactQuery['query']:
+        entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
+                                   pageMessage=pageMessage,
+                                   throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                   pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
+                                   resourceName='people/me', sources=sources, personFields=fields,
+                                   sortOrder=sortOrder, fields='nextPageToken,connections')
       else:
-        totalItems = callGAPI(people.contactGroups(), 'get',
-                              throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                              resourceName=contactQuery['group'], groupFields='memberCount').get('memberCount', 0)
-        entityList = []
-        if totalItems > 0:
-          results = callGAPI(people.contactGroups(), 'get',
-                             throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                             resourceName=contactQuery['group'], maxMembers=totalItems, groupFields='name')
-          for resourceName in results.get('memberResourceNames', []):
-            result = callGAPI(people.people(), 'get',
-                              resourceName=resourceName, sources=sources, personFields=fields)
+        results = callGAPI(people.people(), 'searchContacts',
+                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                           sources=sources, readMask=fields, query=contactQuery['query'])
+        entityList = [person['person'] for person in results.get('results', [])]
+      totalItems = len(entityList)
+# Contact group selected
+    else:
+      totalItems = callGAPI(people.contactGroups(), 'get',
+                            throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                            resourceName=contactQuery['group'], groupFields='memberCount').get('memberCount', 0)
+      entityList = []
+      if totalItems > 0:
+        results = callGAPI(people.contactGroups(), 'get',
+                           throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                           resourceName=contactQuery['group'], maxMembers=totalItems, groupFields='name')
+        for resourceName in results.get('memberResourceNames', []):
+          result = callGAPI(people.people(), 'get',
+                            resourceName=resourceName, sources=sources, personFields=fields)
 
-            entityList.append(result)
-      showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
-      return entityList
-# Other contacts
+          entityList.append(result)
+    showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+    writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
+    return entityList
+  except (GAPI.serviceNotAvailable, GAPI.forbidden):
+    entityUnknownWarning(entityType, user, i, count)
+  return None
+
+def queryPeopleOtherContacts(people, contactQuery, fields, sortOrder, entityType, user, i=0, count=0):
+  try:
     printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=contactQuery['query'])
     pageMessage = getPageMessage()
     if not contactQuery['query']:
@@ -18249,9 +18262,9 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
                          throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                          readMask=fields, query=contactQuery['query'])
       entityList = [person['person'] for person in results.get('results', [])]
-      totalItems = len(entityList)
-      showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.OTHER_CONTACT, totalItems))))
+    totalItems = len(entityList)
+    showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+    writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.OTHER_CONTACT, totalItems))))
     return entityList
   except (GAPI.serviceNotAvailable, GAPI.forbidden):
     entityUnknownWarning(entityType, user, i, count)
@@ -18605,16 +18618,12 @@ def dedupReplaceDomainUserPeopleContacts(users):
       unknownArgumentExit()
   if action == Act.REPLACE_DOMAIN and not replaceDomains:
     missingArgumentExit('domain')
-  if not contactQuery['otherContacts']:
-    APIpeople = API.PEOPLE
-  else:
-    APIpeople = API.PEOPLE_OTHERCONTACTS
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     if resourceNameLists:
       entityList = resourceNameLists[user]
-    user, people = buildGAPIServiceObject(APIpeople, user, i, count)
+    user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
     if not people:
       continue
     if contactQuery['contactGroup']:
@@ -19008,7 +19017,7 @@ def printShowUserPeopleContacts(users):
   parameters = _initPersonMetadataParameters()
   sortOrder = None
   countsOnly = showContactGroups = showContactGroupNamesList = False
-  contactQuery = _initPeopleContactQueryAttributes()
+  contactQuery = _initPeopleContactQueryAttributes(True)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -19037,9 +19046,9 @@ def printShowUserPeopleContacts(users):
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if countsOnly:
     fieldsList = ['emailAddresses']
-  if not contactQuery['otherContacts']:
+  if contactQuery['mainContacts']:
     fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
-  if not contactQuery['contactGroup']:
+  if contactQuery['otherContacts']:
     if not fieldsList:
       ofields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList, parameters)
     else:
@@ -19051,7 +19060,7 @@ def printShowUserPeopleContacts(users):
     user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
     if not people:
       continue
-    if not contactQuery['contactGroup']:
+    if contactQuery['otherContacts']:
       _, opeople = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
       if not opeople:
         continue
@@ -19069,15 +19078,12 @@ def printShowUserPeopleContacts(users):
           entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
         continue
       contactQuery['group'] = groupId
-    if not contactQuery['otherContacts']:
+    if contactQuery['mainContacts']:
       contacts = queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, user, i, count)
     else:
       contacts = []
-    if not contactQuery['contactGroup'] and ofields:
-      soc = contactQuery['otherContacts']
-      contactQuery['otherContacts'] = True
-      ocontacts = queryPeopleContacts(opeople, contactQuery, ofields, None, entityType, user, i, count)
-      contactQuery['otherContacts'] = soc
+    if contactQuery['otherContacts']:
+      ocontacts = queryPeopleOtherContacts(opeople, contactQuery, ofields, None, entityType, user, i, count)
     else:
       ocontacts = []
     if countsOnly:
@@ -19088,11 +19094,11 @@ def printShowUserPeopleContacts(users):
         printEntityKVList([entityType, user], [CSVTitle, jcount], i, count)
     elif contacts is not None or ocontacts is not None:
       if not csvPF:
-        if contacts is not None:
+        if contacts is not None and contactQuery['mainContacts']:
           if showContactGroups and contactGroupIDs:
             addContactGroupNamesToContacts(contacts, contactGroupIDs, False)
           _printPersonEntityList(Ent.PEOPLE_CONTACT, contacts, entityType, user, i, count, csvPF, FJQC, parameters, contactQuery)
-        if ocontacts is not None:
+        if ocontacts is not None and contactQuery['otherContacts']:
           _printPersonEntityList(Ent.OTHER_CONTACT, ocontacts, entityType, user, i, count, csvPF, FJQC, parameters, contactQuery)
       elif contacts or ocontacts:
         if contacts:
@@ -19127,7 +19133,7 @@ def copyUserPeopleOtherContacts(users):
     if not people:
       continue
     if queriedContacts:
-      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      entityList = queryPeopleOtherContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
       if entityList is None:
         continue
     j = 0
@@ -19194,7 +19200,7 @@ def processUserPeopleOtherContacts(users):
     if not upeople:
       continue
     if queriedContacts:
-      entityList = queryPeopleContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      entityList = queryPeopleOtherContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
       if entityList is None:
         continue
     else:
@@ -19314,7 +19320,7 @@ def printShowUserPeopleOtherContacts(users):
     user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
     if not people:
       continue
-    contacts = queryPeopleContacts(people, contactQuery, fields, None, entityType, user, i, count)
+    contacts = queryPeopleOtherContacts(people, contactQuery, fields, None, entityType, user, i, count)
     if countsOnly:
       jcount = countLocalPeopleContactSelects(contactQuery, contacts)
       if csvPF:
