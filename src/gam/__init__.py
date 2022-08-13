@@ -18240,8 +18240,9 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
                             resourceName=resourceName, sources=sources, personFields=fields)
 
           entityList.append(result)
-    showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-    writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
+    if contactQuery['contactGroup'] or contactQuery['query']:
+      showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
     return entityList
   except (GAPI.serviceNotAvailable, GAPI.forbidden):
     entityUnknownWarning(entityType, user, i, count)
@@ -18262,9 +18263,9 @@ def queryPeopleOtherContacts(people, contactQuery, fields, sortOrder, entityType
                          throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                          readMask=fields, query=contactQuery['query'])
       entityList = [person['person'] for person in results.get('results', [])]
-    totalItems = len(entityList)
-    showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-    writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.OTHER_CONTACT, totalItems))))
+      totalItems = len(entityList)
+      showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.OTHER_CONTACT, totalItems))))
     return entityList
   except (GAPI.serviceNotAvailable, GAPI.forbidden):
     entityUnknownWarning(entityType, user, i, count)
