@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.12'
+__version__ = '6.25.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -11655,7 +11655,7 @@ def doReport():
     for user_report in usage:
       if 'entity' not in user_report:
         continue
-      row = {'email': user_report['entity']['userEmail'], 'date': user_report['date']}
+      row = {'email': user_report['entity'].get('userEmail', user_report['entity']['profileId']), 'date': user_report['date']}
       if showOrgUnit:
         row['orgUnitPath'] = userOrgUnits.get(row['email'], 'Unknown')
       for item in user_report.get('parameters', []):

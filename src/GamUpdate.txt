@@ -1,3 +1,7 @@
+6.25.13
+
+Updated code in `gam report users` to handle bug in Report API that caused a trap.
+
 6.25.12
 
 Added option `selectmaincontacts` to `<PeoplePrintShowUserContactSelection>` to allow more flexibility in selecting contacts to display
