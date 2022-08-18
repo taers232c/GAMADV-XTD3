@@ -11218,7 +11218,7 @@ def _adjustTryDate(errMsg, noDateChange):
     return None
   return match_date.group(1)
 
-def _checkDataRequiredServices(result, tryDate, dataRequiredServices, parameterServices=None):
+def _checkDataRequiredServices(result, tryDate, dataRequiredServices, parameterServices=None, checkUserEmail=False):
 # -1: Data not available:
 #  0: Backup to earlier date
 #  1: Data available
@@ -11250,6 +11250,10 @@ def _checkDataRequiredServices(result, tryDate, dataRequiredServices, parameterS
         if not requiredServices:
           break
     else:
+      tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
+      return (0, tryDateTime.strftime(YYYYMMDD_FORMAT), None)
+  if checkUserEmail:
+    if 'entity' not in usageReports[0] or 'userEmail' not in usageReports[0]['entity']:
       tryDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)-oneDay
       return (0, tryDateTime.strftime(YYYYMMDD_FORMAT), None)
   return (1, tryDate, usageReports)
@@ -11527,6 +11531,8 @@ def doReportUsage():
             row['user'] = entity['entity']['userEmail']
             if showOrgUnit:
               row['orgUnitPath'] = userOrgUnits.get(row['user'], 'Unknown')
+          else:
+            row['email'] = 'Unknown'
           for item in entity.get('parameters', []):
             if 'name' not in item:
               continue
@@ -11655,9 +11661,13 @@ def doReport():
     for user_report in usage:
       if 'entity' not in user_report:
         continue
-      row = {'email': user_report['entity'].get('userEmail', user_report['entity']['profileId']), 'date': user_report['date']}
-      if showOrgUnit:
-        row['orgUnitPath'] = userOrgUnits.get(row['email'], 'Unknown')
+      row = {'date': user_report['date']}
+      if 'userEmail' in user_report['entity']:
+        row['email'] = user_report['entity']['userEmail']
+        if showOrgUnit:
+          row['orgUnitPath'] = userOrgUnits.get(row['email'], 'Unknown')
+      else:
+        row['email'] = 'Unknown'
       for item in user_report.get('parameters', []):
         if 'name' not in item:
           continue
@@ -12032,7 +12042,7 @@ def doReport():
                               orgUnitID=orgUnitId, parameters=parameters,
                               fields='warnings,usageReports', maxResults=1)
             fullData, tryDate, usageReports = _checkDataRequiredServices(result, tryDate,
-                                                                         dataRequiredServices, parameterServices)
+                                                                         dataRequiredServices, parameterServices, True)
             if fullData < 0:
               printWarningMessage(DATA_NOT_AVALIABLE_RC, Msg.NO_REPORT_AVAILABLE.format(report))
               break
@@ -37204,7 +37214,7 @@ def infoUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = not GC.Values[GC.QUICK_INFO_USER]
   FJQC = FormatJSONQuoteChar()
-  projection = 'full' if not GC.Values[GC.QUICK_INFO_USER] else 'basic'
+  projection = 'full'
   customFieldMask = None
   viewType = 'admin_view'
   fieldsList = []
@@ -37215,7 +37225,6 @@ def infoUsers(entityList):
     myarg = getArgument()
     if myarg == 'quick':
       getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = False
-      projection = 'basic'
     elif myarg in {'noaliases', 'aliases'}:
       getAliases = myarg == 'aliases'
     elif myarg in {'nobuildingnames', 'buildingnames'}:
@@ -37300,6 +37309,8 @@ def infoUsers(entityList):
         if not getAliases:
           user.pop('aliases', None)
           user.pop('nonEditableAliases', None)
+        if not getSchemas:
+          user.pop('customSchemas', None)
         printLine(json.dumps(cleanJSON(user, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
         continue
       printEntity([Ent.USER, user['primaryEmail']], i, count)
