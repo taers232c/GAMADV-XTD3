@@ -37204,7 +37204,7 @@ def infoUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = not GC.Values[GC.QUICK_INFO_USER]
   FJQC = FormatJSONQuoteChar()
-  projection = 'full'
+  projection = 'full' if not GC.Values[GC.QUICK_INFO_USER] else 'basic'
   customFieldMask = None
   viewType = 'admin_view'
   fieldsList = []
@@ -37215,6 +37215,7 @@ def infoUsers(entityList):
     myarg = getArgument()
     if myarg == 'quick':
       getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = False
+      projection = 'basic'
     elif myarg in {'noaliases', 'aliases'}:
       getAliases = myarg == 'aliases'
     elif myarg in {'nobuildingnames', 'buildingnames'}:
@@ -37296,6 +37297,9 @@ def infoUsers(entityList):
           user['groups'] = groups
         if getLicenses:
           user['licenses'] = [SKU.formatSKUIdDisplayName(u_license) for u_license in licenses]
+        if not getAliases:
+          user.pop('aliases', None)
+          user.pop('nonEditableAliases', None)
         printLine(json.dumps(cleanJSON(user, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
         continue
       printEntity([Ent.USER, user['primaryEmail']], i, count)

@@ -1,6 +1,9 @@
 6.25.13
 
-Updated code in `gam report users` to handle bug in Report API that caused a trap.
+Updated code in `gam report users` to handle bug in Report API that caused a trap; when the `userEmail` field is
+mistakenly omitted, the `profileId` field is used in its place.
+
+Updated `gam info user` to display the same data (in different formats) when `quick` is used with and without `formatjson`.
 
 6.25.12
 
