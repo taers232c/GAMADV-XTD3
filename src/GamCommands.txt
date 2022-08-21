@@ -1087,6 +1087,11 @@ Each user (~primaryEmail, e.g. foo@bar.com) would have their work address update
 gam list [todrive <ToDriveAttribute>*] <EntityList> [data <CrOSTypeEntity>|<UserTypeEntity> [delimiter <Character>]]
 gam <CrOSTypeEntity>|<UserTypeEntity> list [todrive <ToDriveAttribute>*] [data <EntityList> [delimiter <Character>]]
 
+# Addresses
+
+gam print addresses [todrive <ToDriveAttribute>*]
+        [domain <DomainName>]
+
 # Authorization
 
 gam create gcpfolder <String>
@@ -5141,6 +5146,9 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
+        [copysubfiles [<Boolean>]] [filenamematchpattern <RegularExpression>]
+        [copysubfolders [<Boolean>]] [foldernamematchpattern <RegularExpression>]
+        [copysubshortcuts [<Boolean>]] [shortcutnamematchpattern <RegularExpression>]
         <DriveFileCopyAttribute>*
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
@@ -6086,15 +6094,24 @@ gam <UserTypeEntity> print language [todrive <ToDriveAttribute>*]
 
 # Users - Groups
 
-gam <UserTypeEntity> add groups ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
-gam <UserTypeEntity> delete groups [<GroupEntity>]
-gam <UserTypeEntity> update groups ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
-gam <UserTypeEntity> sync groups ([<GroupRole>] <GroupEntity>)+
-gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>]
-        [countsonly] [todrive <ToDriveAttribute>*]
-gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
-        [countsonly]
-gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> add group|groups
+        ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
+gam <UserTypeEntity> delete group|groups
+        [(domain <DomainName>)|(customerid <CustomerID>)|<GroupEntity>]
+gam <UserTypeEntity> update group|groups
+        [(domain <DomainName>)|(customerid <CustomerID>)]) [<GroupRole>] [[delivery] <DeliverySetting>]
+        ([<GroupRole>] [[delivery] <DeliverySetting>] [<GroupEntity>])*
+gam <UserTypeEntity> sync group|groups
+        [(domain <DomainName>)|(customerid <CustomerID>)]
+        [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]
+        [(domain <DomainName>)|(customerid <CustomerID>)]
+        [roles <GroupRoleList>] [countsonly]
+gam <UserTypeEntity> show groups
+        [(domain <DomainName>)|(customerid <CustomerID>)]
+        [roles <GroupRoleList>] [countsonly]
+gam <UserTypeEntity> print groupslist [todrive <ToDriveAttribute>*]
+        [(domain <DomainName>)|(customerid <CustomerID>)]
         [delimiter <Character>] [quotechar <Character>]
 
 # Users - Invitations

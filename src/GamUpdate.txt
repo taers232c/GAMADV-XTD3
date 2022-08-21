@@ -1,7 +1,29 @@
+6.25.14
+
+Added the following options to `gam <UserTypeEntity> copy drivefile ... recursive` to allow more control
+over what sub files, folders and shortcuts are copied when a top folder is copied.
+```
+copysubfiles [<Boolean>] filenamematchpattern <RegularExpression>
+copysubfolders [<Boolean>] foldernamematchpattern <RegularExpression>
+copysubshortcuts [<Boolean>] shortcutnamematchpattern <RegularExpression>
+```
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Copy-Move#copy-files-and-folders
+
+Added the following mutually exclusive options to `gam <UserTypeEntity> delete|update|sync|print|show groups`
+to allow more control over which groups are processed for a user. The `customerid <CustomerID>` option
+will be most useful to resellers.
+```
+domain <DomainName>
+customerid <CustomerID>
+```
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Group-Membership
+
 6.25.13
 
 Updated code in `gam report users` to handle bug in Report API that caused a trap; when the `userEmail` field is
-mistakenly omitted, the `profileId` field is used in its place.
+mistakenly omitted, GAM backs up to an earlier date.
 
 Updated `gam info user` to display the same data (in different formats) when `quick` is used with and without `formatjson`.
 

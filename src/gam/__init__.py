@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.13'
+__version__ = '6.25.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -15745,22 +15745,30 @@ def doPrintAliases():
   csvPF.writeCSVfile('Aliases')
 
 # gam print addresses [todrive <ToDriveAttribute>*]
+#	[domain <DomainName>]
 def doPrintAddresses():
   cd = buildGAPIObject(API.DIRECTORY)
+  kwargs = {}
   csvPF = CSVPrintFile()
   titlesList = ['Type', 'Email']
   userFields = ['primaryEmail', 'aliases', 'suspended']
   groupFields = ['email', 'aliases']
-  getTodriveOnly(csvPF)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'domain':
+      kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+    else:
+      unknownArgumentExit()
   csvPF.SetTitles(titlesList)
   printGettingAllAccountEntities(Ent.USER)
   try:
     entityList = callGAPIpages(cd.users(), 'list', 'users',
                                pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='primaryEmail',
                                throwReasons=[GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                               customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
-                               fields=f'nextPageToken,users({",".join(userFields)})',
-                               maxResults=GC.Values[GC.USER_MAX_RESULTS])
+                               orderBy='email', fields=f'nextPageToken,users({",".join(userFields)})',
+                               maxResults=GC.Values[GC.USER_MAX_RESULTS], **kwargs)
   except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
     accessErrorExit(cd)
   for user in entityList:
@@ -15774,8 +15782,7 @@ def doPrintAddresses():
     entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
                                throwReasons=GAPI.GROUP_LIST_THROW_REASONS,
-                               customer=GC.Values[GC.CUSTOMER_ID], orderBy='email',
-                               fields=f'nextPageToken,groups({",".join(groupFields)})')
+                               orderBy='email', fields=f'nextPageToken,groups({",".join(groupFields)})', **kwargs)
   except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
     accessErrorExit(cd)
   for group in entityList:
@@ -48307,25 +48314,29 @@ def updateDriveFile(users):
 
 STAT_FOLDER_TOTAL = 0
 STAT_FOLDER_COPIED_MOVED = 1
-STAT_FOLDER_MERGED = 2
-STAT_FOLDER_DUPLICATE = 3
-STAT_FOLDER_FAILED = 4
-STAT_FOLDER_NOT_WRITABLE = 5
-STAT_FOLDER_PERMISSIONS_FAILED = 6
-STAT_FILE_TOTAL = 7
-STAT_FILE_COPIED_MOVED = 8
-STAT_FILE_SHORTCUT_CREATED = 9
-STAT_FILE_SHORTCUT_EXISTS = 10
-STAT_FILE_DUPLICATE = 11
-STAT_FILE_FAILED = 12
-STAT_FILE_NOT_COPYABLE_MOVABLE = 13
-STAT_FILE_PERMISSIONS_FAILED = 14
-STAT_FILE_PROTECTEDRANGES_FAILED = 15
-STAT_USER_NOT_ORGANIZER = 16
-STAT_LENGTH = 17
+STAT_FOLDER_SHORTCUT_CREATED = 2
+STAT_FOLDER_SHORTCUT_EXISTS = 3
+STAT_FOLDER_MERGED = 4
+STAT_FOLDER_DUPLICATE = 5
+STAT_FOLDER_FAILED = 6
+STAT_FOLDER_NOT_WRITABLE = 7
+STAT_FOLDER_PERMISSIONS_FAILED = 8
+STAT_FILE_TOTAL = 9
+STAT_FILE_COPIED_MOVED = 10
+STAT_FILE_SHORTCUT_CREATED = 11
+STAT_FILE_SHORTCUT_EXISTS = 12
+STAT_FILE_DUPLICATE = 13
+STAT_FILE_FAILED = 14
+STAT_FILE_NOT_COPYABLE_MOVABLE = 15
+STAT_FILE_PERMISSIONS_FAILED = 16
+STAT_FILE_PROTECTEDRANGES_FAILED = 17
+STAT_USER_NOT_ORGANIZER = 18
+STAT_LENGTH = 19
 
-FOLDER_SUBTOTAL_STATS = [STAT_FOLDER_COPIED_MOVED, STAT_FOLDER_DUPLICATE, STAT_FOLDER_MERGED, STAT_FOLDER_FAILED, STAT_FOLDER_NOT_WRITABLE]
-FILE_SUBTOTAL_STATS = [STAT_FILE_COPIED_MOVED, STAT_FILE_SHORTCUT_CREATED, STAT_FILE_SHORTCUT_EXISTS, STAT_FILE_DUPLICATE, STAT_FILE_FAILED, STAT_FILE_NOT_COPYABLE_MOVABLE]
+FOLDER_SUBTOTAL_STATS = [STAT_FOLDER_COPIED_MOVED, STAT_FOLDER_SHORTCUT_CREATED, STAT_FOLDER_SHORTCUT_EXISTS,
+                         STAT_FOLDER_DUPLICATE, STAT_FOLDER_MERGED, STAT_FOLDER_FAILED, STAT_FOLDER_NOT_WRITABLE]
+FILE_SUBTOTAL_STATS = [STAT_FILE_COPIED_MOVED, STAT_FILE_SHORTCUT_CREATED, STAT_FILE_SHORTCUT_EXISTS,
+                       STAT_FILE_DUPLICATE, STAT_FILE_FAILED, STAT_FILE_NOT_COPYABLE_MOVABLE]
 
 def _initStatistics():
   return [0] * STAT_LENGTH
@@ -48344,6 +48355,8 @@ def _printStatistics(user, statistics, i, count, copy):
                         [Ent.Plural(Ent.DRIVE_FOLDER),
                          Msg.STATISTICS_COPY_FOLDER.format(statistics[STAT_FOLDER_TOTAL],
                                                            statistics[STAT_FOLDER_COPIED_MOVED],
+                                                           statistics[STAT_FOLDER_SHORTCUT_CREATED],
+                                                           statistics[STAT_FOLDER_SHORTCUT_EXISTS],
                                                            statistics[STAT_FOLDER_DUPLICATE],
                                                            statistics[STAT_FOLDER_MERGED],
                                                            statistics[STAT_FOLDER_FAILED],
@@ -48355,6 +48368,8 @@ def _printStatistics(user, statistics, i, count, copy):
                         [Ent.Plural(Ent.DRIVE_FOLDER),
                          Msg.STATISTICS_MOVE_FOLDER.format(statistics[STAT_FOLDER_TOTAL],
                                                            statistics[STAT_FOLDER_COPIED_MOVED],
+                                                           statistics[STAT_FOLDER_SHORTCUT_CREATED],
+                                                           statistics[STAT_FOLDER_SHORTCUT_EXISTS],
                                                            statistics[STAT_FOLDER_DUPLICATE],
                                                            statistics[STAT_FOLDER_MERGED],
                                                            statistics[STAT_FOLDER_FAILED],
@@ -48366,6 +48381,8 @@ def _printStatistics(user, statistics, i, count, copy):
                         [Ent.Plural(Ent.DRIVE_FILE),
                          Msg.STATISTICS_COPY_FILE.format(statistics[STAT_FILE_TOTAL],
                                                          statistics[STAT_FILE_COPIED_MOVED],
+                                                         statistics[STAT_FILE_SHORTCUT_CREATED],
+                                                         statistics[STAT_FILE_SHORTCUT_EXISTS],
                                                          statistics[STAT_FILE_DUPLICATE],
                                                          statistics[STAT_FILE_FAILED],
                                                          statistics[STAT_FILE_NOT_COPYABLE_MOVABLE],
@@ -48452,6 +48469,12 @@ def initCopyMoveOptions(copyCmd):
     'mapPermissionsDomains': {},
     'copySheetProtectedRangesInheritedPermissions': False,
     'copySheetProtectedRangesNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_NEVER,
+    'copySubFiles': True,
+    'copySubFolders': True,
+    'copySubShortcuts': True,
+    'fileNameMatchPattern': None,
+    'folderNameMatchPattern': None,
+    'shortcutNameMatchPattern': None,
     }
 
 DUPLICATE_FILE_CHOICES = {
@@ -48547,6 +48570,18 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
         copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] = getBoolean()
       elif myarg == 'copysheetprotectedrangesnoninheritedpermissions':
         copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] = COPY_NONINHERITED_PERMISSIONS_ALWAYS if getBoolean() else COPY_NONINHERITED_PERMISSIONS_NEVER
+      elif myarg == 'copysubfiles':
+        copyMoveOptions['copySubFiles'] = getBoolean()
+      elif myarg == 'copysubfolders':
+        copyMoveOptions['copySubFolders'] = getBoolean()
+      elif myarg == 'copysubshortcuts':
+        copyMoveOptions['copySubShortcuts'] = getBoolean()
+      elif myarg == 'filenamematchpattern':
+        copyMoveOptions['fileNameMatchPattern'] = getREPattern(re.IGNORECASE)
+      elif myarg == 'foldernamematchpattern':
+        copyMoveOptions['folderNameMatchPattern'] = getREPattern(re.IGNORECASE)
+      elif myarg == 'shortcutnamematchpattern':
+        copyMoveOptions['shortcutNameMatchPattern'] = getREPattern(re.IGNORECASE)
       else:
         return False
   return True
@@ -49007,6 +49042,9 @@ def _checkForExistingShortcut(drive, fileId, fileName, parentId):
 #	[<DriveFileParentAttribute>]
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	<DriveFileCopyAttribute>*
+#	[copysubfiles [<Boolean>]] [filenamematchpattern <RegularExpression>]
+#	[copysubfolders [<Boolean>]] [foldernamematchpattern <RegularExpression>]
+#	[copysubshortcuts [<Boolean>]] [shortcutnamematchpattern <RegularExpression>]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
 #	[duplicatefolders merge|duplicatename|uniquename|skip]
 #	[copiedshortcutspointtocopiedfiles [<Boolean>]]
@@ -49137,7 +49175,14 @@ def copyDriveFile(users):
 
   def _makeCopyShortcut(drive, user, k, kcount, entityType, childId, childName, newChildName, newParentId, newParentName, targetId):
     kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
-    targetEntityType = Ent.DRIVE_FILE_SHORTCUT if entityType == Ent.DRIVE_FILE else Ent.DRIVE_FOLDER_SHORTCUT
+    if entityType == Ent.DRIVE_FILE:
+      targetEntityType = Ent.DRIVE_FILE_SHORTCUT
+      statShortcutCreated = STAT_FILE_SHORTCUT_CREATED
+      statShortcutExists = STAT_FILE_SHORTCUT_EXISTS
+    else:
+      targetEntityType = Ent.DRIVE_FOLDER_SHORTCUT
+      statShortcutCreated = STAT_FOLDER_SHORTCUT_CREATED
+      statShortcutExists = STAT_FOLDER_SHORTCUT_EXISTS
     newParentNameId = f'{newParentName}({newParentId})'
     action = Act.Get()
     existingShortcut = _checkForExistingShortcut(drive, targetId, newChildName, newParentId)
@@ -49147,7 +49192,7 @@ def copyDriveFile(users):
                                                  [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({existingShortcut})"],
                                                  k, kcount)
       Act.Set(action)
-      _incrStatistic(statistics, STAT_FILE_SHORTCUT_EXISTS)
+      _incrStatistic(statistics, statShortcutExists)
       return
     body = {'name': newChildName, 'mimeType': MIMETYPE_GA_SHORTCUT,
             'parents': [newParentId], 'shortcutDetails': {'targetId': targetId}}
@@ -49163,12 +49208,27 @@ def copyDriveFile(users):
                                                  [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{newChildName}({result['id']})"],
                                                  k, kcount)
       Act.Set(action)
-      _incrStatistic(statistics, STAT_FILE_SHORTCUT_CREATED)
+      _incrStatistic(statistics, statShortcutCreated)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed,
             GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
       entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), k, kcount)
       _incrStatistic(statistics, STAT_FILE_FAILED)
+
+  def _checkChildCopyAllowed(childMimeType, childName):
+    if childMimeType == MIMETYPE_GA_FOLDER:
+      if not copyMoveOptions['copySubFolders']:
+        return False
+      nameMatchPattern = copyMoveOptions['folderNameMatchPattern']
+    elif childMimeType == MIMETYPE_GA_SHORTCUT:
+      if not copyMoveOptions['copySubShortcuts']:
+        return False
+      nameMatchPattern = copyMoveOptions['shortcutNameMatchPattern']
+    else:
+      if not copyMoveOptions['copySubFiles']:
+        return False
+      nameMatchPattern = copyMoveOptions['fileNameMatchPattern']
+    return not nameMatchPattern or nameMatchPattern.match(childName)
 
   def _recursiveFolderCopy(drive, user, i, count, j, jcount,
                            source, targetChildren, newFolderName, newParentId, newParentName, mergeParentModifiedTime, atTop, depth):
@@ -49215,7 +49275,11 @@ def copyDriveFile(users):
         childNameId = f'{childName}({childId})'
         if childId in copiedTargetFiles: # Don't recopy file/folder copied into a sub-folder
           continue
+        childMimeType = child['mimeType']
         kvList = [Ent.USER, user, _getEntityMimeType(child), childNameId]
+        if not _checkChildCopyAllowed(childMimeType, childName):
+          entityActionNotPerformedWarning(kvList, Msg.NOT_SELECTED, k, kcount)
+          continue
         trashed = child.pop('trashed', False)
         if (childId == newFolderId) or (excludeTrashed and trashed):
           entityActionNotPerformedWarning(kvList,
@@ -49233,11 +49297,11 @@ def copyDriveFile(users):
           continue
         child.pop('parents', [])
         child['parents'] = [newFolderId]
-        if child['mimeType'] == MIMETYPE_GA_FOLDER:
+        if childMimeType == MIMETYPE_GA_FOLDER:
           _recursiveFolderCopy(drive, user, i, count, k, kcount,
                                child, subTargetChildren, newChildName, newFolderId, newFolderName, child['modifiedTime'],
                                False, depth)
-        elif child['mimeType'] == MIMETYPE_GA_SHORTCUT:
+        elif childMimeType == MIMETYPE_GA_SHORTCUT:
           shortcutsToCreate.append({'childName': childName, 'childId': childId, 'newChildName': newChildName,
                                     'newFolderId': newFolderId, 'newFolderName': newFolderName,
                                     'targetId': child['shortcutDetails']['targetId'], 'mimeType': child['shortcutDetails']['targetMimeType']})
@@ -49700,7 +49764,14 @@ def moveDriveFile(users):
 
   def _makeMoveShortcut(drive, user, k, kcount, entityType, childId, childName, newParentId, newParentName):
     kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
-    targetEntityType = Ent.DRIVE_FILE_SHORTCUT if entityType == Ent.DRIVE_FILE else Ent.DRIVE_FOLDER_SHORTCUT
+    if entityType == Ent.DRIVE_FILE:
+      targetEntityType = Ent.DRIVE_FILE_SHORTCUT
+      statShortcutCreated = STAT_FILE_SHORTCUT_CREATED
+      statShortcutExists = STAT_FILE_SHORTCUT_EXISTS
+    else:
+      targetEntityType = Ent.DRIVE_FOLDER_SHORTCUT
+      statShortcutCreated = STAT_FOLDER_SHORTCUT_CREATED
+      statShortcutExists = STAT_FOLDER_SHORTCUT_EXISTS
     newParentNameId = f'{newParentName}({newParentId})'
     action = Act.Get()
     existingShortcut = _checkForExistingShortcut(drive, childId, childName, newParentId)
@@ -49710,7 +49781,7 @@ def moveDriveFile(users):
                                                  [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({existingShortcut})"],
                                                  k, kcount)
       Act.Set(action)
-      _incrStatistic(statistics, STAT_FILE_SHORTCUT_EXISTS)
+      _incrStatistic(statistics, statShortcutExists)
       return
     body = {'name': childName, 'mimeType': MIMETYPE_GA_SHORTCUT,
             'parents': [newParentId], 'shortcutDetails': {'targetId': childId}}
@@ -49726,7 +49797,7 @@ def moveDriveFile(users):
                                                  [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({result['id']})"],
                                                  k, kcount)
       Act.Set(action)
-      _incrStatistic(statistics, STAT_FILE_SHORTCUT_CREATED)
+      _incrStatistic(statistics, statShortcutCreated)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed,
             GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
@@ -54865,23 +54936,24 @@ def _addUserToGroups(cd, user, addGroupsSet, addGroups, i, count):
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
   Ind.Decrement()
 
-# gam <UserTypeEntity> add group|groups ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
+# gam <UserTypeEntity> add group|groups
+#	([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
 def addUserToGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
   baseRole = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-  delivery_settings = getDeliverySettings()
+  baseDeliverySettings = getDeliverySettings()
   groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
   subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
   if not isinstance(groupKeys, dict):
     userGroupLists = None
     addGroups = {}
     for group in groupKeys:
-      addGroups[normalizeEmailAddressOrUID(group)] = {'role': baseRole, 'delivery_settings': delivery_settings}
+      addGroups[normalizeEmailAddressOrUID(group)] = {'role': baseRole, 'delivery_settings': baseDeliverySettings}
     while Cmd.ArgumentsRemaining():
       role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-      delivery_settings = getDeliverySettings()
+      deliverySettings = getDeliverySettings()
       for group in getEntityList(Cmd.OB_GROUP_ENTITY):
-        addGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': delivery_settings}
+        addGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': deliverySettings}
   else:
     userGroupLists = groupKeys
     checkForExtraneousArguments()
@@ -54929,18 +55001,35 @@ def _deleteUserFromGroups(cd, user, deleteGroupsSet, deleteGroups, i, count):
       entityActionPerformedMessage([Ent.GROUP, group, role, user], Msg.ACTION_MAY_BE_DELAYED, j, jcount)
   Ind.Decrement()
 
-# gam <UserTypeEntity> delete group|groups [<GroupEntity>]
+def _getUserGroupOptionalDomainCustomerId():
+  if checkArgumentPresent('domain'):
+    return {'domain': getString(Cmd.OB_DOMAIN_NAME).lower()}
+  if checkArgumentPresent('customerid'):
+    return {'customer': getString(Cmd.OB_CUSTOMER_ID)}
+  return {}
+
+def _setUserGroupArgs(user, kwargs):
+  if 'customer' in kwargs:
+    kwargs['query'] = f'memberKey={user}'
+  else:
+    kwargs['userKey'] = user
+
+# gam <UserTypeEntity> delete group|groups
+#	[(domain <DomainName>)|(customerid <CustomerID>)|<GroupEntity>]
 def deleteUserFromGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  deleteGroups = {}
-  if Cmd.ArgumentsRemaining():
-    groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
-    userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
-    for group in groupKeys:
-      deleteGroups[normalizeEmailAddressOrUID(group)] = {'role': Ent.MEMBER}
-    checkForExtraneousArguments()
+  groupKeys = None
+  kwargs = _getUserGroupOptionalDomainCustomerId()
+  if not kwargs:
+    deleteGroups = {}
+    if Cmd.ArgumentsRemaining():
+      groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
+      userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
+      for group in groupKeys:
+        deleteGroups[normalizeEmailAddressOrUID(group)] = {'role': Ent.MEMBER}
+      checkForExtraneousArguments()
   else:
-    groupKeys = None
+    checkForExtraneousArguments()
   role = Ent.MEMBER
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -54948,10 +55037,11 @@ def deleteUserFromGroups(users):
     origUser = user
     user = normalizeEmailAddressOrUID(user)
     if groupKeys is None:
+      _setUserGroupArgs(user, kwargs)
       try:
         result = callGAPIpages(cd.groups(), 'list', 'groups',
                                throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                               userKey=user, orderBy='email', fields='nextPageToken,groups(email)')
+                               orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
       except (GAPI.invalidMember, GAPI.invalidInput):
         badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
         continue
@@ -54969,7 +55059,7 @@ def deleteUserFromGroups(users):
 
 def _updateUserGroups(cd, user, updateGroupsSet, updateGroups, i, count):
   jcount = len(updateGroupsSet)
-  entityPerformActionModifierNumItems([Ent.USER, user], Act.MODIFIER_TO, jcount, Ent.GROUP, i, count)
+  entityPerformActionNumItems([Ent.USER, user], jcount, Ent.GROUP, i, count)
   Ind.Increment()
   j = 0
   for group in sorted(updateGroupsSet):
@@ -54990,32 +55080,54 @@ def _updateUserGroups(cd, user, updateGroupsSet, updateGroups, i, count):
       entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
   Ind.Decrement()
 
-# gam <UserTypeEntity> update group|groups ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
+# gam <UserTypeEntity> update group|groups
+#	[(domain <DomainName>)|(customerid <CustomerID>)]) [<GroupRole>] [[delivery] <DeliverySetting>]
+#	([<GroupRole>] [[delivery] <DeliverySetting>] [<GroupEntity>])*
 def updateUserGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
+  groupKeys = None
+  kwargs = _getUserGroupOptionalDomainCustomerId()
   baseRole = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-  delivery_settings = getDeliverySettings()
-  groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
-  subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
-  if not isinstance(groupKeys, dict):
-    userGroupLists = None
-    updateGroups = {}
-    for group in groupKeys:
-      updateGroups[normalizeEmailAddressOrUID(group)] = {'role': baseRole, 'delivery_settings': delivery_settings}
-    while Cmd.ArgumentsRemaining():
-      role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-      delivery_settings = getDeliverySettings()
-      for group in getEntityList(Cmd.OB_GROUP_ENTITY):
-        updateGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': delivery_settings}
+  baseDeliverySettings = getDeliverySettings()
+  if not kwargs:
+    if Cmd.ArgumentsRemaining():
+      groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
+      subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
+      if not isinstance(groupKeys, dict):
+        userGroupLists = None
+        updateGroups = {}
+        for group in groupKeys:
+          updateGroups[normalizeEmailAddressOrUID(group)] = {'role': baseRole, 'delivery_settings': baseDeliverySettings}
+        while Cmd.ArgumentsRemaining():
+          role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
+          deliverySettings = getDeliverySettings()
+          for group in getEntityList(Cmd.OB_GROUP_ENTITY):
+            updateGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': deliverySettings}
+      else:
+        userGroupLists = groupKeys
+        checkForExtraneousArguments()
   else:
-    userGroupLists = groupKeys
     checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     origUser = user
     user = normalizeEmailAddressOrUID(user)
-    if userGroupLists:
+    if groupKeys is None:
+      _setUserGroupArgs(user, kwargs)
+      try:
+        result = callGAPIpages(cd.groups(), 'list', 'groups',
+                               throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                               orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
+      except (GAPI.invalidMember, GAPI.invalidInput):
+        badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
+        continue
+      except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+        accessErrorExit(cd)
+      updateGroups = {}
+      for group in result:
+        updateGroups[group['email']] = {'role': baseRole, 'delivery_settings': baseDeliverySettings}
+    elif userGroupLists:
       roleList = [baseRole]
       if not subkeyRoleField:
         groupKeys = userGroupLists[origUser]
@@ -55031,23 +55143,26 @@ def updateUserGroups(users):
           updateGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': DELIVERY_SETTINGS_UNDEFINED}
     _updateUserGroups(cd, user, set(updateGroups), updateGroups, i, count)
 
-# gam <UserTypeEntity> sync group|groups [[delivery] <DeliverySetting>] ([<GroupRole>] <GroupEntity>)*
+# gam <UserTypeEntity> sync group|groups
+#	[(domain <DomainName>)|(customerid <CustomerID>)]
+#	[<GroupRole>] [[delivery] <DeliverySetting>] (<GroupEntity>)*
 def syncUserWithGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
+  kwargs = _getUserGroupOptionalDomainCustomerId()
   baseRole = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-  delivery_settings = getDeliverySettings()
+  baseDeliverySettings = getDeliverySettings()
   groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
   subkeyRoleField = GM.Globals[GM.CSV_SUBKEY_FIELD]
   if not isinstance(groupKeys, dict):
     userGroupLists = None
     syncGroups = {}
     for group in groupKeys:
-      syncGroups[normalizeEmailAddressOrUID(group)] = {'role': baseRole, 'delivery_settings': delivery_settings}
+      syncGroups[normalizeEmailAddressOrUID(group)] = {'role': baseRole, 'delivery_settings': baseDeliverySettings}
     while Cmd.ArgumentsRemaining():
       role = getChoice(GROUP_ROLES_MAP, defaultChoice=Ent.ROLE_MEMBER, mapChoice=True)
-      delivery_settings = getDeliverySettings()
+      deliverySettings = getDeliverySettings()
       for group in getEntityList(Cmd.OB_GROUP_ENTITY):
-        syncGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': delivery_settings}
+        syncGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': deliverySettings}
   else:
     userGroupLists = groupKeys
     checkForExtraneousArguments()
@@ -55071,10 +55186,11 @@ def syncUserWithGroups(users):
         for group in groupKeys:
           syncGroups[normalizeEmailAddressOrUID(group)] = {'role': role, 'delivery_settings': DELIVERY_SETTINGS_UNDEFINED}
     currGroups = {}
+    _setUserGroupArgs(user, kwargs)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=user, orderBy='email', fields='nextPageToken,groups(email)')
+                                 orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
       continue
@@ -55116,10 +55232,23 @@ def syncUserWithGroups(users):
     else:
       printEntityKVList([Ent.USER, user], [Msg.NO_CHANGES], i, count)
 
-# gam <UserTypeEntity> print groups [roles <GroupRoleList>] [domain <DomainName>]
-#	[countsonly] [todrive <ToDriveAttribute>*]
-# gam <UserTypeEntity> show groups [roles <GroupRoleList>] [domain <DomainName>]
-#	[countsonly]
+def _getUserGroupDomainCustomerId(myarg, kwargs):
+  if myarg == 'domain':
+    kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+    kwargs.pop('customer', None)
+  elif myarg == 'customerid':
+    kwargs['customer'] = getString(Cmd.OB_CUSTOMER_ID)
+    kwargs.pop('domain', None)
+  else:
+    return False
+  return True
+
+# gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]
+#	[(domain <DomainName>)|(customerid <CustomerID>)]
+#	[roles <GroupRoleList>] [countsonly]
+# gam <UserTypeEntity> show groups
+#	[(domain <DomainName>)|(customerid <CustomerID>)]
+#	[roles <GroupRoleList>] [countsonly]
 def printShowUserGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {}
@@ -55131,8 +55260,8 @@ def printShowUserGroups(users):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'domain':
-      kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+    elif _getUserGroupDomainCustomerId(myarg, kwargs):
+      pass
     elif myarg in {'role', 'roles'}:
       for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
         if role in GROUP_ROLES_MAP:
@@ -55165,10 +55294,11 @@ def printShowUserGroups(users):
     user = normalizeEmailAddressOrUID(user)
     if csvPF:
       printGettingAllEntityItemsForWhom(Ent.GROUP, user, i, count)
+    _setUserGroupArgs(user, kwargs)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=user, orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
+                                 orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
       continue
@@ -55223,9 +55353,9 @@ def printShowUserGroups(users):
   if csvPF:
     csvPF.writeCSVfile('User Groups')
 
-# gam <UserTypeEntity> print groupslist [domain <DomainName>] [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print groupslist [todrive <ToDriveAttribute>*]
+#	[(domain <DomainName>)|(customerid <CustomerID>)]
 #	[delimiter <Character>] [quotechar <Character>]
-
 def printUserGroupsList(users):
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {}
@@ -55236,8 +55366,8 @@ def printUserGroupsList(users):
     myarg = getArgument()
     if myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'domain':
-      kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+    elif _getUserGroupDomainCustomerId(myarg, kwargs):
+      pass
     elif myarg == 'delimiter':
       delimiter = getCharacter()
     else:
@@ -55247,10 +55377,11 @@ def printUserGroupsList(users):
     i += 1
     user = normalizeEmailAddressOrUID(user)
     printGettingAllEntityItemsForWhom(Ent.GROUP, user, i, count)
+    _setUserGroupArgs(user, kwargs)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=user, orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
+                                 orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
       badRequestWarning(Ent.GROUP, Ent.MEMBER, user)
       continue
