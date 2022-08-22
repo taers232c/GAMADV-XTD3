@@ -1,3 +1,9 @@
+6.25.15
+
+Following Jay's lead, added command `gam checkconnection` that performs checks to verify the network connection to Google.
+
+* Upgraded to Python 3.10.6
+
 6.25.14
 
 Added the following options to `gam <UserTypeEntity> copy drivefile ... recursive` to allow more control

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.14'
+__version__ = '6.25.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -397,6 +397,49 @@ def printErrorMessage(sysRC, message):
 def printWarningMessage(sysRC, message):
   setSysExitRC(sysRC)
   writeStderr(f'\n{Ind.Spaces()}{WARNING_PREFIX}{message}\n')
+
+def supportsColoredText():
+  """Determines if the current terminal environment supports colored text.
+
+  Returns:
+    Bool, True if the current terminal environment supports colored text via
+    ANSI escape characters.
+  """
+  # Make a rudimentary check for Windows. Though Windows does seem to support
+  # colorization with VT100 emulation, it is disabled by default. Therefore,
+  # we'll simply disable it in GAM on Windows for now.
+  return not GM.Globals[GM.WINDOWS]
+
+def createColoredText(text, color):
+  """Uses ANSI escape characters to create colored text in supported terminals.
+
+  See more at https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+
+  Args:
+    text: String, The text to colorize using ANSI escape characters.
+    color: String, An ANSI escape sequence denoting the color of the text to be
+      created. See more at https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+
+  Returns:
+    The input text with appropriate ANSI escape characters to create
+    colorization in a supported terminal environment.
+  """
+  END_COLOR_SEQUENCE = '\033[0m'  # Ends the applied color formatting
+  if supportsColoredText():
+      return color + text + END_COLOR_SEQUENCE
+  return text  # Hand back the plain text, uncolorized.
+
+def createRedText(text):
+  """Uses ANSI encoding to create red colored text if supported."""
+  return createColoredText(text, '\033[91m')
+
+def createGreenText(text):
+  """Uses ANSI encoding to create green colored text if supported."""
+  return createColoredText(text, '\u001b[32m')
+
+def createYellowText(text):
+  """Uses ANSI encoding to create yellow text if supported."""
+  return createColoredText(text, '\u001b[33m')
 
 def executeBatch(dbatch):
   dbatch.execute()
@@ -3927,7 +3970,9 @@ def doGAMCheckForUpdates(forceCheck):
     if forceCheck < 0:
       setSysExitRC(1 if latest_version > current_version else 0)
       return
-  except (httplib2.HttpLib2Error, OSError, google.auth.exceptions.TransportError, RuntimeError) as e:
+  except (httplib2.HttpLib2Error, httplib2.ServerNotFoundError,
+          google.auth.exceptions.TransportError,
+          RuntimeError, ConnectionError, OSError) as e:
     if forceCheck:
       handleServerError(e)
 
@@ -8040,6 +8085,52 @@ def getOSPlatform():
     pltfrm = platform.platform()
   return f'{myos} {pltfrm}'
 
+# gam checkconnection
+def doCheckConnection():
+# TODO: first two are optional. If they (and only they?) fail
+# instruct admin how to avoid using them as described at:
+# https://github.com/taers232c/GAMADV-XTD3/wiki/Google-Network-Addresses
+  hosts = ['api.github.com', 'raw.githubusercontent.com', 'accounts.google.com']
+# TODO: is there a better way to build this list accurately
+# that won't involve talking to the hosts before we get to
+# the below error checking? The dicovery file has a baseUrl
+# value but building the API via discovery involves talking
+# to the remote server first :-(
+  fix_hosts = {'calendar-json.googleapis.com': 'www.googleapis.com',
+               'storage-api.googleapis.com': 'storage.googleapis.com'}
+  hosts.extend(API.PROJECT_APIS)
+  httpObj = getHttpObj(timeout=10)
+  okay = createGreenText('OK')
+  not_okay = createRedText('ERROR!')
+  for host in hosts:
+    host = fix_hosts.get(host, host)
+    check_line = f'Checking {host}...'
+    writeStdout(f'{check_line:<50}')
+    flushStdout()
+    gen_firewall = 'You probably have security software or a firewall on your machine or network that is preventing GAM from making Internet connections. Check your network configuration or try running GAM on a hotspot or home network to see if the problem exists only on your organization\'s network.'
+    try:
+      httpObj.request(f'https://{host}/', 'HEAD')
+      writeStdout(f'{okay}\n')
+    except ConnectionRefusedError:
+      writeStdout(f'{not_okay}\n    Connection refused. {gen_firewall}\n')
+    except ConnectionResetError:
+      writeStdout(f'{not_okay}\n    Connection reset by peer. {gen_firewall}\n')
+    except httplib2.error.ServerNotFoundError:
+      writeStdout(f'{not_okay}\n    Failed to find server. Your DNS is probably misconfigured.\n')
+    except ssl.SSLError as e:
+      if e.reason == 'SSLV3_ALERT_HANDSHAKE_FAILURE':
+        writeStdout(f'{not_okay}\n    GAM expects to connect with TLS 1.3 or newer and that failed. If your firewall / proxy server is not compatible with TLS 1.3 then you can tell GAM to allow TLS 1.2 by setting tls_min_version = TLSv1.2 in gam.cfg.\n')
+      elif e.reason == 'CERTIFICATE_VERIFY_FAILED':
+        writeStdout(f'{not_okay}\n    Certificate verification failed. If you are behind a firewall / proxy server that does TLS / SSL inspection you may need to point GAM at your certificate authority file by setting cacerts_pem = /path/to/your/certauth.pem in gam.cfg.\n')
+      elif e.strerror.startswith('TLS/SSL connection has been closed\n'):
+        writeStdout(f'{not_okay}\n    TLS connection was closed. {gen_firewall}\n')
+      else:
+        writeStdout(f'{not_okay}\n    {str(e)}\n')
+    except TimeoutError:
+      writeStdout(f'{not_okay}\n    Timed out trying to connect to host\n')
+    except Exception as e:
+      writeStdout(f'{not_okay}\n    {str(e)}\n')
+
 # gam version [check|checkrc|simple|extended] [timeoffset] [location <HostName>]
 def doVersion(checkForArgs=True):
   forceCheck = 0
@@ -10462,6 +10553,9 @@ def checkServiceAccount(users):
     long_url += f'&authuser={_getAdminEmail()}'
     printLine(message.format('', long_url))
 
+  testPass = createGreenText('PASS')
+  testFail = createRedText('FAIL')
+  testWarn = createYellowText('WARN')
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
   allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], Act.Get() == Act.UPDATE)
   checkScopesSet = set()
@@ -10513,9 +10607,9 @@ def checkServiceAccount(users):
   printMessage(Msg.SYSTEM_TIME_STATUS)
   offsetSeconds, offsetFormatted = getLocalGoogleTimeOffset()
   if offsetSeconds <= MAX_LOCAL_GOOGLE_TIME_OFFSET:
-    timeStatus = 'PASS'
+    timeStatus = testPass
   else:
-    timeStatus = 'FAIL'
+    timeStatus = testFail
   Ind.Increment()
   printPassFail(Msg.YOUR_SYSTEM_TIME_DIFFERS_FROM_GOOGLE.format(GOOGLE_TIMECHECK_LOCATION, offsetFormatted), timeStatus)
   Ind.Decrement()
@@ -10528,20 +10622,20 @@ def checkServiceAccount(users):
     credentials.refresh(request)
     sa_token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
     if sa_token_info:
-      saTokenStatus = 'PASS'
+      saTokenStatus = testPass
     else:
-      saTokenStatus = 'FAIL'
+      saTokenStatus = testFail
   except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
     handleServerError(e)
   except google.auth.exceptions.RefreshError as e:
-    saTokenStatus = 'FAIL'
+    saTokenStatus = testFail
     if isinstance(e.args, tuple):
       e = e.args[0]
     auth_error = ' - '+str(e)
   Ind.Increment()
   printPassFail(f'Authentication{auth_error}', saTokenStatus)
   Ind.Decrement()
-  if saTokenStatus == 'FAIL':
+  if saTokenStatus == testFail:
     invalidOauth2serviceJsonExit(f'Authentication{auth_error}')
   _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
   if GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and API.IAM not in GM.Globals[GM.SVCACCT_SCOPES]:
@@ -10557,15 +10651,15 @@ def checkServiceAccount(users):
                    name=name, fields='validAfterTime')
     key_created, _ = iso8601.parse_date(key['validAfterTime'])
     key_age = todaysTime()-key_created
-    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), 'WARN' if key_age.days > 30 else 'PASS')
+    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), testWarn if key_age.days > 30 else testPass)
   except GAPI.permissionDenied:
     printMessage(Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), 'WARN')
+    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), testWarn)
   except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
     entityActionFailedWarning([Ent.PROJECT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
                                Ent.SVCACCT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']],
                               str(e))
-    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), 'WARN')
+    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), testWarn)
   Ind.Decrement()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -10593,12 +10687,12 @@ def checkServiceAccount(users):
       if credentials.token:
         token_info = callGAPI(oa2, 'tokeninfo', access_token=credentials.token)
         if scope in token_info.get('scope', '').split(' ') and user == token_info.get('email', user).lower():
-          scopeStatus = 'PASS'
+          scopeStatus = testPass
         else:
-          scopeStatus = 'FAIL'
+          scopeStatus = testFail
           allScopesPass = False
       else:
-        scopeStatus = 'FAIL'
+        scopeStatus = testFail
         allScopesPass = False
       printPassFail(scope, f'{scopeStatus}{currentCount(j, jcount)}')
     Ind.Decrement()
@@ -62270,6 +62364,8 @@ BATCH_CSV_COMMANDS = {
 
 # Main commands
 MAIN_COMMANDS = {
+  'checkconn':			(Act.CHECK, doCheckConnection),
+  'checkconnection':		(Act.CHECK, doCheckConnection),
   'help': 			(Act.PERFORM, doUsage),
   'list': 			(Act.LIST, doListType),
   'report': 			(Act.REPORT, doReport),

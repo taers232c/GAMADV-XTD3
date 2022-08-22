@@ -1055,6 +1055,9 @@ gam [<Select>] [<SelectFInputFilter>] [<SelectOutputilter>] [<Config>] [<Redirec
 
 <Select> <SelectInputFilter> <SelectOutputFilter> <Config> <Redirect>] will not be shown in the following command descriptions but can be used with any Gam command.
 
+# Check connection to Google
+gam checkconnection
+
 # Version and Help
 
 gam version [check|checkrc|simple|extended] [timeoffset] [location <HostName>]
