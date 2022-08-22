@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.15'
+__version__ = '6.25.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -48569,6 +48569,8 @@ def initCopyMoveOptions(copyCmd):
     'fileNameMatchPattern': None,
     'folderNameMatchPattern': None,
     'shortcutNameMatchPattern': None,
+    'fileMimeTypes': set(),
+    'notMimeTypes': False,
     }
 
 DUPLICATE_FILE_CHOICES = {
@@ -48676,6 +48678,10 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
         copyMoveOptions['folderNameMatchPattern'] = getREPattern(re.IGNORECASE)
       elif myarg == 'shortcutnamematchpattern':
         copyMoveOptions['shortcutNameMatchPattern'] = getREPattern(re.IGNORECASE)
+      elif myarg == 'filemimetype':
+        copyMoveOptions['notMimeTypes'] = checkArgumentPresent('not')
+        for mimeType in getString(Cmd.OB_MIMETYPE_LIST).lower().replace(',', ' ').split():
+          copyMoveOptions['fileMimeTypes'].add(validateMimeType(mimeType))
       else:
         return False
   return True
@@ -49136,7 +49142,7 @@ def _checkForExistingShortcut(drive, fileId, fileName, parentId):
 #	[<DriveFileParentAttribute>]
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
 #	<DriveFileCopyAttribute>*
-#	[copysubfiles [<Boolean>]] [filenamematchpattern <RegularExpression>]
+#	[copysubfiles [<Boolean>]] [filenamematchpattern <RegularExpression>] [filemimetype [not] <MimeTypeList>]
 #	[copysubfolders [<Boolean>]] [foldernamematchpattern <RegularExpression>]
 #	[copysubshortcuts [<Boolean>]] [shortcutnamematchpattern <RegularExpression>]
 #	[duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
@@ -49321,6 +49327,13 @@ def copyDriveFile(users):
     else:
       if not copyMoveOptions['copySubFiles']:
         return False
+      if copyMoveOptions['fileMimeTypes']:
+        if not copyMoveOptions['notMimeTypes']:
+          if childMimeType not in copyMoveOptions['fileMimeTypes']:
+            return False
+        else:
+          if childMimeType in copyMoveOptions['fileMimeTypes']:
+            return False
       nameMatchPattern = copyMoveOptions['fileNameMatchPattern']
     return not nameMatchPattern or nameMatchPattern.match(childName)
 

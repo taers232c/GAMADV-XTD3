@@ -1,6 +1,15 @@
+6.25.16
+
+Added the following option to `gam <UserTypeEntity> copy drivefile ... recursive` to allow more control
+over what sub files are copied when a top folder is copied.
+```
+filemimetype [not] <MimeTypeList>
+```
+
 6.25.15
 
 Following Jay's lead, added command `gam checkconnection` that performs checks to verify the network connection to Google.
+This is an initial effort to help diagnose Google connection issues usually caused by firewalls and/or proxies.
 
 * Upgraded to Python 3.10.6
 

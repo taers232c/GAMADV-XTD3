@@ -5149,7 +5149,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
-        [copysubfiles [<Boolean>]] [filenamematchpattern <RegularExpression>]
+        [copysubfiles [<Boolean>]] [filenamematchpattern <RegularExpression>] [filemimetype [not] <MimeTypeList>]
         [copysubfolders [<Boolean>]] [foldernamematchpattern <RegularExpression>]
         [copysubshortcuts [<Boolean>]] [shortcutnamematchpattern <RegularExpression>]
         <DriveFileCopyAttribute>*
