@@ -426,7 +426,7 @@ def createColoredText(text, color):
   """
   END_COLOR_SEQUENCE = '\033[0m'  # Ends the applied color formatting
   if supportsColoredText():
-      return color + text + END_COLOR_SEQUENCE
+    return color + text + END_COLOR_SEQUENCE
   return text  # Hand back the plain text, uncolorized.
 
 def createRedText(text):
