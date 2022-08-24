@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.18'
+__version__ = '6.25.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -38202,15 +38202,9 @@ def isolateCIUserInvitatonsEmail(name):
 def quotedCIUserInvitatonsEmail(customer, email):
   return f"{customer}/userinvitations/{quote_plus(email, safe='@')}"
 
-def buildGAPICIUserInvitationsServiceObject():
-  _, ci = buildGAPIServiceObject(API.CLOUDIDENTITY_USERINVITATIONS, _getAdminEmail(), displayError=True)
-  if not ci:
-    sys.exit(GM.Globals[GM.SYSEXITRC])
-  return ci
-
 def _getCIUserInvitationsEntity(ci=None, email=None):
   if ci is None:
-    ci = buildGAPICIUserInvitationsServiceObject()
+    ci = buildGAPIObject(API.CLOUDIDENTITY_USERINVITATIONS)
   customer = _getCustomersCustomerIdWithC()
   if email is None:
     email = getString(Cmd.OB_EMAIL_ADDRESS)
@@ -38337,7 +38331,7 @@ def doPrintShowCIUserInvitations():
                               'JSON': json.dumps(cleanJSON(invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS),
                                                  ensure_ascii=False, sort_keys=True)})
 
-  ci = buildGAPICIUserInvitationsServiceObject()
+  ci = buildGAPIObject(API.CLOUDIDENTITY_USERINVITATIONS)
   customer = _getCustomersCustomerIdWithC()
   csvPF = CSVPrintFile(['email']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -38383,7 +38377,7 @@ def doPrintShowCIUserInvitations():
 # /batch is broken for Cloud Identity. Once fixed move this to using batch.
 # Current serial implementation will be SLOW...
 def checkCIUserIsInvitable(users):
-  ci = buildGAPICIUserInvitationsServiceObject()
+  ci = buildGAPIObject(API.CLOUDIDENTITY_USERINVITATIONS)
   customer = _getCustomersCustomerIdWithC()
   csvPF = CSVPrintFile(['invitableUsers'])
   getTodriveOnly(csvPF)

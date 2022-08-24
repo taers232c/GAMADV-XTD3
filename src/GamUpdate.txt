@@ -1,3 +1,7 @@
+6.25.19
+
+Updated code to reflect Google change in how Cloud Identity User Invitations API is authenticated.
+
 6.25.18
 
 Updated processing of CSV files to allow a Google Doc to be downloaded as plain text and processed as a CSV file.
