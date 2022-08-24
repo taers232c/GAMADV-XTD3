@@ -1,3 +1,10 @@
+6.25.20
+
+Updated `gam <UserTypeEntity> print|show shareddrives` to handle spurious Google Drive API error.
+```
+ERROR: 404: fileNotFound - Does not exist
+```
+
 6.25.19
 
 Updated code to reflect Google change in how Cloud Identity User Invitations API is authenticated.
