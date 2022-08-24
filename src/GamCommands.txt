@@ -669,7 +669,7 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
                 (<FileName>|(gdoc <UserGoogleDoc>)
                         [charset <Charset>] [delimiter <Character>]))|
         (croscsvfile|croscsvfile_sn
-                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
                         [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -677,13 +677,13 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (datafile cros|cros_sn|cros_ous|cros_ous_and_children
                 (<FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]))|
         (csvdatafile cros|cros_sn|cros_ous|cros_ous_and_children
-                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
                         [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
         (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
-                (<FileName>|(gsheet <UserGoogleSheet>)
+                (<FileName>|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>)
                         [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                  [fields <FieldNameList>]
                 (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])+
@@ -726,7 +726,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
                 (<FileName>|(gdoc <UserGoogleDoc>)
                         [charset <Charset>] [delimiter <Character>]))|
         (csvfile
-                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
                         [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -738,7 +738,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (csvdatafile users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
-                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
                         [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -746,7 +746,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (csvkmd users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
-                (<FileName>|(gsheet <UserGoogleSheet>)
+                (<FileName>|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>)
                         [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>]
@@ -764,13 +764,14 @@ Specify a collection of items by directly specifying them; the item type is dete
 <FileSelector> ::=
         file <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]
 <CSVFileSelector> ::=
-        csvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+        csvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
                         [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>]
 <CSVkmdSelector> ::=
-        csvkmd <FileName>|(gsheet <UserGoogleSheet>) [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        csvkmd <FileName>|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>)
+                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -1066,14 +1067,14 @@ gam help
 # Bulk Processing
 
 gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
-gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
+gam csv <FileName>|-|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>) [charset <Charset>] [warnifnodata]
         [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
         [maxrows <Integer>]
         gam <GAMArgumentList>
 gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 
-gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
+gam loop <FileName>|-|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>) [charset <Charset>] [warnifnodata]
         [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
         [maxrows <Integer>]
@@ -3569,7 +3570,7 @@ gam delete printer
         <PrinterIDList>|
         file (<FileName>|(gdoc <UserGoogleDoc>)
               [charset <Charset>] [delimiter <Character>]))|
-        csvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
+        csvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
                  [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -4943,7 +4944,7 @@ gam <UserTypeEntity> print events <UserCalendarEntity> [<EventSelectEntity>] <Ev
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
         [<EventNotificationAttribute>] [splitupdate] [doit]
-        (csv <FileName>|(gsheet <UserGoogleSheet>))*
+        (csv <FileName>|(gsheet <UserGoogleSheet>)(gdoc <UserGoogleDoc>))*
         (delete <EmailAddress>)*
         (deleteentity <EmailAddressEntity>)*
         (add <EmailAddress>)*
@@ -5726,7 +5727,7 @@ gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
          yesterday|thismonth|(previousmonths <Integer>)]
         [action|actions [not] <DriveActivityActionList>]
         [consolidationstrategy legacy|none]
-        [idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
+        [idmapfile <FileName>|(gsheet <UserGoogleSheet>)(gdoc <UserGoogleDoc>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
         [formatjson [quotechar <Character>]]
 
 <DriveSettingsFieldName> ::=

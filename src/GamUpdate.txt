@@ -1,3 +1,18 @@
+6.25.18
+
+Updated processing of CSV files to allow a Google Doc to be downloaded as plain text and processed as a CSV file.
+
+These are allowed
+```
+gdoc <UserGoogleDoc>
+gdoc:<FieldName>)+ <UserGoogleDoc>
+```
+wherever the following are allowed.
+```
+gsheet <UserGoogleSheet>	
+gsheet(:<FieldName>)+ <UserGoogleSheet>
+```
+
 6.25.17
 
 Added options `[formatjson [quotechar <Character>]]` to `gam print group-members|cigroup-members`.
