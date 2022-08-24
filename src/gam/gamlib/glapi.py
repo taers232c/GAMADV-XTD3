@@ -304,7 +304,6 @@ _CLIENT_SCOPES = [
   {'name': 'Cloud Identity User Invitations API',
    'api': CLOUDIDENTITY_USERINVITATIONS,
    'subscopes': READONLY,
-   'offByDefault': True,
    'scope': 'https://www.googleapis.com/auth/cloud-identity.userinvitations'},
   {'name': 'Cloud Storage (Vault Export - read only)',
    'api': STORAGE,

@@ -8110,8 +8110,9 @@ def doCheckConnection():
   success_count = 0
   for host in hosts:
     try_count += 1
-    check_line = f'Checking {host} ({try_count}/{host_count})...'
-    writeStdout(f'{check_line:<60}')
+    ip = gethostbyname(host)
+    check_line = f'Checking {host} ({ip}) ({try_count}/{host_count})...'
+    writeStdout(f'{check_line:<80}')
     flushStdout()
     gen_firewall = 'You probably have security software or a firewall on your machine or network that is preventing GAM from making Internet connections. Check your network configuration or try running GAM on a hotspot or home network to see if the problem exists only on your organization\'s network.'
     try:
