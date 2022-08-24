@@ -1,3 +1,9 @@
+6.25.17
+
+Added options `[formatjson [quotechar <Character>]]` to `gam print group-members|cigroup-members`.
+
+Following Jay's lead, improved command `gam checkconnection`.
+
 6.25.16
 
 Added the following option to `gam <UserTypeEntity> copy drivefile ... recursive` to allow more control

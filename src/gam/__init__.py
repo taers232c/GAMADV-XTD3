@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.16'
+__version__ = '6.25.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8087,29 +8087,33 @@ def getOSPlatform():
 
 # gam checkconnection
 def doCheckConnection():
-# TODO: first two are optional. If they (and only they?) fail
-# instruct admin how to avoid using them as described at:
-# https://github.com/taers232c/GAMADV-XTD3/wiki/Google-Network-Addresses
-  hosts = ['api.github.com', 'raw.githubusercontent.com', 'accounts.google.com']
-# TODO: is there a better way to build this list accurately
-# that won't involve talking to the hosts before we get to
-# the below error checking? The dicovery file has a baseUrl
-# value but building the API via discovery involves talking
-# to the remote server first :-(
+  hosts = ['api.github.com', 'raw.githubusercontent.com',
+           'accounts.google.com', 'oauth2.googleapis.com', 'www.googleapis.com']
   fix_hosts = {'calendar-json.googleapis.com': 'www.googleapis.com',
                'storage-api.googleapis.com': 'storage.googleapis.com'}
-  hosts.extend(API.PROJECT_APIS)
+  api_hosts = ['versionhistory.googleapis.com']
+  for host in API.PROJECT_APIS:
+    host = fix_hosts.get(host, host) 
+    if host not in api_hosts and host not in hosts:
+      api_hosts.append(host)
+  hosts.extend(sorted(api_hosts))
+  host_count = len(hosts)
   httpObj = getHttpObj(timeout=10)
+  httpObj.follow_redirects = False
+  headers = {'user-agent': GAM_USER_AGENT}
   okay = createGreenText('OK')
-  not_okay = createRedText('ERROR!')
+  not_okay = createRedText('ERROR')
+  try_count = 0
+  success_count = 0
   for host in hosts:
-    host = fix_hosts.get(host, host)
-    check_line = f'Checking {host}...'
-    writeStdout(f'{check_line:<50}')
+    try_count += 1
+    check_line = f'Checking {host} ({try_count}/{host_count})...'
+    writeStdout(f'{check_line:<60}')
     flushStdout()
     gen_firewall = 'You probably have security software or a firewall on your machine or network that is preventing GAM from making Internet connections. Check your network configuration or try running GAM on a hotspot or home network to see if the problem exists only on your organization\'s network.'
     try:
-      httpObj.request(f'https://{host}/', 'HEAD')
+      httpObj.request(f'https://{host}/', 'HEAD', headers=headers)
+      success_count += 1
       writeStdout(f'{okay}\n')
     except ConnectionRefusedError:
       writeStdout(f'{not_okay}\n    Connection refused. {gen_firewall}\n')
@@ -8130,6 +8134,10 @@ def doCheckConnection():
       writeStdout(f'{not_okay}\n    Timed out trying to connect to host\n')
     except Exception as e:
       writeStdout(f'{not_okay}\n    {str(e)}\n')
+  if success_count == host_count:
+    writeStdout(createGreenText('All hosts passed!\n'))
+  else:
+    systemErrorExit(3, createYellowText('Some hosts failed to connect! Please follow the recommendations for those hosts to correct any issues and try again.'))
 
 # gam version [check|checkrc|simple|extended] [timeoffset] [location <HostName>]
 def doVersion(checkForArgs=True):
@@ -28437,6 +28445,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 #	[userfields <UserFieldNameList>]
 #	[(recursive [noduplicates])|includederivedmembership] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
+#	[formatjson [quotechar <Character>]]
 def doPrintGroupMembers():
   def getNameFromPeople(memberId):
     try:
@@ -28462,6 +28471,7 @@ def doPrintGroupMembers():
   subTitle = f'{Msg.ALL} {Ent.Plural(Ent.GROUP)}'
   fieldsList = []
   csvPF = CSVPrintFile('group')
+  FJQC = FormatJSONQuoteChar(csvPF)
   entityList = None
   showOwnedBy = {}
   cdfieldsList = ['email']
@@ -28527,7 +28537,7 @@ def doPrintGroupMembers():
       if not people:
         return
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
   if not typesSet:
     typesSet = {Ent.TYPE_USER} if memberOptions[MEMBEROPTION_RECURSIVE] else ALL_GROUP_TYPES
   entityList = getGroupMembersEntityList(cd, entityList, matchPatterns, cdfieldsList, kwargs)
@@ -28552,6 +28562,11 @@ def doPrintGroupMembers():
       userFieldsList.append('name.fullName')
     csvPF.AddTitles('name')
     csvPF.RemoveTitles([f'name{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}fullName'])
+  if FJQC.formatJSON:
+    if groupColumn:
+      csvPF.SetJSONTitles(['group', 'JSON'])
+    else:
+      csvPF.SetJSONTitles(['JSON'])
   memberOptions[MEMBEROPTION_GETDELIVERYSETTINGS] = 'delivery_settings' in fieldsList
   userFields = getFieldsFromFieldsList(userFieldsList)
   if not rolesSet:
@@ -28607,7 +28622,16 @@ def doPrintGroupMembers():
               row['name'] = mbinfo['name'].pop('fullName')
               if not mbinfo['name']:
                 mbinfo.pop('name')
-            csvPF.WriteRowTitles(flattenJSON(mbinfo, flattened=row))
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(flattenJSON(mbinfo, flattened=row))
+            else:
+              row.update(mbinfo)
+              fjrow = {}
+              if groupColumn:
+                fjrow['group'] = groupEmail
+              fjrow['JSON'] = json.dumps(cleanJSON(row, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS),
+                                         ensure_ascii=False, sort_keys=True)
+              csvPF.WriteRowNoFilter(fjrow)
             continue
           except GAPI.userNotFound:
             if memberOptions[MEMBEROPTION_MEMBERNAMES] and people:
@@ -28636,12 +28660,21 @@ def doPrintGroupMembers():
                                      customerKey=memberId, fields='customerDomain')['customerDomain']
             except (GAPI.badRequest, GAPI.invalidInput, GAPI.resourceNotFound, GAPI.forbidden):
               pass
-      csvPF.WriteRow(row)
-  csvPF.SetSortTitles(GROUPMEMBERS_DEFAULT_FIELDS)
-  csvPF.SortTitles()
-  csvPF.SetSortTitles([])
-  if memberOptions[MEMBEROPTION_RECURSIVE]:
-    csvPF.MoveTitlesToEnd(['level', 'subgroup'])
+      if not FJQC.formatJSON:
+        csvPF.WriteRow(row)
+      else:
+        fjrow = {}
+        if groupColumn:
+          fjrow['group'] = groupEmail
+        fjrow['JSON'] = json.dumps(cleanJSON(row, skipObjects=USER_SKIP_OBJECTS, timeObjects=USER_TIME_OBJECTS),
+                                   ensure_ascii=False, sort_keys=True)
+        csvPF.WriteRowNoFilter(fjrow)
+  if not FJQC.formatJSON:
+    csvPF.SetSortTitles(GROUPMEMBERS_DEFAULT_FIELDS)
+    csvPF.SortTitles()
+    csvPF.SetSortTitles([])
+    if memberOptions[MEMBEROPTION_RECURSIVE]:
+      csvPF.MoveTitlesToEnd(['level', 'subgroup'])
   csvPF.writeCSVfile(f'Group Members ({subTitle})')
 
 # gam show group-members
@@ -30078,6 +30111,7 @@ CIGROUPMEMBERS_TIME_OBJECTS = {'createTime', 'updateTime', 'expireTime'}
 #	[memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 #	<CIGroupMembersFieldName>* [fields <CIGroupMembersFieldNameList>]
 #	[(recursive [noduplicates])|includederivedmembership] [nogroupeemail]
+#	[formatjson [quotechar <Character>]]
 def doPrintCIGroupMembers():
   ci = buildGAPIObject(CIGROUP_MEMBER_API)
   setTrueCustomerId()
@@ -30087,6 +30121,7 @@ def doPrintCIGroupMembers():
   fieldsList = []
   groupFieldsLists = {'ci': ['groupKey', 'name']}
   csvPF = CSVPrintFile(['group'])
+  FJQC = FormatJSONQuoteChar(csvPF)
   entityList = query = showOwnedBy = None
   rolesSet = set()
   typesSet = set()
@@ -30132,7 +30167,7 @@ def doPrintCIGroupMembers():
     elif myarg == 'nogroupemail':
       groupColumn = False
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
   if not typesSet:
     typesSet = {Ent.TYPE_USER} if memberOptions[MEMBEROPTION_RECURSIVE] else ALL_CIGROUP_TYPES
   fields = ','.join(set(groupFieldsLists['ci']))
@@ -30142,6 +30177,11 @@ def doPrintCIGroupMembers():
       addFieldToFieldsList(field, CIGROUPMEMBERS_FIELDS_CHOICE_MAP, fieldsList)
   if not groupColumn:
     csvPF.RemoveTitles(['group'])
+  if FJQC.formatJSON:
+    if groupColumn:
+      csvPF.SetJSONTitles(['group', 'JSON'])
+    else:
+      csvPF.SetJSONTitles(['JSON'])
   displayFieldsList = fieldsList[:]
   if 'roles' in displayFieldsList:
     displayFieldsList.remove('roles')
@@ -30194,13 +30234,23 @@ def doPrintCIGroupMembers():
         row['level'] = member['level']
         row['subgroup'] = member['subgroup']
       mapCIGroupMemberFieldNames(dmember)
-      csvPF.WriteRowTitles(flattenJSON(dmember, flattened=row, timeObjects=CIGROUPMEMBERS_TIME_OBJECTS))
-  sortTitles = ['group'] if groupColumn else []
-  csvPF.SetSortTitles(sortTitles+CIGROUPMEMBERS_SORT_FIELDS)
-  csvPF.SortTitles()
-  csvPF.SetSortTitles([])
-  if memberOptions[MEMBEROPTION_RECURSIVE]:
-    csvPF.MoveTitlesToEnd(['level', 'subgroup'])
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(flattenJSON(dmember, flattened=row, timeObjects=CIGROUPMEMBERS_TIME_OBJECTS))
+      else:
+        row.update(dmember)
+        fjrow = {}
+        if groupColumn:
+          fjrow['group'] = groupEmail
+        fjrow['JSON'] = json.dumps(cleanJSON(row, timeObjects=CIGROUPMEMBERS_TIME_OBJECTS),
+                                   ensure_ascii=False, sort_keys=True)
+        csvPF.WriteRowNoFilter(fjrow)
+  if not FJQC.formatJSON:
+    sortTitles = ['group'] if groupColumn else []
+    csvPF.SetSortTitles(sortTitles+CIGROUPMEMBERS_SORT_FIELDS)
+    csvPF.SortTitles()
+    csvPF.SetSortTitles([])
+    if memberOptions[MEMBEROPTION_RECURSIVE]:
+      csvPF.MoveTitlesToEnd(['level', 'subgroup'])
   csvPF.writeCSVfile(f'Cloud Identity Group Members ({subTitle})')
 
 # gam show cigroup-members

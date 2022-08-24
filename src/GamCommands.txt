@@ -3188,6 +3188,7 @@ gam print group-members [todrive <ToDriveAttribute>*]
         [userfields <UserFieldNameList>]
         [(recursive [noduplicates])|includederivedmembership] [nogroupemail]
         [peoplelookup|(peoplelookupuser <EmailAddress>)]
+        [formatjson [quotechar <Character>]]
 gam show group-members
         [([domain <DomainName>] ([member|showownedby <EmailItem>]|[query <QueryGroup>]))|
          (group|group_ns|group_susp <GroupItem>)|
@@ -3292,6 +3293,7 @@ gam print cigroup-members [todrive <ToDriveAttribute>*]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         <CIGroupMembersFieldName>* [fields <CIGroupMembersFieldNameList>]
         [(recursive [noduplicates])includederivedmembership] [nogroupeemail]
+        [formatjson [quotechar <Character>]]
 gam show cigroup-members
         [(cimember|ciowner <UserItem>)|(cigroup <GroupItem>)|(select <GroupEntity>)]
         [showownedby <UserItem>]
