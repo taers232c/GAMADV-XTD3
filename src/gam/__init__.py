@@ -8093,7 +8093,7 @@ def doCheckConnection():
                'storage-api.googleapis.com': 'storage.googleapis.com'}
   api_hosts = ['versionhistory.googleapis.com']
   for host in API.PROJECT_APIS:
-    host = fix_hosts.get(host, host) 
+    host = fix_hosts.get(host, host)
     if host not in api_hosts and host not in hosts:
       api_hosts.append(host)
   hosts.extend(sorted(api_hosts))
