@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.17'
+__version__ = '6.25.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2927,12 +2927,15 @@ def getGSheetData():
 
 # Open a CSV file, get optional arguments [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [endcsv|(fields <FieldNameList>)]
 def openCSVFileReader(filename, fieldnames=None):
-  if filename.lower() != 'gsheet':
-    encoding = getCharSet()
-    f = openFile(filename, mode=DEFAULT_CSV_READ_MODE, encoding=encoding)
-  else:
+  if filename.lower() == 'gsheet':
     f = getGSheetData()
     getCharSet()
+  elif filename.lower() == 'gdoc':
+    f = getGDocData(MIMETYPE_TEXT_PLAIN)
+    getCharSet()
+  else:
+    encoding = getCharSet()
+    f = openFile(filename, mode=DEFAULT_CSV_READ_MODE, encoding=encoding)
   if checkArgumentPresent('warnifnodata'):
     loc = f.tell()
     try:
@@ -57744,7 +57747,7 @@ def _processMessagesThreads(users, entityType):
       body['ids'] = messageIds[mcount:mcount+bcount]
       try:
         callGAPI(gmail.users().messages(), function,
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_MESSAGE_ID],
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_MESSAGE_ID, GAPI.FAILED_PRECONDITION],
                  userId='me', body=body)
         for messageId in body['ids']:
           mcount += 1
@@ -57754,9 +57757,14 @@ def _processMessagesThreads(users, entityType):
       except GAPI.invalidMessageId:
         entityActionFailedWarning([Ent.USER, user, entityType, Msg.BATCH], f'{Msg.INVALID_MESSAGE_ID} ({mcount+1}-{mcount+bcount}/{jcount})')
         mcount += bcount
+      except GAPI.failedPrecondition:
+        entityActionFailedWarning([Ent.USER, user, entityType, Msg.BATCH], f'{Msg.FAILED_PRECONDITION} ({mcount+1}-{mcount+bcount}/{jcount})')
+        mcount += bcount
       bcount = min(jcount-mcount, GC.Values[GC.MESSAGE_BATCH_SIZE])
 
-  _GMAIL_ERROR_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.INVALID_MESSAGE_ID: Msg.INVALID_MESSAGE_ID}
+  _GMAIL_ERROR_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST,
+                                        GAPI.INVALID_MESSAGE_ID: Msg.INVALID_MESSAGE_ID,
+                                        GAPI.FAILED_PRECONDITION: Msg.FAILED_PRECONDITION}
   def _handleProcessGmailError(exception, ri):
     http_status, reason, message = checkGAPIError(exception)
     errMsg = getHTTPError(_GMAIL_ERROR_REASON_TO_MESSAGE_MAP, http_status, reason, message)
