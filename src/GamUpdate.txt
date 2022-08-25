@@ -1,3 +1,8 @@
+6.25.21
+
+Fixed bug in `gam <UserTypeEntity> check drivefileshortcut` that caused a trap when checking
+a shortcut on a Shared Drive.
+
 6.25.20
 
 Updated `gam <UserTypeEntity> print|show shareddrives` to handle spurious Google Drive API error.

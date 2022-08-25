@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.20'
+__version__ = '6.25.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -48165,7 +48165,8 @@ def checkDriveFileShortcut(users):
             row['code'] = SHORTCUT_CODE_NOT_A_SHORTCUT
             csvPF.WriteRow(row)
           continue
-        row['owner'] = scresult['owners'][0]['emailAddress']
+        if 'owners' in scresult:
+          row['owner'] = scresult['owners'][0]['emailAddress']
         row['parentId'] = scresult['parents'][0]
         row[f'shortcutDetails{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}targetId'] = scresult['shortcutDetails']['targetId']
         row[f'shortcutDetails{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}targetMimeType'] = scresult['shortcutDetails']['targetMimeType']
