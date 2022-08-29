@@ -1,0 +1,311 @@
+name: Build and test GAM
+
+on:
+  push:
+
+defaults:
+  run:
+    shell: bash
+    working-directory: src
+
+env:
+  OPENSSL_CONFIG_OPTS: no-fips
+  OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
+  OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
+  PYTHON_INSTALL_PATH: ${{ github.workspace }}/bin/python
+  PYTHON_SOURCE_PATH: ${{ github.workspace }}/src/cpython
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-12
+            jid: 4
+            goal: build
+            arch: universal2
+            openssl_archs: darwin64-x86_64 darwin64-arm64
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Cache multiple paths
+        uses: actions/cache@v2
+        id: cache-python-ssl
+        with:
+          path: |
+            bin
+          key: gam-${{ matrix.jid }}-20220802
+
+      - name: Use pre-compiled Python for testing
+        if: matrix.python != ''
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: MacOS remove Homebrew
+        if: runner.os == 'macOS'
+        run: |
+          # remove everything except the libraries needed by yubikey-manager
+          brew uninstall $(brew list | grep -v 'pcre\|swig\|pcsc-lite')
+
+      - name: MacOS install tools
+        if: runner.os == 'macOS'
+        run: |
+          # Install latest Rust
+          curl -fsS -o rust.sh https://sh.rustup.rs
+          bash ./rust.sh -y
+          source $HOME/.cargo/env
+          # needed for Rust to compile cryptography Python package for universal2
+          rustup target add aarch64-apple-darwin
+
+      - name: Set Env Variables for build
+        if: matrix.goal == 'build'
+        env:
+          arch: ${{ matrix.arch }}
+          jid: ${{ matrix.jid }}
+          openssl_archs: ${{ matrix.openssl_archs }}
+        run: |
+          echo "We are running on ${RUNNER_OS}"
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            #brew install coreutils
+            #brew install bash
+            MAKE=make
+            MAKEOPT="-j$(sysctl -n hw.logicalcpu)"
+            PERL=perl
+            echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
+            echo "PYTHON=${PYTHON_INSTALL_PATH}/bin/python3" >> $GITHUB_ENV
+            echo "PIP_ARGS=--no-binary=:all:" >> $GITHUB_ENV
+          fi
+          echo "We'll run make with: ${MAKEOPT}"
+          echo "JID=${jid}" >> $GITHUB_ENV
+          echo "arch=${arch}" >> $GITHUB_ENV
+          echo "MAKE=${MAKE}" >> $GITHUB_ENV
+          echo "MAKEOPT=${MAKEOPT}" >> $GITHUB_ENV
+          echo "PERL=${PERL}" >> $GITHUB_ENV
+          echo "PYEXTERNALS_PATH=${PYEXTERNALS_PATH}" >> $GITHUB_ENV
+          echo "PYBUILDRELEASE_ARCH=${PYBUILDRELEASE_ARCH}" >> $GITHUB_ENV
+          echo "openssl_archs=${openssl_archs}" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=${OPENSSL_INSTALL_PATH}/lib:${PYTHON_INSTALL_PATH}/lib" >> $GITHUB_ENV
+          #echo "PATH=${PATH}:${PYTHON_INSTALL_PATH}/scripts" >> $GITHUB_ENV
+
+      - name: Get latest stable OpenSSL source
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          mkdir -vp "${GITHUB_WORKSPACE}/src"
+          cd "${GITHUB_WORKSPACE}/src"
+          git clone https://github.com/openssl/openssl.git
+          cd "${OPENSSL_SOURCE_PATH}"
+          export LATEST_STABLE_TAG=$(git tag --list openssl-* | grep -v alpha | grep -v beta | sort -Vr | head -n1)
+          echo "Checking out version ${LATEST_STABLE_TAG}"
+          git checkout "${LATEST_STABLE_TAG}"
+          export COMPILED_OPENSSL_VERSION=${LATEST_STABLE_TAG:8} # Trim the openssl- prefix
+          echo "COMPILED_OPENSSL_VERSION=${COMPILED_OPENSSL_VERSION}" >> $GITHUB_ENV
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            for openssl_arch in $openssl_archs; do
+              ssldir="${OPENSSL_SOURCE_PATH}-${openssl_arch}"
+              mkdir -v "${ssldir}"
+              cp -vrf ${OPENSSL_SOURCE_PATH}/* "${ssldir}/"
+            done
+            rm -vrf "${OPENSSL_SOURCE_PATH}"
+          else
+            mv -v "${OPENSSL_SOURCE_PATH}" "${OPENSSL_SOURCE_PATH}-${openssl_archs}"
+          fi
+
+      - name: Config OpenSSL
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          for openssl_arch in $openssl_archs; do
+            cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_arch}"
+            # --libdir=lib is needed so Python can find OpenSSL libraries
+            "${PERL}" ./Configure "${openssl_arch}" --libdir=lib --prefix="${OPENSSL_INSTALL_PATH}" $OPENSSL_CONFIG_OPTS
+          done
+
+      - name: Make OpenSSL
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          for openssl_arch in $openssl_archs; do
+            cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_arch}"
+            $MAKE "${MAKEOPT}"
+          done
+
+      - name: Install OpenSSL
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            for openssl_arch in $openssl_archs; do
+              cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_arch}"
+              # install_sw saves us ages processing man pages :-)
+              $MAKE install_sw
+              mv "${OPENSSL_INSTALL_PATH}" "${GITHUB_WORKSPACE}/bin/ssl-${openssl_arch}"
+            done
+            mkdir -vp "${OPENSSL_INSTALL_PATH}/lib"
+            mkdir -vp "${OPENSSL_INSTALL_PATH}/bin"
+            for archlib in libcrypto.3.dylib libssl.3.dylib libcrypto.a libssl.a; do
+              lipo -create "${GITHUB_WORKSPACE}/bin/ssl-darwin64-x86_64/lib/${archlib}" \
+                           "${GITHUB_WORKSPACE}/bin/ssl-darwin64-arm64/lib/${archlib}" \
+                   -output "${GITHUB_WORKSPACE}/bin/ssl/lib/${archlib}"
+            done
+            mv ${GITHUB_WORKSPACE}/bin/ssl-darwin64-x86_64/include ${GITHUB_WORKSPACE}/bin/ssl/
+            lipo -create "${GITHUB_WORKSPACE}/bin/ssl-darwin64-x86_64/bin/openssl" \
+                         "${GITHUB_WORKSPACE}/bin/ssl-darwin64-arm64/bin/openssl" \
+                 -output "${GITHUB_WORKSPACE}/bin/ssl/bin/openssl"
+            rm -rf ${GITHUB_WORKSPACE}/bin/ssl-darwin64-x86_64
+            rm -rf ${GITHUB_WORKSPACE}/bin/ssl-darwin64-arm64
+            echo "LDFLAGS=-L${OPENSSL_INSTALL_PATH}/lib" >> $GITHUB_ENV
+            echo "CRYPTOGRAPHY_SUPPRESS_LINK_FLAGS=1" >> $GITHUB_ENV
+            echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch arm64 -arch x86_64" >> $GITHUB_ENV
+            echo "ARCHFLAGS=-arch x86_64 -arch arm64" >> $GITHUB_ENV
+          else
+            cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_archs}"
+            # install_sw saves us ages processing man pages :-)
+            $MAKE install_sw
+          fi
+
+      - name: Run OpenSSL
+        if: matrix.goal == 'build'
+        run: |
+          "${OPENSSL_INSTALL_PATH}/bin/openssl" version
+          file "${OPENSSL_INSTALL_PATH}/bin/openssl"
+
+      - name: Get latest stable Python source
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          cd "${GITHUB_WORKSPACE}/src"
+          git clone https://github.com/python/cpython.git
+          cd "${PYTHON_SOURCE_PATH}"
+          export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
+          git checkout "${LATEST_STABLE_TAG}"
+          export COMPILED_PYTHON_VERSION=${LATEST_STABLE_TAG:1} # Trim the "v" prefix
+          echo "COMPILED_PYTHON_VERSION=${COMPILED_PYTHON_VERSION}" >> $GITHUB_ENV
+
+      - name: Mac/Linux Configure Python
+        if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          cd "${PYTHON_SOURCE_PATH}"
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            extra_args=( "--enable-universalsdk" "--with-universal-archs=universal2" )
+          else
+            extra_args=( )
+          fi
+          ./configure --with-openssl="${OPENSSL_INSTALL_PATH}" \
+                      --prefix="${PYTHON_INSTALL_PATH}" \
+                      --enable-shared \
+                      --with-ensurepip=upgrade \
+                      --enable-optimizations \
+                      --with-lto \
+                      "${extra_args[@]}"
+
+      - name: Mac/Linux Build Python
+        if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          cd "${PYTHON_SOURCE_PATH}"
+          echo "Running: ${MAKE} ${MAKEOPT}"
+          $MAKE $MAKEOPT
+
+      - name: Mac/Linux Install Python
+        if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          cd "${PYTHON_SOURCE_PATH}"
+          $MAKE altinstall
+          $MAKE bininstall
+
+      - name: Run Python
+        run: |
+          "${PYTHON}" -V
+
+      - name: Upgrade pip, wheel, etc
+        run: |
+          curl -O https://bootstrap.pypa.io/get-pip.py
+          "${PYTHON}" get-pip.py
+          "${PYTHON}" -m pip install --upgrade pip
+          "${PYTHON}" -m pip install --upgrade wheel
+          "${PYTHON}" -m pip install --upgrade setuptools
+    
+      - name: Install PyInstaller
+        if: matrix.goal == 'build'
+        run: |
+          git clone https://github.com/pyinstaller/pyinstaller.git
+          cd pyinstaller
+          export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
+          git checkout "${latest_release}"
+          # remove pre-compiled bootloaders so we fail if bootloader compile fails
+          rm -rvf PyInstaller/bootloader/*-*/*
+          cd bootloader
+          echo "PyInstaller build arguments: ${PYINSTALLER_BUILD_ARGS}"
+          "${PYTHON}" ./waf all $PYINSTALLER_BUILD_ARGS
+          cd ../..
+          echo "---- Installing PyInstaller ----"
+          "${PYTHON}" -m pip install pyinstaller
+
+      - name: Install pip requirements
+        run: |
+             if [[ "${RUNNER_OS}" == "macOS" ]]; then
+               for package in cryptography; do
+                 "${PYTHON}" -m pip install --upgrade cffi ${PIP_ARGS}
+                 "${PYTHON}" -m pip download --only-binary :all: \
+                                             --dest . \
+                                             --no-cache \
+                                             --no-deps \
+                                             --platform macosx_10_15_universal2 \
+                                             $package
+               "${PYTHON}" -m pip install --force-reinstall --no-deps $package*.whl
+               done
+               find $PYTHON_INSTALL_PATH/lib/python3.10/site-packages -type f -name "*.so" -exec du -sh "{}" \;
+             fi
+             "${PYTHON}" -m pip install --upgrade -r requirements.txt ${PIP_ARGS}
+             "${PYTHON}" -m pip list
+
+      - name: Build GAM with PyInstaller
+        if: matrix.goal != 'test'
+        run: |
+             export gampath="./dist/gam"
+             mkdir -p -v "${gampath}"
+             if [[ "${RUNNER_OS}" == "macOS" ]]; then
+               export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
+             else
+               export gampath=$(realpath "${gampath}")
+             fi
+             export gam="${gampath}/gam"
+             echo "gampath=${gampath}" >> $GITHUB_ENV
+             echo "gam=${gam}" >> $GITHUB_ENV
+             echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
+             "${PYTHON}" -m PyInstaller --clean --distpath="${gampath}" gam.spec
+ 
+      - name: Linux/MacOS package
+        if: runner.os != 'Windows' && matrix.goal == 'build'
+        run: |
+          cp -v LICENSE $gampath
+          cp -v GamCommands.txt $gampath
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+              GAM_ARCHIVE="gam-${GAMVERSION}-macos-universal2.tar.xz"
+          elif [[ "${RUNNER_OS}" == "Linux" ]]; then
+              this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
+              GAM_ARCHIVE="gam-${GAMVERSION}-linux-$(arch)-glibc${this_glibc_ver}.tar.xz"
+          fi
+          tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gam
+
+     # - name: Upload to Google Drive, build only.
+     #   if: github.event_name == 'push' && matrix.goal != 'test'
+     #   run: |
+     #        ls gam-$GAMVERSION-*
+     #        for gamfile in gam-$GAMVERSION-*; do
+     #          echo "Uploading file ${gamfile} to Google Drive..."
+     #          fileid=$($gam user $gam_user add drivefile localfile $gamfile drivefilename $GAMVERSION-${GITHUB_SHA:0:7}-$gamfile parentid 1N2zbO33qzUQFsGM49-m9AQC1ijzd_ru1 returnidonly)
+     #          echo "file uploaded as ${fileid}, setting ACL..."
+     #          $gam user $gam_user add drivefileacl $fileid anyone role reader withlink
+     #        done
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        if: github.event_name == 'push' && matrix.goal != 'test'
+        with:
+          name: gam-binaries
+          path: |
+            src/*.tar.xz
+            src/*.zip
+            src/*.msi

@@ -1,0 +1,4 @@
+oauth2.txt
+*.json
+*.lck
+*.csv
