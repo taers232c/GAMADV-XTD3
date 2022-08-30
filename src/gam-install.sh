@@ -140,7 +140,15 @@ case $gamos in
     ;;
   [Mm]ac[Oo][sS]|[Dd]arwin)
     gamos="macos"
-    gamfile="macos-x86_64.tar"
+    case $gamarch in
+      x86_64)
+        gamfile="macos-x86_64.tar";;
+      arm|arm64|aarch64)
+        gamfile="macos-universal2.tar.xz";;
+      *)
+        echo_red "ERROR: this installer currently only supports x86_64 and arm64 MacOS. Looks like you're running on $gamarch. Exiting."
+        exit
+    esac
     ;;
   *)
     echo_red "Sorry, this installer currently only supports Linux and MacOS. Looks like you're runnning on $gamos. Exiting."

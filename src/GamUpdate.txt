@@ -1,3 +1,9 @@
+6.26.00
+
+Build MacOS universal version.
+
+* Upgraded to OpenSSL 3.0.5 where possible.
+
 6.25.21
 
 Fixed bug in `gam <UserTypeEntity> check drivefileshortcut` that caused a trap when checking

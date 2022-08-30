@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.25.21'
+__version__ = '6.25.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7652,7 +7652,7 @@ class CSVPrintFile():
               Act.Set(Act.UPDATE)
               result = callGAPI(drive.files(), 'update',
                                 bailOnInternalError=True,
-                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
+                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR],
                                 fileId=self.todrive['fileId'],
                                 body=body,
                                 media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
@@ -10547,8 +10547,8 @@ def _getSvcAcctKeyProjectClientFields():
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'],
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id'])
 
-# gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
-# gam <UserTypeEntity> update serviceaccount (scope|scopes <APIScopeURLList>)* [writeurltofile]
+# gam <UserTypeEntity> check serviceaccount (scope|scopes <APIScopeURLList>)* [usecolor]
+# gam <UserTypeEntity> update serviceaccount (scope|scopes <APIScopeURLList>)* [usecolor]
 def checkServiceAccount(users):
   def printMessage(message):
     writeStdout(Ind.Spaces()+message+'\n')
@@ -10565,13 +10565,11 @@ def checkServiceAccount(users):
     long_url += f'&authuser={_getAdminEmail()}'
     printLine(message.format('', long_url))
 
-  testPass = createGreenText('PASS')
-  testFail = createRedText('FAIL')
-  testWarn = createYellowText('WARN')
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
   allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], Act.Get() == Act.UPDATE)
   checkScopesSet = set()
   saScopes = {}
+  useColor = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'scope', 'scopes'}:
@@ -10583,8 +10581,18 @@ def checkServiceAccount(users):
           checkScopesSet.add(scope)
         else:
           invalidChoiceExit(scope, allScopes, True)
+    elif myarg == 'usecolor':
+      useColor = True
     else:
       unknownArgumentExit()
+  if useColor:
+    testPass = createGreenText('PASS')
+    testFail = createRedText('FAIL')
+    testWarn = createYellowText('WARN')
+  else:
+    testPass = 'PASS'
+    testFail = 'FAIL'
+    testWarn = 'WARN'
   if Act.Get() == Act.CHECK:
     if not checkScopesSet:
       for scope in iter(GM.Globals[GM.SVCACCT_SCOPES].values()):
@@ -13431,7 +13439,7 @@ def doPrintShowChannelItems(entityType):
   try:
     results = callGAPIpages(service, 'list', channelEntityMap['items'],
                             bailOnInternalError=True,
-                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST],
+                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.INTERNAL_ERROR],
                             fields=fields, **kwargs)
   except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.internalError) as e:
     entityActionFailedWarning([entityType, entityName], str(e))
@@ -19574,7 +19582,7 @@ def doPrintShowDomainPeopleContacts():
 # gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
 #	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
 #	[formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show peopleprofilec
+# gam <UserTypeEntity> show peopleprofile
 #	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
 #	[formatjson]
 def printShowUserPeopleProfiles(users):
@@ -19850,7 +19858,7 @@ def updateUserPeopleContactGroup(users):
                  throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
                  resourceName=groupId, body={'contactGroup': body, 'updateGroupFields': fields})
         entityActionPerformed([entityType, user, Ent.CONTACT_GROUP, contactGroup], j, jcount)
-      except GAPI.notFound as e:
+      except (GAPI.notFound, GAPI.internalError) as e:
         entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroup], str(e), j, jcount)
       except GAPI.forbidden:
         entityServiceNotApplicableWarning(entityType, user, i, count)
@@ -23718,7 +23726,8 @@ def _performCIDeviceAction(action):
     try:
       result = callGAPI(ci.devices(), action,
                         bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT,
+                                      GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
                         name=name, **kwargs)
       if result['done']:
         if 'error' not in result:
@@ -23729,7 +23738,7 @@ def _performCIDeviceAction(action):
         entityActionPerformedMessage([Ent.DEVICE, name], Msg.ACTION_IN_PROGRESS.format(action), i, count)
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE, f'{name}', i, count)
-    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.internalError) as e:
       entityActionFailedWarning([Ent.DEVICE, f'{name}'], str(e), i, count)
 
 # gam delete device <DeviceEntity> [doit]
@@ -23914,7 +23923,8 @@ def doSyncCIDevices():
       if not preview:
         result = callGAPI(ci.devices(), action,
                           bailOnInternalError=True,
-                          throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT,
+                                        GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
                           name=name, **kwargs)
       else:
         result = {'done': True}
@@ -23927,7 +23937,7 @@ def doSyncCIDevices():
         entityActionPerformedMessage([Ent.COMPANY_DEVICE, deviceId], Msg.ACTION_IN_PROGRESS.format(action), i, count)
     except GAPI.notFound:
       entityUnknownWarning(Ent.COMPANY_DEVICE, deviceId, i, count)
-    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.internalError) as e:
       entityActionFailedWarning([Ent.COMPANY_DEVICE, deviceId], str(e), i, count)
 
 DEVICE_FIELDS_CHOICE_MAP = {
@@ -24232,7 +24242,8 @@ def _performCIDeviceUserAction(action):
     try:
       result = callGAPI(ci.devices().deviceUsers(), action,
                         bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT,
+                                      GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
                         name=name, **kwargs)
       if result['done']:
         if 'error' not in result:
@@ -24246,7 +24257,7 @@ def _performCIDeviceUserAction(action):
       Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE_USER, f'{name}', i, count)
-    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.internalError) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, f'{name}'], str(e), i, count)
 
 # gam approve deviceuser <DeviceUserEntity> [doit]
@@ -24439,7 +24450,8 @@ def doInfoCIDeviceUserState():
     try:
       result = callGAPI(ci.devices().deviceUsers().clientStates(), 'get',
                         bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT,
+                                      GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
                         name=name, customer=customer)
       printEntity([Ent.DEVICE_USER_CLIENT_STATE, name], i, count)
       Ind.Increment()
@@ -24448,7 +24460,7 @@ def doInfoCIDeviceUserState():
       Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE_USER, deviceUser, i, count)
-    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.internalError) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, deviceUser], str(e), i, count)
 
 # gam update deviceuserstate <DeviceUserEntity> [clientid <String>]
@@ -24505,7 +24517,8 @@ def doUpdateCIDeviceUserState():
     try:
       result = callGAPI(ci.devices().deviceUsers().clientStates(), 'patch',
                         bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID, GAPI.INVALID_ARGUMENT,
+                                      GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
                         name=name, customer=customer, updateMask=','.join(body.keys()), body=body)
       if result['done']:
         if 'error' not in result:
@@ -24521,7 +24534,7 @@ def doUpdateCIDeviceUserState():
       Ind.Decrement()
     except GAPI.notFound:
       entityUnknownWarning(Ent.DEVICE_USER, deviceUser)
-    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied) as e:
+    except (GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.internalError) as e:
       entityActionFailedWarning([Ent.DEVICE_USER, deviceUser], str(e))
 
 def isolatePrinterID(name):
@@ -25658,7 +25671,9 @@ def doUpdateMobileDevices():
     else:
       try:
         callGAPI(cd.mobiledevices(), 'action',
-                 bailOnInternalError=True, throwReasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                 bailOnInternalError=True,
+                 throwReasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND,
+                               GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                  customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId, body=body)
         printEntityKVList([Ent.MOBILE_DEVICE, resourceId, Ent.USER, deviceUser],
                           [Msg.ACTION_APPLIED, body['action']], i, count)
@@ -25688,7 +25703,9 @@ def doDeleteMobileDevices():
     else:
       try:
         callGAPI(cd.mobiledevices(), 'delete',
-                 bailOnInternalError=True, throwReasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                 bailOnInternalError=True,
+                 throwReasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST,
+                               GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                  customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId)
         entityActionPerformed([Ent.MOBILE_DEVICE, resourceId, Ent.USER, deviceUser], i, count)
       except GAPI.internalError:
@@ -25775,7 +25792,9 @@ def doInfoMobileDevices():
     resourceId = device['resourceId']
     try:
       mobile = callGAPI(cd.mobiledevices(), 'get',
-                        bailOnInternalError=True, throwReasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                        bailOnInternalError=True,
+                        throwReasons=[GAPI.INTERNAL_ERROR, GAPI.RESOURCE_ID_NOT_FOUND,
+                                      GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                         customerId=GC.Values[GC.CUSTOMER_ID], resourceId=resourceId, projection=parameters['projection'], fields=fields)
       if FJQC.formatJSON:
         printLine(json.dumps(cleanJSON(mobile, timeObjects=MOBILE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
@@ -50769,7 +50788,8 @@ def collectOrphans(users):
           try:
             callGAPI(drive.files(), 'update',
                      bailOnInternalError=True,
-                     throwReasons=GAPI.DRIVE_USER_THROW_REASONS, retryReasons=[GAPI.FILE_NOT_FOUND],
+                     throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INTERNAL_ERROR],
+                     retryReasons=[GAPI.FILE_NOT_FOUND],
                      fileId=fileId, body={}, addParents=newParentId, fields='')
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName],
                                                                Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
@@ -53462,7 +53482,8 @@ def infoDriveLabels(users, useAdminAccess=False):
       try:
         label = callGAPI(drive.labels(), 'get',
                          bailOnInternalError=True,
-                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT],
+                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
+                                                                     GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR],
                          name=name, **parameters)
         _showDriveLabel(label, j, jcount, FJQC)
       except GAPI.notFound as e:
