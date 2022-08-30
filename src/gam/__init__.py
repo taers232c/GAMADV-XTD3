@@ -9851,7 +9851,8 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
   def _checkClientAndSecret(csHttpObj, client_id, client_secret):
     post_data = {'client_id': client_id, 'client_secret': client_secret,
                  'code': 'ThisIsAnInvalidCodeOnlyBeingUsedToTestIfClientAndSecretAreValid',
-                 'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob', 'grant_type': 'authorization_code'}
+#                 'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob', 'grant_type': 'authorization_code'}
+                 'redirect_uri': 'http://127.0.0.1:8080', 'grant_type': 'authorization_code'}
     _, content = csHttpObj.request('https://oauth2.googleapis.com/token', 'POST', urlencode(post_data),
                                    headers={'Content-type': 'application/x-www-form-urlencoded'})
     try:
