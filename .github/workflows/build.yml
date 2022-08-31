@@ -33,6 +33,14 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      - name: Cache multiple paths
+        uses: actions/cache@v2
+        id: cache-python-ssl
+        with:
+          path: |
+            bin
+          key: gam-${{ matrix.jid }}-20220802
+
       - name: Use pre-compiled Python for testing
         if: matrix.python != ''
         uses: actions/setup-python@v2
@@ -86,7 +94,7 @@ jobs:
           #echo "PATH=${PATH}:${PYTHON_INSTALL_PATH}/scripts" >> $GITHUB_ENV
 
       - name: Get latest stable OpenSSL source
-        if: matrix.goal == 'build'
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           mkdir -vp "${GITHUB_WORKSPACE}/src"
           cd "${GITHUB_WORKSPACE}/src"
@@ -109,7 +117,7 @@ jobs:
           fi
 
       - name: Config OpenSSL
-        if: matrix.goal == 'build'
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           for openssl_arch in $openssl_archs; do
             cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_arch}"
@@ -118,7 +126,7 @@ jobs:
           done
 
       - name: Make OpenSSL
-        if: matrix.goal == 'build'
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           for openssl_arch in $openssl_archs; do
             cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_arch}"
@@ -126,7 +134,7 @@ jobs:
           done
 
       - name: Install OpenSSL
-        if: matrix.goal == 'build'
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             for openssl_arch in $openssl_archs; do
@@ -165,7 +173,7 @@ jobs:
           file "${OPENSSL_INSTALL_PATH}/bin/openssl"
 
       - name: Get latest stable Python source
-        if: matrix.goal == 'build'
+        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           cd "${GITHUB_WORKSPACE}/src"
           git clone https://github.com/python/cpython.git
@@ -176,7 +184,7 @@ jobs:
           echo "COMPILED_PYTHON_VERSION=${COMPILED_PYTHON_VERSION}" >> $GITHUB_ENV
 
       - name: Mac/Linux Configure Python
-        if: matrix.goal == 'build' && runner.os != 'Windows'
+        if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           cd "${PYTHON_SOURCE_PATH}"
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
@@ -193,14 +201,14 @@ jobs:
                       "${extra_args[@]}"
 
       - name: Mac/Linux Build Python
-        if: matrix.goal == 'build' && runner.os != 'Windows'
+        if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           cd "${PYTHON_SOURCE_PATH}"
           echo "Running: ${MAKE} ${MAKEOPT}"
           $MAKE $MAKEOPT
 
       - name: Mac/Linux Install Python
-        if: matrix.goal == 'build' && runner.os != 'Windows'
+        if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           cd "${PYTHON_SOURCE_PATH}"
           $MAKE altinstall
