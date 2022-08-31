@@ -286,6 +286,8 @@ jobs:
       - name: MacOS package
         if: runner.os == 'macOS' && matrix.goal == 'build'
         run: |
+	  pwd
+	  ls -l
 	  cp -v license.rtf $gampath
 	  cp -v Gam*.txt $gampath
           cp -v LICENSE $gampath
