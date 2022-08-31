@@ -263,7 +263,7 @@ jobs:
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
         run: |
-             export gampath="./dist/gam"
+             export gampath="./dist/gamadv-xtd3"
              mkdir -p -v "${gampath}"
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
                export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
