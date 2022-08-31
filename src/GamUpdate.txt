@@ -4,6 +4,9 @@ Build MacOS universal version.
 
 * Upgraded to OpenSSL 3.0.5 where possible.
 
+Updated code in `gam create course <CourseAttribute>* copyfrom <CourseID>` to avoid a trap
+caused by Google returning unexpected data in the `DueTime` field for course work.
+
 6.25.21
 
 Fixed bug in `gam <UserTypeEntity> check drivefileshortcut` that caused a trap when checking

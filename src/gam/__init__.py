@@ -38942,7 +38942,7 @@ class CourseAttributes():
     if 'dueDate' in body and 'dueTime' in body:
       try:
         return self.currDateTime < datetime.datetime(body['dueDate']['year'], body['dueDate']['month'], body['dueDate']['day'],
-                                                     body['dueTime']['hours'], body['dueTime']['minutes'], tzinfo=iso8601.UTC)
+                                                     body['dueTime'].get('hours', 0), body['dueTime'].get('minutes', 0), tzinfo=iso8601.UTC)
       except ValueError:
         pass
     return False
