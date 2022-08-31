@@ -286,14 +286,13 @@ jobs:
       - name: MacOS package
         if: runner.os == 'macOS' && matrix.goal == 'build'
         run: |
-	  pwd
-	  ls -l
-	  cp -v license.rtf $gampath
-	  cp -v Gam*.txt $gampath
+          cp -v license.rtf $gampath
           cp -v LICENSE $gampath
           cp -v GamCommands.txt $gampath
-	  cp -v cacerts.pem $gampath
-	  GAM_ARCHIVE="gamav-xtd3-${GAMVERSION}-macos-universal2.tar.xz"
+          cp -v GamUpdate.txt $gampath
+          cp -v GamCommands.txt $gampath
+          cp -v cacerts.pem $gampath
+          GAM_ARCHIVE="gamav-xtd3-${GAMVERSION}-macos-universal2.tar.xz"
           tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
 
       - name: Archive production artifacts
