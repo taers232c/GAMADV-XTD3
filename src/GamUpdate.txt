@@ -1,3 +1,8 @@
+6.26.02
+
+Added option 'includederivedmembership' to `gam <UserTypeEntity> check groups` to allow 
+checking if a user is a member of a group or one of its sub-groups.
+
 6.26.01
 
 Added option `nodetails` to gam <UserTypeEntity> print|show groups` that simply lists

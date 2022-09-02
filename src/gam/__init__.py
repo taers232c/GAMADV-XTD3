@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.01'
+__version__ = '6.26.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -55425,13 +55425,25 @@ def _getUserGroupDomainCustomerId(myarg, kwargs):
   return True
 
 # gam <UserTypeEntity> check group|groups
-#	[roles <GroupRoleList>] <GroupEntity>
+#	[roles <GroupRoleList>] [includederivedmembership] <GroupEntity>
 def checkUserInGroups(users):
+  def _setCheckError():
+    sysRC['sysRC'] = CHECK_USER_GROUPS_ERROR_RC
+
+  def _checkMember(result):
+    role = result.get('role', Ent.MEMBER)
+    if role in rolesSet:
+      printEntity([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], j, jcount)
+    else:
+      entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], Msg.ROLE_NOT_IN_SET.format(rolesSet), j, jcount)
+      _setCheckError()
+
   cd = buildGAPIObject(API.DIRECTORY)
   groupKeys = None
   checkGroupsSet = set()
   rolesSet = set()
-  sysRC = 0
+  includeDerivedMembership = False
+  sysRC = {'sysRC' : 0}
   if checkArgumentPresent(['role', 'roles']):
     for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
       if role in GROUP_ROLES_MAP:
@@ -55440,6 +55452,8 @@ def checkUserInGroups(users):
         invalidChoiceExit(role, GROUP_ROLES_MAP, True)
   if not rolesSet:
     rolesSet = ALL_GROUP_ROLES
+  if checkArgumentPresent(['includederivedmembership']):
+    includeDerivedMembership = True
   groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
   userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
   for group in groupKeys:
@@ -55461,28 +55475,41 @@ def checkUserInGroups(users):
     j = 0
     for groupEmail in sorted(checkGroupsSet):
       j += 1
-      try:
-        result = callGAPI(cd.members(), 'get',
-                          throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
-                          retryReasons=GAPI.MEMBERS_RETRY_REASONS,
-                          groupKey=groupEmail, memberKey=user, fields='role')
-        role = result.get('role', Ent.MEMBER)
-        if role in rolesSet:
-          printEntity([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], j, jcount)
-        else:
-          entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], Msg.ROLE_NOT_IN_SET.format(rolesSet), j, jcount)
-          sysRC = CHECK_USER_GROUPS_ERROR_RC
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
-        entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
-        sysRC = CHECK_USER_GROUPS_ERROR_RC
-      except GAPI.memberNotFound:
-        entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], Msg.NOT_A_MEMBER, j, jcount)
-        sysRC = CHECK_USER_GROUPS_ERROR_RC
-      except (GAPI.invalidMember, GAPI.conditionNotMet) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
-        sysRC = CHECK_USER_GROUPS_ERROR_RC
+      if not includeDerivedMembership:
+        try:
+          result = callGAPI(cd.members(), 'get',
+                            throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
+                            retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                            groupKey=groupEmail, memberKey=user, fields='role')
+          _checkMember(result)
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+          entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
+          _setCheckError()
+        except GAPI.memberNotFound:
+          entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], Msg.NOT_A_MEMBER, j, jcount)
+          _setCheckError()
+        except (GAPI.invalidMember, GAPI.conditionNotMet) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
+          _setCheckError()
+      else:
+        try:
+          result = callGAPIpages(cd.members(), 'list', 'members',
+                                 throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                                 includeDerivedMembership=includeDerivedMembership,
+                                 groupKey=groupEmail, fields='nextPageToken,members(email,role,type)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
+          for member in result:
+            if member['type'] != Ent.TYPE_USER or member['email'].lower() != user:
+              continue
+            _checkMember(member)
+            break
+          else:
+            entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], Msg.NOT_A_MEMBER, j, jcount)
+            _setCheckError()
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+          entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
+          _setCheckError()
     Ind.Decrement()
-  setSysExitRC(sysRC)
+  setSysExitRC(sysRC['sysRC'])
 
 # gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]
 #	[(domain <DomainName>)|(customerid <CustomerID>)]
