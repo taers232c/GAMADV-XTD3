@@ -1,3 +1,12 @@
+6.26.01
+
+Added option `nodetails` to gam <UserTypeEntity> print|show groups` that simply lists
+the user's groups without making the addtional API call per group to get role, status and delivery settings.
+
+Added command that allows checking if a user is a member of specific groups and optionally has a specific role.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Group-Membership#check-users-group-membership
+
 6.26.00
 
 Build MacOS universal version.

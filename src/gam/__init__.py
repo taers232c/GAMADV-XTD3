@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.00'
+__version__ = '6.26.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -308,6 +308,7 @@ ENTITY_IS_A_USER_ALIAS_RC = 21
 ENTITY_IS_A_GROUP_RC = 22
 ENTITY_IS_A_GROUP_ALIAS_RC = 23
 ENTITY_IS_AN_UNMANAGED_ACCOUNT_RC = 24
+CHECK_USER_GROUPS_ERROR_RC = 29
 ORPHANS_COLLECTED_RC = 30
 # Warnings/Errors
 ACTION_FAILED_RC = 50
@@ -16210,7 +16211,7 @@ class ContactsManager():
     'work': gdata.apps.contacts.PHONE_WORK,
     'home': gdata.apps.contacts.PHONE_HOME,
     'other': gdata.apps.contacts.PHONE_OTHER,
-    'fax': gdata.apps.contacts.PHONE_HOME_FAX,
+    'fax': gdata.apps.contacts.PHONE_FAX,
     'home_fax': gdata.apps.contacts.PHONE_HOME_FAX,
     'work_fax': gdata.apps.contacts.PHONE_WORK_FAX,
     'other_fax': gdata.apps.contacts.PHONE_OTHER_FAX,
@@ -16233,7 +16234,7 @@ class ContactsManager():
     gdata.apps.contacts.PHONE_WORK: 'work',
     gdata.apps.contacts.PHONE_HOME: 'home',
     gdata.apps.contacts.PHONE_OTHER: 'other',
-    gdata.apps.contacts.PHONE_HOME_FAX: 'fax',
+    gdata.apps.contacts.PHONE_FAX: 'fax',
     gdata.apps.contacts.PHONE_HOME_FAX: 'home_fax',
     gdata.apps.contacts.PHONE_WORK_FAX: 'work_fax',
     gdata.apps.contacts.PHONE_OTHER_FAX: 'other_fax',
@@ -39219,8 +39220,8 @@ def _doUpdateCourses(entityList):
             entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], Msg.DUPLICATE, i, count)
           except GAPI.failedPrecondition:
             entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], Msg.NOT_ALLOWED, i, count)
-          except (GAPI.quotaExceeded, GAPI.serviceNotAvailable) as e:
-            entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], str(e), i, count)
+          except (GAPI.quotaExceeded, GAPI.serviceNotAvailable) as ei:
+            entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId), Ent.TEACHER, newOwner], str(ei), i, count)
           Act.Set(action)
         else:
           entityActionFailedWarning([Ent.COURSE, removeCourseIdScope(courseId)], str(e), i, count)
@@ -43570,7 +43571,7 @@ def getDriveFileEntity(queryShortcutsOK=True, DLP=None):
       fileIdEntity['shareddrive']['driveId'] = value
     elif kw in {'teamdrive', 'shareddrive'}:
       fileIdEntity['shareddrivename'] = value
-    elif kw in {'shareddriveadminquery', 'shareddriveadminquery'}:
+    elif kw in {'teamdriveadminquery', 'shareddriveadminquery'}:
       fileIdEntity['shareddriveadminquery'] = value
     elif kw in {'teamdrivefilename', 'shareddrivefilename'}:
       fileIdEntity['shareddrivefilequery'] = WITH_ANY_FILE_NAME.format(escapeDriveFileName(value))
@@ -43616,7 +43617,7 @@ def getDriveFileEntity(queryShortcutsOK=True, DLP=None):
         fileIdEntity['shareddrive']['driveId'] = getString(Cmd.OB_SHAREDDRIVE_ID).strip()
       elif mycmd in {'teamdrive', 'shareddrive'}:
         fileIdEntity['shareddrivename'] = getString(Cmd.OB_SHAREDDRIVE_NAME)
-      elif mycmd in {'shareddriveadminquery', 'shareddriveadminquery'}:
+      elif mycmd in {'teamdriveadminquery', 'shareddriveadminquery'}:
         fileIdEntity['shareddriveadminquery'] = getString(Cmd.OB_QUERY)
       elif mycmd in {'teamdrivefilename', 'shareddrivefilename'}:
         fileIdEntity['shareddrivefilequery'] = WITH_ANY_FILE_NAME.format(getEscapedDriveFileName())
@@ -53335,7 +53336,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
         entityType = Ent.DRIVE_FILE_OR_FOLDER
       try:
         permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
-                                    throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                                    throwReasons=GAPI.DRIVE3_GET_ACL_REASONS+[GAPI.NOT_FOUND],
                                     retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     useDomainAdminAccess=useDomainAdminAccess,
                                     includePermissionsForView=includePermissionsForView,
@@ -54270,7 +54271,7 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in {'shareddriveadminquery', 'shareddriveadminquery', 'query'}:
+    elif myarg in {'teamdriveadminquery', 'shareddriveadminquery', 'query'}:
       queryLocation = Cmd.Location()
       query = getString(Cmd.OB_QUERY, minLen=0) or None
       if query:
@@ -54537,7 +54538,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in {'shareddriveadminquery', 'shareddriveadminquery', 'query'}:
+    elif myarg in {'teamdriveadminquery', 'shareddriveadminquery', 'query'}:
       queryLocation = Cmd.Location()
       query = getString(Cmd.OB_QUERY, minLen=0) or None
       if query:
@@ -55423,19 +55424,79 @@ def _getUserGroupDomainCustomerId(myarg, kwargs):
     return False
   return True
 
+# gam <UserTypeEntity> check group|groups
+#	[roles <GroupRoleList>] <GroupEntity>
+def checkUserInGroups(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  groupKeys = None
+  checkGroupsSet = set()
+  rolesSet = set()
+  sysRC = 0
+  if checkArgumentPresent(['role', 'roles']):
+    for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
+      if role in GROUP_ROLES_MAP:
+        rolesSet.add(GROUP_ROLES_MAP[role])
+      else:
+        invalidChoiceExit(role, GROUP_ROLES_MAP, True)
+  if not rolesSet:
+    rolesSet = ALL_GROUP_ROLES
+  groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
+  userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
+  for group in groupKeys:
+    checkGroupsSet.add(normalizeEmailAddressOrUID(group))
+  checkForExtraneousArguments()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    origUser = user
+    user = normalizeEmailAddressOrUID(user)
+    if userGroupLists:
+      userGroupKeys = userGroupLists[origUser]
+      checkGroupsSet = set()
+      for group in userGroupKeys:
+        checkGroupsSet.add(normalizeEmailAddressOrUID(group))
+    jcount = len(checkGroupsSet)
+    entityPerformActionModifierNumItems([Ent.USER, user], Act.MODIFIER_IN, jcount, Ent.GROUP, i, count)
+    Ind.Increment()
+    j = 0
+    for groupEmail in sorted(checkGroupsSet):
+      j += 1
+      try:
+        result = callGAPI(cd.members(), 'get',
+                          throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
+                          retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                          groupKey=groupEmail, memberKey=user, fields='role')
+        role = result.get('role', Ent.MEMBER)
+        if role in rolesSet:
+          printEntity([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], j, jcount)
+        else:
+          entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], Msg.ROLE_NOT_IN_SET.format(rolesSet), j, jcount)
+          sysRC = CHECK_USER_GROUPS_ERROR_RC
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+        entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
+        sysRC = CHECK_USER_GROUPS_ERROR_RC
+      except GAPI.memberNotFound:
+        entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], Msg.NOT_A_MEMBER, j, jcount)
+        sysRC = CHECK_USER_GROUPS_ERROR_RC
+      except (GAPI.invalidMember, GAPI.conditionNotMet) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
+        sysRC = CHECK_USER_GROUPS_ERROR_RC
+    Ind.Decrement()
+  setSysExitRC(sysRC)
+
 # gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]
 #	[(domain <DomainName>)|(customerid <CustomerID>)]
-#	[roles <GroupRoleList>] [countsonly]
+#	[roles <GroupRoleList>] [countsonly|nodetails]
 # gam <UserTypeEntity> show groups
 #	[(domain <DomainName>)|(customerid <CustomerID>)]
-#	[roles <GroupRoleList>] [countsonly]
+#	[roles <GroupRoleList>] [countsonly|nodetails]
 def printShowUserGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {}
   csvPF = CSVPrintFile(['User', 'Group', 'Role', 'Status', 'Delivery'], 'sortall') if Act.csvFormat() else None
   rolesSet = set()
   allRoles = True
-  countsOnly = False
+  countsOnly = noDetails = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -55450,13 +55511,20 @@ def printShowUserGroups(users):
           invalidChoiceExit(role, GROUP_ROLES_MAP, True)
     elif myarg == 'countsonly':
       countsOnly = True
+    elif myarg == 'nodetails':
+      noDetails = True
     else:
       unknownArgumentExit()
   if not rolesSet:
     rolesSet = ALL_GROUP_ROLES
   else:
     allRoles = rolesSet - ALL_GROUP_ROLES
-  if countsOnly:
+  if noDetails:
+    if csvPF:
+      titles = ['User', 'Group']
+      csvPF.SetTitles(titles)
+      csvPF.SetSortTitles([])
+  elif countsOnly:
     zeroCounts = {'User': None}
     for role in [Ent.ROLE_MEMBER, Ent.ROLE_MANAGER, Ent.ROLE_OWNER]:
       if role in rolesSet:
@@ -55493,6 +55561,18 @@ def printShowUserGroups(users):
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.GROUP, i, count)
       else:
         entityPerformActionModifierNumItems([Ent.USER, user], Msg.MAXIMUM_OF, jcount, Ent.GROUP, i, count)
+    if noDetails:
+      Ind.Increment()
+      j = 0
+      for groupEntity in entityList:
+        j += 1
+        groupEmail = groupEntity['email']
+        if not csvPF:
+          printEntity([Ent.GROUP, groupEmail], j, jcount)
+        else:
+          csvPF.WriteRow({'User': user, 'Group': groupEmail})
+      Ind.Decrement()
+      continue
     if countsOnly:
       userCounts = zeroCounts.copy()
       userCounts['User'] = user
@@ -63469,8 +63549,9 @@ USER_COMMANDS_WITH_OBJECTS = {
   'check':
     (Act.CHECK,
      {Cmd.ARG_DRIVEFILESHORTCUT:	checkDriveFileShortcut,
-      Cmd.ARG_SERVICEACCOUNT:	checkServiceAccount,
+      Cmd.ARG_GROUP:		checkUserInGroups,
       Cmd.ARG_ISINVITABLE:	checkCIUserIsInvitable,
+      Cmd.ARG_SERVICEACCOUNT:	checkServiceAccount,
      }
     ),
   'claim':

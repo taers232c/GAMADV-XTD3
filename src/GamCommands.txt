@@ -6110,12 +6110,14 @@ gam <UserTypeEntity> update group|groups
 gam <UserTypeEntity> sync group|groups
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
+gam <UserTypeEntity> check group|groups
+        [roles <GroupRoleList>] <GroupEntity>
 gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]
         [(domain <DomainName>)|(customerid <CustomerID>)]
-        [roles <GroupRoleList>] [countsonly]
+        [roles <GroupRoleList>] [countsonly|nodetails]
 gam <UserTypeEntity> show groups
         [(domain <DomainName>)|(customerid <CustomerID>)]
-        [roles <GroupRoleList>] [countsonly]
+        [roles <GroupRoleList>] [countsonly|nodetails]
 gam <UserTypeEntity> print groupslist [todrive <ToDriveAttribute>*]
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [delimiter <Character>] [quotechar <Character>]
