@@ -2,6 +2,7 @@ echo "RUNNING: apt update..."
 sudo apt-get -qq --yes update > /dev/null
 export mypath=$(pwd)
 echo "We are running on Ubuntu $TRAVIS_DIST $PLATFORM"
+ldd --version
 export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
 export cpucount=$(nproc --all)
 echo "This device has $cpucount CPUs for compiling..."

@@ -58,7 +58,7 @@ jobs:
       dist: trusty
       language: shell
       env:
-        - DIST_UPGRADE=true
+        - DIST_UPGRADE=false
     - os: linux
       name: "Linux 64-bit Precise"
       dist: precise
@@ -72,7 +72,7 @@ jobs:
       arch: arm64
       language: shell
       env:
-        - DIST_UPGRADE=false
+        - DIST_UPGRADE=true
       filter_secrets: false
     - os: linux
       name: "Linux ARM64 Focal"
@@ -80,7 +80,7 @@ jobs:
       arch: arm64
       language: shell
       env:
-        - DIST_UPGRADE=false
+        - DIST_UPGRADE=true
       filter_secrets: false
     - os: linux
       name: "Linux ARM64 Bionic"
@@ -88,7 +88,7 @@ jobs:
       arch: arm64
       language: shell
       env:
-        - DIST_UPGRADE=false
+        - DIST_UPGRADE=true
       filter_secrets: false
     - os: linux
       name: "Linux ARM64 Xenial"
@@ -96,7 +96,7 @@ jobs:
       arch: arm64
       language: shell
       env:
-        - DIST_UPGRADE=true
+        - DIST_UPGRADE=false
       filter_secrets: false
     - os: osx
       name: "MacOS"

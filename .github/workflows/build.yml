@@ -21,31 +21,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
-            jid: 1
-            goal: build
-            arch: x86_64
-            openssl_archs: linux-x86_64
-          - os: ubuntu-22.04
-            jid: 2
-            goal: build
-            arch: aarch64
-            openssl_archs: linux-aarch64
           - os: macos-12
             jid: 4
             goal: build
             arch: universal2
             openssl_archs: darwin64-x86_64 darwin64-arm64
-          - os: windows-2022
-            jid: 5
-            goal: build
-            arch: Win64
-            openssl_archs: VC-WIN64A
-          - os: windows-2022
-            jid: 6
-            goal: build
-            arch: Win32
-            openssl_archs: VC-WIN32
 
     steps:
 
