@@ -1,3 +1,18 @@
+6.26.03
+
+Updated the following commands to display a usage error (`ERROR: Invalid file selection with adminaccess|asadmin`)
+if `<DriveFileEntity>` does not reference Shared Drives. Previously, execution errors (`Shared drive not found: xxxx') would be displayed.
+```
+gam [<UserTypeEntity>] create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
+gam [<UserTypeEntity>] update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+gam [<UserTypeEntity>] delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+gam [<UserTypeEntity>] info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+gam [<UserTypeEntity>] print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*] [adminaccess|asadmin]
+gam [<UserTypeEntity>] show drivefileacls <DriveFileEntity> [adminaccess|asadmin]
+gam [<UserTypeEntity>] create|add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin]
+gam [<UserTypeEntity>] delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity> [adminaccess|asadmin]
+```
+
 6.26.02
 
 Added option 'includederivedmembership' to `gam <UserTypeEntity> check groups` to allow 

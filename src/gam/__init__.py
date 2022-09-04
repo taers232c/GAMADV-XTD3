@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.02'
+__version__ = '6.26.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -43505,7 +43505,9 @@ def getEscapedDriveFolderName():
   return escapeDriveFileName(getString(Cmd.OB_DRIVE_FOLDER_NAME))
 
 def initDriveFileEntity():
-  return {'list': [], 'shareddrivename': None, 'shareddriveadminquery': None, 'query': None, 'shareddrivefilequery': None, 'dict': None, ROOT: [], 'shareddrive': {}}
+  return {'list': [], 'shareddrivename': None, 'shareddriveadminquery': None, 'shareddrivefilequery': None,
+          'query': None, 'dict': None, ROOT: [], 'shareddrive': {},
+          'location': None, 'nonDomainAdminAccess': False}
 
 DRIVE_BY_NAME_CHOICE_MAP = {
   'anyname': WITH_ANY_FILE_NAME,
@@ -43558,8 +43560,10 @@ def getDriveFileEntity(queryShortcutsOK=True, DLP=None):
       cleanFileIDsList(fileIdEntity, value.replace(',', ' ').split())
     elif kw == 'query':
       fileIdEntity['query'] = _mapDrive2QueryToDrive3(value)
+      fileIdEntity['nonDomainAdminAccess'] = True
     elif kw in DRIVE_BY_NAME_CHOICE_MAP:
       fileIdEntity['query'] = DRIVE_BY_NAME_CHOICE_MAP[kw].format(escapeDriveFileName(value))
+      fileIdEntity['nonDomainAdminAccess'] = True
     else:
       return False
     return True
@@ -43590,6 +43594,7 @@ def getDriveFileEntity(queryShortcutsOK=True, DLP=None):
     else:
       cleanFileIDsList(fileIdEntity, entityList)
     return fileIdEntity
+  fileIdEntity['location'] = Cmd.Location()
   myarg = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
   mycmd = myarg.lower().replace('_', '').replace('-', '')
   if mycmd == 'id':
@@ -43598,20 +43603,26 @@ def getDriveFileEntity(queryShortcutsOK=True, DLP=None):
     cleanFileIDsList(fileIdEntity, getString(Cmd.OB_DRIVE_FILE_ID).replace(',', ' ').split())
   elif mycmd == 'query':
     fileIdEntity['query'] = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
+    fileIdEntity['nonDomainAdminAccess'] = True
   elif queryShortcutsOK and mycmd in QUERY_SHORTCUTS_MAP:
     fileIdEntity['query'] = QUERY_SHORTCUTS_MAP[mycmd]
+    fileIdEntity['nonDomainAdminAccess'] = True
   elif mycmd in DRIVE_BY_NAME_CHOICE_MAP:
     fileIdEntity['query'] = DRIVE_BY_NAME_CHOICE_MAP[mycmd].format(getEscapedDriveFileName())
+    fileIdEntity['nonDomainAdminAccess'] = True
   elif mycmd in {'rootid', 'mydriveid'}:
     cleanFileIDsList(fileIdEntity, [ROOTID])
+    fileIdEntity['nonDomainAdminAccess'] = True
   elif not DLP and mycmd in {'root', 'mydrive'}:
     cleanFileIDsList(fileIdEntity, [ROOT])
+    fileIdEntity['nonDomainAdminAccess'] = True
   elif DLP and mycmd in LOCATION_CHOICE_MAP:
     DLP.SetLocation(LOCATION_CHOICE_MAP[mycmd])
     cleanFileIDsList(fileIdEntity, DLP.locationFileIds)
+    fileIdEntity['nonDomainAdminAccess'] = True
   elif mycmd.startswith('teamdrive') or mycmd.startswith('shareddrive'):
     fileIdEntity['shareddrive'] = {'driveId': None,
-                                 'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
+                                   'corpora': 'drive', 'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
     while True:
       if mycmd in {'teamdriveid', 'shareddriveid'}:
         fileIdEntity['shareddrive']['driveId'] = getString(Cmd.OB_SHAREDDRIVE_ID).strip()
@@ -44790,7 +44801,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
         if not addParentsToTree:
           return
         parentEntry = fileTree[parentId] = {'info': {'id': parentId, 'name': parentId, 'mimeType': MIMETYPE_GA_FOLDER}, 'children': []}
-      if parentEntry['info']['name'] == parentEntry['info']['id']:
+      if parentEntry['info']['name'] == parentEntry['info']['id'] and parentEntry['info']['id'] not in {ORPHANS, SHARED_WITHME, SHARED_DRIVES}:
         try:
           result = callGAPI(drive.files(), 'get',
                             throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
@@ -52502,7 +52513,12 @@ def _showDriveFilePermissions(entityType, fileName, permissions, printKeys, time
     _showDriveFilePermission(permission, printKeys, timeObjects, k, kcount)
   Ind.Decrement()
 
-# gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
+def _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess):
+  if useDomainAdminAccess and fileIdEntity['nonDomainAdminAccess']:
+    Cmd.SetLocation(fileIdEntity['location'])
+    usageErrorExit(Msg.INVALID_FILE_SELECTION_WITH_ADMIN_ACCESS)
+
+# gam [<UserTypeEntity>] create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
 #	anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
 #	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
 #	[moveToNewOwnersRoot [<Boolean>]]
@@ -52567,6 +52583,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
       useDomainAdminAccess = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
+  _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess)
   if 'role' not in body:
     missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
   _validatePermissionOwnerType(roleLocation, body)
@@ -52652,7 +52669,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
 def doCreateDriveFileACL():
   createDriveFileACL([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+# gam [<UserTypeEntity>] update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
 #	(role <DriveFileACLRole>) [expiration <Time>] [removeexpiration [<Boolean>]]
 #	[showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 def updateDriveFileACLs(users, useDomainAdminAccess=False):
@@ -52688,6 +52705,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
       useDomainAdminAccess = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
+  _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess)
   if 'role' not in body:
     missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
@@ -52795,7 +52813,7 @@ def getJSONPermissionSkips(myarg, skips):
     return False
   return True
 
-# gam <UserTypeEntity> create|add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin]
+# gam [<UserTypeEntity>] create|add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin]
 #	[expiration <Time>] [sendmail] [emailmessage <String>]
 #	[moveToNewOwnersRoot [<Boolean>]]
 #	<PermissionMatch>* [<PermissionMatchAction>]
@@ -52920,6 +52938,7 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
       pass
     else:
       unknownArgumentExit()
+  _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess)
   if jsonData:
     if 'permission' in jsonData:
       permissions = convertJSONPermissions([jsonData['permission']])
@@ -52986,7 +53005,7 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
 def doCreatePermissions():
   createDriveFilePermissions([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+# gam [<UserTypeEntity>] delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
 #	[showtitles]
 def deleteDriveFileACLs(users, useDomainAdminAccess=False):
   fileIdEntity = getDriveFileEntity()
@@ -53000,6 +53019,7 @@ def deleteDriveFileACLs(users, useDomainAdminAccess=False):
       useDomainAdminAccess = True
     else:
       unknownArgumentExit()
+  _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -53040,7 +53060,7 @@ def deleteDriveFileACLs(users, useDomainAdminAccess=False):
 def doDeleteDriveFileACLs():
   deleteDriveFileACLs([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity> [adminaccess|asadmin]
+# gam [<UserTypeEntity>] delete permissions <DriveFileEntity> <DriveFilePermissionIDEntity> [adminaccess|asadmin]
 #	<PermissionMatch>* [<PermissionMatchAction>]
 def deletePermissions(users, useDomainAdminAccess=False):
   def convertJSONPermissions(jsonPermissions):
@@ -53104,6 +53124,7 @@ def deletePermissions(users, useDomainAdminAccess=False):
       pass
     else:
       unknownArgumentExit()
+  _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess)
   if jsonData:
     if 'permission' in jsonData:
       permissionIds = convertJSONPermissions([jsonData['permission']])
@@ -53162,8 +53183,8 @@ def deletePermissions(users, useDomainAdminAccess=False):
 def doDeletePermissions():
   deletePermissions([_getAdminEmail()], True)
 
-# gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
-#	[showtitles] [formatjson] [adminaccess|asadmin]
+# gam [<UserTypeEntity>] info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+#	[showtitles] [formatjson]
 def infoDriveFileACLs(users, useDomainAdminAccess=False):
   fileIdEntity = getDriveFileEntity()
   isEmail, permissionId = getPermissionId()
@@ -53177,6 +53198,7 @@ def infoDriveFileACLs(users, useDomainAdminAccess=False):
       useDomainAdminAccess = True
     else:
       FJQC.GetFormatJSON(myarg)
+  _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess)
   printKeys, timeObjects = _getDriveFileACLPrintKeysTimeObjects()
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -53247,7 +53269,7 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
     return False
   return True
 
-# gam <UserTypeEntity> print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
+# gam [<UserTypeEntity>] print drivefileacls <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	(role|roles <DriveFileACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[includepermissionsforview published]
@@ -53255,7 +53277,7 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
 #	[showtitles|(addtitle <String>)]]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
-# gam <UserTypeEntity> show drivefileacls <DriveFileEntity>
+# gam [<UserTypeEntity>] show drivefileacls <DriveFileEntity>
 #	(role|roles <DriveFileACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[includepermissionsforview published]
@@ -53310,6 +53332,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       includePermissionsForView = getChoice(DRIVEFILE_PERMISSIONS_FOR_VIEW_CHOICES)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess)
   if fieldsList:
     if roles:
       fieldsList.append('role')

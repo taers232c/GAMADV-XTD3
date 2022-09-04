@@ -29,12 +29,12 @@ cache:
 jobs:
   fast_finish: true
   include:
-#    - os: linux
-#      name: "Linux 64-bit Jammy"
-#      dist: jammy
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=true
+    - os: linux
+      name: "Linux 64-bit Jammy"
+      dist: jammy
+      language: shell
+      env:
+        - DIST_UPGRADE=true
     - os: linux
       name: "Linux 64-bit Focal"
       dist: focal

@@ -4085,25 +4085,25 @@ gam <UserTypeEntity> update drivefileacl <SharedDriveEntityAdmin> <DriveFilePerm
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
         adminaccess
 gam <UserTypeEntity> delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
-gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess
         [showtitles]
-        [formatjson] adminaccess
-gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin>
+        [formatjson]
+gam <UserTypeEntity> show drivefileacls <SharedDriveEntityAdmin> adminaccess
         (role|roles <DriveFileACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [showtitles|(addtitle <String>)]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [formatjson] adminaccess
-gam <UserTypeEntity> print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*]
+        [formatjson]
+gam <UserTypeEntity> print drivefileacls <SharedDriveEntityAdmin> [todrive <ToDriveAttribute>*] adminaccess
         (role|roles <DriveFileACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [includepermissionsforview published]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [showtitles|(addtitle <String>)]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [formatjson [quotechar <Character>]] adminaccess
+        [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> create|add permissions <SharedDriveEntityAdmin> <DriveFilePermissionEntity>
         [expires|expiration <Time>] [sendemail] [emailmessage <String>] adminaccess
         <PermissionMatch>* [<PermissionMatchAction>]
