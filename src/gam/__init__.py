@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.03'
+__version__ = '6.26.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -39842,10 +39842,10 @@ def doPrintCourses():
     if courseShowProperties['aliases']:
       csvPF.AddTitles('Aliases')
     csvPF.SetSortTitles(COURSE_PROPERTY_PRINT_ORDER)
-    csvPF.SortTitles()
-    csvPF.SetSortTitles([])
     if courseShowProperties['aliases'] and courseShowProperties['aliasesInColumns']:
       csvPF.FixCourseAliasesTitles()
+    csvPF.SortTitles()
+    csvPF.SetSortTitles([])
     if courseShowProperties['members'] != 'none':
       csvPF.RearrangeCourseTitles(ttitles, stitles)
   csvPF.writeCSVfile('Courses')

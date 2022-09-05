@@ -1,7 +1,11 @@
+6.26.04
+
+Updated `gam print courses ... aliasesincolumns` to properly align `Aliases` columns.
+
 6.26.03
 
 Updated the following commands to display a usage error (`ERROR: Invalid file selection with adminaccess|asadmin`)
-if `<DriveFileEntity>` does not reference Shared Drives. Previously, execution errors (`Shared drive not found: xxxx') would be displayed.
+if `<DriveFileEntity>` does not reference Shared Drives. Previously, execution errors (`Shared drive not found: xxxx`) would be displayed.
 ```
 gam [<UserTypeEntity>] create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
 gam [<UserTypeEntity>] update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
