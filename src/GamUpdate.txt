@@ -1,3 +1,9 @@
+6.26.05
+
+Fixed bug in `gam <UserTypeEntity> update contacts ... removecontactgroup <ContactGroupItem>` that failed
+to remove the contact group `<ContactGroupItem>` when it was specified as the contact group formatted name
+as opposed to the resource name; e.g., `Work Contacts` as opposed to `contactGroups/2ef39b48f4e361a`.
+
 6.26.04
 
 Updated `gam print courses ... aliasesincolumns` to properly align `Aliases` columns.

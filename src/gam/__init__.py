@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.04'
+__version__ = '6.26.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -18633,7 +18633,7 @@ def _clearUpdatePeopleContacts(users, updateContacts):
             body[PEOPLE_MEMBERSHIPS] = []
             if contact.get(PEOPLE_MEMBERSHIPS):
               peopleManager.AddFilteredContactGroupsToContact(body, existingContactGroupsList,
-                                                              contactGroupsLists[PEOPLE_REMOVE_GROUPS_LIST])
+                                                              validatedContactGroupsLists[PEOPLE_REMOVE_GROUPS_LIST])
             if validatedContactGroupsLists[PEOPLE_ADD_GROUPS_LIST]:
               peopleManager.AddAdditionalContactGroupsToContact(body, validatedContactGroupsLists[PEOPLE_ADD_GROUPS_LIST])
             updatePersonFields.add(PEOPLE_MEMBERSHIPS)
