@@ -1,3 +1,10 @@
+6.25.06
+
+Added `endpointverificationspecificattributes` to `<DeviceFieldName>` used by `gam info device`
+and `gam print devices`.
+
+* See: https://cloud.google.com/endpoint-verification/docs/overview
+
 6.26.05
 
 Fixed bug in `gam <UserTypeEntity> update contacts ... removecontactgroup <ContactGroupItem>` that failed

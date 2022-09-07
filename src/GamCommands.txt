@@ -3331,6 +3331,7 @@ gam show licenses
         devicetype|
         enableddeveloperoptions|
         enabledusbdebugging|
+        endpointverificationspecificattributes|
         encryptionstate|
         imei|
         kernelversion|
@@ -6418,7 +6419,7 @@ gam <UserTypeEntity> show profile
 <TaskAttribute> ::=
         (title <String>)|
         (notes <String>)|
-	(status needsaction|completed)
+        (status needsaction|completed)
 
 gam <UserTypeEntity> create task <TasklistIDEntity>
         <TaskAttribute>* [parent <TaskID>] [previous <TaskID>]
