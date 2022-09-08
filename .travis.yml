@@ -64,6 +64,8 @@ jobs:
       dist: precise
       language: shell
       env:
+        - BUILD_PYTHON_VERSION=3.10.6
+        - MIN_PYTHON_VERSION=3.10.6
         - DIST_UPGRADE=false
         - PATCHELF_VERSION=0.9
 #    - os: linux
