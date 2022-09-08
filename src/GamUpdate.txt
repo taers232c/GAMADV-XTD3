@@ -2,6 +2,7 @@
 
 * Upgraded to Python 3.10.7
 * Updated google-api-python-client to version 2.60.0
+* Dropped support for Linux Precise (glibc 2.15)
 
 6.26.07
 

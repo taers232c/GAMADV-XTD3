@@ -59,16 +59,14 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
-    - os: linux
-      name: "Linux 64-bit Precise"
-      dist: precise
-      language: shell
-      env:
-        - BUILD_PYTHON_VERSION=3.10.6
-        - MIN_PYTHON_VERSION=3.10.6
-        - DIST_UPGRADE=false
-        - PATCHELF_VERSION=0.9
 #    - os: linux
+#      name: "Linux 64-bit Precise"
+#      dist: precise
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=false
+#        - PATCHELF_VERSION=0.9
+##    - os: linux
 #      name: "Linux ARM64 Jammy"
 #      dist: jammy
 #      arch: arm64
