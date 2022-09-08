@@ -23,6 +23,7 @@
 ACCESSCONTEXTMANAGER = 'accesscontextmanager'
 ALERTCENTER = 'alertcenter'
 CALENDAR = 'calendar'
+CALENDAR_USER_AVAILABILITY = 'calendaruseravailability'
 CBCM = 'cbcm'
 CHAT = 'chat'
 CHROMEMANAGEMENT = 'chromemanagement'
@@ -130,6 +131,7 @@ PROJECT_APIS = [
   'alertcenter.googleapis.com',
   'audit.googleapis.com',
   'calendar-json.googleapis.com',
+###  'calendaruseravailability.googleapis.com',
   'chat.googleapis.com',
   'chromemanagement.googleapis.com',
   'chromepolicy.googleapis.com',
@@ -165,6 +167,7 @@ _INFO = {
   ACCESSCONTEXTMANAGER: {'name': 'Access Context Manager API', 'version': 'v1', 'v2discovery': True},
   ALERTCENTER: {'name': 'AlertCenter API', 'version': 'v1beta1', 'v2discovery': True},
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': True, 'mappedAPI': 'calendar-json'},
+###  CALENDAR_USER_AVAILABILITY: {'name': 'Calendar User Availability API', 'version': 'v1', 'v2discovery': True},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
   CHAT: {'name': 'Chat API', 'version': 'v1', 'v2discovery': True},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
@@ -447,6 +450,10 @@ _SVCACCT_SCOPES = [
    'api': CALENDAR,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/calendar'},
+###  {'name': 'Calendar User Availability API',
+###   'api': CALENDAR_USER_AVAILABILITY,
+###   'subscopes': [],
+###   'scope': 'https://www.googleapis.com/auth/calendar.useravailability'},
   {'name': 'Classroom API - Course Announcements',
    'api': CLASSROOM,
    'subscopes': READONLY,

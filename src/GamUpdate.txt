@@ -1,4 +1,9 @@
-6.25.06
+6.26.07
+
+Fixed bug in `gam <UserTypeEntity> update photo "https://drive.google.com/thumbnail?sz=w300&id=xxxxxxxxxxxxxxxxx"`
+that generated a `Update Failed: Not Found: xxxxxxxxxxxxxxxxx` error.
+
+6.26.06
 
 Added `endpointverificationspecificattributes` to `<DeviceFieldName>` used by `gam info device`
 and `gam print devices`.

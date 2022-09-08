@@ -138,6 +138,7 @@ class GamEntity():
   DATASTUDIO_ASSETID = 'dsai'
   DATASTUDIO_ASSET_REPORT = 'dsar'
   DATASTUDIO_PERMISSION = 'dspe'
+  DATE = 'date'
   DEFAULT_LANGUAGE = 'dfla'
   DELEGATE = 'dele'
   DELETED_USER = 'del'
@@ -216,6 +217,7 @@ class GamEntity():
   LABEL_ID = 'labi'
   LANGUAGE = 'lang'
   LICENSE = 'lice'
+  LOCATION = 'loca'
   MD5HASH = 'md5h'
   MEMBER = 'memb'
   MEMBER_NOT_ARCHIVED = 'mena'
@@ -438,6 +440,7 @@ class GamEntity():
     DATASTUDIO_ASSETID: ['Data Studio Asset IDs', 'Data Studio Asset ID'],
     DATASTUDIO_ASSET_REPORT: ['Data Studio REPORT Assets', 'Data Studio REPORT Asset'],
     DATASTUDIO_PERMISSION: ['Data Studio Permissions', 'Data Studio Permission'],
+    DATE: ['Dates', 'Date'],
     DEFAULT_LANGUAGE: ['Default Language', 'Default Language'],
     DELEGATE: ['Delegates', 'Delegate'],
     DELETED_USER: ['Deleted Users', 'Deleted User'],
@@ -516,6 +519,7 @@ class GamEntity():
     LABEL_ID: ['Label IDs', 'Label ID'],
     LANGUAGE: ['Languages', 'Language'],
     LICENSE: ['Licenses', 'License'],
+    LOCATION: ['Locations', 'Location'],
     MD5HASH: ['MD5 hash', 'MD5 Hash'],
     MEMBER: ['Members', 'Member'],
     MEMBER_NOT_ARCHIVED: ['Members (Not Archived)', 'Member (Not Archived)'],

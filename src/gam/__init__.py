@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.06'
+__version__ = '6.26.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -1809,6 +1809,57 @@ def getYYYYMMDD(minLen=1, returnTimeStamp=False, returnDateTime=False, alternate
       return ''
   missingArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
 
+"""
+YYYY_FORMAT = '%Y'
+YYYYMM_FORMAT = '%Y-%m'
+MMDD_FORMAT = '%m-%d'
+YYYYMMDD_COMPONENT_FORMAT_REQUIRED = 'yyyy-mm-dd|yyyy-mm|yyyy|mm-dd'
+
+def getYYYYMMDDComponents():
+  if Cmd.ArgumentsRemaining():
+    argstr = Cmd.Current().strip().upper()
+    if argstr:
+      if argstr in TODAY_NOW or argstr[0] in PLUS_MINUS:
+        argstr = getDeltaDate(argstr).strftime(YYYYMMDD_FORMAT)
+      try:
+        argDate = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
+        Cmd.Advance()
+        return argstr, {'year': argDate.year, 'month': argDate.month, 'day': argDate.day}
+      except ValueError:
+        pass
+      try:
+        argDate = datetime.datetime.strptime(argstr, YYYYMM_FORMAT)
+        Cmd.Advance()
+        return argstr, {'year': argDate.year, 'month': argDate.month, 'day': 0}
+      except ValueError:
+        pass
+      try:
+        argDate = datetime.datetime.strptime(argstr, YYYY_FORMAT)
+        Cmd.Advance()
+        return argstr, {'year': argDate.year, 'month': 0, 'day': 0}
+      except ValueError:
+        pass
+      try:
+        argDate = datetime.datetime.strptime(argstr, MMDD_FORMAT)
+        Cmd.Advance()
+        return argstr, {'year': 0, 'month': argDate.month, 'day': argDate.day}
+      except ValueError:
+        pass
+      invalidArgumentExit(YYYYMMDD_COMPONENT_FORMAT_REQUIRED)
+  missingArgumentExit(YYYYMMDD_COMPONENT_FORMAT_REQUIRED)
+
+def formatYYYYMMDDComponents(dateComponents):
+  year = dateComponents['year']
+  month = dateComponents['month']
+  day = dateComponents['day']
+  if year:
+    if month:
+      if day:
+        return f'{year}-{month:02d}-{day:02d}'
+      return f'{year}-{month:02d}'
+    return f'{year}'
+  return f'{month:02d}-{day:02d}'
+"""
 HHMM_FORMAT = '%H:%M'
 HHMM_FORMAT_REQUIRED = 'hh:mm'
 
@@ -43324,6 +43375,144 @@ def printShowCalendarEvents(users):
   if csvPF:
     csvPF.writeCSVfile('Calendar Events')
 
+"""
+WORKING_LOCATION_CHOICE_MAP = {
+  'custom': 'custom',
+  'home': 'home',
+  'office': 'officeLocation',
+  'nolocation': 'noLocation',
+  'none': 'noLocation',
+  }
+# gam <UserTypeEntity> update workinglocation date <ComponentDate>
+#	location
+#	    nolocation|none|
+#	    home|
+#	    custom <String>|
+#	    office [building <String>] [floor <String>] [floorsection <String>] [desk <String>] [label <String>] endlocation
+def updateWorkingLocation(users):
+  body = {'date': None, 'location': None}
+  datestr = ''
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'date':
+      datestr, body['date'] = getYYYYMMDDComponents()
+    elif myarg == 'location':
+      location = getChoice(WORKING_LOCATION_CHOICE_MAP, mapChoice=True)
+      if location in {'noLocation', 'home'}:
+        body['location'] = {location: {}}
+      elif location == 'custom':
+        body['location'] = {location: getString(Cmd.OB_STRING)}
+      else: #officeLocation
+        body['location'] = {location: {}}
+        entry = body['location'][location]
+        while Cmd.ArgumentsRemaining():
+          argument = getArgument()
+          if argument in {'building', 'buildingid'}:
+            entry['building'] = _getBuildingByNameOrId(None)
+          elif argument == 'buildingname':
+            entry['building'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in {'floor', 'floorname'}:
+            entry['floor'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in {'section', 'floorsection'}:
+            entry['floorSection'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in {'desk', 'deskcode'}:
+            entry['desk'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument in {'label', 'area'}:
+            entry['label'] = getString(Cmd.OB_STRING, minLen=0)
+          elif argument == 'endlocation':
+            break
+          else:
+            unknownArgumentExit()
+    elif myarg == 'json':
+      body.update(getJSON([]))
+    else:
+      unknownArgumentExit()
+  if not body['date']:
+    missingArgumentExit('date')
+  if not body['location']:
+    missingArgumentExit('location')
+  kvlist = [Ent.USER, '', Ent.DATE, datestr, Ent.LOCATION, f'{location}']
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, cua = buildGAPIServiceObject(API.CALENDAR_USER_AVAILABILITY, user, i, count)
+    if not cua:
+      continue
+    kvlist[1] = user
+    try:
+      callGAPI(cua.workinglocations.day(), 'write',
+               throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+               calendar=f'workinglocations/{user}', body=body)
+      entityActionPerformed(kvlist, i, count)
+    except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+      break
+    except (GAPI.serviceNotAvailable, GAPI.authError):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      break
+
+# gam <UserTypeEntity> show workinglocation date <ComponentDate>
+#	[formatjson]
+# gam <UserTypeEntity> print workinglocation date <ComponentDate>
+#	[formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
+def printShowWorkingLocation(users):
+  csvPF = CSVPrintFile(['User', 'type'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  body = {'date': None}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'date':
+      datestr, body['date'] = getYYYYMMDDComponents()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if not body['date']:
+    missingArgumentExit('date')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    if 0:
+      user, cua = buildGAPIServiceObject(API.CALENDAR_USER_AVAILABILITY, user, i, count)
+      if not cua:
+        continue
+    try:
+      if 0:
+        result = callGAPI(cua.workinglocations.day(), 'read',
+                          throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+                          calendar=f'workinglocations/{user}', body=body)
+      else:
+        result = {'date': {'year': 2022, 'month': 9, 'day': 7}, 'location': {'office': {'building': 'building', 'floor': 'floor', 'floorSection': 'floorSection', 'desk': 'desk', 'label': 'label'}}}
+#        result = {'date': {'year': 2022, 'month': 9, 'day': 7}, 'location': {'custom': 'customloc'}}
+#        result = {'date': {'year': 2022, 'month': 9, 'day': 7}, 'location': {'home': ''}}
+#        result = {'date': {'year': 2022, 'month': 9, 'day': 7}, 'location': {'noLocation': ''}}
+      if not csvPF:
+        if not FJQC.formatJSON:
+          result['formattedDate'] = formatYYYYMMDDComponents(result['date'])
+          printEntity([Ent.USER, user], i, count)
+          Ind.Increment()
+          showJSON(None, result)
+          Ind.Decrement()
+        else:
+          printLine(json.dumps(cleanJSON(result),
+                               ensure_ascii=False, sort_keys=False))
+      else:
+        type = ''.join(result['location'].keys())
+        row = flattenJSON(result, flattened={'User': user, 'type': type})
+        if not FJQC.formatJSON:
+          csvPF.WriteRowTitles(row)
+        elif csvPF.CheckRowTitles(row):
+          csvPF.WriteRowNoFilter({'User': user, 'type': type,
+                                  'JSON': json.dumps(cleanJSON(result), ensure_ascii=False, sort_keys=True)})
+    except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+      break
+    except (GAPI.serviceNotAvailable, GAPI.authError):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      break
+  if csvPF:
+    csvPF.writeCSVfile('Calendar Working Locations')
+"""
 def _getEntityMimeType(fileEntry):
   if fileEntry['mimeType'] == MIMETYPE_GA_FOLDER:
     return Ent.DRIVE_FOLDER
@@ -55904,9 +56093,6 @@ def updatePhoto(users):
         if status['status'] != '200':
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], Msg.NOT_ALLOWED, i, count)
           continue
-        if status['content-location'] != filename:
-          entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], Msg.NOT_FOUND, i, count)
-          continue
       except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
         continue
@@ -63828,6 +64014,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_USER:		doPrintUserEntity,
       Cmd.ARG_VACATION:		printShowVacation,
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
+###      Cmd.ARG_WORKINGLOCATION:	printShowWorkingLocation,
      }
     ),
   'process':
@@ -63905,6 +64092,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TOKEN:		printShowTokens,
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
       Cmd.ARG_VACATION:		printShowVacation,
+###      Cmd.ARG_WORKINGLOCATION:	printShowWorkingLocation,
      }
     ),
   'spam':
@@ -63995,6 +64183,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TASK:		processTasks,
       Cmd.ARG_TASKLIST:		processTasklists,
       Cmd.ARG_USER:		updateUsers,
+###      Cmd.ARG_WORKINGLOCATION:	updateWorkingLocation,
      }
     ),
   'watch':
@@ -64107,6 +64296,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_USERS:		Cmd.ARG_USER,
   Cmd.ARG_VAULTHOLDS:		Cmd.ARG_VAULTHOLD,
   Cmd.ARG_VERIFICATIONCODES:	Cmd.ARG_BACKUPCODE,
+  Cmd.ARG_WORKINGLOCATIONS:	Cmd.ARG_WORKINGLOCATION,
   }
 
 def showAPICallsRetryData():

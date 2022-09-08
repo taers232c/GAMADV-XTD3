@@ -727,6 +727,8 @@ class GamCLArgs():
   ARG_VERIFICATION = 'verification'
   ARG_VERIFICATIONCODES = 'verificationcodes'
   ARG_VERIFY = 'verify'
+  ARG_WORKINGLOCATION = 'workinglocation'
+  ARG_WORKINGLOCATIONS = 'workinglocations'
 # Lists of arguments for use in checkArgumentPresent
   CLEAR_NONE_ARGUMENT = ['clear', 'none',]
 
