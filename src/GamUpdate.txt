@@ -1,3 +1,8 @@
+6.26.08
+
+* Upgraded to Python 3.10.7
+* Updated google-api-python-client to version 2.60.0
+
 6.26.07
 
 Fixed bug in `gam <UserTypeEntity> update photo "https://drive.google.com/thumbnail?sz=w300&id=xxxxxxxxxxxxxxxxx"`
