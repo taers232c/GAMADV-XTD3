@@ -30,7 +30,7 @@ jobs:
             jid: 4
             goal: build
             arch: universal2
-            openssl_archs: darwin64-arm64
+            openssl_archs: darwin64-x86_64 darwin64-arm64
           - os: windows-2022
             jid: 5
             goal: build
