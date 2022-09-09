@@ -1,3 +1,10 @@
+6.26.09
+
+With many thanks to Jay:
+
+* Added more OpenSSL 3.0.5 support
+* Added support for Linux Ubuntu 22.04 Jammy Jellyfish x86_64
+
 6.26.08
 
 * Upgraded to Python 3.10.7

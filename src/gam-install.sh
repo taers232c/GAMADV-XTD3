@@ -30,7 +30,7 @@ upgrade_only=false
 gamversion="latest"
 adminuser=""
 regularuser=""
-gam_x86_64_glibc_vers="2.31 2.27 2.23 2.19"
+gam_x86_64_glibc_vers="2.35 2.31 2.27 2.23 2.19"
 gam_arm64_glibc_vers="2.31 2.27 2.23"
 strip_gamadv_xtd3="--strip-components 0"
 
@@ -106,7 +106,7 @@ case $gamos in
     echo "This Linux distribution uses glibc $this_glibc_ver"
     case $gamarch in
       x86_64)
-        useglibc=""
+        useglibc="legacy"
         for gam_glibc_ver in $gam_x86_64_glibc_vers; do
           if version_gt $this_glibc_ver $gam_glibc_ver; then
             useglibc="glibc$gam_glibc_ver"
@@ -114,10 +114,6 @@ case $gamos in
             break
           fi
         done
-        if [ "$useglibc" == "" ]; then
-          echo_red "Sorry, you need to be running at least glibc $useglibc to run GAM"
-          exit
-        fi
         gamfile="linux-x86_64-$useglibc.tar.xz";;
       arm|arm64|aarch64)
         useglibc=""

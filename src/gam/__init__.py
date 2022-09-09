@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.08'
+__version__ = '6.26.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -35245,7 +35245,7 @@ SITE_WEB_ADDRESS_MAPPINGS = 'WebAddressMappings'
 SITE_DATA_DOMAIN = 'domain'
 SITE_DATA_SITE = 'site'
 SITE_DATA_DOMAIN_SITE = 'domainSite'
-SITE_DATA_fields = 'fields'
+SITE_DATA_FIELDS = 'fields'
 
 class SitesManager():
 
