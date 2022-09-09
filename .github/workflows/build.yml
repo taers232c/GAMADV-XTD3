@@ -21,11 +21,26 @@ jobs:
     strategy:
       matrix:
         include:
+          - os: ubuntu-22.04
+            jid: 1
+            goal: build
+            arch: x86_64
+            openssl_archs: linux-x86_64
           - os: macos-12
             jid: 4
             goal: build
             arch: universal2
-            openssl_archs: darwin64-x86_64 darwin64-arm64
+            openssl_archs: darwin64-arm64
+          - os: windows-2022
+            jid: 5
+            goal: build
+            arch: Win64
+            openssl_archs: VC-WIN64A
+          - os: windows-2022
+            jid: 6
+            goal: build
+            arch: Win32
+            openssl_archs: VC-WIN32
 
     steps:
 
@@ -41,7 +56,7 @@ jobs:
         with:
           path: |
             bin.tar.xz
-          key: gam-${{ matrix.jid }}-20220902-01
+          key: gam-${{ matrix.jid }}-20220909
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'

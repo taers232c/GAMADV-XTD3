@@ -30,7 +30,7 @@ for d in a.datas:
 pyz = PYZ(a.pure)
 
 if sys.platform == "darwin":
-     target_arch="universal2"
+     target_arch="arm64"
 else:
      target_arch=None
 

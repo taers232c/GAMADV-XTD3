@@ -9,9 +9,9 @@ env:
     - MIN_PYTHON_VERSION=3.10.7
     - LINUX_BUILD_OPENSSL_VERSION=1.1.1q
     - LINUX_MIN_OPENSSL_VERSION=1.1.1q
-    - WINDOWS_BUILD_OPENSSL_VERSION=3.0.5
-    - WINDOWS_MIN_OPENSSL_VERSION=3.0.5
-    - WINDOWS_LIB_SSL_VERSION="3"
+    - WINDOWS_BUILD_OPENSSL_VERSION=1.1.1q
+    - WINDOWS_MIN_OPENSSL_VERSION=1.1.1q
+    - WINDOWS_LIB_SSL_VERSION="1_1"
     - MACOS_BUILD_OPENSSL_VERSION=1.1.1q
     - MACOS_MIN_OPENSSL_VERSION=1.1.1n
     - MIN_OPENSSL_VERSION=$LINUX_MIN_OPENSSL_VERSION
@@ -59,21 +59,14 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
-#    - os: linux
-#      name: "Linux 64-bit Precise"
-#      dist: precise
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=false
-#        - PATCHELF_VERSION=0.9
-##    - os: linux
-#      name: "Linux ARM64 Jammy"
-#      dist: jammy
-#      arch: arm64
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=true
-#      filter_secrets: false
+    - os: linux
+      name: "Linux ARM64 Jammy"
+      dist: jammy
+      arch: arm64
+      language: shell
+      env:
+        - DIST_UPGRADE=true
+      filter_secrets: false
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal
@@ -104,16 +97,16 @@ jobs:
       osx_image: xcode12.4
       env:
         - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
-    - os: windows
-      name: "Windows 64-bit"
-      language: shell
-      env:
-        - MIN_OPENSSL_VERSION=$WINDOWS_MIN_OPENSSL_VERSION
-    - os: windows
-      name: "Windows 32-bit"
-      language: shell
-      env:
-        - MIN_OPENSSL_VERSION=$WINDOWS_MIN_OPENSSL_VERSION
+#    - os: windows
+#      name: "Windows 64-bit"
+#      language: shell
+#      env:
+#        - MIN_OPENSSL_VERSION=$WINDOWS_MIN_OPENSSL_VERSION
+#    - os: windows
+#      name: "Windows 32-bit"
+#      language: shell
+#      env:
+#        - MIN_OPENSSL_VERSION=$WINDOWS_MIN_OPENSSL_VERSION
 
 before_install:
 - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
