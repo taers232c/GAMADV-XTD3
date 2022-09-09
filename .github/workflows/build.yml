@@ -414,6 +414,9 @@ jobs:
           cp -v GamUpdate.txt $gampath
           cp -v GamCommands.txt $gampath
           cp -v cacerts.pem $gampath
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+              cp -v gam-setup.bat $gampath
+          fi
 
       - name: Basic Tests all jobs
         run: |
