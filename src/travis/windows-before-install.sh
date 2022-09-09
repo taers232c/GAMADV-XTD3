@@ -62,7 +62,8 @@ if [[ "$PLATFORM" == "x86_64" ]]; then
   cp -v /c/python/DLLs/libssl-${WINDOWS_LIB_SSL_VERSION}-x64.dll /c/python/DLLs/libssl-${WINDOWS_LIB_SSL_VERSION}.dll
   cp -v /c/python/DLLs/libcrypto-${WINDOWS_LIB_SSL_VERSION}-x64.dll /c/python/DLLs/libcrypto-${WINDOWS_LIB_SSL_VERSION}.dll
 fi
-
+ls -l /c/python/DLLs/libssl-*.dll
+ls -l /c/python/DLLs/libcrypto-*.dll
 cd $mypath
 
 $pip install --upgrade pip
