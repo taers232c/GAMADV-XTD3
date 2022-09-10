@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.09'
+__version__ = '6.26.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24374,6 +24374,7 @@ def doInfoCIDeviceUser():
       entityActionFailedWarning([Ent.DEVICE_USER, f'{name}'], str(e), i, count)
 
 # gam print deviceusers [todrive <ToDriveAttribute>*]
+#	[select <DeviceID>]
 #	[(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
 #	<DeviceUserFieldName>* [fields <DevieUserFieldNameList>]
 #	[orderby <DeviceOrderByFieldName> [ascending|descending]]
@@ -24388,10 +24389,15 @@ def doPrintCIDeviceUsers():
   queryTimes = {}
   queries = [None]
   deviceSkipObjects = None
+  parent = 'devices/-'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif myarg == 'select':
+      parent = getString(Cmd.OB_DEVICE_ID)
+      if not parent.startswith('devices/'):
+        parent = f'devices/{parent}'
     elif myarg in ['filter', 'filters', 'query', 'queries']:
       queries = getQueries(myarg)
     elif myarg.startswith('querytime'):
@@ -24428,7 +24434,7 @@ def doPrintCIDeviceUsers():
                           retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                           pageToken=pageToken,
                           customer=customer, filter=pfilter,
-                          orderBy=OBY.orderBy, parent='devices/-', fields=userFields, pageSize=20)
+                          orderBy=OBY.orderBy, parent=parent, fields=userFields, pageSize=20)
         pageToken, totalItems = _processGAPIpagesResult(result, 'deviceUsers', None, totalItems, pageMessage, None, Ent.DEVICE_USER)
         if result:
           for deviceUser in result.get('deviceUsers', []):
@@ -24442,6 +24448,9 @@ def doPrintCIDeviceUsers():
               csvPF.WriteRowNoFilter({'name': deviceUser['name'],
                                       'JSON': json.dumps(cleanJSON(deviceUser, skipObjects=deviceSkipObjects, timeObjects=DEVICE_TIME_OBJECTS),
                                                          ensure_ascii=False, sort_keys=True)})
+        if not pageToken:
+          _finalizeGAPIpagesResult(pageMessage)
+          break
       except GAPI.invalidArgument as e:
         now = int(time.time())
         if now-start < 60:

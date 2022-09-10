@@ -1,3 +1,10 @@
+6.26.10
+
+Fixed bug in `gam print deviceusers` where command would never terminate. This would also occur
+in `gam print devices` when `nodeviceusers` was not specified.
+
+Added option `select <DeviceID>` to `gam print deviceusers` that displays device users for a specific device.
+
 6.26.09
 
 With many thanks to Jay:

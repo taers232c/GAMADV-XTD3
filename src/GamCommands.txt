@@ -3416,6 +3416,7 @@ gam info deviceuser <DeviceUserEntity>
         <DeviceUserFieldName>* [fields <DeviceUserFieldNameList>]
         [formatjson]
 gam print deviceusers [todrive <ToDriveAttribute>*]
+        [select <DeviceID>]
         [(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
         <DeviceUserFieldName>* [fields <DeviceUserFieldNameList>]
         [orderby <DeviceOrderByFieldName> [ascending|descending]]
