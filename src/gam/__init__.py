@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.10'
+__version__ = '6.26.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2334,7 +2334,7 @@ def entityDoesNotExistWarning(entityType, entityName, i=0, count=0):
 
 def entityUnknownWarning(entityType, entityName, i=0, count=0):
   domain = getEmailAddressDomain(entityName)
-  if (domain == GC.Values[GC.DOMAIN]) or (domain.endswith('google.com')):
+  if (domain.endswith(GC.Values[GC.DOMAIN])) or (domain.endswith('google.com')):
     entityDoesNotExistWarning(entityType, entityName, i, count)
   else:
     entityServiceNotApplicableWarning(entityType, entityName, i, count)
@@ -27503,7 +27503,8 @@ def infoGroups(entityList):
             members.append(member)
       if FJQC.formatJSON:
         basic_info.update(settings)
-        basic_info['cloudIdentity'] = cigInfo
+        if cigInfo:
+          basic_info['cloudIdentity'] = cigInfo
         if getGroups:
           basic_info['groups'] = groups
         if getUsers:

@@ -1,3 +1,19 @@
+6.26.11
+
+Updated `gam info group <GroupEntity> ... formatjson` to omit `"cloudIdentity": {},`
+from the output when no Cloud Identity fields are requested.
+
+Updated `gam info user <UserTypeEntity>` error message reporting to give this
+message for non-existent users in the primary or sub domains.
+```
+User: user@domain.com, Does not exist
+User: user@sub.domain.com, Does not exist
+```
+Previously, a non-existent user in a sub domain gave this error.
+```
+User: user@sub.domain.com, Service not applicable/Does not exist
+```
+
 6.26.10
 
 Fixed bug in `gam print deviceusers` where command would never terminate. This would also occur
