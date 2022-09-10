@@ -50628,7 +50628,7 @@ def getDriveFile(users):
   exportFormats = OPENOFFICE_FORMATS_LIST
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   targetNamePattern = None
-  overwrite = showProgress = suppressStdoutMsgs = targetStdout = False
+  acknowledgeAbuse = overwrite = showProgress = suppressStdoutMsgs = targetStdout = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'format':
@@ -50661,6 +50661,8 @@ def getDriveFile(users):
       pass
     elif myarg == 'showprogress':
       showProgress = getBoolean()
+    elif myarg == 'acknowledgeabuse':
+      acknowledgeAbuse = getBoolean()
     else:
       unknownArgumentExit()
   if exportSheetAsPDF:
@@ -50773,7 +50775,7 @@ def getDriveFile(users):
                 entityValueList.extend([Ent.DRIVE_FILE_REVISION, revisionId])
                 request = drive.revisions().get_media(fileId=fileId, revisionId=revisionId)
               else:
-                request = drive.files().get_media(fileId=fileId)
+                request = drive.files().get_media(fileId=fileId, acknowledgeAbuse=acknowledgeAbuse)
             if not targetStdout:
               f = open(filename, 'wb')
             else:
