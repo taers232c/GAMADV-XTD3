@@ -56,11 +56,11 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   tar xf openssl-$LINUX_BUILD_OPENSSL_VERSION.tar.gz
   cd openssl-$LINUX_BUILD_OPENSSL_VERSION
   echo "Compiling OpenSSL $LINUX_BUILD_OPENSSL_VERSION..."
-  ./config shared --prefix=$HOME/ssl
+  ./config shared --prefix=$HOME/ssl --libdir=lib no-fips
   echo "Running make for OpenSSL..."
   make -j$cpucount -s
   echo "Running make install for OpenSSL..."
-  make install > /dev/null
+  make install_sw > /dev/null
   cd ~
 
   # Compile latest Python
