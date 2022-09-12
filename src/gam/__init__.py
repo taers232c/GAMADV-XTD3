@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.11'
+__version__ = '6.26.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -18314,8 +18314,8 @@ PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS = {
 
 def _getPeopleContactEntityList(entityType, unknownAction, dedupCommand=False):
   contactQuery = _initPeopleContactQueryAttributes(False)
-  if dedupCommand and (not Cmd.ArgumentsRemaining() or Cmd.PeekArgumentPresent('matchtype')):
-    # <PeopleResourceNameEntity>|<PeopleUserContactSelection> are optional in dedup contacts
+  if dedupCommand and (not Cmd.ArgumentsRemaining() or Cmd.PeekArgumentPresent({'matchtype', 'domain'})):
+    # <PeopleResourceNameEntity>|<PeopleUserContactSelection> are optional in dedup|replacedomain contacts
     entityList = None
     queriedContacts = True
   elif Cmd.PeekArgumentPresent(PEOPLE_CONTACT_SELECT_ARGUMENTS.union(PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS)):
@@ -46275,15 +46275,14 @@ def extendFileTree(fileTree, feed, DLP, stripCRsFromName):
     if stripCRsFromName:
       f_file['name'] = _stripControlCharsFromName(f_file['name'])
     fileId = f_file['id']
+    if not f_file.get('parents', []):
+      if not f_file.get('driveId'):
+        f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) else [SHARED_WITHME]
+      else:
+        f_file['parents'] = [SHARED_DRIVES] if 'sharedWithMeTime' not in f_file else [SHARED_WITHME]
     if fileId not in fileTree:
-      if not f_file.get('parents', []):
-        if not f_file.get('driveId'):
-          f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) else [SHARED_WITHME]
-        else:
-          f_file['parents'] = [SHARED_DRIVES] if 'sharedWithMeTime' not in f_file else [SHARED_WITHME]
       fileTree[fileId] = {'info': f_file, 'children': []}
     else:
-      f_file.setdefault('parents', [])
       fileTree[fileId]['info'] = f_file
     for parentId in f_file['parents']:
       if parentId not in fileTree:

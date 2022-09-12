@@ -1,3 +1,9 @@
+6.26.12
+
+Fixed bug in `gam <UserTypeEntity> replacedomain contacts` that caused the error `ERROR: Invalid argument`.
+
+Fixed bug in `gam <UserTypeEntity> print filetree` where some orphaned files were not displayed.
+
 6.26.11
 
 Updated `gam info group <GroupEntity> ... formatjson` to omit `"cloudIdentity": {},`
