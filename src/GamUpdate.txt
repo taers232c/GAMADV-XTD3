@@ -1,3 +1,7 @@
+6.26.13
+
+Fixed bug in `gam <UserTypeEntity> copy othercontacts` that caused it to move a contact rather than copy it.
+
 6.26.12
 
 Fixed bug in `gam <UserTypeEntity> replacedomain contacts` that caused the error `ERROR: Invalid argument`.

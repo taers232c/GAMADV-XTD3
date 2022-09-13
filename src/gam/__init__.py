@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.12'
+__version__ = '6.26.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -63823,7 +63823,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'copy':
     (Act.COPY,
      {Cmd.ARG_DRIVEFILE:	copyDriveFile,
-      Cmd.ARG_OTHERCONTACT:	processUserPeopleOtherContacts,
+      Cmd.ARG_OTHERCONTACT:	copyUserPeopleOtherContacts,
       Cmd.ARG_SHAREDDRIVEACLS:	copySyncSharedDriveACLs,
      }
     ),
