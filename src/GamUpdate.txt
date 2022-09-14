@@ -1,3 +1,11 @@
+6.26.14
+
+Extended `csv_input_row_filter`, `csv_input_row_drop_filter`, `csv_output_row_filter` and `csv_output_row_drop_filter`
+to allow specification of filters based on field string length.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Input-Filtering
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Output-Filtering
+
 6.26.13
 
 Fixed bug in `gam <UserTypeEntity> copy othercontacts` that caused it to move a contact rather than copy it.
@@ -685,7 +693,7 @@ Fixed bug in code introduced in 6.22.00 that caused a trap.
 
 6.22.00
 
-Extended `csv_input_row_filter`, `csv_input_row_drop_filter`, `csv_output_row_filter` and `csv_output_row_filter`
+Extended `csv_input_row_filter`, `csv_input_row_drop_filter`, `csv_output_row_filter` and `csv_output_row_drop_filter`
 to allow specification of filter values from a list, flat file or CSV file.
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Input-Filtering

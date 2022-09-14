@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.13'
+__version__ = '6.26.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3226,8 +3226,8 @@ def SetGlobalVariables():
     return headerFilters
 
   ROW_FILTER_ANY_ALL_PATTERN = re.compile(r'^(any:|all:)(.+)$', re.IGNORECASE)
-  ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
-  ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
+  ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count|length)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
+  ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange|lengthrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
   ROW_FILTER_BOOL_PATTERN = re.compile(r'^(boolean):(.+)$', re.IGNORECASE)
   ROW_FILTER_RE_PATTERN = re.compile(r'^(regex|regexcs|notregex|notregexcs):(.*)$', re.IGNORECASE)
   ROW_FILTER_DATA_PATTERN = re.compile(r'^(data|notdata):(list|file|csvfile) +(.+)$', re.IGNORECASE)
@@ -3290,7 +3290,7 @@ def SetGlobalVariables():
             rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), filterValue))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue}')
-        else: #count
+        else: #count|length
           if mg.group(3).isdigit():
             rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), int(mg.group(3))))
           else:
@@ -3310,7 +3310,7 @@ def SetGlobalVariables():
             rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), filterValue1, filterValue2))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue1}/{filterValue2}')
-        else: #countrange
+        else: #countrange|lengthrange
           if mg.group(3).isdigit() and mg.group(4).isdigit():
             rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), int(mg.group(3)), int(mg.group(4))))
           else:
@@ -6744,6 +6744,52 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         return False
     return True
 
+  def rowLengthFilterMatch(op, filterLength):
+    def checkMatch(rowString):
+      if not isinstance(rowString, str):
+        return False
+      rowLength = len(rowString)
+      if op == '<':
+        return rowLength < filterLength
+      if op == '<=':
+        return rowLength <= filterLength
+      if op == '>':
+        return rowLength > filterLength
+      if op == '>=':
+        return rowLength >= filterLength
+      if op == '!=':
+        return rowLength != filterLength
+      return rowLength == filterLength
+
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, '')):
+          return True
+      return False
+    for column in columns:
+      if not checkMatch(row.get(column, '')):
+        return False
+    return True
+
+  def rowLengthRangeFilterMatch(op, filterLengthL, filterLengthR):
+    def checkMatch(rowString):
+      if not isinstance(rowString, str):
+        return False
+      rowLength = len(rowString)
+      if op == '!=':
+        return not filterLengthL <= rowLength <= filterLengthR
+      return filterLengthL <= rowLength <= filterLengthR
+
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, '')):
+          return True
+      return False
+    for column in columns:
+      if not checkMatch(row.get(column, '')):
+        return False
+    return True
+
   def rowBooleanFilterMatch(filterBoolean):
     def checkMatch(rowBoolean):
       if isinstance(rowBoolean, bool):
@@ -6806,6 +6852,12 @@ def RowFilterMatch(row, titlesList, rowFilter, rowDropFilter):
         return True
     elif filterVal[2] == 'countrange':
       if rowCountRangeFilterMatch(filterVal[3], filterVal[4], filterVal[5]):
+        return True
+    elif filterVal[2] == 'length':
+      if rowLengthFilterMatch(filterVal[3], filterVal[4]):
+        return True
+    elif filterVal[2] == 'lengthrange':
+      if rowLengthRangeFilterMatch(filterVal[3], filterVal[4], filterVal[5]):
         return True
     elif filterVal[2] == 'boolean':
       if rowBooleanFilterMatch(filterVal[3]):
