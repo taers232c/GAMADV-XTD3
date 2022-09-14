@@ -1,3 +1,20 @@
+6.26.15
+
+Updated `gam <UserTypeEntity> collect orphans` to use shortcuts by default rather than making parent changes.
+
+This addresses the following issue:
+* `testuser2` owns a file `X1234` located in a folder owned by user `testuser1` and shared with additional users
+* `testuser1` removes `testuser2's` access to that folder
+* File 'X1234' now looks like an orphan to `testuser2`
+* `gam user testuser2 collect orphans useshortcuts false`
+* This moves `X1234` to the folder `testuser2 orphaned files`; i.e., it has a new parent
+* `testuser1` and all other users no longer have access to `X1234` as it is now in a folder for which they have no access
+
+Updated `gam <UserTypeEntity> add|delete|update|print|show datastudiopermissions` to display an appropriate
+error message, `The caller does not have permission`, when the user doesn't have permission to execute the command.
+Previously, the following incorrect error message was displayed:
+`ERROR: Data Studio API not enabled. Please run "gam update project" and "gam user user@domain.com check serviceaccount"`
+
 6.26.14
 
 Extended `csv_input_row_filter`, `csv_input_row_drop_filter`, `csv_output_row_filter` and `csv_output_row_drop_filter`

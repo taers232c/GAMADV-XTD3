@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.14'
+__version__ = '6.26.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -50967,7 +50967,7 @@ def collectOrphans(users):
   targetUserFolderPattern = '#user# orphaned files'
   targetParentBody = {}
   query = ME_IN_OWNERS_AND+'trashed = false'
-  useShortcuts = False
+  useShortcuts = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'orderby':
@@ -50978,12 +50978,6 @@ def collectOrphans(users):
     elif myarg == 'targetuserfolderid':
       targetUserFolderId = getString(Cmd.OB_DRIVE_FOLDER_ID)
       targetUserFolderPattern = None
-# Removed 2020-04-19: misidentifies shareWithMe files as orphans
-#    elif myarg == 'anyowner':
-#      query = _updateAnyOwnerQuery(query)
-#    elif myarg == 'showownedby':
-#      showOwnedBy = getChoice(SHOW_OWNED_BY_CHOICE_MAP, mapChoice=True)
-#      query = _updateQueryWithShowOwnedBy(showOwnedBy, query)
     elif myarg == 'useshortcuts':
       useShortcuts = getBoolean()
     elif myarg == 'preview':
@@ -55040,7 +55034,7 @@ def _getDataStudioAssetByID(ds, user, i, count, assetId):
     return callGAPI(ds.assets(), 'get',
                     throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
                     name=f'assets/{assetId}')
-  except (GAPI.invalidArgument, GAPI.badRequest) as e:
+  except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.USER, user], str(e), i, count)
   except GAPI.serviceNotAvailable:
     entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -55057,7 +55051,7 @@ def _getDataStudioAssets(ds, user, i, count, parameters, assetTypes, fields, ord
                                   pageMessage=getPageMessage(),
                                   throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
                                   **parameters, orderBy=orderBy, fields=fields))
-    except (GAPI.invalidArgument, GAPI.badRequest) as e:
+    except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
       return (None, 0)
     except GAPI.serviceNotAvailable:
@@ -55272,7 +55266,7 @@ def processDataStudioPermissions(users):
           entityActionPerformed([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title'], Ent.DATASTUDIO_PERMISSION, ''], j, jcount)
           if showDetails:
             _showDataStudioPermissions(user, asset, results, j, jcount, None)
-        except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound) as e:
+        except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title']], str(e), j, jcount)
           continue
         except GAPI.serviceNotAvailable:
@@ -55342,7 +55336,7 @@ def printShowDataStudioPermissions(users):
         permissions = callGAPI(ds.assets(), 'getPermissions',
                                throwReasons=GAPI.DATASTUDIO_THROW_REASONS,
                                name=asset['name'], role=role)
-      except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound) as e:
+      except (GAPI.invalidArgument, GAPI.badRequest, GAPI.notFound, GAPI.permissionDenied) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DATASTUDIO_ASSET, asset['title']], str(e), j, jcount)
         continue
       except GAPI.serviceNotAvailable:
