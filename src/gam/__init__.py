@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.15'
+__version__ = '6.26.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51038,9 +51038,10 @@ def collectOrphans(users):
         fileId = fileEntry['id']
         fileName = fileEntry['name']
         fileType = _getEntityMimeType(fileEntry)
-        if fileType == Ent.DRIVE_FOLDER and not fileEntry['capabilities']['canAddMyDriveParent']:
-          # Typically Google Backup & Sync images of laptops
-          continue
+# Deleted 6.26.16
+#        if fileType == Ent.DRIVE_FOLDER and not fileEntry['capabilities']['canAddMyDriveParent']:
+#          # Typically Google Backup & Sync images of laptops
+#          continue
         if csvPF:
           csvPF.WriteRow({'Owner': user, 'type': Ent.Singular(fileType), 'id': fileId, 'name': fileName})
           continue

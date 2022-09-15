@@ -1,3 +1,8 @@
+6.26.16
+
+Updated `gam <UserTypeEntity> collect orphans` to include orphaned folders that were previously
+excluded due to multi-parenting issues.
+
 6.26.15
 
 Updated `gam <UserTypeEntity> collect orphans` to use shortcuts by default rather than making parent changes.
