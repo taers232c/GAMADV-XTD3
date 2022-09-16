@@ -13942,7 +13942,7 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
         if customerCreationTime == UNKNOWN or domainCreationTime < customerCreationTime:
           customerCreationTime = domainCreationTime
       customerInfo['customerCreationTime'] = customerCreationTime
-    except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    except (GAPI.badRequest, GAPI.notFound):
       pass
     customerInfo['customerDomain'] = primaryDomain['domainName']
     customerInfo['verified'] = primaryDomain['verified']
@@ -13961,8 +13961,10 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
     _showCustomerAddressPhoneNumber(customerInfo)
     printKeyValueList(['Admin Secondary Email', customerInfo.get('alternateEmail', UNKNOWN)])
     _showCustomerLicenseInfo(customerInfo, FJQC)
-  except (GAPI.badRequest, GAPI.invalidInput, GAPI.domainNotFound, GAPI.notFound, GAPI.resourceNotFound, GAPI.forbidden):
+  except (GAPI.badRequest, GAPI.invalidInput, GAPI.domainNotFound, GAPI.notFound, GAPI.resourceNotFound):
     accessErrorExit(cd)
+  except GAPI.forbidden as e:
+    entityActionFailedExit([Ent.CUSTOMER_ID, customerId], str(e))
 
 # gam update customer [primary <DomainName>] [adminsecondaryemail|alternateemail <EmailAddress>] [language <LanguageCode] [phone|phonenumber <String>]
 #	[contact|contactname <String>] [name|organizationname <String>]
