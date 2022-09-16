@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.16'
+__version__ = '6.26.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -258,6 +258,7 @@ NEVER_START_DATE = NEVER_DATE
 PROJECTION_CHOICE_MAP = {'basic': 'BASIC', 'full': 'FULL'}
 REFRESH_EXPIRY = '1970-01-01T00:00:01Z'
 REPLACE_GROUP_PATTERN = re.compile(r'\\(\d+)')
+UNKNOWN = 'Unknown'
 
 # Queries
 ME_IN_OWNERS = "'me' in owners"
@@ -2784,7 +2785,7 @@ def closeFile(f, forceFlush=False):
     f.close()
     return True
   except IOError as e:
-    stderrErrorMsg(fdErrorMessage(f, 'Unknown', e))
+    stderrErrorMsg(fdErrorMessage(f, UNKNOWN, e))
     setSysExitRC(FILE_ERROR_RC)
     return False
 
@@ -4117,7 +4118,7 @@ def _getValueFromOAuth(field, credentials=None):
       if 'Token used too early' in str(e):
         stderrErrorMsg(Msg.PLEASE_CORRECT_YOUR_SYSTEM_TIME)
       systemErrorExit(SYSTEM_ERROR_RC, str(e))
-  return GM.Globals[GM.DECODED_ID_TOKEN].get(field, 'Unknown')
+  return GM.Globals[GM.DECODED_ID_TOKEN].get(field, UNKNOWN)
 
 def _getAdminEmail():
   if GC.Values[GC.ADMIN_EMAIL]:
@@ -11749,9 +11750,9 @@ def doReportUsage():
           if 'userEmail' in entity['entity']:
             row['user'] = entity['entity']['userEmail']
             if showOrgUnit:
-              row['orgUnitPath'] = userOrgUnits.get(row['user'], 'Unknown')
+              row['orgUnitPath'] = userOrgUnits.get(row['user'], UNKNOWN)
           else:
-            row['email'] = 'Unknown'
+            row['email'] = UNKNOWN
           for item in entity.get('parameters', []):
             if 'name' not in item:
               continue
@@ -11884,9 +11885,9 @@ def doReport():
       if 'userEmail' in user_report['entity']:
         row['email'] = user_report['entity']['userEmail']
         if showOrgUnit:
-          row['orgUnitPath'] = userOrgUnits.get(row['email'], 'Unknown')
+          row['orgUnitPath'] = userOrgUnits.get(row['email'], UNKNOWN)
       else:
-        row['email'] = 'Unknown'
+        row['email'] = UNKNOWN
       for item in user_report.get('parameters', []):
         if 'name' not in item:
           continue
@@ -12415,9 +12416,9 @@ def doReport():
           accessErrorExit(None)
         for activity in feed:
           events = activity.pop('events')
-          actor = activity['actor'].get('email', activity['actor'].get('key', 'Unknown'))
+          actor = activity['actor'].get('email', activity['actor'].get('key', UNKNOWN))
           if showOrgUnit:
-            activity['actor']['orgUnitPath'] = userOrgUnits.get(actor, 'Unknown')
+            activity['actor']['orgUnitPath'] = userOrgUnits.get(actor, UNKNOWN)
           if not countsOnly or eventRowFilter:
             activity_row = flattenJSON(activity, timeObjects=REPORT_ACTIVITIES_TIME_OBJECTS)
             purge_parameters = True
@@ -13923,28 +13924,28 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
     customerInfo = callGAPI(cd.customers(), 'get',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                             customerKey=customerId)
-    if 'customerDomain' not in customerInfo:
-      entityActionFailedExit([Ent.CONFIG_FILE, GM.Globals[GM.GAM_CFG_FILE], Ent.SECTION, GM.Globals[GM.GAM_CFG_SECTION_NAME],
-                             Ent.CUSTOMER_ID, customerId, Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT], Ent.CLIENT_ID, GM.Globals[GM.OAUTH2_CLIENT_ID]],
-                             Msg.VALUES_ARE_NOT_CONSISTENT)
+    primaryDomain = {'domainName': UNKNOWN, 'verified': UNKNOWN}
     try:
-      customerInfo['verified'] = callGAPI(cd.domains(), 'get',
-                                          throwReasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                                          customer=customerInfo['id'], domainName=customerInfo['customerDomain'], fields='verified')['verified']
-    except GAPI.domainNotFound:
-      customerInfo['verified'] = False
-    # From Jay Lee
-    # If customer has changed primary domain, customerCreationTime is date of current primary being added, not customer create date.
-    # We should get all domains and use oldest date
-    customerCreationTime = formatLocalTime(customerInfo['customerCreationTime'])
-    domains = callGAPIitems(cd.domains(), 'list', 'domains',
-                            throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                            customer=customerInfo['id'], fields='domains(creationTime)')
-    for domain in domains:
-      domainCreationTime = formatLocalTimestamp(domain['creationTime'])
-      if domainCreationTime < customerCreationTime:
-        customerCreationTime = domainCreationTime
-    customerInfo['customerCreationTime'] = customerCreationTime
+      domains = callGAPIitems(cd.domains(), 'list', 'domains',
+                              throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                              customer=customerInfo['id'], fields='domains(creationTime,domainName,isPrimary,verified)')
+      for domain in domains:
+        if domain.get('isPrimary'):
+          primaryDomain = domain
+          break
+      # From Jay Lee
+      # If customer has changed primary domain, customerCreationTime is date of current primary being added, not customer create date.
+      # We should get all domains and use oldest date
+      customerCreationTime = UNKNOWN
+      for domain in domains:
+        domainCreationTime = formatLocalTimestamp(domain['creationTime'])
+        if customerCreationTime == UNKNOWN or domainCreationTime < customerCreationTime:
+          customerCreationTime = domainCreationTime
+      customerInfo['customerCreationTime'] = customerCreationTime
+    except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+      pass
+    customerInfo['customerDomain'] = primaryDomain['domainName']
+    customerInfo['verified'] = primaryDomain['verified']
     if FJQC.formatJSON:
       _showCustomerLicenseInfo(customerInfo, FJQC)
       if returnCustomerInfo is not None:
@@ -13954,11 +13955,11 @@ def doInfoCustomer(returnCustomerInfo=None, FJQC=None):
       return
     printKeyValueList(['Customer ID', customerInfo['id']])
     printKeyValueList(['Primary Domain', customerInfo['customerDomain']])
-    printKeyValueList(['Customer Creation Time', customerInfo['customerCreationTime']])
     printKeyValueList(['Primary Domain Verified', customerInfo['verified']])
-    printKeyValueList(['Default Language', customerInfo.get('language', 'Unset (defaults to en)')])
+    printKeyValueList(['Customer Creation Time', customerInfo.get('customerCreationTime', UNKNOWN)])
+    printKeyValueList(['Default Language', customerInfo.get('language', 'Unset or Unknown (defaults to en)')])
     _showCustomerAddressPhoneNumber(customerInfo)
-    printKeyValueList(['Admin Secondary Email', customerInfo['alternateEmail']])
+    printKeyValueList(['Admin Secondary Email', customerInfo.get('alternateEmail', UNKNOWN)])
     _showCustomerLicenseInfo(customerInfo, FJQC)
   except (GAPI.badRequest, GAPI.invalidInput, GAPI.domainNotFound, GAPI.notFound, GAPI.resourceNotFound, GAPI.forbidden):
     accessErrorExit(cd)
@@ -14106,7 +14107,7 @@ def doPrintShowPrivileges():
     printEntity([Ent.PRIVILEGE, privilege['privilegeName']], i, count)
     Ind.Increment()
     printKeyValueList(['serviceId', privilege['serviceId']])
-    printKeyValueList(['serviceName', privilege.get('serviceName', 'Unknown')])
+    printKeyValueList(['serviceName', privilege.get('serviceName', UNKNOWN)])
     printKeyValueList(['isOuScopable', privilege['isOuScopable']])
     jcount = len(privilege.get('childPrivileges', []))
     if jcount > 0:
@@ -19000,7 +19001,7 @@ def addContactGroupNamesToContacts(contacts, contactGroupIDs, showContactGroupNa
       contact[PEOPLE_GROUPS_LIST] = []
     for membership in contact.get('memberships', []):
       if 'contactGroupMembership' in membership:
-        membership['contactGroupMembership']['contactGroupName'] = contactGroupIDs.get(membership['contactGroupMembership']['contactGroupResourceName'], 'Unknown')
+        membership['contactGroupMembership']['contactGroupName'] = contactGroupIDs.get(membership['contactGroupMembership']['contactGroupResourceName'], UNKNOWN)
         if showContactGroupNamesList:
           contact[PEOPLE_GROUPS_LIST].append(membership['contactGroupMembership']['contactGroupName'])
 
@@ -20651,7 +20652,7 @@ def _filterRecentUsers(cros, selected, listLimit):
   filteredItems = []
   i = 0
   for item in cros.get('recentUsers', []):
-    item['email'] = item.get('email', ['Unknown', 'UnmanagedUser'][item['type'] == 'USER_TYPE_UNMANAGED'])
+    item['email'] = item.get('email', [UNKNOWN, 'UnmanagedUser'][item['type'] == 'USER_TYPE_UNMANAGED'])
     filteredItems.append(item)
     i += 1
     if listLimit and i == listLimit:
@@ -23315,9 +23316,9 @@ def doPrintShowChromePolicies():
     elif appId:
       norm['appId'] = appId
     orgUnitId = policy.get('targetKey', {}).get('targetResource')
-    norm['orgUnitPath'] = convertOrgUnitIDtoPath(cd, orgUnitId) if orgUnitId else 'Unknown'
+    norm['orgUnitPath'] = convertOrgUnitIDtoPath(cd, orgUnitId) if orgUnitId else UNKNOWN
     parentOrgUnitId = policy.get('sourceKey', {}).get('targetResource')
-    norm['parentOrgUnitPath'] = convertOrgUnitIDtoPath(cd, parentOrgUnitId) if parentOrgUnitId else 'Unknown'
+    norm['parentOrgUnitPath'] = convertOrgUnitIDtoPath(cd, parentOrgUnitId) if parentOrgUnitId else UNKNOWN
     norm['direct'] = orgUnitId == parentOrgUnitId
     norm['additionalTargetKeys'] = []
     for setting, value in sorted(policy.get('targetKey', {}).get('additionalTargetKeys', {}).items()):
@@ -25329,7 +25330,7 @@ def doPrintShowChromeVersions():
     if showOrgUnit:
       version['orgUnitPath'] = orgUnitPath
     if 'version' not in version:
-      version['version'] = 'Unknown'
+      version['version'] = UNKNOWN
     row = flattenJSON(version)
     if not FJQC.formatJSON:
       csvPF.WriteRow(row)
@@ -25341,7 +25342,7 @@ def doPrintShowChromeVersions():
     if showOrgUnit:
       version['orgUnitPath'] = orgUnitPath
     if 'version' not in version:
-      version['version'] = 'Unknown'
+      version['version'] = UNKNOWN
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(version), ensure_ascii=False, sort_keys=True))
     else:
@@ -25432,12 +25433,12 @@ def doPrintShowChromeVersions():
           entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_VERSION)
         Ind.Increment()
         j = 0
-        for version in sorted(versions, key=lambda k: k.get('version', 'Unknown'), reverse=reverse):
+        for version in sorted(versions, key=lambda k: k.get('version', UNKNOWN), reverse=reverse):
           j += 1
           _showVersion(version, j, jcount)
         Ind.Decrement()
       else:
-        for version in sorted(versions, key=lambda k: k.get('version', 'Unknown'), reverse=reverse):
+        for version in sorted(versions, key=lambda k: k.get('version', UNKNOWN), reverse=reverse):
           _printVersion(version)
   if csvPF:
     csvPF.writeCSVfile('Chrome Versions')
@@ -25753,10 +25754,10 @@ def _getMobileDeviceUser(mobileDevice, options):
         if deviceUser.lower() in options['matchUsers']:
           return (deviceUser, True)
       return (mobileDevice['email'][0], False)
-    return ('Unknown', False)
+    return (UNKNOWN, False)
   if mobileDevice['email']:
     return (mobileDevice['email'][0], True)
-  return ('Unknown', True)
+  return (UNKNOWN, True)
 
 # gam update mobile|mobiles <MobileDeviceEntity> action <MobileAction>
 #	[doit] [matchusers <UserTypeEntity>]
@@ -28750,7 +28751,7 @@ def doPrintGroupMembers():
       memberType = member.get('type')
       if userFieldsList:
         if memberOptions[MEMBEROPTION_MEMBERNAMES]:
-          row['name'] = 'Unknown'
+          row['name'] = UNKNOWN
         if memberType == Ent.TYPE_USER:
           try:
             mbinfo = callGAPI(cd.users(), 'get',
@@ -29806,9 +29807,9 @@ def doInfoCIGroups():
           getCIGroupMemberRoleFixType(member)
           kvList = [member['role'].lower(), f'{memberEmail} ({member["type"].lower()})']
           if showJoinDate:
-            kvList.extend(['joined', formatLocalTime(member['createTime']) if 'createTime' in member else 'Unknown'])
+            kvList.extend(['joined', formatLocalTime(member['createTime']) if 'createTime' in member else UNKNOWN])
           if showUpdateDate:
-            kvList.extend(['updated', formatLocalTime(member['updateTime']) if 'updateTime' in member else 'Unknown'])
+            kvList.extend(['updated', formatLocalTime(member['updateTime']) if 'updateTime' in member else UNKNOWN])
           if 'expireTime' in member:
             kvList.extend(['expires', formatLocalTime(member['expireTime'])])
           printKeyValueList(kvList)
@@ -32609,7 +32610,7 @@ def _createCalendarEvents(user, origCal, function, calIds, count, body, paramete
       continue
     if not _setEventRecurrenceTimeZone(cal, calId, body, parameters, i, count):
       continue
-    event = {'id': body.get('id', 'Unknown')}
+    event = {'id': body.get('id', UNKNOWN)}
     if function == 'import' and body.get('status', '') == 'cancelled':
       entityActionNotPerformedWarning([Ent.CALENDAR, calId, Ent.EVENT, body.get('iCalUID', event['id'])], Msg.EVENT_IS_CANCELED, count)
       continue
@@ -36416,7 +36417,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   if updateCmd:
     body = {}
   else:
-    body = {'name': {'givenName': 'Unknown', 'familyName': 'Unknown'}}
+    body = {'name': {'givenName': UNKNOWN, 'familyName': UNKNOWN}}
     body['primaryEmail'] = getEmailAddress(noUid=noUid)
   notFoundBody = {}
   notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8, 'password': ''}
@@ -38000,7 +38001,7 @@ def doPrintUsers(entityList=None):
   def _updateDomainCounts(emailAddress):
     atLoc = emailAddress.find('@')
     if atLoc == -1:
-      dom = 'Unknown'
+      dom = UNKNOWN
     else:
       dom = emailAddress[atLoc+1:].lower()
     domainCounts.setdefault(dom, 0)
@@ -38841,7 +38842,7 @@ class CourseAttributes():
         action = Act.Get()
         Act.Set(Act.COPY)
         entityActionNotPerformedWarning([Ent.COURSE, self.courseId, entityType, entityId,
-                                         Ent.COURSE_MATERIAL_FORM, material['form'].get('title', 'Unknown')],
+                                         Ent.COURSE_MATERIAL_FORM, material['form'].get('title', UNKNOWN)],
                                         Msg.NOT_COPYABLE)
         Act.Set(action)
 
@@ -42025,7 +42026,7 @@ def _showASPs(user, asps, i=0, count=0):
   Ind.Increment()
   for asp in asps:
     if asp['creationTime'] == '0':
-      created_date = 'Unknown'
+      created_date = UNKNOWN
     else:
       created_date = formatLocalTimestamp(asp['creationTime'])
     if asp['lastTimeUsed'] == '0':
@@ -42119,7 +42120,7 @@ def printShowASPs(users):
         for asp in asps:
           asp.pop('userKey', None)
           if asp['creationTime'] == '0':
-            asp['creationTime'] = 'Unknown'
+            asp['creationTime'] = UNKNOWN
           else:
             asp['creationTime'] = formatLocalTimestamp(asp['creationTime'])
           if asp['lastTimeUsed'] == '0':
@@ -44641,7 +44642,7 @@ def printDriveActivity(users):
         entry = (result['primaryEmail'], result['name']['fullName'])
       except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
               GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-        entry = (f'uid:{userId}', 'Unknown')
+        entry = (f'uid:{userId}', UNKNOWN)
       userInfo[userId] = entry
     return entry
 
@@ -44711,7 +44712,7 @@ def printDriveActivity(users):
     elif myarg == 'idmapfile':
       f, csvFile, _ = openCSVFileReader(getString(Cmd.OB_FILE_NAME))
       for row in csvFile:
-        userInfo[row['id']] = (row['primaryEmail'], row.get('name.fullName', 'Unknown'))
+        userInfo[row['id']] = (row['primaryEmail'], row.get('name.fullName', UNKNOWN))
       closeFile(f)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
@@ -47191,7 +47192,7 @@ def printFileList(users):
                  and not fileIdEntity['query']
                  and not fileIdEntity['shareddrivefilequery']
                  and _simpleFileIdEntityList(fileIdEntity['list']))
-  incrementalPrint = buildTree and (not filepath) and noSelect and not DLP.locationSet
+  incrementalPrint = buildTree and (not filepath) and noSelect and not DLP.locationSet and not showParent
   if incrementalPrint:
     DLP.AddMimeTypeToQuery()
   if buildTree:
@@ -48210,7 +48211,7 @@ def createDriveFile(users):
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
                         useContentAsIndexableText=parameters[DFA_USE_CONTENT_AS_INDEXABLE_TEXT],
                         media_body=media_body, body=body, fields='id,name,mimeType,parents,webViewLink', supportsAllDrives=True)
-      parentId = result['parents'][0] if 'parents' in result and result['parents'] else 'Unknown'
+      parentId = result['parents'][0] if 'parents' in result and result['parents'] else UNKNOWN
       if returnIdLink:
         writeReturnIdLink(returnIdLink, parameters[DFA_LOCALMIMETYPE], result)
       elif not csvPF:
@@ -49426,7 +49427,7 @@ def _getCopyMoveTargetInfo(drive, user, i, count, j, jcount, source, destFilenam
   return None
 
 def _verifyUserIsOrganizer(drive, user, i, count, fileId):
-  role = 'Unknown'
+  role = UNKNOWN
   try:
     permissionId = getPermissionIdForEmail(user, i, count, user)
     role = callGAPI(drive.permissions(), 'get',
@@ -50781,7 +50782,7 @@ def getDriveFile(users):
           if 'size' in result:
             my_line = ['Size', formatFileSize(int(result['size']))]
           else:
-            my_line = ['Size', 'Unknown']
+            my_line = ['Size', UNKNOWN]
           googleDoc = False
           if fileExtension:
             extension = '.'+fileExtension
@@ -51130,7 +51131,7 @@ def transferDrive(users):
 
   def _getOwnerUser(childEntryInfo):
     if 'owners' not in childEntryInfo or not childEntryInfo['owners']:
-      return ('Unknown', None)
+      return (UNKNOWN, None)
     ownerUser = childEntryInfo['owners'][0]['emailAddress']
     if ownerUser not in thirdPartyOwners:
       _, ownerDrive = buildGAPIServiceObject(API.DRIVE3, ownerUser, displayError=False)
@@ -52742,7 +52743,7 @@ def _showDriveFilePermission(permission, printKeys, timeObjects, i=0, count=0):
           printKeyValueList(['additionalRoles', ','.join(detail['additionalRoles'])])
         printKeyValueList(['inherited', detail['inherited']])
         if detail['inherited']:
-          printKeyValueList(['inheritedFrom', detail.get('inheritedFrom', 'Unknown')])
+          printKeyValueList(['inheritedFrom', detail.get('inheritedFrom', UNKNOWN)])
         Ind.Decrement()
       Ind.Decrement()
     elif key not in timeObjects:
@@ -54219,7 +54220,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
               break
             except GAPI.fileNotFound as e:
               entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId,
-                                         Ent.DRIVE_FILE, body.get('backgroundImageFile', {}).get('id', 'Unknown')],
+                                         Ent.DRIVE_FILE, body.get('backgroundImageFile', {}).get('id', UNKNOWN)],
                                         str(e), i, count)
               break
         if hide:
@@ -54324,7 +54325,7 @@ def updateSharedDrive(users, useDomainAdminAccess=False):
       entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], str(e), i, count)
     except GAPI.fileNotFound as e:
       entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId,
-                                 Ent.DRIVE_FILE, body.get('backgroundImageFile', {}).get('id', 'Unknown')],
+                                 Ent.DRIVE_FILE, body.get('backgroundImageFile', {}).get('id', UNKNOWN)],
                                 str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -54520,7 +54521,7 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
     if orgUnitIdToPathMap:
       td_ouid = shareddrive.get('orgUnitId')
       if td_ouid:
-        shareddrive['orgUnit'] = orgUnitIdToPathMap.get(f'id:{td_ouid}', 'Unknown')
+        shareddrive['orgUnit'] = orgUnitIdToPathMap.get(f'id:{td_ouid}', UNKNOWN)
     if not showFields:
       return shareddrive
     sshareddrive = {}
@@ -56300,7 +56301,7 @@ def _setShowProfile(users, function, **kwargs):
       result = callGAPI(cd.users(), function,
                         throwReasons=[GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN],
                         userKey=user, fields='includeInGlobalAddressList', **kwargs)
-      printEntity([Ent.USER, user, Ent.PROFILE_SHARING_ENABLED, result.get('includeInGlobalAddressList', 'Unknown')], i, count)
+      printEntity([Ent.USER, user, Ent.PROFILE_SHARING_ENABLED, result.get('includeInGlobalAddressList', UNKNOWN)], i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
@@ -62526,13 +62527,15 @@ def printShowTasklists(users):
 def getCRMOrgId():
   setTrueCustomerId()
   _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER, None)
-  orgs = callGAPIpages(crm.organizations(), 'search', 'organizations',
-                       query=f'directorycustomerid:{GC.Values[GC.CUSTOMER_ID]}')
-  if len(orgs) < 1:
+  results = callGAPI(crm.organizations(), 'search',
+                     query=f'directorycustomerid:{GC.Values[GC.CUSTOMER_ID]}',
+                     pageSize=1, fields='organizations/name')
+  orgs = results.get('organizations')
+  if not orgs:
     # return nothing and let calling API deal with it
     # since caller knows what GCP role would serve best
     return None
-  return orgs[0]['name']
+  return orgs[0].get('name')
 
 def CAARoleErrorExit(caa):
   sa_email = caa._http.credentials.signer_email

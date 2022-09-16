@@ -1,3 +1,9 @@
+6.26.17
+
+Fixed bug in `gam <UserTypeEntity> print filelist ... showparent` where parent folder was not shown in all cases.
+
+Following Jay's lead, updated `gam info customer|domain` to provide better information when executed by a non super admin.
+
 6.26.16
 
 Updated `gam <UserTypeEntity> collect orphans` to include orphaned folders that were previously
@@ -10,7 +16,7 @@ Updated `gam <UserTypeEntity> collect orphans` to use shortcuts by default rathe
 This addresses the following issue:
 * `testuser2` owns a file `X1234` located in a folder owned by user `testuser1` and shared with additional users
 * `testuser1` removes `testuser2's` access to that folder
-* File 'X1234' now looks like an orphan to `testuser2`
+* File `X1234` now looks like an orphan to `testuser2`
 * `gam user testuser2 collect orphans useshortcuts false`
 * This moves `X1234` to the folder `testuser2 orphaned files`; i.e., it has a new parent
 * `testuser1` and all other users no longer have access to `X1234` as it is now in a folder for which they have no access
