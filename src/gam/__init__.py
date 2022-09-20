@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.26.17'
+__version__ = '6.27.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4258,7 +4258,7 @@ def getService(api, httpObj):
     if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
       clearServiceCache(service)
     return service
-  except (KeyError, ValueError) as e:
+  except (googleapiclient.errors.InvalidJsonError, KeyError, ValueError) as e:
     invalidDiscoveryJsonExit(disc_file, str(e))
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, str(e))
@@ -4810,6 +4810,28 @@ def callGAPI(service, function,
     except TypeError as e:
       systemErrorExit(GOOGLE_API_ERROR_RC, str(e))
 
+def _showGAPIpagesResult(results, pageItems, totalItems, pageMessage, messageAttribute, entityType):
+  showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+  if pageItems:
+    if messageAttribute:
+      firstItem = results[0] if pageItems > 0 else {}
+      lastItem = results[-1] if pageItems > 1 else firstItem
+      if isinstance(messageAttribute, str):
+        firstItem = str(firstItem.get(messageAttribute, ''))
+        lastItem = str(lastItem.get(messageAttribute, ''))
+      else:
+        for attr in messageAttribute:
+          firstItem = firstItem.get(attr, {})
+          lastItem = lastItem.get(attr, {})
+        firstItem = str(firstItem)
+        lastItem = str(lastItem)
+      showMessage = showMessage.replace(FIRST_ITEM_MARKER, firstItem)
+      showMessage = showMessage.replace(LAST_ITEM_MARKER, lastItem)
+  else:
+    showMessage = showMessage.replace(FIRST_ITEM_MARKER, '')
+    showMessage = showMessage.replace(LAST_ITEM_MARKER, '')
+  writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(entityType, totalItems))))
+
 def _processGAPIpagesResult(results, items, allResults, totalItems, pageMessage, messageAttribute, entityType):
   if results:
     pageToken = results.get('nextPageToken')
@@ -4826,26 +4848,7 @@ def _processGAPIpagesResult(results, items, allResults, totalItems, pageMessage,
     results = {items: []}
     pageItems = 0
   if pageMessage:
-    showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-    if pageItems:
-      if messageAttribute:
-        firstItem = results[items][0] if pageItems > 0 else {}
-        lastItem = results[items][-1] if pageItems > 1 else firstItem
-        if isinstance(messageAttribute, str):
-          firstItem = str(firstItem.get(messageAttribute, ''))
-          lastItem = str(lastItem.get(messageAttribute, ''))
-        else:
-          for attr in messageAttribute:
-            firstItem = firstItem.get(attr, {})
-            lastItem = lastItem.get(attr, {})
-          firstItem = str(firstItem)
-          lastItem = str(lastItem)
-        showMessage = showMessage.replace(FIRST_ITEM_MARKER, firstItem)
-        showMessage = showMessage.replace(LAST_ITEM_MARKER, lastItem)
-    else:
-      showMessage = showMessage.replace(FIRST_ITEM_MARKER, '')
-      showMessage = showMessage.replace(LAST_ITEM_MARKER, '')
-    writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(entityType, totalItems))))
+    _showGAPIpagesResult(results[items], pageItems, totalItems, pageMessage, messageAttribute, entityType)
   return (pageToken, totalItems)
 
 def _finalizeGAPIpagesResult(pageMessage):
@@ -4864,14 +4867,21 @@ def callGAPIpages(service, function, items,
     retryReasons = []
   allResults = []
   totalItems = 0
-  maxResults = kwargs.get('maxResults', 0)
+  maxArg = ''
+  if maxItems:
+    maxResults = kwargs.get('maxResults', 0)
+    if maxResults:
+      maxArg = 'maxResults'
+    else:
+      maxResults = kwargs.get('pageSize', 0)
+      if maxResults:
+        maxArg = 'pageSize'
   if pageArgsInBody:
     kwargs.setdefault('body', {})
-  tweakMaxResults = maxItems and maxResults
   entityType = Ent.Getting() if pageMessage else None
   while True:
-    if tweakMaxResults and maxItems-totalItems < maxResults:
-      kwargs['maxResults'] = maxItems-totalItems
+    if maxArg and maxItems-totalItems < maxResults:
+      kwargs[maxArg] = maxItems-totalItems
     results = callGAPI(service, function,
                        throwReasons=throwReasons, retryReasons=retryReasons,
                        **kwargs)
@@ -4880,6 +4890,58 @@ def callGAPIpages(service, function, items,
       if not noFinalize:
         _finalizeGAPIpagesResult(pageMessage)
       return allResults
+    if pageArgsInBody:
+      kwargs['body']['pageToken'] = pageToken
+    else:
+      kwargs['pageToken'] = pageToken
+
+def yieldGAPIpages(service, function, items,
+                   pageMessage=None, messageAttribute=None, maxItems=0, noFinalize=False,
+                   throwReasons=None, retryReasons=None,
+                   pageArgsInBody=False,
+                   **kwargs):
+  if throwReasons is None:
+    throwReasons = []
+  if retryReasons is None:
+    retryReasons = []
+  totalItems = 0
+  maxArg = ''
+  if maxItems:
+    maxResults = kwargs.get('maxResults', 0)
+    if maxResults:
+      maxArg = 'maxResults'
+    else:
+      maxResults = kwargs.get('pageSize', 0)
+      if maxResults:
+        maxArg = 'pageSize'
+  if pageArgsInBody:
+    kwargs.setdefault('body', {})
+  entityType = Ent.Getting() if pageMessage else None
+  while True:
+    if maxArg and maxItems-totalItems < maxResults:
+      kwargs[maxArg] = maxItems-totalItems
+    results = callGAPI(service, function,
+                       throwReasons=throwReasons, retryReasons=retryReasons,
+                       **kwargs)
+    if results:
+      pageToken = results.get('nextPageToken')
+      if items in results:
+        pageItems = len(results[items])
+        totalItems += pageItems
+      else:
+        results = {items: []}
+        pageItems = 0
+    else:
+      pageToken = None
+      results = {items: []}
+      pageItems = 0
+    if pageMessage:
+      _showGAPIpagesResult(results[items], pageItems, totalItems, pageMessage, messageAttribute, entityType)
+    yield results[items]
+    if not pageToken or (maxItems and totalItems >= maxItems):
+      if not noFinalize:
+        _finalizeGAPIpagesResult(pageMessage)
+      return
     if pageArgsInBody:
       kwargs['body']['pageToken'] = pageToken
     else:
@@ -5691,39 +5753,34 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
       printGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT)),
                                         entityType=Ent.ORGANIZATIONAL_UNIT)
       pageMessage = getPageMessageForWhom()
-      pageToken = None
-      totalItems = 0
       usersInOU = 0
-      while True:
-        try:
-          result = callGAPI(cd.users(), 'list',
-                            throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
-                                          GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                            pageToken=pageToken,
-                            customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(ou, isSuspended), orderBy='email',
-                            fields=fields, maxResults=GC.Values[GC.USER_MAX_RESULTS])
-        except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest,
-                GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
-          checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-          _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
-          break
-        pageToken, totalItems = _processGAPIpagesResult(result, 'users', None, totalItems, pageMessage, 'primaryEmail', Ent.USER)
-        if result:
-          users = result.get('users', [])
+      try:
+        feed = yieldGAPIpages(cd.users(), 'list', 'users',
+                              pageMessage=pageMessage, messageAttribute='primaryEmail',
+                              throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                            GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                              customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(ou, isSuspended), orderBy='email',
+                              fields=fields, maxResults=GC.Values[GC.USER_MAX_RESULTS])
+        for users in feed:
           if directlyInOU:
             for user in users:
               if ouLower == user.get('orgUnitPath', '').lower() and (isArchived is None or isArchived == user['archived']):
                 usersInOU += 1
                 entityList.append(user['primaryEmail'])
-          else:
-            entityList.extend([user['primaryEmail'] for user in users if isArchived is None or isArchived == user['archived']])
+          elif isArchived is None:
+            entityList.extend([user['primaryEmail'] for user in users])
             usersInOU += len(users)
-          del result
-        if not pageToken:
-          setGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=qualifier)
-          _finalizeGAPIpagesResult(getPageMessageForWhom())
-          break
-      printGotEntityItemsForWhom(usersInOU)
+          else:
+            for user in users:
+              if isArchived == user['archived']:
+                usersInOU += 1
+                entityList.append(user['primaryEmail'])
+        setGettingAllEntityItemsForWhom(Ent.USER, ou, qualifier=qualifier)
+        printGotEntityItemsForWhom(usersInOU)
+      except (GAPI.invalidInput, GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest,
+              GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+        _incrEntityDoesNotExist(Ent.ORGANIZATIONAL_UNIT)
   elif entityType in {Cmd.ENTITY_QUERY, Cmd.ENTITY_QUERIES}:
     cd = buildGAPIObject(API.DIRECTORY)
     queries = convertEntityToList(entity, shlexSplit=True, nonListEntityType=entityType == Cmd.ENTITY_QUERY)
@@ -9199,7 +9256,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
 '''
   numScopes = len(scopesList)
   for a_scope in scopesList:
-    oauth2_menu += '[%%%%s] %%2d)  %s' % (a_scope['name'])
+    oauth2_menu += f"[%%s] %2d)  {a_scope['name']}"
     if a_scope['subscopes']:
       oauth2_menu += f' (supports {" and ".join(a_scope["subscopes"])})'
     oauth2_menu += '\n'
@@ -14496,8 +14553,7 @@ SERVICE_NAME_CHOICE_MAP = {
 
 def _validateTransferAppName(apps, appName):
   appName = appName.strip().lower()
-  if appName in SERVICE_NAME_CHOICE_MAP:
-    appName = SERVICE_NAME_CHOICE_MAP[appName]
+  appName = SERVICE_NAME_CHOICE_MAP.get(appName, appName)
   appNameList = []
   for app in apps:
     if appName == app['name'].lower():
@@ -15374,29 +15430,20 @@ def doPrintOrgs():
     qualifier = Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
     printGettingAllEntityItemsForWhom(Ent.USER, orgUnitPath, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
     pageMessage = getPageMessage()
-    pageToken = None
-    totalItems = 0
-    while True:
-      try:
-        feed = callGAPI(cd.users(), 'list',
-                        throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
-                                      GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                        pageToken=pageToken,
-                        customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, None), orderBy='email',
-                        fields='nextPageToken,users(orgUnitPath,suspended)', maxResults=GC.Values[GC.USER_MAX_RESULTS])
-      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput, GAPI.badRequest, GAPI.backendError,
-              GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
-        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
-        break
-      pageToken, totalItems = _processGAPIpagesResult(feed, 'users', None, totalItems, pageMessage, None, Ent.USER)
-      if feed:
-        for user in feed.get('users', []):
+    try:
+      feed = yieldGAPIpages(cd.users(), 'list', 'users',
+                            pageMessage=pageMessage,
+                            throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
+                                          GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                            customer=GC.Values[GC.CUSTOMER_ID], query=orgUnitPathQuery(orgUnitPath, None), orderBy='email',
+                            fields='nextPageToken,users(orgUnitPath,suspended)', maxResults=GC.Values[GC.USER_MAX_RESULTS])
+      for users in feed:
+        for user in users:
           if user['orgUnitPath'] in userCounts:
             userCounts[user['orgUnitPath']][user['suspended']] += 1
-        del feed
-      if not pageToken:
-        _finalizeGAPIpagesResult(pageMessage)
-        break
+    except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.invalidInput, GAPI.badRequest, GAPI.backendError,
+            GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
+      checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
   for orgUnit in sorted(orgUnits, key=lambda k: k['orgUnitPath']):
     orgUnitPath = orgUnit['orgUnitPath']
     if showCrOSCounts:
@@ -15414,6 +15461,16 @@ def doPrintOrgs():
                           pageToken=pageToken,
                           customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath, includeChildOrgunits=False,
                           fields='nextPageToken,chromeosdevices(status)', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+          tokenRetries = 0
+          pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
+          if feed:
+            for cros in feed.get('chromeosdevices', []):
+              crosCounts[orgUnitPath].setdefault(cros['status'], 0)
+              crosCounts[orgUnitPath][cros['status']] += 1
+            del feed
+          if not pageToken:
+            _finalizeGAPIpagesResult(pageMessage)
+            break
         except GAPI.invalidInput as e:
           message = str(e)
 # Invalid Input: xyz - Check for invalid pageToken!!
@@ -15429,16 +15486,6 @@ def doPrintOrgs():
         except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.badRequest, GAPI.backendError,
                 GAPI.invalidCustomerId, GAPI.loginRequired, GAPI.resourceNotFound, GAPI.forbidden):
           checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath)
-          break
-        tokenRetries = 0
-        pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
-        if feed:
-          for cros in feed.get('chromeosdevices', []):
-            crosCounts[orgUnitPath].setdefault(cros['status'], 0)
-            crosCounts[orgUnitPath][cros['status']] += 1
-          del feed
-        if not pageToken:
-          _finalizeGAPIpagesResult(pageMessage)
           break
     row = {}
     for field in fieldsList:
@@ -17136,8 +17183,8 @@ def _clearUpdateContacts(updateContacts):
         if not localContactSelects(contactsManager, contactQuery, fields):
           continue
       if updateContacts:
-        for field in update_fields:
-          fields[field] = update_fields[field]
+        for field, value in iter(update_fields.items()):
+          fields[field] = value
         contactEntry = contactsManager.FieldsToContact(fields)
       else:
         if not clearEmailAddressMatches(contactsManager, contactClear, fields):
@@ -21425,6 +21472,16 @@ def doPrintCrOSDevices(entityList=None):
                             customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection,
                             orgUnitPath=ou, includeChildOrgunits=includeChildOrgunits,
                             orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+            tokenRetries = 0
+            pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
+            if feed:
+              for cros in feed.get('chromeosdevices', []):
+                _printCrOS(cros)
+              del feed
+            if not pageToken:
+              _finalizeGAPIpagesResult(pageMessage)
+              printGotAccountEntities(totalItems)
+              break
           except GAPI.invalidInput as e:
             message = str(e)
 # Invalid Input: xyz - Check for invalid pageToken!!
@@ -21444,16 +21501,6 @@ def doPrintCrOSDevices(entityList=None):
             return
           except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
             accessErrorExit(cd)
-          tokenRetries = 0
-          pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
-          if feed:
-            for cros in feed.get('chromeosdevices', []):
-              _printCrOS(cros)
-            del feed
-          if not pageToken:
-            _finalizeGAPIpagesResult(pageMessage)
-            printGotAccountEntities(totalItems)
-            break
   else:
     sortRows = True
     if allFields or len(set(fieldsList)) > 1:
@@ -21685,6 +21732,16 @@ def doPrintCrOSActivity(entityList=None):
                               pageToken=pageToken,
                               customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=projection, orgUnitPath=orgUnitPath,
                               orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+              tokenRetries = 0
+              pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
+              if feed:
+                for cros in feed.get('chromeosdevices', []):
+                  _printCrOS(cros)
+                del feed
+              if not pageToken:
+                _finalizeGAPIpagesResult(pageMessage)
+                printGotAccountEntities(totalItems)
+                break
             except GAPI.invalidInput as e:
               message = str(e)
 # Invalid Input: xyz - Check for invalid pageToken!!
@@ -21704,16 +21761,6 @@ def doPrintCrOSActivity(entityList=None):
               return
             except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
               accessErrorExit(cd)
-            tokenRetries = 0
-            pageToken, totalItems = _processGAPIpagesResult(feed, 'chromeosdevices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
-            if feed:
-              for cros in feed.get('chromeosdevices', []):
-                _printCrOS(cros)
-              del feed
-            if not pageToken:
-              _finalizeGAPIpagesResult(pageMessage)
-              printGotAccountEntities(totalItems)
-              break
   else:
     sortRows = True
     jcount = len(entityList)
@@ -21932,11 +21979,21 @@ def doInfoPrintShowCrOSTelemetry():
     tokenRetries = 0
     while True:
       try:
-        devices = callGAPI(cm.customers().telemetry().devices(), 'list',
-                           throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.INVALID_INPUT],
-                           pageToken=pageToken,
-                           parent=parent, filter=pfilter,
-                           readMask=readMask, pageSize=GC.Values[GC.DEVICE_MAX_RESULTS])
+        feed = callGAPI(cm.customers().telemetry().devices(), 'list',
+                        throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.INVALID_INPUT],
+                        pageToken=pageToken,
+                        parent=parent, filter=pfilter,
+                        readMask=readMask, pageSize=GC.Values[GC.DEVICE_MAX_RESULTS])
+        tokenRetries = 0
+        pageToken, totalItems = _processGAPIpagesResult(feed, 'devices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
+        if feed:
+          for device in feed.get('devices', []):
+            _printDevice(device)
+          del feed
+        if not pageToken:
+          _finalizeGAPIpagesResult(pageMessage)
+          printGotAccountEntities(totalItems)
+          break
       except (GAPI.invalidArgument, GAPI.invalidInput) as e:
         message = str(e).replace('\n', ',')
 # Invalid Input: xyz - Check for invalid pageToken!!
@@ -21953,16 +22010,6 @@ def doInfoPrintShowCrOSTelemetry():
         return
       except GAPI.permissionDenied as e:
         accessErrorExitNonDirectory(API.CHROMEMANAGEMENT, str(e))
-      tokenRetries = 0
-      pageToken, totalItems = _processGAPIpagesResult(devices, 'devices', None, totalItems, pageMessage, None, Ent.CROS_DEVICE)
-      if devices:
-        for device in devices.get('devices', []):
-          _printDevice(device)
-        del devices
-      if not pageToken:
-        _finalizeGAPIpagesResult(pageMessage)
-        printGotAccountEntities(totalItems)
-        break
   else:
     try:
       devices = callGAPIpages(cm.customers().telemetry().devices(), 'list', 'devices',
@@ -22299,29 +22346,13 @@ def doPrintShowBrowsers():
     for query in queries:
       printGettingAllAccountEntities(Ent.CHROME_BROWSER, query)
       pageMessage = getPageMessage()
-      pageToken = None
-      totalItems = 0
-      while True:
-        try:
-          feed = callGAPI(cbcm.chromebrowsers(), 'list',
-                          throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
-                          pageToken=pageToken,
-                          customer=customerId, orgUnitPath=orgUnitPath, query=query, projection=projection,
-                          orderBy=orderBy, sortOrder=sortOrder, fields=fields)
-        except GAPI.invalidInput as e:
-          if query:
-            entityActionFailedWarning([Ent.CHROME_BROWSER, None], invalidQuery(query))
-          else:
-            entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
-          return
-        except GAPI.invalidOrgunit as e:
-          entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
-          return
-        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-          accessErrorExit(None)
-        pageToken, totalItems = _processGAPIpagesResult(feed, 'browsers', None, totalItems, pageMessage, 'deviceId', Ent.CHROME_BROWSER)
-        if feed:
-          browsers = feed.get('browsers', [])
+      try:
+        feed = yieldGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
+                              pageMessage=pageMessage, messageAttribute='deviceId',
+                              throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                              customer=customerId, orgUnitPath=orgUnitPath, query=query, projection=projection,
+                              orderBy=orderBy, sortOrder=sortOrder, fields=fields)
+        for browsers in feed:
           if not csvPF:
             jcount = len(browsers)
             if not FJQC.formatJSON:
@@ -22335,10 +22366,17 @@ def doPrintShowBrowsers():
           else:
             for browser in browsers:
               _printBrowser(browser)
-          del feed
-        if not pageToken:
-          _finalizeGAPIpagesResult(pageMessage)
-          break
+      except GAPI.invalidInput as e:
+        if query:
+          entityActionFailedWarning([Ent.CHROME_BROWSER, None], invalidQuery(query))
+        else:
+          entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
+        return
+      except GAPI.invalidOrgunit as e:
+        entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
+        return
+      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        accessErrorExit(None)
   else:
     sortRows = True
     jcount = len(entityList)
@@ -24239,20 +24277,20 @@ def doPrintCIDevices():
     workaroundPossible = (OBY.orderBy == 'create_time') and (query is None or 'register' not in query)
     while True:
       try:
-        result = callGAPI(ci.devices(), 'list',
-                          throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                          pageToken=pageToken,
-                          customer=customer, filter=pfilter,
-                          orderBy=OBY.orderBy, view=view, fields=fields, pageSize=100)
-        pageToken, totalItems = _processGAPIpagesResult(result, 'devices', None, totalItems, pageMessage, None, entityType)
-        if result:
-          for device in result.get('devices', []):
+        feed = callGAPI(ci.devices(), 'list',
+                        throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                        pageToken=pageToken,
+                        customer=customer, filter=pfilter,
+                        orderBy=OBY.orderBy, view=view, fields=fields, pageSize=100)
+        pageToken, totalItems = _processGAPIpagesResult(feed, 'devices', None, totalItems, pageMessage, None, entityType)
+        if feed:
+          for device in feed.get('devices', []):
             devices[device['name']] = device
             createTime = device.get('createTime', NEVER_TIME)[:-1].split('.')[0]
             if createTime > newestCreateTime:
               newestCreateTime = createTime
-          del result
+          del feed
         if not pageToken:
           _finalizeGAPIpagesResult(pageMessage)
           printGotAccountEntities(totalItems)
@@ -24284,15 +24322,15 @@ def doPrintCIDevices():
       newestCreateTime = ''
       while True:
         try:
-          result = callGAPI(ci.devices().deviceUsers(), 'list',
-                            throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                            pageToken=pageToken,
-                            customer=customer, filter=pfilter, parent=parent,
-                            orderBy=OBY.orderBy, fields=userFields, pageSize=20)
-          pageToken, totalItems = _processGAPIpagesResult(result, 'deviceUsers', None, totalItems, pageMessage, None, Ent.DEVICE_USER)
-          if result:
-            for deviceUser in result.get('deviceUsers', []):
+          feed = callGAPI(ci.devices().deviceUsers(), 'list',
+                          throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                          pageToken=pageToken,
+                          customer=customer, filter=pfilter, parent=parent,
+                          orderBy=OBY.orderBy, fields=userFields, pageSize=20)
+          pageToken, totalItems = _processGAPIpagesResult(feed, 'deviceUsers', None, totalItems, pageMessage, None, Ent.DEVICE_USER)
+          if feed:
+            for deviceUser in feed.get('deviceUsers', []):
               createTime = deviceUser.get('createTime', NEVER_TIME)[:-1].split('.')[0]
               if createTime > newestCreateTime:
                 newestCreateTime = createTime
@@ -24302,7 +24340,7 @@ def doPrintCIDevices():
                 if deviceName in devices:
                   devices[deviceName].setdefault('users', [])
                   devices[deviceName]['users'].append(deviceUser)
-            del result
+            del feed
           if not pageToken:
             _finalizeGAPIpagesResult(pageMessage)
             printGotAccountEntities(totalItems)
@@ -24484,15 +24522,15 @@ def doPrintCIDeviceUsers():
     workaroundPossible = (OBY.orderBy == 'create_time') and (query is None or 'register' not in query)
     while True:
       try:
-        result = callGAPI(ci.devices().deviceUsers(), 'list',
-                          throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                          pageToken=pageToken,
-                          customer=customer, filter=pfilter,
-                          orderBy=OBY.orderBy, parent=parent, fields=userFields, pageSize=20)
-        pageToken, totalItems = _processGAPIpagesResult(result, 'deviceUsers', None, totalItems, pageMessage, None, Ent.DEVICE_USER)
-        if result:
-          for deviceUser in result.get('deviceUsers', []):
+        feed = callGAPI(ci.devices().deviceUsers(), 'list',
+                        throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                        pageToken=pageToken,
+                        customer=customer, filter=pfilter,
+                        orderBy=OBY.orderBy, parent=parent, fields=userFields, pageSize=20)
+        pageToken, totalItems = _processGAPIpagesResult(feed, 'deviceUsers', None, totalItems, pageMessage, None, Ent.DEVICE_USER)
+        if feed:
+          for deviceUser in feed.get('deviceUsers', []):
             createTime = deviceUser.get('createTime', NEVER_TIME)[:-1].split('.')[0]
             if createTime > newestCreateTime:
               newestCreateTime = createTime
@@ -24503,6 +24541,7 @@ def doPrintCIDeviceUsers():
               csvPF.WriteRowNoFilter({'name': deviceUser['name'],
                                       'JSON': json.dumps(cleanJSON(deviceUser, skipObjects=deviceSkipObjects, timeObjects=DEVICE_TIME_OBJECTS),
                                                          ensure_ascii=False, sort_keys=True)})
+          del feed
         if not pageToken:
           _finalizeGAPIpagesResult(pageMessage)
           break
@@ -26050,29 +26089,23 @@ def doPrintMobileDevices():
   for query in queries:
     printGettingAllAccountEntities(Ent.MOBILE_DEVICE, query)
     pageMessage = getPageMessage()
-    pageToken = None
     totalItems = 0
-    while True:
-      try:
-        feed = callGAPI(cd.mobiledevices(), 'list',
-                        throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                        pageToken=pageToken,
-                        customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=parameters['projection'],
-                        orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.MOBILE_MAX_RESULTS])
-      except GAPI.invalidInput:
-        entityActionFailedWarning([Ent.MOBILE_DEVICE, None], invalidQuery(query))
-        return
-      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-        accessErrorExit(cd)
-      pageToken, totalItems = _processGAPIpagesResult(feed, 'mobiledevices', None, totalItems, pageMessage, None, Ent.MOBILE_DEVICE)
-      if feed:
-        for mobile in feed.get('mobiledevices', []):
+    try:
+      feed = yieldGAPIpages(cd.mobiledevices(), 'list', 'mobiledevices',
+                            pageMessage=pageMessage,
+                            throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                            customerId=GC.Values[GC.CUSTOMER_ID], query=query, projection=parameters['projection'],
+                            orderBy=orderBy, sortOrder=sortOrder, fields=fields, maxResults=GC.Values[GC.MOBILE_MAX_RESULTS])
+      for mobiles in feed:
+        for mobile in mobiles:
+          totalItems += 1
           _printMobile(mobile)
-        del feed
-      if not pageToken:
-        _finalizeGAPIpagesResult(pageMessage)
-        printGotAccountEntities(totalItems)
-        break
+      printGotAccountEntities(totalItems)
+    except GAPI.invalidInput:
+      entityActionFailedWarning([Ent.MOBILE_DEVICE, None], invalidQuery(query))
+      return
+    except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+      accessErrorExit(cd)
   csvPF.writeCSVfile('Mobile')
 
 GROUP_DISCOVER_CHOICES = {
@@ -35566,9 +35599,9 @@ def _updateSites(users, entityType):
                               retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
                               domain=domain, site=site)
         fields = sitesManager.SiteToFields(siteEntry)
-        for field in updateFields:
+        for field, value in iter(updateFields.items()):
           if field != SITE_SOURCELINK:
-            fields[field] = updateFields[field]
+            fields[field] = value
         newSiteEntry = sitesManager.FieldsToSite(fields)
         callGData(sitesObject, 'UpdateSite',
                   throwErrors=[GDATA.NOT_FOUND, GDATA.BAD_REQUEST, GDATA.FORBIDDEN],
@@ -35707,15 +35740,15 @@ def printShowSites(entityList, entityType):
       sitesSet.add(fields[SITE_SITE])
       domainSite = f'{domain}/{fields[SITE_SITE]}'
       siteRow = {Ent.Singular(entityType): entity, SITE_SITE: domainSite}
-      for field in fields:
+      for field, value in iter(fields.items()):
         if field != SITE_SITE:
-          if not isinstance(fields[field], list):
+          if not isinstance(value, list):
             if field != SITE_SUMMARY or not convertCRNL:
-              siteRow[field] = fields[field]
+              siteRow[field] = value
             else:
-              siteRow[field] = escapeCRsNLs(fields[field])
+              siteRow[field] = escapeCRsNLs(value)
           else:
-            siteRow[field] = delimiter.join(fields[field])
+            siteRow[field] = delimiter.join(value)
       rowShown = False
       if roles:
         try:
@@ -36037,11 +36070,11 @@ def _printSiteActivity(users, entityType):
         for activity in activities:
           fields = sitesManager.ActivityEntryToFields(activity)
           activityRow = {SITE_SITE: domainSite}
-          for key in fields:
-            if not isinstance(fields[key], list):
-              activityRow[key] = fields[key]
+          for key, value in iter(fields.items()):
+            if not isinstance(value, list):
+              activityRow[key] = value
             else:
-              activityRow[key] = ','.join(fields[key])
+              activityRow[key] = ','.join(value)
           csvPF.WriteRowTitles(activityRow)
       except GDATA.notFound:
         entityUnknownWarning(Ent.SITE, domainSite, j, jcount)
@@ -38062,7 +38095,7 @@ def doPrintUsers(entityList=None):
   licenses = {}
   lic = None
   skus = None
-  maxResults = 500
+  maxResults = GC.Values[GC.USER_MAX_RESULTS]
   projection = 'basic'
   projectionSet = False
   customFieldMask = None
@@ -38142,7 +38175,7 @@ def doPrintUsers(entityList=None):
     elif myarg in {'countonly', 'countsonly'}:
       printOptions['countOnly'] = True
     elif myarg == 'maxresults':
-      maxResults = getInteger(minVal=100, maxVal=1000)
+      maxResults = getInteger(minVal=1, maxVal=500)
     elif myarg == 'quoteplusphonenumbers':
       quotePlusPhoneNumbers = True
     else:
@@ -38198,35 +38231,15 @@ def doPrintUsers(entityList=None):
         query += f'isSuspended={isSuspended}'
       printGettingAllAccountEntities(Ent.USER, query)
       pageMessage = getPageMessage(showFirstLastItems=True)
-      pageToken = None
-      totalItems = 0
-      while True:
-        try:
-          feed = callGAPI(cd.users(), 'list',
-                          throwReasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
-                                        GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                          pageToken=pageToken,
-                          customer=customer, domain=domain, query=query, fields=fields,
-                          showDeleted=showDeleted, orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
-                          projection=projection, customFieldMask=customFieldMask, maxResults=GC.Values[GC.USER_MAX_RESULTS])
-        except GAPI.domainNotFound:
-          entityActionFailedWarning([Ent.USER, None, Ent.DOMAIN, domain], Msg.NOT_FOUND)
-          return
-        except (GAPI.invalidOrgunit, GAPI.invalidInput) as e:
-          if query and not customFieldMask:
-            entityActionFailedWarning([Ent.USER, None], invalidQuery(query))
-          elif customFieldMask and not query:
-            entityActionFailedWarning([Ent.USER, None], invalidUserSchema(customFieldMask))
-          elif query and customFieldMask:
-            entityActionFailedWarning([Ent.USER, None], f'{invalidQuery(query)} or {invalidUserSchema(customFieldMask)}')
-          else:
-            entityActionFailedWarning([Ent.USER, None], str(e))
-          return
-        except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
-          accessErrorExit(cd)
-        pageToken, totalItems = _processGAPIpagesResult(feed, 'users', None, totalItems, pageMessage, 'primaryEmail', Ent.USER)
-        if feed:
-          users = feed.get('users', [])
+      try:
+        feed = yieldGAPIpages(cd.users(), 'list', 'users',
+                              pageMessage=pageMessage, messageAttribute='primaryEmail',
+                              throwReasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
+                                            GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                              customer=customer, domain=domain, query=query, fields=fields,
+                              showDeleted=showDeleted, orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
+                              projection=projection, customFieldMask=customFieldMask, maxResults=maxResults)
+        for users in feed:
           if orgUnitPath is None:
             if not printOptions['countOnly']:
               for user in users:
@@ -38243,10 +38256,21 @@ def doPrintUsers(entityList=None):
               for user in users:
                 if orgUnitPathLower == user.get('orgUnitPath', '').lower():
                   _updateDomainCounts(user['primaryEmail'])
-          del feed
-        if not pageToken:
-          _finalizeGAPIpagesResult(pageMessage)
-          break
+      except GAPI.domainNotFound:
+        entityActionFailedWarning([Ent.USER, None, Ent.DOMAIN, domain], Msg.NOT_FOUND)
+        return
+      except (GAPI.invalidOrgunit, GAPI.invalidInput) as e:
+        if query and not customFieldMask:
+          entityActionFailedWarning([Ent.USER, None], invalidQuery(query))
+        elif customFieldMask and not query:
+          entityActionFailedWarning([Ent.USER, None], invalidUserSchema(customFieldMask))
+        elif query and customFieldMask:
+          entityActionFailedWarning([Ent.USER, None], f'{invalidQuery(query)} or {invalidUserSchema(customFieldMask)}')
+        else:
+          entityActionFailedWarning([Ent.USER, None], str(e))
+        return
+      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+        accessErrorExit(cd)
   else:
     sortRows = True
 # If no individual fields were specified (allfields, basic, full) or individual fields other than primaryEmail were specified, look up each user
@@ -44773,29 +44797,20 @@ def printDriveActivity(users):
       qualifier = f' for {Ent.Singular(entityType)}: {fileId}'
       printGettingAllEntityItemsForWhom(Ent.ACTIVITY, user, i, count, qualifier=qualifier)
       pageMessage = getPageMessageForWhom()
-      pageToken = None
-      totalItems = 0
       kwargs = {
         'consolidationStrategy': {strategy: {}},
         'pageSize': GC.Values[GC.ACTIVITY_MAX_RESULTS],
-        'pageToken': pageToken,
+        'pageToken': None,
         drive_key: f'items/{fileId}',
         'filter': activityFilter}
-      while True:
-        try:
-          feed = callGAPI(activity.activity(), 'query',
-                          throwReasons=GAPI.ACTIVITY_THROW_REASONS,
-                          fields='nextPageToken,activities', body=kwargs)
-        except GAPI.badRequest as e:
-          entityActionFailedWarning([Ent.USER, user, entityType, fileId], str(e), i, count)
-          break
-        except GAPI.serviceNotAvailable:
-          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-          break
-        pageToken, totalItems = _processGAPIpagesResult(feed, 'activities', None, totalItems, pageMessage, None, Ent.ACTIVITY)
-        kwargs['pageToken'] = pageToken
-        if feed:
-          for activityEvent in feed.get('activities', []):
+      try:
+        feed = yieldGAPIpages(activity.activity(), 'query', 'activities',
+                              pageMessage=pageMessage,
+                              throwReasons=GAPI.ACTIVITY_THROW_REASONS,
+                              pageArgsInBody=True,
+                              fields='nextPageToken,activities', body=kwargs)
+        for activities in feed:
+          for activityEvent in activities:
             eventRow = {}
             actors = activityEvent.get('actors', [])
             if actors:
@@ -44835,10 +44850,12 @@ def printDriveActivity(users):
               if csvPF.CheckRowTitles(checkRow):
                 eventRow['JSON'] = json.dumps(cleanJSON(activityEvent), ensure_ascii=False, sort_keys=True)
                 csvPF.WriteRowNoFilter(eventRow)
-          del feed
-        if not pageToken:
-          _finalizeGAPIpagesResult(pageMessage)
-          break
+      except GAPI.badRequest as e:
+        entityActionFailedWarning([Ent.USER, user, entityType, fileId], str(e), i, count)
+        continue
+      except GAPI.serviceNotAvailable:
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        continue
   csvPF.writeCSVfile('Drive Activity')
 
 DRIVESETTINGS_FIELDS_CHOICE_MAP = {
@@ -47286,76 +47303,54 @@ def printFileList(users):
     if buildTree:
       printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
       pageMessage = getPageMessageForWhom()
-      pageToken = None
-      totalItems = 0
-      maxResults = GC.Values[GC.DRIVE_MAX_RESULTS]
-      tweakMaxResults = DLP.maxItems and maxResults
       if not incrementalPrint:
         fileTree, status = initFileTree(drive, fileIdEntity.get('shareddrive'), DLP, shareddriveFields, showParent, user, i, count)
         if not status:
           continue
-      queryError = False
-      userError = False
-      while True:
-        if tweakMaxResults and DLP.maxItems-totalItems < GC.Values[GC.DRIVE_MAX_RESULTS]:
-          maxResults = DLP.maxItems-totalItems
-        try:
-          feed = callGAPI(drive.files(), 'list',
-                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
-                                                                      GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                          retryReasons=[GAPI.UNKNOWN_ERROR],
-                          pageToken=pageToken,
-                          q=DLP.fileIdEntity['query'], orderBy=DFF.orderBy,
-                          fields=pagesFields, pageSize=maxResults, **btkwargs)
-        except (GAPI.invalidQuery, GAPI.invalid):
-          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
-          queryError = True
-          break
-        except GAPI.fileNotFound:
-          printGotEntityItemsForWhom(0)
-          break
-        except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
-          entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, fileIdEntity['shareddrive']['driveId']], str(e), i, count)
-          break
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-          userError = True
-          break
-        pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, pageMessage, None, Ent.DRIVE_FILE_OR_FOLDER)
-        if feed:
+      try:
+        feed = yieldGAPIpages(drive.files(), 'list', 'files',
+                              pageMessage=pageMessage, maxItems=DLP.maxItems,
+                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
+                                                                          GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                              retryReasons=[GAPI.UNKNOWN_ERROR],
+                              q=DLP.fileIdEntity['query'], orderBy=DFF.orderBy,
+                              fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+        for files in feed:
           if showLabels is not None:
-            for f_file in feed.get('files', []):
+            for f_file in files:
               labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
                                      throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                                      fileId=f_file['id'])
               _formatFileDriveLabels(showLabels, labels, f_file, True, delimiter)
           if not incrementalPrint:
-            extendFileTree(fileTree, feed.get('files', []), DLP, stripCRsFromName)
+            extendFileTree(fileTree, files, DLP, stripCRsFromName)
           else:
-            for f_file in feed.get('files', []):
+            for f_file in files:
               if stripCRsFromName:
                 f_file['name'] = _stripControlCharsFromName(f_file['name'])
               _printFileInfo(drive, user, f_file)
-          del feed
-        if not pageToken or (DLP.maxItems and totalItems >= DLP.maxItems):
-          _finalizeGAPIpagesResult(pageMessage)
-          break
-      if queryError:
+        if incrementalPrint:
+          if countsOnly:
+            if summary != FILECOUNT_SUMMARY_NONE:
+              for mimeType, mtcount in iter(mimeTypeCounts.items()):
+                summaryMimeTypeCounts.setdefault(mimeType, 0)
+                summaryMimeTypeCounts[mimeType] += mtcount
+            if summary != FILECOUNT_SUMMARY_ONLY:
+              writeMimeTypeCountsRow(user, rootFolderId, rootFolderName, mimeTypeCounts, sizeTotals['User'])
+            incrementSizeSummary()
+          continue
+        extendFileTreeParents(drive, fileTree, fields)
+        DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
+      except (GAPI.invalidQuery, GAPI.invalid):
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
         break
-      if userError:
+      except GAPI.fileNotFound:
+        printGotEntityItemsForWhom(0)
+      except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, fileIdEntity['shareddrive']['driveId']], str(e), i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
-      if incrementalPrint:
-        if countsOnly:
-          if summary != FILECOUNT_SUMMARY_NONE:
-            for mimeType, mtcount in iter(mimeTypeCounts.items()):
-              summaryMimeTypeCounts.setdefault(mimeType, 0)
-              summaryMimeTypeCounts[mimeType] += mtcount
-          if summary != FILECOUNT_SUMMARY_ONLY:
-            writeMimeTypeCountsRow(user, rootFolderId, rootFolderName, mimeTypeCounts, sizeTotals['User'])
-          incrementSizeSummary()
-        continue
-      extendFileTreeParents(drive, fileTree, fields)
-      DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
     else:
       fileTree = {}
     user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive)
@@ -47723,36 +47718,16 @@ def printShowFileCounts(users):
     mimeTypeCounts = {}
     printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
     pageMessage = getPageMessageForWhom()
-    pageToken = None
-    totalItems = 0
-    maxResults = GC.Values[GC.DRIVE_MAX_RESULTS]
-    queryError = userError = False
-    while True:
-      try:
-        feed = callGAPI(drive.files(), 'list',
-                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
-                                                                    GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                        retryReasons=[GAPI.UNKNOWN_ERROR],
-                        pageToken=pageToken,
-                        q=DLP.fileIdEntity['query'],
-                        fields=pagesFields, pageSize=maxResults, **btkwargs)
-      except (GAPI.invalidQuery, GAPI.invalid):
-        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
-        queryError = True
-        break
-      except GAPI.fileNotFound:
-        printGotEntityItemsForWhom(0)
-        break
-      except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, sharedDriveId], str(e), i, count)
-        break
-      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-        userError = True
-        break
-      pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, pageMessage, None, Ent.DRIVE_FILE_OR_FOLDER)
-      if feed:
-        for f_file in feed.get('files', []):
+    try:
+      feed = yieldGAPIpages(drive.files(), 'list', 'files',
+                            pageMessage=pageMessage,
+                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
+                                                                        GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                            retryReasons=[GAPI.UNKNOWN_ERROR],
+                            q=DLP.fileIdEntity['query'],
+                            fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+      for files in  feed:
+        for f_file in files:
           driveId = f_file.get('driveId')
           checkSharedDrivePermissions = getPermissionsForSharedDrives and driveId and 'permissions' not in f_file
           if (not DLP.CheckShowOwnedBy(f_file) or
@@ -47780,15 +47755,18 @@ def printShowFileCounts(users):
           mimeTypeCounts[f_file['mimeType']] += 1
           if showSize:
             sizeTotals['User'] += int(f_file.get('size', '0'))
-      if not pageToken or (DLP.maxItems and totalItems >= DLP.maxItems):
-        _finalizeGAPIpagesResult(pageMessage)
-        break
-    if queryError:
+      showMimeTypeCounts(user, mimeTypeCounts, sizeTotals['User'], sharedDriveId, sharedDriveName, i, count)
+      incrementSizeSummary()
+    except (GAPI.invalidQuery, GAPI.invalid):
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
       break
-    if userError:
+    except GAPI.fileNotFound:
+      printGotEntityItemsForWhom(0)
+    except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, sharedDriveId], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       continue
-    showMimeTypeCounts(user, mimeTypeCounts, sizeTotals['User'], sharedDriveId, sharedDriveName, i, count)
-    incrementSizeSummary()
   if summary != FILECOUNT_SUMMARY_NONE:
     showMimeTypeCounts(summaryUser, summaryMimeTypeCounts, sizeTotals['Summary'],
                        '' if count > 1 else sharedDriveId, '' if count > 1 else sharedDriveName, 0, 0)
@@ -48011,36 +47989,23 @@ def printShowFileTree(users):
         continue
       printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
       pageMessage = getPageMessageForWhom()
-      pageToken = None
-      totalItems = 0
-      userError = False
-      while True:
-        try:
-          feed = callGAPI(drive.files(), 'list',
-                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
-                          retryReasons=[GAPI.UNKNOWN_ERROR],
-                          pageToken=pageToken,
-                          orderBy=OBY.orderBy,
-                          fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
-        except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
-          entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, fileIdEntity['shareddrive']['driveId']], str(e), i, count)
-          userError = True
-          break
-        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
-          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-          userError = True
-          break
-        pageToken, totalItems = _processGAPIpagesResult(feed, 'files', None, totalItems, pageMessage, None, Ent.DRIVE_FILE_OR_FOLDER)
-        if feed:
-          extendFileTree(fileTree, feed.get('files', []), DLP, stripCRsFromName)
-          del feed
-        if not pageToken:
-          _finalizeGAPIpagesResult(pageMessage)
-          break
-      if userError:
+      try:
+        feed = yieldGAPIpages(drive.files(), 'list', 'files',
+                              pageMessage=pageMessage,
+                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                              retryReasons=[GAPI.UNKNOWN_ERROR],
+                              orderBy=OBY.orderBy,
+                              fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+        for files in feed:
+          extendFileTree(fileTree, files, DLP, stripCRsFromName)
+        extendFileTreeParents(drive, fileTree, fields)
+        DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
+      except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, fileIdEntity['shareddrive']['driveId']], str(e), i, count)
         continue
-      extendFileTreeParents(drive, fileTree, fields)
-      DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        continue
     else:
       fileTree = {}
     user, drive, jcount = _validateUserGetFileIDs(origUser, i, count, fileIdEntity, drive=drive, entityType=Ent.DRIVE_FILE_OR_FOLDER)
