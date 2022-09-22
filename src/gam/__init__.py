@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.00'
+__version__ = '6.27.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -31379,10 +31379,11 @@ def _getResourceCalendarAttributes(cd, body):
     elif myarg == 'capacity':
       body['capacity'] = getInteger(minVal=0)
     elif myarg in {'feature', 'features', 'featureinstances'}:
-      features = getString(Cmd.OB_STRING).split(',')
       body['featureInstances'] = []
-      for feature in features:
-        body['featureInstances'].append({'feature': {'name': feature}})
+      features = getString(Cmd.OB_STRING, minLen=0)
+      if features:
+        for feature in features.split(','):
+          body['featureInstances'].append({'feature': {'name': feature}})
     elif myarg in {'floor', 'floorname'}:
       body['floorName'] = getString(Cmd.OB_STRING)
     elif myarg == 'floorsection':

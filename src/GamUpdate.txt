@@ -1,3 +1,7 @@
+6.27.01
+
+Updated `<ResourceAttribute>` to allow `features ""` for resources.
+
 6.27.00
 
 Updated code to use Python yield functionality when downloading long lists of items from Google APIs.
