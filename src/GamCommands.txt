@@ -5217,7 +5217,8 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 gam <UserTypeEntity> info drivefile <DriveFileEntity>
         [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+        [showdrivename] [showshareddrivepermissions]
+        [(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
         [showparentsidsaslist]
         [stripcrsfromname]
         [formatjson]
@@ -5438,6 +5439,11 @@ gam <UserTypeEntity> collect orphans
         restrictiontime|
         type
 
+<DriveLabelInfoSubfieldName> ::=
+        labels.id|              # modifiedByMe
+        labels.revisionid|      # copyRequiresWriterPermission
+        labels.fields           # viewedByMe
+
 <DriveLabelsSubfieldName> ::=
         labels.modified|        # modifiedByMe
         labels.restricted|      # copyRequiresWriterPermission
@@ -5530,7 +5536,7 @@ gam <UserTypeEntity> collect orphans
         drivename|
         editable|
         explicitlytrashed|
-        exportLinks|
+        exportlinks|
         fileextension|
         filesize|
         foldercolorrgb|
@@ -5542,13 +5548,15 @@ gam <UserTypeEntity> collect orphans
         id|
         imagemediametadata|
         isappauthorized|
+        labelinfo|
+        <DriveLabelInfoSubfieldName>|
         labels|
         <DriveLabelsSubfieldName>|
         lastmodifyinguser|
         <DriveLastModifyingUserSubfieldName>|
         lastmodifyingusername|
         lastviewedbyme|lastviewedbymedate|lastviewedbymetime|lastviewedbyuser|
-        linkShareMetadata|
+        linksharemetadata|
         md5|md5checksum|md5sum|
         mime|mimetype|
         modifiedbyme|modifiedbymedate|modifiedbymetime|modifiedbyuser|
@@ -5614,7 +5622,8 @@ gam <UserTypeEntity> collect orphans
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
         [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+        [showdrivename] [showshareddrivepermissions]
+        [(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
         [showparentsidsaslist]
         [stripcrsfromname]
         [formatjson]
@@ -5700,7 +5709,8 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
         [filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
         [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-        [showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+        [showdrivename] [showshareddrivepermissions]
+        [(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
         [showparentsidsaslist] [showpermissionslast]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
         [stripcrsfromname]

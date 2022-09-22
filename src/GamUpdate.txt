@@ -1,3 +1,14 @@
+6.27.02
+
+Added options `labelinfo` and `<DriveLabelInfoSubfieldName>` to `<DriveFieldName>` and
+option `includelabels <DriveLabelIDList>` to `gam <UserTypeEntity> show fileinfo` and
+`gam <UserTypeEntity> print filelist` to allow easier access to display drive file labels.
+This options do not require an extra API call like the `showlabels details|ids` option does.
+```
+gam user user@domain,com show fileinfo 1kM4T2K4l0CCdR8lmp0pdXcytghAzXZ2fe5ThQpDwxyz fields id,name,mimetype,labelinfo includelabels "mRoha85IbwCRl490E00xGLvBsSbkwIiuZ6PRNNEbbFcb"
+gam user user@domain.com show fileinfo query "'labels/mRoha85IbwCRl490E00xGLvBsSbkwIiuZ6PRNNEbbFcb' in labels" fields id,name,mimetype,labelinfo.fields includelabels "mRoha85IbwCRl490E00xGLvBsSbkwIiuZ6PRNNEbbFcb"
+```
+
 6.27.01
 
 Updated `<ResourceAttribute>` to allow `features ""` for resources.

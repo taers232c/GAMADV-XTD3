@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.01'
+__version__ = '6.27.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -45288,6 +45288,7 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'id': 'id',
   'imagemediametadata': 'imageMediaMetadata',
   'isappauthorized': 'isAppAuthorized',
+  'labelinfo': 'labelInfo',
   'labels': ['modifiedByMe', 'copyRequiresWriterPermission', 'starred', 'trashed', 'viewedByMe'],
   'lastmodifyinguser': 'lastModifyingUser',
   'lastmodifyingusername': 'lastModifyingUser.displayName',
@@ -45389,6 +45390,12 @@ DRIVE_CONTENT_RESTRICTIONS_SUBFIELDS_CHOICE_MAP = {
   'type': 'type',
   }
 
+DRIVE_LABELINFO_SUBFIELDS_CHOICE_MAP = {
+  'id': 'labels(id)',
+  'fields': 'labels(fields)',
+  'revisionid': 'labels(revisionId)',
+  }
+
 DRIVE_OWNERS_SUBFIELDS_CHOICE_MAP = {
   'displayname': 'displayName',
   'emailaddress': 'emailAddress',
@@ -45446,6 +45453,7 @@ DRIVE_SHORTCUTDETAILS_SUBFIELDS_CHOICE_MAP = {
 DRIVE_SUBFIELDS_CHOICE_MAP = {
   'capabilities': DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP,
   'contentrestrictions': DRIVE_CONTENT_RESTRICTIONS_SUBFIELDS_CHOICE_MAP,
+  'labelinfo': DRIVE_LABELINFO_SUBFIELDS_CHOICE_MAP,
   'labels': DRIVE_LABEL_CHOICE_MAP,
   'lastmodifyinguser': DRIVE_SHARINGUSER_SUBFIELDS_CHOICE_MAP,
   'owners': DRIVE_OWNERS_SUBFIELDS_CHOICE_MAP,
@@ -45494,6 +45502,7 @@ class DriveFileFields():
     self.allFields = False
     self.OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
     self.fieldsList = []
+    self.includeLabels = []
     self.parentsSubFields = {'id': False, 'isRoot': False, 'rootFolderId': None}
     self.sharedDriveNames = {}
     self.drive = None
@@ -45528,6 +45537,10 @@ class DriveFileFields():
             invalidChoiceExit(field, list(DRIVE_FIELDS_CHOICE_MAP)+list(DRIVE_LABEL_CHOICE_MAP), True)
         else:
           _getDriveFieldSubField(field, self.fieldsList, self.parentsSubFields)
+    elif myarg == 'includelabels':
+      labelIds = getEntityList(Cmd.OB_DRIVE_LABEL_ID, shlexSplit=True)
+      for labelId in labelIds:
+        self.includeLabels.append(normalizeDriveLabelID(labelId))
     elif myarg.find('.') != -1:
       _getDriveFieldSubField(myarg, self.fieldsList, self.parentsSubFields)
     elif myarg == 'orderby':
@@ -45603,13 +45616,15 @@ def _formatFileDriveLabels(showLabels, labels, result, printMode, delimiter):
 # gam <UserTypeEntity> info drivefile <DriveFileEntity>
 #	[filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+#	[showdrivename] [showshareddrivepermissions]
+#	[(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
 #	[showparentsidsaslist]
 #	[stripcrsfromname]
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity>
 #	[filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[showdrivename] [showlabels details|ids] [showshareddrivepermissions]
+#	[showdrivename] [showshareddrivepermissions]
+#	[(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
 #	[showparentsidsaslist]
 #	[stripcrsfromname]
 def showFileInfo(users):
@@ -45657,6 +45672,7 @@ def showFileInfo(users):
     DFF.SetAllParentsSubFields()
     skipObjects = skipObjects.union(DEFAULT_SKIP_OBJECTS)
     showNoParents = True
+  includeLabels = ','.join(DFF.includeLabels)
   pathFields = FILEPATH_FIELDS
   timeObjects = _getDriveTimeObjects()
   i, count, users = getEntityArgument(users)
@@ -45690,7 +45706,7 @@ def showFileInfo(users):
       try:
         result = callGAPI(drive.files(), 'get',
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
-                          fileId=fileId, fields=fields, supportsAllDrives=True)
+                          fileId=fileId, includeLabels=includeLabels, fields=fields, supportsAllDrives=True)
         if stripCRsFromName:
           result['name'] = _stripControlCharsFromName(result['name'])
         driveId = result.get('driveId')
@@ -46914,7 +46930,8 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
 #	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
-#	[showdrivename] [showlabels details|ids]] [showshareddrivepermissions]
+#	[showdrivename] [showshareddrivepermissions]
+#	(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
 #	[showparentsidsaslist] [showpermissionslast]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 #	[stripcrsfromname]
@@ -47055,7 +47072,7 @@ def printFileList(users):
                                pageMessage=pageMessage, noFinalize=True,
                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
                                retryReasons=[GAPI.UNKNOWN_ERROR],
-                               q=q, orderBy=DFF.orderBy, fields=pagesFields,
+                               q=q, orderBy=DFF.orderBy, includeLabels=includeLabels, fields=pagesFields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeItemsFromAllDrives=True, supportsAllDrives=True)
       for childEntryInfo in children:
         childFileId = childEntryInfo['id']
@@ -47252,6 +47269,7 @@ def printFileList(users):
   if filepath and not countsOnly:
     csvPF.AddTitles('paths')
     csvPF.SetFixPaths(True)
+  includeLabels = ','.join(DFF.includeLabels)
   timeObjects = _getDriveTimeObjects()
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     fileNameTitle = 'title'
@@ -47314,7 +47332,7 @@ def printFileList(users):
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
                                                                           GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                               retryReasons=[GAPI.UNKNOWN_ERROR],
-                              q=DLP.fileIdEntity['query'], orderBy=DFF.orderBy,
+                              q=DLP.fileIdEntity['query'], orderBy=DFF.orderBy, includeLabels=includeLabels,
                               fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
         for files in feed:
           if showLabels is not None:
@@ -47369,7 +47387,7 @@ def printFileList(users):
         try:
           fileEntryInfo = callGAPI(drive.files(), 'get',
                                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
-                                   fileId=fileId, fields=fields, supportsAllDrives=True)
+                                   fileId=fileId, includeLabels=includeLabels, fields=fields, supportsAllDrives=True)
           if stripCRsFromName:
             fileEntryInfo['name'] = _stripControlCharsFromName(fileEntryInfo['name'])
           if showLabels is not None:
