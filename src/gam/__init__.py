@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.02'
+__version__ = '6.27.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -31379,7 +31379,7 @@ def _getResourceCalendarAttributes(cd, body):
     elif myarg == 'capacity':
       body['capacity'] = getInteger(minVal=0)
     elif myarg in {'feature', 'features', 'featureinstances'}:
-      body['featureInstances'] = []
+      body.setdefault('featureInstances', [])
       features = getString(Cmd.OB_STRING, minLen=0)
       if features:
         for feature in features.split(','):
@@ -31394,6 +31394,8 @@ def _getResourceCalendarAttributes(cd, body):
       body['userVisibleDescription'] = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
+  if 'featureInstances' in body and not body['featureInstances']:
+    body['featureInstances'] = [{}]
   return body
 
 # gam create|add resource <ResourceID> <Name> <ResourceAttribute>*
