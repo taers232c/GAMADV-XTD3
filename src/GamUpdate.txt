@@ -1,3 +1,8 @@
+6.27.04
+
+Updated `gam download vaultexport` to replace `:` with `-` in the download filename to avoid
+issues on Windows.
+
 6.27.03
 
 Fixed update in 6.27.01 to allow empty resource calendar feature lists.

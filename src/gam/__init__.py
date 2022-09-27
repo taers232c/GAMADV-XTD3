@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.03'
+__version__ = '6.27.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -34315,7 +34315,7 @@ def doDownloadVaultExport():
     if ((bucketMatchPattern and not bucketMatchPattern.match(bucket)) or
         (objectMatchPattern and not objectMatchPattern.match(s_object))):
       continue
-    filename = os.path.join(targetFolder, s_object.replace('/', '-'))
+    filename = os.path.join(targetFolder, s_object.replace('/', '-').replace(':', '-'))
     if zipToStdout and not ZIP_EXTENSION_PATTERN.match(filename):
       continue
     if targetName:
@@ -34333,7 +34333,7 @@ def doDownloadVaultExport():
           filename = f"{targetName}-{extCounts[s_objectExtension]}"
       else:
         filename = targetName.replace('#objectname#', s_object).replace('#filename#', s_objectFilename).replace('#extension#', s_objectExtension)
-      filename = os.path.join(targetFolder, filename.replace('/', '-'))
+      filename = os.path.join(targetFolder, filename.replace('/', '-').replace(':', '-'))
     Act.Set(Act.DOWNLOAD)
     if not zipToStdout:
       performAction(Ent.CLOUD_STORAGE_FILE, s_object, j, jcount)
