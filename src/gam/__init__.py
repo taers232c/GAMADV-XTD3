@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.04'
+__version__ = '6.27.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2717,9 +2717,6 @@ def entityModifierNewValueKeyValueActionPerformed(entityValueList, modifier, new
                                  currentCountNL(i, count)))
 
 def cleanFilename(filename):
-#  for ch in '\\/:*|~':
-#    filename = filename.replace(ch, '_')
-#  return filename
   return sanitize_filename(filename, '_')
 
 def fileErrorMessage(filename, e, entityType=Ent.FILE):
@@ -34005,13 +34002,13 @@ def doCreateVaultExport():
     body['exportOptions'].pop('voiceOptions', None)
   try:
     export = callGAPI(v.matters().exports(), 'create',
-                      throwReasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR,
+                      throwReasons=[GAPI.ALREADY_EXISTS, GAPI.BAD_REQUEST, GAPI.BACKEND_ERROR, GAPI.INVALID_ARGUMENT,
                                     GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.QUOTA_EXCEEDED],
                       matterId=matterId, body=body)
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export['name'], export['id'])])
     if showDetails:
       _showVaultExport(export, None)
-  except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError,
+  except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.invalidArgument,
           GAPI.failedPrecondition, GAPI.forbidden, GAPI.quotaExceeded) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, body.get('name')], str(e))
 
@@ -34315,7 +34312,7 @@ def doDownloadVaultExport():
     if ((bucketMatchPattern and not bucketMatchPattern.match(bucket)) or
         (objectMatchPattern and not objectMatchPattern.match(s_object))):
       continue
-    filename = os.path.join(targetFolder, s_object.replace('/', '-').replace(':', '-'))
+    filename = os.path.join(targetFolder, sanitize_filename(s_object, '-'))
     if zipToStdout and not ZIP_EXTENSION_PATTERN.match(filename):
       continue
     if targetName:
@@ -34333,7 +34330,7 @@ def doDownloadVaultExport():
           filename = f"{targetName}-{extCounts[s_objectExtension]}"
       else:
         filename = targetName.replace('#objectname#', s_object).replace('#filename#', s_objectFilename).replace('#extension#', s_objectExtension)
-      filename = os.path.join(targetFolder, filename.replace('/', '-').replace(':', '-'))
+      filename = os.path.join(targetFolder, sanitize_filename(filename, '-'))
     Act.Set(Act.DOWNLOAD)
     if not zipToStdout:
       performAction(Ent.CLOUD_STORAGE_FILE, s_object, j, jcount)
