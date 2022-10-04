@@ -16015,7 +16015,7 @@ def doPrintAliases():
         entityActionFailedWarning([Ent.ALIAS, None], invalidQuery(query))
         return
       except GAPI.domainNotFound as e :
-        entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, domain], str(e))
+        entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, kwargs['domain']], str(e))
         return
       except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
         accessErrorExit(cd)
@@ -16030,7 +16030,7 @@ def doPrintAliases():
       for group in entityList:
         writeAliases(group, group['email'], 'Group')
     except GAPI.domainNotFound as e :
-      entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, domain], str(e))
+      entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, kwargs['domain']], str(e))
       return
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
       accessErrorExit(cd)
