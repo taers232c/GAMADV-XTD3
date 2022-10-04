@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.05'
+__version__ = '6.27.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8581,6 +8581,15 @@ def initializeStdQueueHandler(stdtype, gmGlobals, gcValues):
   mpQueueHandler.start()
   return (mpQueue, mpQueueHandler)
 
+def writeStdQueueHandler(mpQueue, item):
+  while True:
+    try:
+      mpQueue.put(item)
+      return
+    except Exception as e:
+      time.sleep(1)
+      batchWriteStderr(f'{currentISOformatTimeStamp()},{item[0]}/{GM.Globals[GM.NUM_BATCH_ITEMS]},Error,{str(e)}\n')
+
 def terminateStdQueueHandler(mpQueue, mpQueueHandler):
   mpQueue.put((0, GM.REDIRECT_QUEUE_EOF, None))
   mpQueueHandler.join()
@@ -8592,60 +8601,69 @@ def batchWriteStderr(data):
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage('stderr', e))
 
-def ProcessGAMCommandMulti(pid, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
+def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                            debugLevel, todrive,
                            csvColumnDelimiter, csvQuoteChar,
                            csvTimestampColumn,
                            csvHeaderFilter, csvHeaderDropFilter,
                            csvRowFilter, csvRowDropFilter,
                            args):
-  initializeLogging()
-  if sys.platform.startswith('win'):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-  GM.Globals[GM.PID] = pid
-  GM.Globals[GM.DEBUG_LEVEL] = debugLevel
-  GM.Globals[GM.SYSEXITRC] = 0
-  GM.Globals[GM.CMDLOG_LOGGER] = None
-  GM.Globals[GM.SAVED_STDOUT] = None
-  GM.Globals[GM.CSV_DATA_DICT] = {}
-  GM.Globals[GM.CSV_KEY_FIELD] = None
-  GM.Globals[GM.CSV_SUBKEY_FIELD] = None
-  GM.Globals[GM.CSV_DATA_FIELD] = None
-  GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
-  GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = csvColumnDelimiter
-  GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = csvQuoteChar
-  GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = csvTimestampColumn
-  GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
-  GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
-  GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
-  GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER] = csvRowDropFilter[:]
-  GM.Globals[GM.CSVFILE] = {}
-  if mpQueueCSVFile:
-    GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
-  if mpQueueStdout:
-    GM.Globals[GM.STDOUT] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
-    if debugLevel:
-      sys.stdout = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
-    mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_START, args))
-  else:
-    GM.Globals[GM.STDOUT] = {}
-  if mpQueueStderr:
-    if mpQueueStderr is not mpQueueStdout:
-      GM.Globals[GM.STDERR] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
-      mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_START, args))
+  global mplock
+
+  with mplock:
+    initializeLogging()
+    if sys.platform.startswith('win'):
+      signal.signal(signal.SIGINT, signal.SIG_IGN)
+    GM.Globals[GM.PID] = pid
+    GM.Globals[GM.NUM_BATCH_ITEMS] = numItems
+    GM.Globals[GM.DEBUG_LEVEL] = debugLevel
+    GM.Globals[GM.SYSEXITRC] = 0
+    GM.Globals[GM.CMDLOG_LOGGER] = None
+    GM.Globals[GM.SAVED_STDOUT] = None
+    GM.Globals[GM.CSV_DATA_DICT] = {}
+    GM.Globals[GM.CSV_KEY_FIELD] = None
+    GM.Globals[GM.CSV_SUBKEY_FIELD] = None
+    GM.Globals[GM.CSV_DATA_FIELD] = None
+    GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
+    GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = csvColumnDelimiter
+    GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = csvQuoteChar
+    GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = csvTimestampColumn
+    GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
+    GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
+    GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
+    GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER] = csvRowDropFilter[:]
+    GM.Globals[GM.CSVFILE] = {}
+    if mpQueueCSVFile:
+      GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
+    if mpQueueStdout:
+      GM.Globals[GM.STDOUT] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
+      if debugLevel:
+        sys.stdout = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
+#      mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_START, args))
+      writeStdQueueHandler(mpQueueStdout,(pid, GM.REDIRECT_QUEUE_START, args))
     else:
-      GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
-  else:
-    GM.Globals[GM.STDERR] = {}
+      GM.Globals[GM.STDOUT] = {}
+    if mpQueueStderr:
+      if mpQueueStderr is not mpQueueStdout:
+        GM.Globals[GM.STDERR] = {GM.REDIRECT_NAME: '', GM.REDIRECT_FD: None, GM.REDIRECT_MULTI_FD: StringIOobject()}
+#        mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_START, args))
+        writeStdQueueHandler(mpQueueStderr, (pid, GM.REDIRECT_QUEUE_START, args))
+      else:
+        GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD]
+    else:
+      GM.Globals[GM.STDERR] = {}
   sysRC = ProcessGAMCommand(args)
-  if mpQueueStdout:
-    mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()]))
-    GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].close()
-    GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = None
-  if mpQueueStderr and mpQueueStderr is not mpQueueStdout:
-    mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()]))
-    GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].close()
-    GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
+  with mplock:
+    if mpQueueStdout:
+#      mpQueueStdout.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()]))
+      writeStdQueueHandler(mpQueueStdout, (pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()]))
+      GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].close()
+      GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD] = None
+    if mpQueueStderr and mpQueueStderr is not mpQueueStdout:
+#      mpQueueStderr.put((pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()]))
+      writeStdQueueHandler(mpQueueStderr, (pid, GM.REDIRECT_QUEUE_END, [sysRC, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()]))
+      GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].close()
+      GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD] = None
   return (pid, sysRC, logCmd)
 
 ERROR_PLURAL_SINGULAR = [Msg.ERRORS, Msg.ERROR]
@@ -8676,7 +8694,15 @@ def checkChildProcessRC(rc):
     return not low <= rc <= high
   return low <= rc <= high
 
+def initGamWorker(l):
+  global mplock
+  mplock = l
+
 def MultiprocessGAMCommands(items, showCmds):
+  def poolErrorCallback(result):
+    poolProcessResults[0] -= 1
+    batchWriteStderr(f'{currentISOformatTimeStamp()},?/{numItems},Error,{str(result)}\n')
+
   def poolCallback(result):
     poolProcessResults[0] -= 1
     if showCmds:
@@ -8688,7 +8714,7 @@ def MultiprocessGAMCommands(items, showCmds):
 
   if not items:
     return
-  numItems = len(items)
+  GM.Globals[GM.NUM_BATCH_ITEMS] = numItems = len(items)
   numPoolProcesses = min(numItems, GC.Values[GC.NUM_THREADS])
   if GC.Values[GC.MULTIPROCESS_POOL_LIMIT] == -1:
     parallelPoolProcesses = -1
@@ -8697,8 +8723,9 @@ def MultiprocessGAMCommands(items, showCmds):
   else:
     parallelPoolProcesses = min(numItems, GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+  l = multiprocessing.Lock()
   try:
-    pool = multiprocessing.Pool(processes=numPoolProcesses, maxtasksperchild=200)
+    pool = multiprocessing.Pool(processes=numPoolProcesses, initializer=initGamWorker, initargs=(l,), maxtasksperchild=200)
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, e)
   except AssertionError as e:
@@ -8764,14 +8791,14 @@ def MultiprocessGAMCommands(items, showCmds):
       else:
         logCmd = ''
       pool.apply_async(ProcessGAMCommandMulti,
-                       [pid, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
+                       [pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                         GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
                         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
                         GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
                         GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER],
                         item],
-                       callback=poolCallback)
+                       callback=poolCallback, error_callback=poolErrorCallback)
       poolProcessResults[0] += 1
       if parallelPoolProcesses > 0:
         while poolProcessResults[0] == parallelPoolProcesses:
@@ -8820,7 +8847,7 @@ def ThreadBatchGAMCommands(items, showCmds):
   pythonCmd = [sys.executable]
   if not getattr(sys, 'frozen', False): # we're not frozen
     pythonCmd.append(os.path.realpath(Cmd.Argument(0)))
-  numItems = len(items)
+  GM.Globals[GM.NUM_BATCH_ITEMS] = numItems = len(items)
   numWorkerThreads = min(numItems, GC.Values[GC.NUM_TBATCH_THREADS])
 # GM.Globals[GM.TBATCH_QUEUE].put() gets blocked when trying to create more items than there are workers
   GM.Globals[GM.TBATCH_QUEUE] = queue.Queue(maxsize=numWorkerThreads)
@@ -15932,8 +15959,7 @@ def doPrintAliases():
   groupFields = ['email', 'aliases']
   getGroups = getUsers = True
   oneRowPerTarget = showNonEditable = suppressNoAliasRows = False
-  customer = GC.Values[GC.CUSTOMER_ID]
-  domain = None
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   queries = [None]
   aliasMatchPattern = re.compile(r'^.*$')
   while Cmd.ArgumentsRemaining():
@@ -15949,8 +15975,8 @@ def doPrintAliases():
     elif myarg == 'nousers':
       getUsers = False
     elif myarg == 'domain':
-      domain = getString(Cmd.OB_DOMAIN_NAME).lower()
-      customer = None
+      kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+      kwargs.pop('customer', None)
     elif myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
       getGroups = False
@@ -15980,9 +16006,9 @@ def doPrintAliases():
                                    pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='primaryEmail',
                                    throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT, GAPI.DOMAIN_NOT_FOUND,
                                                  GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
-                                   customer=customer, domain=domain, query=query, orderBy='email',
+                                   query=query, orderBy='email',
                                    fields=f'nextPageToken,users({",".join(userFields)})',
-                                   maxResults=GC.Values[GC.USER_MAX_RESULTS])
+                                   maxResults=GC.Values[GC.USER_MAX_RESULTS], **kwargs)
         for user in entityList:
           writeAliases(user, user['primaryEmail'], 'User')
       except (GAPI.invalidOrgunit, GAPI.invalidInput):
@@ -15999,8 +16025,8 @@ def doPrintAliases():
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
                                  throwReasons=GAPI.GROUP_LIST_THROW_REASONS,
-                                 customer=customer, domain=domain, orderBy='email',
-                                 fields=f'nextPageToken,groups({",".join(groupFields)})')
+                                 orderBy='email',
+                                 fields=f'nextPageToken,groups({",".join(groupFields)})', **kwargs)
       for group in entityList:
         writeAliases(group, group['email'], 'Group')
     except GAPI.domainNotFound as e :
@@ -16014,7 +16040,7 @@ def doPrintAliases():
 #	[domain <DomainName>]
 def doPrintAddresses():
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {}
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile()
   titlesList = ['Type', 'Email']
   userFields = ['primaryEmail', 'aliases', 'suspended']
@@ -16025,6 +16051,7 @@ def doPrintAddresses():
       csvPF.GetTodriveParameters()
     elif myarg == 'domain':
       kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+      kwargs.pop('customer', None)
     else:
       unknownArgumentExit()
   csvPF.SetTitles(titlesList)
@@ -16525,7 +16552,7 @@ class ContactsManager():
     return full_id[full_id.rfind('/')+1:]
 
   @staticmethod
-  def GetContactFields(entityType):
+  def GetContactFields():
 
     fields = {}
 
@@ -17111,7 +17138,7 @@ def dedupEmailAddressMatches(contactsManager, emailMatchType, fields):
 def _createContact():
   entityType = Ent.DOMAIN
   contactsManager = ContactsManager()
-  fields = contactsManager.GetContactFields(entityType)
+  fields = contactsManager.GetContactFields()
   contactEntry = contactsManager.FieldsToContact(fields)
   user, contactsObject = getContactsObject(True)
   try:
@@ -17136,7 +17163,7 @@ def _clearUpdateContacts(updateContacts):
   contactsManager = ContactsManager()
   entityList, contactQuery, queriedContacts = _getContactEntityList(1, False)
   if updateContacts:
-    update_fields = contactsManager.GetContactFields(entityType)
+    update_fields = contactsManager.GetContactFields()
   else:
     contactClear = {'emailClearPattern': contactQuery['emailMatchPattern'], 'emailClearType': contactQuery['emailMatchType']}
     deleteClearedContactsWithNoEmails = False
@@ -18531,7 +18558,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
     entityUnknownWarning(entityType, user, i, count)
   return None
 
-def queryPeopleOtherContacts(people, contactQuery, fields, sortOrder, entityType, user, i=0, count=0):
+def queryPeopleOtherContacts(people, contactQuery, fields, entityType, user, i=0, count=0):
   try:
     printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=contactQuery['query'])
     pageMessage = getPageMessage()
@@ -19367,7 +19394,7 @@ def printShowUserPeopleContacts(users):
     else:
       contacts = []
     if contactQuery['otherContacts']:
-      ocontacts = queryPeopleOtherContacts(opeople, contactQuery, ofields, None, entityType, user, i, count)
+      ocontacts = queryPeopleOtherContacts(opeople, contactQuery, ofields, entityType, user, i, count)
     else:
       ocontacts = []
     if countsOnly:
@@ -19417,7 +19444,7 @@ def copyUserPeopleOtherContacts(users):
     if not people:
       continue
     if queriedContacts:
-      entityList = queryPeopleOtherContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      entityList = queryPeopleOtherContacts(people, contactQuery, 'emailAddresses', entityType, user, i, count)
       if entityList is None:
         continue
     j = 0
@@ -19484,7 +19511,7 @@ def processUserPeopleOtherContacts(users):
     if not upeople:
       continue
     if queriedContacts:
-      entityList = queryPeopleOtherContacts(people, contactQuery, 'emailAddresses', None, entityType, user, i, count)
+      entityList = queryPeopleOtherContacts(people, contactQuery, 'emailAddresses', entityType, user, i, count)
       if entityList is None:
         continue
     else:
@@ -19604,7 +19631,7 @@ def printShowUserPeopleOtherContacts(users):
     user, people = buildGAPIServiceObject(API.PEOPLE_OTHERCONTACTS, user, i, count)
     if not people:
       continue
-    contacts = queryPeopleOtherContacts(people, contactQuery, fields, None, entityType, user, i, count)
+    contacts = queryPeopleOtherContacts(people, contactQuery, fields, entityType, user, i, count)
     if countsOnly:
       jcount = countLocalPeopleContactSelects(contactQuery, contacts)
       if csvPF:
@@ -27574,7 +27601,8 @@ def infoGroups(entityList):
       if getGroups:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                               userKey=group, orderBy='email', fields='nextPageToken,groups(name,email)')
+                               customer=GC.Values[GC.CUSTOMER_ID], userKey=group,
+                               orderBy='email', fields='nextPageToken,groups(name,email)')
       if getUsers:
         validRoles, listRoles, listFields = _getRoleVerification(memberRoles, 'nextPageToken,members(email,id,role,status,type)')
         result = callGAPIpages(cd.members(), 'list', 'members',
@@ -28963,7 +28991,8 @@ def doPrintShowGroupTree():
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=groupEmail, orderBy='email', fields='nextPageToken,groups(email,name)')
+                                 customer=GC.Values[GC.CUSTOMER_ID], userKey=groupEmail,
+                                 orderBy='email', fields='nextPageToken,groups(email,name)')
       for parentGroup in entityList:
         groupParents[groupEmail]['parents'].append(parentGroup['email'])
         if parentGroup['email'] not in groupParents:
@@ -32058,7 +32087,7 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC):
           csvPF.WriteRowNoFilter({'resourceId': user, 'resourceEmail': calId,
                                   'JSON': json.dumps(cleanJSON(rule), ensure_ascii=False, sort_keys=False)})
 
-def _getCalendarPrintShowACLOptions(entityType, titles):
+def _getCalendarPrintShowACLOptions(titles):
   csvPF = CSVPrintFile(titles, 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   getTodriveFJQCOnly(csvPF, FJQC, True)
@@ -32068,7 +32097,7 @@ def _getCalendarPrintShowACLOptions(entityType, titles):
 # gam calendars <CalendarEntity> show acls [formatjson]
 # gam calendar <CalendarEntity> showacl [formatjson]
 def doCalendarsPrintShowACLs(calIds):
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.CALENDAR, ['calendarId'])
+  csvPF, FJQC = _getCalendarPrintShowACLOptions(['calendarId'])
   count = len(calIds)
   i = 0
   for calId in calIds:
@@ -33506,7 +33535,7 @@ def doResourceInfoCalendarACLs(entityList):
 # gam resources <ResourceEntity> show calendaracls [formatjson]
 def doResourcePrintShowCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.RESOURCE_CALENDAR, ['resourceId', 'resourceEmail'])
+  csvPF, FJQC = _getCalendarPrintShowACLOptions(['resourceId', 'resourceEmail'])
   i = 0
   count = len(entityList)
   for resourceId in entityList:
@@ -36977,7 +37006,8 @@ def updateUsers(entityList):
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=userKey, orderBy='email', fields='nextPageToken,groups(email)')
+                                 customer=GC.Values[GC.CUSTOMER_ID], userKey=userKey,
+                                 orderBy='email', fields='nextPageToken,groups(email)')
         except (GAPI.invalidMember, GAPI.invalidInput):
           entityUnknownWarning(Ent.USER, userKey, i, count)
           continue
@@ -37540,6 +37570,7 @@ def infoUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = not GC.Values[GC.QUICK_INFO_USER]
   FJQC = FormatJSONQuoteChar()
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   projection = 'full'
   customFieldMask = None
   viewType = 'admin_view'
@@ -37610,12 +37641,12 @@ def infoUsers(entityList):
       groups = []
       memberships = []
       if getGroups:
-        kwargs = {}
         if GC.Values[GC.ENABLE_DASA]:
           # Allows groups.list() to function but will limit
           # returned groups to those in same domain as user
           # so only do this for DASA admins
           kwargs['domain'] = GC.Values[GC.DOMAIN]
+          kwargs.pop('customer', None)
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
@@ -37999,7 +38030,8 @@ def doPrintUsers(entityList=None):
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
+                                 userKey=userEmail,
+                                 orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
           numGroups = len(groups)
           if not printOptions['groupsInColumns']:
             userEntity['GroupsCount'] = numGroups
@@ -38089,8 +38121,7 @@ def doPrintUsers(entityList=None):
     'sortHeaders': False,
     'maxGroups': 0
     }
-  customer = GC.Values[GC.CUSTOMER_ID]
-  domain = None
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   queries = [None]
   licenses = {}
   lic = None
@@ -38111,8 +38142,8 @@ def doPrintUsers(entityList=None):
       orgUnitPath = getOrgUnitItem(pathOnly=True, cd=cd)
       orgUnitPathLower = orgUnitPath.lower()
     elif myarg == 'domain':
-      domain = getString(Cmd.OB_DOMAIN_NAME).lower()
-      customer = None
+      kwargs['domain'] = getString(Cmd.OB_DOMAIN_NAME).lower()
+      kwargs.pop('customer', None)
     elif entityList is None and myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
     elif entityList is None and myarg in {'deletedonly', 'onlydeleted'}:
@@ -38236,9 +38267,9 @@ def doPrintUsers(entityList=None):
                               pageMessage=pageMessage, messageAttribute='primaryEmail',
                               throwReasons=[GAPI.DOMAIN_NOT_FOUND, GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT,
                                             GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                              customer=customer, domain=domain, query=query, fields=fields,
+                              query=query, fields=fields,
                               showDeleted=showDeleted, orderBy=orderBy, sortOrder=sortOrder, viewType=viewType,
-                              projection=projection, customFieldMask=customFieldMask, maxResults=maxResults)
+                              projection=projection, customFieldMask=customFieldMask, maxResults=maxResults, **kwargs)
         for users in feed:
           if orgUnitPath is None:
             if not printOptions['countOnly']:
@@ -38257,7 +38288,7 @@ def doPrintUsers(entityList=None):
                 if orgUnitPathLower == user.get('orgUnitPath', '').lower():
                   _updateDomainCounts(user['primaryEmail'])
       except GAPI.domainNotFound:
-        entityActionFailedWarning([Ent.USER, None, Ent.DOMAIN, domain], Msg.NOT_FOUND)
+        entityActionFailedWarning([Ent.USER, None, Ent.DOMAIN, kwargs['domain']], Msg.NOT_FOUND)
         return
       except (GAPI.invalidOrgunit, GAPI.invalidInput) as e:
         if query and not customFieldMask:
@@ -42898,7 +42929,7 @@ def infoCalendarACLs(users):
 # gam <UserTypeEntity> show calendaracls <UserCalendarEntity> [formatjson]
 def printShowCalendarACLs(users):
   calendarEntity = getUserCalendarEntity(default='all')
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(Ent.USER, ['primaryEmail', 'calendarId'])
+  csvPF, FJQC = _getCalendarPrintShowACLOptions(['primaryEmail', 'calendarId'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -54839,7 +54870,8 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
       try:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                               userKey=emailAddress, orderBy='email', fields='nextPageToken,groups(email)')
+                               customer=GC.Values[GC.CUSTOMER_ID], userKey=emailAddress,
+                               orderBy='email', fields='nextPageToken,groups(email)')
       except (GAPI.invalidMember, GAPI.invalidInput):
         badRequestWarning(Ent.GROUP, Ent.MEMBER, emailAddress)
         return
@@ -55776,7 +55808,7 @@ def checkUserInGroups(users):
 #	[roles <GroupRoleList>] [countsonly|nodetails]
 def printShowUserGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {}
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile(['User', 'Group', 'Role', 'Status', 'Delivery'], 'sortall') if Act.csvFormat() else None
   rolesSet = set()
   allRoles = True
@@ -55902,7 +55934,7 @@ def printShowUserGroups(users):
 #	[delimiter <Character>] [quotechar <Character>]
 def printUserGroupsList(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {}
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile(['User', 'Groups', 'GroupsList'])
   FJQC = FormatJSONQuoteChar(csvPF)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]

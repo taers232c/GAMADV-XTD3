@@ -1,3 +1,10 @@
+6.27.06
+
+Fixed bug in `gam print addresses` where no output was generated.
+
+Updated multiprocessing to fix issues on Mac OS where excuting commands from a CSV file would
+hang if the number of threads was 20 or greater.
+
 6.27.05
 
 Updated `gam create vaultexport` to handle the following error that occurs when the

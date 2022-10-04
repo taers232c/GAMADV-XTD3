@@ -122,6 +122,8 @@ MAP_USER_ID_TO_NAME = 'ui2n'
 MULTIPROCESS_EXIT_CONDITION = 'mpec'
 # Multiprocess exit processing
 MULTIPROCESS_EXIT_PROCESSING = 'mpep'
+# Number of batch items
+NUM_BATCH_ITEMS = 'nbat'
 # Values retrieved from oauth2.txt
 OAUTH2_CLIENT_ID = 'oaci'
 # oauth2.txt lock file
@@ -232,6 +234,7 @@ Globals = {
   MAP_USER_ID_TO_NAME: {},
   MULTIPROCESS_EXIT_CONDITION: None,
   MULTIPROCESS_EXIT_PROCESSING: False,
+  NUM_BATCH_ITEMS: 0,
   OAUTH2_CLIENT_ID: None,
   OAUTH2_TXT_LOCK: None,
   OAUTH2SERVICE_CLIENT_ID: None,
