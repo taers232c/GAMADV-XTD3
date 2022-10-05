@@ -1,3 +1,8 @@
+6.27.07
+
+Fixed bug introduced in 6.27.06 that caused commands that get a list of groups for a specific user to fail;
+e.g., `gam info user user@domain.com`.
+
 6.27.06
 
 Fixed bug in `gam print addresses` where no output was generated.

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.06'
+__version__ = '6.27.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -16025,8 +16025,7 @@ def doPrintAliases():
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
                                  throwReasons=GAPI.GROUP_LIST_THROW_REASONS,
-                                 orderBy='email',
-                                 fields=f'nextPageToken,groups({",".join(groupFields)})', **kwargs)
+                                 orderBy='email', fields=f'nextPageToken,groups({",".join(groupFields)})', **kwargs)
       for group in entityList:
         writeAliases(group, group['email'], 'Group')
     except GAPI.domainNotFound as e :
@@ -27601,8 +27600,7 @@ def infoGroups(entityList):
       if getGroups:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                               customer=GC.Values[GC.CUSTOMER_ID], userKey=group,
-                               orderBy='email', fields='nextPageToken,groups(name,email)')
+                               userKey=group, orderBy='email', fields='nextPageToken,groups(name,email)')
       if getUsers:
         validRoles, listRoles, listFields = _getRoleVerification(memberRoles, 'nextPageToken,members(email,id,role,status,type)')
         result = callGAPIpages(cd.members(), 'list', 'members',
@@ -28991,8 +28989,7 @@ def doPrintShowGroupTree():
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 customer=GC.Values[GC.CUSTOMER_ID], userKey=groupEmail,
-                                 orderBy='email', fields='nextPageToken,groups(email,name)')
+                                 userKey=groupEmail, orderBy='email', fields='nextPageToken,groups(email,name)')
       for parentGroup in entityList:
         groupParents[groupEmail]['parents'].append(parentGroup['email'])
         if parentGroup['email'] not in groupParents:
@@ -37006,8 +37003,7 @@ def updateUsers(entityList):
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 customer=GC.Values[GC.CUSTOMER_ID], userKey=userKey,
-                                 orderBy='email', fields='nextPageToken,groups(email)')
+                                 userKey=userKey, orderBy='email', fields='nextPageToken,groups(email)')
         except (GAPI.invalidMember, GAPI.invalidInput):
           entityUnknownWarning(Ent.USER, userKey, i, count)
           continue
@@ -37570,7 +37566,6 @@ def infoUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = not GC.Values[GC.QUICK_INFO_USER]
   FJQC = FormatJSONQuoteChar()
-  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   projection = 'full'
   customFieldMask = None
   viewType = 'admin_view'
@@ -37641,17 +37636,16 @@ def infoUsers(entityList):
       groups = []
       memberships = []
       if getGroups:
+        kwargs = {}
         if GC.Values[GC.ENABLE_DASA]:
           # Allows groups.list() to function but will limit
           # returned groups to those in same domain as user
           # so only do this for DASA admins
           kwargs['domain'] = GC.Values[GC.DOMAIN]
-          kwargs.pop('customer', None)
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=user['primaryEmail'], orderBy='email',
-                                 fields='nextPageToken,groups(name,email)', **kwargs)
+                                 userKey=user['primaryEmail'], orderBy='email', fields='nextPageToken,groups(name,email)', **kwargs)
         except (GAPI.forbidden, GAPI.domainNotFound):
 ### Print some message
           pass
@@ -38030,8 +38024,7 @@ def doPrintUsers(entityList=None):
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=userEmail,
-                                 orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
+                                 userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
           numGroups = len(groups)
           if not printOptions['groupsInColumns']:
             userEntity['GroupsCount'] = numGroups
@@ -54870,8 +54863,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
       try:
         groups = callGAPIpages(cd.groups(), 'list', 'groups',
                                throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                               customer=GC.Values[GC.CUSTOMER_ID], userKey=emailAddress,
-                               orderBy='email', fields='nextPageToken,groups(email)')
+                               userKey=emailAddress, orderBy='email', fields='nextPageToken,groups(email)')
       except (GAPI.invalidMember, GAPI.invalidInput):
         badRequestWarning(Ent.GROUP, Ent.MEMBER, emailAddress)
         return
