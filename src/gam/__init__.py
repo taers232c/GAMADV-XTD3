@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.07'
+__version__ = '6.27.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -38382,6 +38382,28 @@ def doPrintUserEntity(entityList):
   else:
     doPrintUsers(entityList)
 
+# gam <UserTypeEntity> print userlist [todrive <ToDriveAttribute>*]
+#	[title <String>]
+#	[delimiter <Character>] [formatjson] [quotechar <Character>]
+def doPrintUserList(entityList):
+  csvPF = CSVPrintFile(['title', 'count', 'users'])
+  FJQC = FormatJSONQuoteChar(csvPF)
+  title = 'Users'
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'title':
+      title = getString(Cmd.OB_STRING)
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
+  _, count, entityList = getEntityArgument(entityList)
+  csvPF.WriteRow({'title': title, 'count': count, 'users': delimiter.join(entityList) if not FJQC.formatJSON else entityList})
+  csvPF.writeCSVfile('User List')
+
 def isolateCIUserInvitatonsEmail(name):
   ''' converts long name into email address'''
   return name.split('/')[-1]
@@ -64082,6 +64104,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_THREAD:		printShowThreads,
       Cmd.ARG_TOKEN:		printShowTokens,
       Cmd.ARG_USER:		doPrintUserEntity,
+      Cmd.ARG_USERLIST:		doPrintUserList,
       Cmd.ARG_VACATION:		printShowVacation,
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
 ###      Cmd.ARG_WORKINGLOCATION:	printShowWorkingLocation,

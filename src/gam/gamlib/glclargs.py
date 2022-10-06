@@ -715,6 +715,7 @@ class GamCLArgs():
   ARG_USERS = 'users'
   ARG_USERINVITATION = 'userinvitation'
   ARG_USERINVITATIONS = 'userinvitations'
+  ARG_USERLIST = 'userlist'
   ARG_VACATION = 'vacation'
   ARG_VAULTCOUNT = 'vaultcount'
   ARG_VAULTCOUNTS = 'vaultcounts'

@@ -1,3 +1,9 @@
+6.27.08
+
+Added command `gam <UserTypeEntity> print userlist` to display the list of users in `<UserTypeEntity>` in a single row.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users#display-user-list
+
 6.27.07
 
 Fixed bug introduced in 6.27.06 that caused commands that get a list of groups for a specific user to fail;

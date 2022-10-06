@@ -232,7 +232,7 @@ If an item contains spaces, it should be surrounded by ".
         voicepremier | gvpremier | googlevoicepremier | 1010330002 |
         voicestandard | gvstandard | googlevoicestandard | 1010330004 |
         voicestarter | gvstarter | googlevoicestarter | 1010330003 |
-        workspacefrontline | workspacefrontlineworker | 1010020030 |
+        wsflw | workspacefrontline | workspacefrontlineworker | 1010020030 |
         wsbizplus | workspacebusinessplus | 1010020025 |
         wsbizplusarchived | workspacebusinessplusarchived | 1010340003 |
         wsbizstan | workspacebusinessstandard | 1010020028 |
@@ -4693,6 +4693,12 @@ gam print users [todrive <ToDriveAttribute>*] select <UserTypeEntity>
 gam <UserTypeEntity> print users [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]] [countsonly|countonly]
         [issuspended <Boolean>]
+
+Print lists of users
+
+gam <UserTypeEntity> print userlist [todrive <ToDriveAttribute>*]
+        [title <String>]
+        [delimiter <Character>] [formatjson] [quotechar <Character>]
 
 # Users - Application Specific Passwords/backup Codes
 
