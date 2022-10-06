@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.08'
+__version__ = '6.27.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -38401,7 +38401,10 @@ def doPrintUserList(entityList):
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   _, count, entityList = getEntityArgument(entityList)
-  csvPF.WriteRow({'title': title, 'count': count, 'users': delimiter.join(entityList) if not FJQC.formatJSON else entityList})
+  if not FJQC.formatJSON:
+    csvPF.WriteRow({'title': title, 'count': count, 'users': delimiter.join(entityList)})
+  else:
+    csvPF.WriteRow({'title': title, 'count': count, 'users': json.dumps(cleanJSON(entityList), ensure_ascii=False, sort_keys=True)})
   csvPF.writeCSVfile('User List')
 
 def isolateCIUserInvitatonsEmail(name):

@@ -1,8 +1,12 @@
+6.27.09
+
+Corrected JSON output in `gam <UserTypeEntity> print userlist`.
+
 6.27.08
 
 Added command `gam <UserTypeEntity> print userlist` to display the list of users in `<UserTypeEntity>` in a single row.
 
-* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users#display-user-list
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users#print-user-list
 
 6.27.07
 
