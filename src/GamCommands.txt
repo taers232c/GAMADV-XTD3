@@ -6136,6 +6136,12 @@ gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show groups
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [roles <GroupRoleList>] [countsonly|nodetails]
+gam <UserTypeEntity> print grouptree [todrive <ToDriveAttribute>*]
+        [(domain <DomainName>)|(customerid <CustomerID>)]
+        [roles <GroupRoleList>]
+gam <UserTypeEntity> show grouptree
+        [(domain <DomainName>)|(customerid <CustomerID>)]
+        [roles <GroupRoleList>]
 gam <UserTypeEntity> print groupslist [todrive <ToDriveAttribute>*]
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [delimiter <Character>] [quotechar <Character>]

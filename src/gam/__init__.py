@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.09'
+__version__ = '6.27.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9636,7 +9636,7 @@ class Credentials(google.oauth2.credentials.Credentials):
                           access_type='offline',
                           login_hint=None,
                           filename=None,
-                          use_console_flow=False):
+                          open_browser=True):
     """Runs an OAuth Flow from client secrets to generate credentials.
 
     Args:
@@ -9655,8 +9655,8 @@ class Credentials(google.oauth2.credentials.Credentials):
       login_hint: String, The email address that will be displayed on the Google
         login page as a hint for the user to login to the correct account.
       filename: String, the path to a file to use to save the credentials.
-      use_console_flow: Boolean, True if the authentication flow should be run
-        strictly from a console; False to launch a browser for authentication.
+      open_browser: Boolean: whether or not GAM should try to open the browser
+        automatically.
 
     Returns:
       Credentials
@@ -9674,7 +9674,8 @@ class Credentials(google.oauth2.credentials.Credentials):
     flow = _GamOauthFlow.from_client_config(client_config,
                                             scopes,
                                             autogenerate_code_verifier=True)
-    flow_kwargs = {'access_type': access_type}
+    flow_kwargs = {'access_type': access_type,
+                   'open_browser': open_browser}
     if login_hint:
       flow_kwargs['login_hint'] = login_hint
     flow.run_dual(**flow_kwargs)
@@ -9742,7 +9743,7 @@ def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
     scopes=scopes,
     access_type='offline',
     login_hint=login_hint,
-    use_console_flow=GC.Values[GC.NO_BROWSER])
+    open_browser=not GC.Values[GC.NO_BROWSER])
   lock = FileLock(GM.Globals[GM.OAUTH2_TXT_LOCK])
   with lock:
     writeClientCredentials(credentials, GC.Values[GC.OAUTH2_TXT])
@@ -9921,7 +9922,7 @@ def getCRMService(login_hint):
     scopes=scopes,
     access_type='online',
     login_hint=login_hint,
-    use_console_flow=GC.Values[GC.NO_BROWSER])
+    open_browser=not GC.Values[GC.NO_BROWSER])
   httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
   return (httpObj, getAPIService(API.CLOUDRESOURCEMANAGER, httpObj))
 
@@ -28986,10 +28987,11 @@ def doShowGroupMembers():
 def doPrintShowGroupTree():
   def getGroupParents(groupEmail, groupName):
     groupParents[groupEmail] = {'name': groupName, 'parents': []}
+    _setUserGroupArgs(groupEmail, kwargs)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
-                                 userKey=groupEmail, orderBy='email', fields='nextPageToken,groups(email,name)')
+                                 orderBy='email', fields='nextPageToken,groups(email,name)', **kwargs)
       for parentGroup in entityList:
         groupParents[groupEmail]['parents'].append(parentGroup['email'])
         if parentGroup['email'] not in groupParents:
@@ -29016,7 +29018,8 @@ def doPrintShowGroupTree():
       csvPF.WriteRowTitles(flattenJSON(row))
 
   cd = buildGAPIObject(API.DIRECTORY)
-  csvPF = CSVPrintFile(['email', 'name'], 'sortall', ['parents']) if Act.csvFormat() else None
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
+  csvPF = CSVPrintFile(['Group', 'Name'], 'sortall', ['parents']) if Act.csvFormat() else None
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
   getTodriveOnly(csvPF)
   groupParents = {}
@@ -29026,22 +29029,22 @@ def doPrintShowGroupTree():
     performActionNumItems(count, Ent.GROUP_TREE)
   for group in entityList:
     i += 1
-    group = normalizeEmailAddressOrUID(group)
-    try:
-      basicInfo = callGAPI(cd.groups(), 'get',
-                           throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
-                           groupKey=group, fields='email,name')
-      group = basicInfo['email']
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
-            GAPI.invalid, GAPI.systemError) as e:
-      entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
-      continue
-    getGroupParents(group, basicInfo['name'])
+    groupEmail = normalizeEmailAddressOrUID(group)
+    if groupEmail not in groupParents:
+      try:
+        groupName = callGAPI(cd.groups(), 'get',
+                             throwReasons=GAPI.GROUP_GET_THROW_REASONS, retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                             groupKey=groupEmail, fields='name')['name']
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
+              GAPI.invalid, GAPI.systemError) as e:
+        entityActionFailedWarning([Ent.GROUP, groupEmail], str(e), i, count)
+        continue
+      getGroupParents(groupEmail, groupName)
     if not csvPF:
-      showGroupParents(group, i, count)
+      showGroupParents(groupEmail, i, count)
     else:
-      row = {'email': group, 'name': groupParents[group]['name'], 'parents': []}
-      printGroupParents(group, row)
+      row = {'Group': groupEmail, 'Name': groupParents[groupEmail]['name'], 'parents': []}
+      printGroupParents(groupEmail, row)
   if csvPF:
     csvPF.writeCSVfile('Group Tree')
 
@@ -47415,6 +47418,7 @@ def printFileList(users):
         printGotEntityItemsForWhom(0)
       except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, fileIdEntity['shareddrive']['driveId']], str(e), i, count)
+        continue
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
@@ -55828,7 +55832,6 @@ def printShowUserGroups(users):
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile(['User', 'Group', 'Role', 'Status', 'Delivery'], 'sortall') if Act.csvFormat() else None
   rolesSet = set()
-  allRoles = True
   countsOnly = noDetails = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -55850,8 +55853,7 @@ def printShowUserGroups(users):
       unknownArgumentExit()
   if not rolesSet:
     rolesSet = ALL_GROUP_ROLES
-  else:
-    allRoles = rolesSet - ALL_GROUP_ROLES
+  allRoles = rolesSet == ALL_GROUP_ROLES
   if noDetails:
     if csvPF:
       titles = ['User', 'Group']
@@ -55945,6 +55947,128 @@ def printShowUserGroups(users):
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('User Groups')
+
+# gam <UserTypeEntity> print grouptree [todrive <ToDriveAttribute>*]
+#	[(domain <DomainName>)|(customerid <CustomerID>)]
+#	[roles <GroupRoleList>]
+# gam <UserTypeEntity> show grouptree
+#	[(domain <DomainName>)|(customerid <CustomerID>)]
+#	[roles <GroupRoleList>]
+def printShowGroupTree(users):
+  def getGroupParents(groupEmail, groupName):
+    groupParents[groupEmail] = {'name': groupName, 'parents': []}
+    _setUserGroupArgs(groupEmail, kwargs)
+    try:
+      entityList = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                                 orderBy='email', fields='nextPageToken,groups(email,name)', **kwargs)
+      for parentGroup in entityList:
+        groupParents[groupEmail]['parents'].append(parentGroup['email'])
+        if parentGroup['email'] not in groupParents:
+          getGroupParents(parentGroup['email'], parentGroup['name'])
+    except (GAPI.invalidMember, GAPI.invalidInput):
+      badRequestWarning(Ent.GROUP, Ent.MEMBER, groupEmail)
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+      accessErrorExit(cd)
+
+  def showGroupParents(groupEmail, role, i, count):
+    kvList = [groupEmail, f'{groupParents[groupEmail]["name"]}']
+    if role:
+      kvList.extend([Ent.Singular(Ent.ROLE), role])
+    printKeyValueListWithCount(kvList, i, count)
+    Ind.Increment()
+    for parentEmail in groupParents[groupEmail]['parents']:
+      showGroupParents(parentEmail, None, 0, 0)
+    Ind.Decrement()
+
+  def printGroupParents(groupEmail, row):
+    if groupParents[groupEmail]['parents']:
+      for parentEmail in groupParents[groupEmail]['parents']:
+        row['parents'].append({'email': parentEmail, 'name': groupParents[parentEmail]['name']})
+        printGroupParents(parentEmail, row)
+        del row['parents'][-1]
+    else:
+      csvPF.WriteRowTitles(flattenJSON(row))
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
+  csvPF = CSVPrintFile(indexedTitles=['parents']) if Act.csvFormat() else None
+  rolesSet = set()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif _getUserGroupDomainCustomerId(myarg, kwargs):
+      pass
+    elif myarg in {'role', 'roles'}:
+      for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
+        if role in GROUP_ROLES_MAP:
+          rolesSet.add(GROUP_ROLES_MAP[role])
+        else:
+          invalidChoiceExit(role, GROUP_ROLES_MAP, True)
+    else:
+      unknownArgumentExit()
+  if not rolesSet:
+    rolesSet = ALL_GROUP_ROLES
+    if csvPF:
+      csvPF.SetTitles(['User', 'Group', 'Name'])
+  else:
+    if csvPF:
+      csvPF.SetTitles(['User', 'Group', 'Name', 'Role'])
+  allRoles = rolesSet == ALL_GROUP_ROLES
+  groupParents = {}
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    _setUserGroupArgs(user, kwargs)
+    try:
+      groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                             throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                             orderBy='email', fields='nextPageToken,groups(email,name)', **kwargs)
+    except (GAPI.invalidMember, GAPI.invalidInput):
+      entityUnknownWarning(Ent.USER, user, i, count)
+      continue
+    j = 0
+    jcount = len(groups)
+    if not csvPF:
+      if allRoles:
+        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.GROUP_TREE, i, count)
+      else:
+        entityPerformActionModifierNumItems([Ent.USER, user], Msg.MAXIMUM_OF, jcount, Ent.GROUP_TREE, i, count)
+    Ind.Increment()
+    for group in groups:
+      j += 1
+      groupEmail = group['email']
+      if groupEmail not in groupParents:
+        getGroupParents(groupEmail, group['name'])
+      if rolesSet:
+        try:
+          result = callGAPI(cd.members(), 'get',
+                            throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.CONDITION_NOT_MET],
+                            retryReasons=GAPI.MEMBERS_RETRY_REASONS,
+                            groupKey=groupEmail, memberKey=user, fields='role')
+          role = result.get('role', Ent.MEMBER)
+          if role not in rolesSet:
+            continue
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+          entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
+          continue
+        except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
+          continue
+      else:
+        role = None
+      if not csvPF:
+        showGroupParents(groupEmail, role, j, jcount)
+      else:
+        row = {'User': user, 'Group': groupEmail, 'Name': group['name'], 'parents': []}
+        if rolesSet:
+          row['Role'] = role
+        printGroupParents(groupEmail, row)
+    Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('User Group Trees')
 
 # gam <UserTypeEntity> print groupslist [todrive <ToDriveAttribute>*]
 #	[(domain <DomainName>)|(customerid <CustomerID>)]
@@ -64081,6 +64205,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_GMAILPROFILE:	printShowGmailProfile,
       Cmd.ARG_GROUP:		printShowUserGroups,
       Cmd.ARG_GROUPSLIST:	printUserGroupsList,
+      Cmd.ARG_GROUPTREE:	printShowGroupTree,
       Cmd.ARG_GUARDIAN:		printShowGuardians,
       Cmd.ARG_IMAP:		printShowImap,
       Cmd.ARG_LABEL:		printShowLabels,
@@ -64159,6 +64284,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FORWARDINGADDRESS:	printShowForwardingAddresses,
       Cmd.ARG_GMAILPROFILE:	printShowGmailProfile,
       Cmd.ARG_GROUP:		printShowUserGroups,
+      Cmd.ARG_GROUPTREE:	printShowGroupTree,
       Cmd.ARG_GUARDIAN:		printShowGuardians,
       Cmd.ARG_IMAP:		printShowImap,
       Cmd.ARG_LABEL:		printShowLabels,

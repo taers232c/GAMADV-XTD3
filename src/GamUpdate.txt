@@ -1,3 +1,9 @@
+6.27.10
+
+Added command `gam <UserTypeEntity> print|show grouptree` to display a user's groups and their parent groups.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Group-Membership#display-groups-and-their-parents
+
 6.27.09
 
 Corrected JSON output in `gam <UserTypeEntity> print userlist`.
