@@ -2,8 +2,6 @@ name: Build and test GAM
 
 on:
   push:
-    branches:
-      - master
 
 defaults:
   run:
