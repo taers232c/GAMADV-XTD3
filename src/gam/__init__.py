@@ -56009,7 +56009,6 @@ def printShowGroupTree(users):
     else:
       unknownArgumentExit()
   if not rolesSet:
-    rolesSet = ALL_GROUP_ROLES
     if csvPF:
       csvPF.SetTitles(['User', 'Group', 'Name'])
   else:
