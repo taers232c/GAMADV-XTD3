@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.10'
+__version__ = '6.27.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -21943,7 +21943,7 @@ def doInfoPrintShowCrOSTelemetry():
   startTime = endTime = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in ['ou', 'org', 'orgunit', 'limittoou', 'crossn', 'filter']:
       if pfilter:
@@ -22329,7 +22329,7 @@ def doPrintShowBrowsers():
   sortHeaders = sortRows = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
@@ -22529,7 +22529,7 @@ def doPrintShowBrowserTokens():
   sortHeaders = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
@@ -22711,7 +22711,7 @@ def doPrintShowChatSpaces():
   FJQC = FormatJSONQuoteChar(csvPF)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
@@ -22836,7 +22836,7 @@ def doPrintShowChatMembers():
   name = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'space':
       name = getChatSpace()
@@ -23453,7 +23453,7 @@ def doPrintShowChromePolicies():
   namespaces = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'filter':
       policySchemaFilter = getString(Cmd.OB_STRING)
@@ -23654,7 +23654,7 @@ def doPrintShowChromeSchemas():
   pfilter = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'filter':
       pfilter = getString(Cmd.OB_STRING)
@@ -24955,7 +24955,7 @@ def doPrintShowPrinters():
   showInherited = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in ORGUNIT_ENTITIES_MAP:
       myarg = ORGUNIT_ENTITIES_MAP[myarg]
@@ -25054,7 +25054,7 @@ def doPrintShowPrinterModels():
   pfilter = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'filter':
       pfilter = getString(Cmd.OB_STRING)
@@ -25150,7 +25150,7 @@ def doPrintShowChromeApps():
   orderBy = pfilter = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in ORGUNIT_ENTITIES_MAP:
       myarg = ORGUNIT_ENTITIES_MAP[myarg]
@@ -25286,7 +25286,7 @@ def doPrintShowChromeAppDevices():
   startDate = endDate = pfilter = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in ORGUNIT_ENTITIES_MAP:
       myarg = ORGUNIT_ENTITIES_MAP[myarg]
@@ -25427,7 +25427,7 @@ def doPrintShowChromeVersions():
   startDate = endDate = pfilter = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in ORGUNIT_ENTITIES_MAP:
       myarg = ORGUNIT_ENTITIES_MAP[myarg]
@@ -25704,7 +25704,7 @@ def doPrintShowChromeHistory():
     OBY = OrderBy(CHROME_VERSIONHISTORY_ORDERBY_CHOICE_MAP[entityType])
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif entityType != Ent.CHROME_PLATFORM and myarg == 'platform':
       if platformMap is None:
@@ -28983,6 +28983,7 @@ def doShowGroupMembers():
       _showGroup(groupEmail, 0)
 
 # gam print grouptree <GroupEntity> [todrive <ToDriveAttribute>*]
+#	[showparentsaslist [<Boolean>]] [delimiter <Character>]
 # gam show grouptree <GroupEntity>
 def doPrintShowGroupTree():
   def getGroupParents(groupEmail, groupName):
@@ -29015,13 +29016,36 @@ def doPrintShowGroupTree():
         printGroupParents(parentEmail, row)
         del row['parents'][-1]
     else:
-      csvPF.WriteRowTitles(flattenJSON(row))
+      if not showParentsAsList:
+        csvPF.WriteRowTitles(flattenJSON(row))
+      else:
+        crow = {'Group': row['Group'], 'Name': row['Name']}
+        crow['ParentsCount'] = len(row['parents'])
+        crow['Parents'] = delimiter.join([parent['email'] for parent in row['parents']])
+        crow['ParentsName'] = delimiter.join([parent['name'] for parent in row['parents']])
+        csvPF.WriteRow(flattenJSON(crow))
 
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
-  csvPF = CSVPrintFile(['Group', 'Name'], 'sortall', ['parents']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['Group', 'Name']) if Act.csvFormat() else None
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  showParentsAsList = False
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
-  getTodriveOnly(csvPF)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif csvPF and myarg == 'delimiter':
+      delimiter = getCharacter()
+    elif csvPF and myarg == 'showparentsaslist':
+      showParentsAsList = getBoolean()
+    else:
+      unknownArgumentExit()
+  if csvPF:
+    if not showParentsAsList:
+      csvPF.SetIndexedTitles(['parents'])
+    else:
+      csvPF.AddTitles(['ParentsCount', 'Parents', 'ParentsName'])
   groupParents = {}
   i = 0
   count = len(entityList)
@@ -34254,9 +34278,11 @@ ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
 # gam download vaultexport|export <ExportItem> matter <MatterItem>
 #	[targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
 #	[bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+#	[downloadattempts <Integer>] [retryinterval <Integer>]
 # gam download vaultexport|export <MatterItem> <ExportItem>
 #	[targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
 #	[bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+#	[downloadattempts <Integer>] [retryinterval <Integer>]
 def doDownloadVaultExport():
   def extract_nested_zip(zippedFile):
     """ Extract a zip file including any nested zip files
@@ -34291,6 +34317,8 @@ def doDownloadVaultExport():
     exportName = getString(Cmd.OB_EXPORT_ITEM)
   zipToStdout = False
   bucketMatchPattern = objectMatchPattern = None
+  downloadAttempts = 1
+  retryInterval = 30
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'matter':
@@ -34313,18 +34341,28 @@ def doDownloadVaultExport():
       bucketMatchPattern = getREPattern(re.IGNORECASE)
     elif myarg == 'objectmatchpattern':
       objectMatchPattern = getREPattern(re.IGNORECASE)
+    elif myarg == 'downloadattempts':
+      downloadAttempts = getInteger(minVal=1)
+    elif myarg == 'retryinterval':
+      retryInterval = getInteger(minVal=10)
     else:
       unknownArgumentExit()
-  try:
-    export = callGAPI(v.matters().exports(), 'get',
-                      throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                      matterId=matterId, exportId=exportId)
-  except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
-    return
-  if export['status'] != 'COMPLETED':
-    entityActionNotPerformedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], Msg.EXPORT_NOT_COMPLETE.format(export['status']))
-    return
+  attempts = 0
+  while True:
+    try:
+      export = callGAPI(v.matters().exports(), 'get',
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                        matterId=matterId, exportId=exportId)
+    except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
+      return
+    if export['status'] == 'COMPLETED':
+      break
+    attempts += 1
+    entityActionNotPerformedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], Msg.EXPORT_NOT_COMPLETE.format(export['status']), attempts, downloadAttempts)
+    if attempts >= downloadAttempts:
+      return
+    time.sleep(retryInterval)
   jcount = len(export['cloudStorageSink']['files'])
   if not zipToStdout:
     if not bucketMatchPattern and not objectMatchPattern:
@@ -38554,7 +38592,7 @@ def doPrintShowCIUserInvitations():
   ifilter = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'state':
       state = getChoice(CI_USERINVITATION_STATE_CHOICE_MAP, mapChoice=True)
@@ -48172,7 +48210,7 @@ returnItemMap = {
 
 # gam <UserTypeEntity> create|add drivefile
 #	[localfile <FileName>|-]
-#	[(drivefilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
+#	[(drivefilename|newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
 #	[stripnameprefix <String>]
 #	<DriveFileCreateAttribute>*
 #	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
@@ -48188,7 +48226,7 @@ def createDriveFile(users):
   parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'drivefilename':
+    if myarg in {'drivefilename', 'newfilename'}:
       newName = getString(Cmd.OB_DRIVE_FILE_NAME)
       assignLocalName = False
     elif myarg in returnItemMap:
@@ -55951,6 +55989,7 @@ def printShowUserGroups(users):
 # gam <UserTypeEntity> print grouptree [todrive <ToDriveAttribute>*]
 #	[(domain <DomainName>)|(customerid <CustomerID>)]
 #	[roles <GroupRoleList>]
+#	[showparentsaslist [<Boolean>]] [delimiter <Character>]
 # gam <UserTypeEntity> show grouptree
 #	[(domain <DomainName>)|(customerid <CustomerID>)]
 #	[roles <GroupRoleList>]
@@ -55988,15 +56027,26 @@ def printShowGroupTree(users):
         printGroupParents(parentEmail, row)
         del row['parents'][-1]
     else:
-      csvPF.WriteRowTitles(flattenJSON(row))
+      if not showParentsAsList:
+        csvPF.WriteRowTitles(flattenJSON(row))
+      else:
+        crow = {'User': row['User'], 'Group': row['Group'], 'Name': row['Name']}
+        if rolesSet:
+          crow['Role'] = row['Role']
+        crow['ParentsCount'] = len(row['parents'])
+        crow['Parents'] = delimiter.join([parent['email'] for parent in row['parents']])
+        crow['ParentsName'] = delimiter.join([parent['name'] for parent in row['parents']])
+        csvPF.WriteRow(flattenJSON(crow))
 
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
-  csvPF = CSVPrintFile(indexedTitles=['parents']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'Group', 'Name']) if Act.csvFormat() else None
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  showParentsAsList = False
   rolesSet = set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'todrive':
+    if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif _getUserGroupDomainCustomerId(myarg, kwargs):
       pass
@@ -56006,14 +56056,19 @@ def printShowGroupTree(users):
           rolesSet.add(GROUP_ROLES_MAP[role])
         else:
           invalidChoiceExit(role, GROUP_ROLES_MAP, True)
+    elif csvPF and myarg == 'delimiter':
+      delimiter = getCharacter()
+    elif csvPF and myarg == 'showparentsaslist':
+      showParentsAsList = getBoolean()
     else:
       unknownArgumentExit()
-  if not rolesSet:
-    if csvPF:
-      csvPF.SetTitles(['User', 'Group', 'Name'])
-  else:
-    if csvPF:
-      csvPF.SetTitles(['User', 'Group', 'Name', 'Role'])
+  if csvPF:
+    if rolesSet:
+      csvPF.AddTitles('Role')
+    if not showParentsAsList:
+      csvPF.SetIndexedTitles(['parents'])
+    else:
+      csvPF.AddTitles(['ParentsCount', 'Parents', 'ParentsName'])
   allRoles = rolesSet == ALL_GROUP_ROLES
   groupParents = {}
   i, count, users = getEntityArgument(users)

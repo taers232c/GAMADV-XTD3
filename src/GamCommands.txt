@@ -3158,6 +3158,7 @@ gam print groups [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
 
 gam print grouptree <GroupEntity> [todrive <ToDriveAttribute>*]
+        [showparentsaslist [<Boolean>]] [delimiter <Character>]
 gam show grouptree <GroupEntity>
 
 <MembersFieldName> ::=
@@ -4305,9 +4306,11 @@ gam delete vaultexport|export <MatterItem> <ExportItem>
 gam download vaultexport|export <ExportItem> matter <MatterItem>
         [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
         [bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+        [downloadattempts <Integer>] [retryinterval <Integer>]
 gam download vaultexport|export <MatterItem> <ExportItem>
         [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
         [bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+        [downloadattempts <Integer>] [retryinterval <Integer>]
 
 <VaultExportFieldName> ::=
         cloudstoragesink|
@@ -5110,7 +5113,7 @@ gam <UserTypeEntity> show datastudiopermissions
 
 gam <UserTypeEntity> create|add drivefile
         [localfile <FileName>|-]
-        [(drivefilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
+        [(drivefilename|newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
         [stripnameprefix <String>]
         <DriveFileCreateAttribute>*
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> currenttime|<String>)*) |
@@ -6139,6 +6142,7 @@ gam <UserTypeEntity> show groups
 gam <UserTypeEntity> print grouptree [todrive <ToDriveAttribute>*]
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [roles <GroupRoleList>]
+        [showparentsaslist [<Boolean>]] [delimiter <Character>]
 gam <UserTypeEntity> show grouptree
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [roles <GroupRoleList>]

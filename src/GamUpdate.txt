@@ -1,3 +1,14 @@
+6.27.11
+
+Added options `showparentsaslist [<Boolean>]` and `delimiter <Character>` to `gam print grouptree` and
+`gam <UserTypeEntity> print grouptree` that display the group parent emails and names in two columns
+as delimited lists rather than multiple indexed columns.
+
+Added options `downloadattempts <Integer>` and `retryinterval <Integer>` to `gam download vaultexport`
+that cause GAM to wait for a vault export to be completed. By default, GAM makes only one download attempt.
+If mutiple attempts are specified, GAM waits `retryinterval <Integer>` seconds between attempts; the default
+interval is 30 seconds.
+
 6.27.10
 
 Added command `gam <UserTypeEntity> print|show grouptree` to display a user's groups and their parent groups.
