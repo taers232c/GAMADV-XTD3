@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.11'
+__version__ = '6.27.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5408,15 +5408,16 @@ def convertGroupEmailToCloudID(ci, group, i=0, count=0):
     Act.Set(action)
     return (ci, None, None)
 
-def getCIGroupMembershipGraph(member):
-  ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
+def getCIGroupMembershipGraph(ci, member):
+  if not ci:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   parent = 'groups/-'
   try:
     result = callGAPI(ci.groups().memberships(), 'getMembershipGraph',
                       throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS,
                       parent=parent,
                       query=f"member_key_id == '{member}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels")
-    return result.get('response', {})
+    return (ci, result.get('response', {}))
   except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
           GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
           GAPI.systemError, GAPI.permissionDenied) as e:
@@ -5424,7 +5425,7 @@ def getCIGroupMembershipGraph(member):
     Act.Set(Act.LOOKUP)
     entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, parent], str(e))
     Act.Set(action)
-    return {}
+    return (ci, None)
 
 def checkGroupExists(cd, ci, ciGroupsAPI, group, i=0, count=0):
   group = normalizeEmailAddressOrUID(group, ciGroupsAPI=ciGroupsAPI)
@@ -20733,6 +20734,23 @@ def _filterRecentUsers(cros, selected, listLimit):
   cros['recentUsers'] = filteredItems
   return cros['recentUsers']
 
+def _filterScreenshotFiles(cros, selected, listLimit, startTime, endTime):
+  if not selected:
+    cros.pop('screenshotFiles', None)
+    return []
+  filteredItems = []
+  i = 0
+  for item in cros.get('screenshotFiles', []):
+    timeValue, _ = iso8601.parse_date(item['createTime'])
+    if ((startTime is None) or (timeValue >= startTime)) and ((endTime is None) or (timeValue <= endTime)):
+      item['createTime'] = formatLocalTime(item['createTime'])
+      filteredItems.append(item)
+      i += 1
+      if listLimit and i == listLimit:
+        break
+  cros['screenshotFiles'] = filteredItems
+  return cros['screenshotFiles']
+
 def _filterBasicList(cros, field, selected, listLimit):
   if not selected:
     cros.pop(field, None)
@@ -20796,6 +20814,7 @@ CROS_FIELDS_CHOICE_MAP = {
   'ou': 'orgUnitPath',
   'platformversion': 'platformVersion',
   'recentusers': ['recentUsers.email', 'recentUsers.type'],
+  'screenshotfiles': 'screenshotFiles',
   'serialnumber': 'serialNumber',
   'status': 'status',
   'supportenddate': 'supportEndDate',
@@ -20848,6 +20867,7 @@ CROS_LIST_FIELDS_CHOICE_MAP = {
   'files': 'deviceFiles',
   'lastknownnetwork': 'lastKnownNetwork',
   'recentusers': 'recentUsers',
+  'screenshotfiles': 'screenshotFiles',
   'systemramfreereports': 'systemRamFreeReports',
   'timeranges': 'activeTimeRanges',
   'times': 'activeTimeRanges',
@@ -21075,6 +21095,18 @@ def infoCrOSDevices(entityList):
           printKeyValueList(['wanIpAddress', lastKnownNetwork['wanIpAddress']])
           Ind.Decrement()
         Ind.Decrement()
+      screenshotFiles = _filterScreenshotFiles(cros, True, listLimit, startTime, endTime)
+      if screenshotFiles:
+        printKeyValueList(['screenshotFiles'])
+        Ind.Increment()
+        for screenshotFile in screenshotFiles:
+          printKeyValueList(['name', screenshotFile['name']])
+          Ind.Increment()
+          printKeyValueList(['type', screenshotFile['type']])
+          printKeyValueList(['downloadUrl', screenshotFile['downloadUrl']])
+          printKeyValueList(['createTime', screenshotFile['createTime']])
+          Ind.Decrement()
+        Ind.Decrement()
       systemRamFreeReports = _filterSystemRamFreeReports(cros, True, listLimit, startTime, endTime)
       if systemRamFreeReports:
         printKeyValueList(['systemRamFreeReports'])
@@ -21250,7 +21282,7 @@ CROS_ENTITIES_MAP = {
   }
 
 CROS_INDEXED_TITLES = ['activeTimeRanges', 'recentUsers', 'deviceFiles',
-                       'cpuStatusReports', 'diskVolumeReports', 'lastKnownNetwork', 'systemRamFreeReports']
+                       'cpuStatusReports', 'diskVolumeReports', 'lastKnownNetwork', 'screenshotFiles', 'systemRamFreeReports']
 
 # gam print cros [todrive <ToDriveAttribute>*]
 #	[(query <QueryCrOS>)|(queries <QueryCrOSList>) [querytime.* <Time>]
@@ -21304,6 +21336,7 @@ def doPrintCrOSDevices(entityList=None):
     cpuStatusReports = _filterCPUStatusReports(cros, selectedLists.get('cpuStatusReports', False), listLimit, startTime, endTime)
     diskVolumeReports = _filterBasicList(cros, 'diskVolumeReports', selectedLists.get('diskVolumeReports', False), listLimit)
     lastKnownNetworks = _filterBasicList(cros, 'lastKnownNetwork', selectedLists.get('lastKnownNetwork', False), listLimit)
+    screenshotFiles = _filterScreenshotFiles(cros, selectedLists.get('screenshotFiles', False), listLimit, startTime, endTime)
     systemRamFreeReports = _filterSystemRamFreeReports(cros, selectedLists.get('systemRamFreeReports', False), listLimit, startTime, endTime)
     if oneRow:
       csvPF.WriteRowTitles(flattenJSON(cros, listLimit=listLimit, timeObjects=CROS_TIME_OBJECTS))
@@ -21311,13 +21344,13 @@ def doPrintCrOSDevices(entityList=None):
     row = {}
     for attrib in cros:
       if attrib not in {'kind', 'etag', 'tpmVersionInfo', 'recentUsers', 'activeTimeRanges',
-                        'deviceFiles', 'cpuStatusReports', 'diskVolumeReports', 'lastKnownNetwork', 'systemRamFreeReports'}:
+                        'deviceFiles', 'cpuStatusReports', 'diskVolumeReports', 'lastKnownNetwork', 'screenshotFiles', 'systemRamFreeReports'}:
         if attrib not in CROS_TIME_OBJECTS:
           row[attrib] = cros[attrib]
         else:
           row[attrib] = formatLocalTime(cros[attrib])
     if noLists or (not activeTimeRanges and not recentUsers and not deviceFiles and
-                   not cpuStatusReports and not diskVolumeReports and not lastKnownNetworks and not systemRamFreeReports):
+                   not cpuStatusReports and not diskVolumeReports and not lastKnownNetworks and not screenshotFiles and not systemRamFreeReports):
       csvPF.WriteRowTitles(row)
       return
     lenATR = len(activeTimeRanges)
@@ -21326,9 +21359,10 @@ def doPrintCrOSDevices(entityList=None):
     lenCSR = len(cpuStatusReports)
     lenDVR = len(diskVolumeReports)
     lenLKN = len(lastKnownNetworks)
+    lenSSF = len(screenshotFiles)
     lenSRFR = len(systemRamFreeReports)
     new_row = row
-    for i in range(min(max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenLKN, lenSRFR), listLimit or max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenLKN, lenSRFR))):
+    for i in range(min(max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenLKN, lenSSF, lenSRFR), listLimit or max(lenATR, lenRU, lenDF, lenCSR, lenDVR, lenLKN, lenSSF, lenSRFR))):
       new_row = row.copy()
       if i < lenATR:
         for key in ['date', 'activeTime', 'duration', 'minutes']:
@@ -21358,6 +21392,10 @@ def doPrintCrOSDevices(entityList=None):
         for key in ['ipAddress', 'wanIpAddress']:
           if key in lastKnownNetworks[i]:
             new_row[f'lastKnownNetwork{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = lastKnownNetworks[i][key]
+      if i < lenSSF:
+        for key in ['name', 'type', 'downloadUrl', 'createTime']:
+          if key in screenshotFiles[i]:
+            new_row[f'screenshotFiles{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = screenshotFiles[i][key]
       if i < lenSRFR:
         for key in ['reportTime', 'systemRamFreeInfo']:
           new_row[f'systemRamFreeReports{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{key}'] = systemRamFreeReports[i][key]
@@ -37575,10 +37613,32 @@ def _formatLanguagesList(propertyValue, delimiter):
   return delimiter.join(languages)
 
 def infoUsers(entityList):
+  def getGroupParents(groupEmail, groupName):
+    groupParents[groupEmail] = {'name': groupName, 'parents': []}
+    try:
+      entityList = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
+                                 userKey=groupEmail, orderBy='email', fields='nextPageToken,groups(email,name)')
+      for parentGroup in entityList:
+        groupParents[groupEmail]['parents'].append(parentGroup['email'])
+        if parentGroup['email'] not in groupParents:
+          getGroupParents(parentGroup['email'], parentGroup['name'])
+    except (GAPI.invalidMember, GAPI.invalidInput):
+      badRequestWarning(Ent.GROUP, Ent.MEMBER, groupEmail)
+    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+      accessErrorExit(cd)
+
+  def showGroupParents(groupEmail):
+    printKeyValueList([groupEmail, f'{groupParents[groupEmail]["name"]}'])
+    Ind.Increment()
+    for parentEmail in groupParents[groupEmail]['parents']:
+      showGroupParents(parentEmail)
+    Ind.Decrement()
+
   def printUserCIGroupMap(parent, group_name_mappings, seen_group_count, edges, direction):
     for a_parent, a_child in edges:
       if a_parent == parent:
-        output = f'{Ind.Spaces()}{group_name_mappings[a_child]} <{a_child}> ({direction})'
+        output = f'{Ind.Spaces()}{a_child}: {group_name_mappings[a_child]} ({direction})'
         if seen_group_count[a_child] > 1:
           output += ' *'
         printLine(output)
@@ -37605,7 +37665,8 @@ def infoUsers(entityList):
     return False
 
   cd = buildGAPIObject(API.DIRECTORY)
-  getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = not GC.Values[GC.QUICK_INFO_USER]
+  ci = None
+  getAliases = getBuildingNames = getCIGroupsTree = getGroups = getGroupsTree = getLicenses = getSchemas = not GC.Values[GC.QUICK_INFO_USER]
   FJQC = FormatJSONQuoteChar()
   projection = 'full'
   customFieldMask = None
@@ -37617,14 +37678,16 @@ def infoUsers(entityList):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'quick':
-      getAliases = getBuildingNames = getCIGroups = getGroups = getLicenses = getSchemas = False
+      getAliases = getBuildingNames = getCIGroupsTree = getGroups = getGroupsTree = getLicenses = getSchemas = False
     elif myarg in {'noaliases', 'aliases'}:
       getAliases = myarg == 'aliases'
     elif myarg in {'nobuildingnames', 'buildingnames'}:
       getBuildingNames = myarg == 'buildingnames'
-    elif myarg in {'nogroups', 'groups', 'grouptree'}:
+    elif myarg in {'nogroups', 'groups', 'grouptree', 'cigrouptree'}:
+      getGroups = getGroupsTree = getCIGroupsTree = False
       getGroups = myarg == 'groups'
-      getCIGroups = myarg == 'grouptree'
+      getGroupsTree = myarg == 'grouptree'
+      getCIGroupsTree = myarg == 'cigrouptree'
     elif myarg in {'nolicenses', 'nolicences', 'licenses', 'licences'}:
       getLicenses = myarg in {'licenses', 'licences'}
     elif myarg == 'noschemas':
@@ -37666,6 +37729,7 @@ def infoUsers(entityList):
 # Special case; for info users, 'all users' means 'all users_ns_susp'
   if isinstance(entityList, dict) and entityList.get('entityType') == Cmd.ENTITY_ALL_USERS:
     entityList['entityType'] = Cmd.ENTITY_ALL_USERS_NS_SUSP
+  groupParents = {}
   i, count, entityList = getEntityArgument(entityList)
   for userEmail in entityList:
     i += 1
@@ -37676,7 +37740,7 @@ def infoUsers(entityList):
                       userKey=userEmail, projection=projection, customFieldMask=customFieldMask, viewType=viewType, fields=fields)
       groups = []
       memberships = []
-      if getGroups:
+      if getGroups or getGroupsTree:
         kwargs = {}
         if GC.Values[GC.ENABLE_DASA]:
           # Allows groups.list() to function but will limit
@@ -37690,8 +37754,10 @@ def infoUsers(entityList):
         except (GAPI.forbidden, GAPI.domainNotFound):
 ### Print some message
           pass
-      elif getCIGroups:
-        memberships = getCIGroupMembershipGraph(user['primaryEmail'])
+      elif getCIGroupsTree:
+        ci, memberships = getCIGroupMembershipGraph(ci, user['primaryEmail'])
+        if memberships is None:
+          getCIGroupsTree = False
       licenses = getUserLicenses(lic, user, skus) if getLicenses else []
       if FJQC.formatJSON:
         if getGroups:
@@ -37921,13 +37987,22 @@ def infoUsers(entityList):
             for alias in propertyValue:
               printKeyValueList(['alias', alias])
             Ind.Decrement()
-      if groups:
+      if getGroups:
         printEntitiesCount(Ent.GROUP, groups)
         Ind.Increment()
         for group in groups:
           printKeyValueList([group['name'], group['email']])
         Ind.Decrement()
-      elif getCIGroups:
+      elif getGroupsTree:
+        printEntity([Ent.GROUP_MEMBERSHIP_TREE, ''])
+        Ind.Increment()
+        for group in groups:
+          groupEmail = group['email']
+          if groupEmail not in groupParents:
+            getGroupParents(groupEmail, group['name'])
+          showGroupParents(groupEmail)
+        Ind.Decrement()
+      elif getCIGroupsTree:
         printEntity([Ent.GROUP_MEMBERSHIP_TREE, ''])
         if memberships:
           Ind.Increment()
@@ -37976,7 +38051,7 @@ def infoUsers(entityList):
 #	[quick]
 #	[noaliases|aliases]
 #	[nobuildingnames|buildingnames]
-#	[nogroups|groups|grouptree]
+#	[nogroups|groups|grouptree|cigrouptree]
 #	[nolicenses|nolicences|licenses|licences]
 #	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
 #	[noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
@@ -37989,7 +38064,7 @@ def doInfoUsers():
 #	[quick]
 #	[noaliases|aliases]
 #	[nobuildingnames|buildingnames]
-#	[nogroups|groups|grouptree]
+#	[nogroups|groups|grouptree|cigrouptree]
 #	[nolicenses|nolicences|licenses|licences]
 #	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
 #	[noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
@@ -51044,7 +51119,7 @@ def collectOrphans(users):
   targetUserFolderPattern = '#user# orphaned files'
   targetParentBody = {}
   query = ME_IN_OWNERS_AND+'trashed = false'
-  useShortcuts = True
+  useShortcuts = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'orderby':
@@ -51058,7 +51133,7 @@ def collectOrphans(users):
     elif myarg == 'useshortcuts':
       useShortcuts = getBoolean()
     elif myarg == 'preview':
-      csvPF = CSVPrintFile(['Owner', 'type', 'id', 'name'])
+      csvPF = CSVPrintFile(['Owner', 'type', 'id', 'name', 'action'])
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     else:
@@ -51076,7 +51151,7 @@ def collectOrphans(users):
                            pageMessage=getPageMessageForWhom(),
                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                            retryReasons=[GAPI.UNKNOWN_ERROR],
-                           q=query, orderBy=OBY.orderBy, fields='nextPageToken,files(id,name,parents,mimeType,capabilities)',
+                           q=query, orderBy=OBY.orderBy, fields='nextPageToken,files(id,name,parents,mimeType,capabilities(canAddMyDriveParent))',
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       if targetUserFolderPattern:
         trgtUserFolderName = _substituteForUser(targetUserFolderPattern, user, userName)
@@ -51115,14 +51190,10 @@ def collectOrphans(users):
         fileId = fileEntry['id']
         fileName = fileEntry['name']
         fileType = _getEntityMimeType(fileEntry)
-# Deleted 6.26.16
-#        if fileType == Ent.DRIVE_FOLDER and not fileEntry['capabilities']['canAddMyDriveParent']:
-#          # Typically Google Backup & Sync images of laptops
-#          continue
-        if csvPF:
-          csvPF.WriteRow({'Owner': user, 'type': Ent.Singular(fileType), 'id': fileId, 'name': fileName})
-          continue
-        if not useShortcuts:
+        if not useShortcuts and fileEntry['capabilities']['canAddMyDriveParent']:
+          if csvPF:
+            csvPF.WriteRow({'Owner': user, 'type': Ent.Singular(fileType), 'id': fileId, 'name': fileName, 'action': 'changeParent'})
+            continue
           try:
             callGAPI(drive.files(), 'update',
                      bailOnInternalError=True,
@@ -51137,6 +51208,9 @@ def collectOrphans(users):
             userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
             break
         else:
+          if csvPF:
+            csvPF.WriteRow({'Owner': user, 'type': Ent.Singular(fileType), 'id': fileId, 'name': fileName, 'action': 'createShortcut'})
+            continue
           try:
             # Check for existing shortcut, do not duplicate
             files = callGAPIitems(drive.files(), 'list', 'files',
@@ -57835,6 +57909,32 @@ def updateLabels(users):
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
+def _validateLabelList(user, i, count, labels, labelList, userOnly):
+  validLabels = []
+  for label in labelList:
+    label_name_lower = label.lower()
+    if label_name_lower[:6] == 'regex:':
+      labelPattern = validateREPattern(label[6:])
+    else:
+      labelPattern = None
+    if label.upper() == '--ALL_LABELS--':
+      count = len(labels['labels'])
+      for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
+        if (not userOnly or delLabel['type'] != LABEL_TYPE_SYSTEM):
+          validLabels.append(delLabel)
+    elif labelPattern:
+      for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
+        if (not userOnly or delLabel['type'] != LABEL_TYPE_SYSTEM) and labelPattern.match(delLabel['name']):
+          validLabels.append(delLabel)
+    else:
+      for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
+        if (not userOnly or delLabel['type'] != LABEL_TYPE_SYSTEM) and label_name_lower == delLabel['name'].lower():
+          validLabels.append(delLabel)
+          break
+      else:
+        entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.DOES_NOT_EXIST, i, count)
+  return (validLabels, len(validLabels))
+
 def deleteLabels(users, labelEntity):
   def _handleProcessGmailError(exception, ri):
     http_status, reason, message = checkGAPIError(exception)
@@ -57867,30 +57967,7 @@ def deleteLabels(users, labelEntity):
       labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
       if not labels:
         continue
-      delLabels = []
-      for label in labelList:
-        label_name_lower = label.lower()
-        if label_name_lower[:6] == 'regex:':
-          labelPattern = validateREPattern(label[6:])
-        else:
-          labelPattern = None
-        if label.upper() == '--ALL_LABELS--':
-          count = len(labels['labels'])
-          for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
-            if delLabel['type'] != LABEL_TYPE_SYSTEM:
-              delLabels.append(delLabel)
-        elif labelPattern:
-          for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
-            if delLabel['type'] != LABEL_TYPE_SYSTEM and labelPattern.match(delLabel['name']):
-              delLabels.append(delLabel)
-        else:
-          for delLabel in sorted(labels['labels'], key=lambda k: k['name'], reverse=True):
-            if label_name_lower == delLabel['name'].lower():
-              delLabels.append(delLabel)
-              break
-          else:
-            entityActionFailedWarning([Ent.USER, user, Ent.LABEL, label], Msg.DOES_NOT_EXIST, i, count)
-      jcount = len(delLabels)
+      delLabels, jcount = _validateLabelList(user, i, count, labels, labelList, True)
       labelIdToNameMap = {}
       entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
       if jcount == 0:
@@ -57974,8 +58051,13 @@ LABEL_DISPLAY_FIELDS_LIST = ['type', 'id', 'labelListVisibility', 'messageListVi
 LABEL_COUNTS_FIELDS_LIST = ['messagesTotal', 'messagesUnread', 'threadsTotal', 'threadsUnread']
 LABEL_COUNTS_FIELDS = ','.join(LABEL_COUNTS_FIELDS_LIST)
 
-# gam <UserTypeEntity> print labels|label [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]] [todrive <ToDriveAttribute>*]
-# gam <UserTypeEntity> show labels|label [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]] [nested [<Boolean>]] [display allfields|basename|fullname]
+# gam <UserTypeEntity> print labels|label [todrive <ToDriveAttribute>*]
+#	[onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]]
+#	[labellist <LabelNameEntity>]
+# gam <UserTypeEntity> show labels|label
+#	[onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]]
+#	[nested [<Boolean>]] [display allfields|basename|fullname]
+#	[labellist <LabelNameEntity>]
 def printShowLabels(users):
   def _buildLabelTree(labels):
     def _checkChildLabel(label):
@@ -58054,6 +58136,7 @@ def printShowLabels(users):
   onlyUser = showCounts = showNested = False
   displayAllFields = True
   nameField = 'name'
+  labelEntity = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -58068,25 +58151,38 @@ def printShowLabels(users):
       fields = getChoice(SHOW_LABELS_DISPLAY_CHOICES)
       nameField = 'name' if fields != 'basename' else 'base'
       displayAllFields = fields == 'allfields'
+    elif myarg == 'labellist':
+      labelEntity = getEntityList(Cmd.OB_LABEL_NAME_LIST, shlexSplit=True)
     else:
       unknownArgumentExit()
+  if not isinstance(labelEntity, dict):
+    userLabelList = None
+    labelList = labelEntity
+  else:
+    userLabelList = labelEntity
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    origUser = user
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    if userLabelList:
+      labelList = userLabelList[origUser]
     if csvPF:
       printGettingEntityItemForWhom(Ent.LABEL, user, i, count)
-    labels = _getUserGmailLabels(gmail, user, i, count, 'labels')
+    labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
     if not labels:
       continue
-    try:
+    if not labelList:
       jcount = len(labels['labels'])
       if (jcount > 0) and onlyUser:
         for label in labels['labels']:
           if label['type'] == LABEL_TYPE_SYSTEM:
             jcount -= 1
+    else:
+      labels['labels'], jcount = _validateLabelList(user, i, count, labels, labelList, onlyUser)
+    try:
       if not csvPF:
         entityPerformActionNumItems([Ent.USER, user], jcount, Ent.LABEL, i, count)
       if jcount == 0:

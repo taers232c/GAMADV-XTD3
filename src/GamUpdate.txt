@@ -1,3 +1,20 @@
+6.27.12
+
+Added option `labellist <LabelNameEntity>` to `gam <UserTypeEntity> print|show labels`
+to allow selection of labels to display.
+
+Added option `cigrouptree` to `gam info user`. Previously, the `grouptree` option used
+the Cloud Identity Groups API to display the users group tree structure. This API is licensed
+and the command would generate an error if you didn't have the license. Now, the `grouptree` option
+uses the Directory API and the `cigrouptree` option uses the Cloud Identity Groups API.
+
+Updated `gam <UserTypeEntity> collect orphans` to not use shortcuts by default.
+If an orphan file can have its parent changed without affecting its access by other users, the parent is changed.
+If a parent change would affect the access by other users, a shortcut is created. You can still use
+the `useshortcuts true` option to force the use of shortcuts. If you specify the `preview` option,
+a new column, `action`, shows `changeParent` or `createShortcut` to indicate what action will be taken
+when `preview` is omitted.
+
 6.27.11
 
 Added options `showparentsaslist [<Boolean>]` and `delimiter <Character>` to `gam print grouptree` and
@@ -6,8 +23,8 @@ as delimited lists rather than multiple indexed columns.
 
 Added options `downloadattempts <Integer>` and `retryinterval <Integer>` to `gam download vaultexport`
 that cause GAM to wait for a vault export to be completed. By default, GAM makes only one download attempt.
-If mutiple attempts are specified, GAM waits `retryinterval <Integer>` seconds between attempts; the default
-interval is 30 seconds.
+If multiple attempts are specified with `downloadattempts <Integer>`, GAM waits `retryinterval <Integer>` seconds
+between attempts; the default retry interval is 30 seconds.
 
 6.27.10
 

@@ -293,8 +293,8 @@ If an item contains spaces, it should be surrounded by ".
 <CalendarACLScope> ::=
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
         domain:<DomainName>|domain|default
-<CalendarItem> ::= <EmailAddress>|<String>
-<GIGroupAlias> ::= <EmailAddress>|<String>
+<CalendarItem> ::= <EmailAddress>
+<GIGroupAlias> ::= <EmailAddress>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
 <CIGroupType> ::= customer|group|other|serviceaccount|user
 <ChannelCustomerID> ::= <String>
@@ -587,7 +587,7 @@ If an item contains spaces, it should be surrounded by ".
 <GroupRoleList> ::= "<GroupRole>(,<GroupRole>)*"
 <GroupTypeList> ::= "<GroupType>(,<GroupType>)*"
 <LabelIDList> ::= "<LabelID>(,<LabelID)*"
-<LabelNameList> ::= "<LabelName>(,<LabelName)*"
+<LabelNameList> ::= "'<LabelName>'(,'<LabelName>')*"
 <LanguageList> ::= "<Language>(,<Language>)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
 <MatterStateList> ::= "<MatterState>(,<MatterState>)*"
@@ -922,9 +922,9 @@ Specify a collection of items by directly specifying them; the item type is dete
 <GuardianInvitationIDEntity> ::=
         <GuardianInvitationIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <LabelIDEntity> ::=
-        <LabelIDList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
+        <LabelIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <LabelNameEntity> ::=
-        <LabelNameList> | <FileSelector> | <CSVFileSelector> | <CSVDataSelector>
+        <LabelNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <MessageIDEntity> ::=
         <MessageIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <MobileEntity> ::=
@@ -1824,6 +1824,7 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatc
         osversion|
         platformversion|
         recentusers|
+        screenshotfiles|
         serialnumber|
         status|
         supportenddate|
@@ -1840,6 +1841,7 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatc
         diskvolumereports|
         lastknownnetwork|
         recentusers|users|
+        screenshotfiles|
         systemramfreereports
 <CrOSListFieldNameList> ::= "<CrOSListFieldName>(,<CrOSListFieldName>)*"
 
@@ -1909,8 +1911,8 @@ The first column will always be deviceId; the remaining field names will be sort
 otherwise, the remaining field names will appear in the order specified.
 
 The basic argument outputs these column headers: deviceId,annotatedAssetId,annotatedLocation,annotatedUser,lastSync,notes,serialNumber,status.
-The allfields/full arguments output all column headers including seven headers: activeTimeRanges, cpuStatusReports, deviceFiles, diskVolumeReports,
-lastknownnetwork, recentUsers and systemRamFreeReports that repeat with multiple subvalues each, yielding a large number of columns that make the output hard to process.
+The allfields/full arguments output all column headers including eight headers: activeTimeRanges, cpuStatusReports, deviceFiles, diskVolumeReports,
+lastKnownNetwork, recentUsers, screenshotFiles and systemRamFreeReports that repeat with multiple subvalues each, yielding a large number of columns that make the output hard to process.
 The nolists argument suppresses these six headers; if you want these headers in a more manageable form specify <CrOSListFieldName> values as desired.
 One set of values for all <CrOSListFieldName> fields specified will be output on a separate row with all of the other headers.
 
@@ -4555,7 +4557,7 @@ gam info user [<UserItem>]
         [quick]
         [noaliases|aliases]
         [nobuildingnames|buildingnames]
-        [nogroups|groups|grouptree]
+        [nogroups|groups|grouptree|cigrouptree]
         [nolicenses|nolicences|licenses|licences]
         [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
@@ -4586,7 +4588,7 @@ gam info users <UserTypeEntity>
         [quick]
         [noaliases|aliases]
         [nobuildingnames|buildingnames]
-        [nogroups|groups|grouptree]
+        [nogroups|groups|grouptree|cigrouptree]
         [nolicenses|nolicences|licenses|licences]
         [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
@@ -4617,7 +4619,7 @@ gam <UserTypeEntity> info users
         [quick]
         [noaliases|aliases]
         [nobuildingnames|buildingnames]
-        [nogroups|groups|grouptree]
+        [nogroups|groups|grouptree|cigrouptree]
         [nolicenses|nolicences|licenses|licences]
         [noschemas|allschemas|(schemas|custom|customschemas <SchemaNameList>)]
         [userview] <UserFieldName>* [fields <UserFieldNameList>]
@@ -5890,8 +5892,10 @@ gam <UserTypeEntity> delete labelidlist <LabelIDEntity>
 gam <UserTypeEntity> show labels|label
         [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]]
         [nested [<Boolean>]] [display allfields|basename|fullname]
+        [labellist <LabelNameEntity>]
 gam <UserTypeEntity> print labels|label [todrive <ToDriveAttribute>*]
         [onlyuser|useronly [<Boolean>]] [showcounts [<Boolean>]]
+        [labellist <LabelNameEntity>]
 
 <SMTPDateHeader> ::=
         date|
