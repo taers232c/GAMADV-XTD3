@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.12'
+__version__ = '6.27.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -59127,6 +59127,8 @@ def printShowMessagesThreads(users, entityType):
             if dateHeaderFormat and name in SMTP_DATE_HEADERS:
               headerValue = _convertDateTime(headerValue)
             printKeyValueList([SMTP_HEADERS_MAP.get(name, header['name']), headerValue])
+    if show_date:
+      printKeyValueList(['Date', formatLocalTimestamp(result['internalDate'])])
     if show_size:
       printKeyValueList(['SizeEstimate', result['sizeEstimate']])
     if show_labels:
@@ -59188,6 +59190,8 @@ def printShowMessagesThreads(users, entityType):
             else:
               row[f'{SMTP_HEADERS_MAP.get(name, header["name"])} {j}'] = headerValue
             j += 1
+    if show_date:
+      row['Date'] = formatLocalTimestamp(result['internalDate'])
     if show_size:
       row['SizeEstimate'] = result['sizeEstimate']
     if show_labels:
@@ -59359,7 +59363,7 @@ def printShowMessagesThreads(users, entityType):
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   countsOnly = positiveCountsOnly = includeSpamTrash = onlyUser = overwrite = save_attachments = False
-  show_all_headers = show_attachments = show_body = show_labels = show_size = show_snippet = False
+  show_all_headers = show_attachments = show_body = show_date = show_labels = show_size = show_snippet = False
   attachmentNamePattern = None
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   defaultHeaders = ['Date', 'Subject', 'From', 'Reply-To', 'To', 'Delivered-To', 'Content-Type', 'Message-ID']
@@ -59381,6 +59385,8 @@ def printShowMessagesThreads(users, entityType):
       convertCRNL = True
     elif not showMode and myarg == 'delimiter':
       delimiter = getCharacter()
+    elif myarg == 'showdate':
+      show_date = True
     elif myarg == 'showbody':
       show_body = True
     elif myarg == 'showlabels':
@@ -59588,7 +59594,7 @@ def printShowMessagesThreads(users, entityType):
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [dateheaderformat iso|rfc2822|<String>] [dateheaderconverttimezone [<Boolean>]]
-#	[showlabels] [showbody] [showsize] [showsnippet]
+#	[showlabels] [showbody] [showdate] [showsize] [showsnippet]
 #	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
 #	[countsonly|positivecountsonly] [useronly]
@@ -59596,7 +59602,7 @@ def printShowMessagesThreads(users, entityType):
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <MessageIDEntity>)
 #	[labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [dateheaderformat iso|rfc2822|<String>] [dateheaderconverttimezone [<Boolean>]]
-#	[showlabels] [showbody] [showsize] [showsnippet]
+#	[showlabels] [showbody] [showdate] [showsize] [showsnippet]
 #	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
@@ -59607,7 +59613,7 @@ def printShowMessages(users):
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_print <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[labelmatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [dateheaderformat iso|rfc2822|<String>] [dateheaderconverttimezone [<Boolean>]]
-#	[showlabels] [showbody] [showsize] [showsnippet]
+#	[showlabels] [showbody] [showdate] [showsize] [showsnippet]
 #	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[convertcrnl] [delimiter <Character>] [todrive <ToDriveAttribute>*]
 #	[countsonly|positivecountsonly] [useronly]
@@ -59615,7 +59621,7 @@ def printShowMessages(users):
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])* [quick|notquick] [max_to_show <Number>] [includespamtrash])|(ids <ThreadIDEntity>)
 #	[labelmatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [dateheaderformat iso|rfc2822|<String>] [dateheaderconverttimezone [<Boolean>]]
-#	[showlabels] [showbody] [showsize] [showsnippet]
+#	[showlabels] [showbody] [showdate] [showsize] [showsnippet]
 #	[showattachments [attachmentnamepattern <RegularExpression>]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]

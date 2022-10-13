@@ -1,3 +1,13 @@
+6.27.13
+
+Added option `showdate` to `gam <UserTypeEntity> print|show messages|threads` that displays
+the `internalDate` field for a message|thread.
+```
+The internal message creation timestamp (epoch ms), which determines ordering in the inbox.
+For normal SMTP-received email, this represents the time the message was originally accepted by Google,
+which is more reliable than the Date header. 
+```
+
 6.27.12
 
 Added option `labellist <LabelNameEntity>` to `gam <UserTypeEntity> print|show labels`
