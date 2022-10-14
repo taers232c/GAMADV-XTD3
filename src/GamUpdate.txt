@@ -1,3 +1,8 @@
+6.27.14
+
+Extended `gam print addresses` to include information about domains and resource calendars.
+A new column `Target` was added that displays target information for user, group and domain aliases.
+
 6.27.13
 
 Added option `showdate` to `gam <UserTypeEntity> print|show messages|threads` that displays

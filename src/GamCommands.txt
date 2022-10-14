@@ -5058,8 +5058,7 @@ gam <UserTypeEntity> show datastudiopermissions
         (othername <DriveFileName>) | (othername:<DriveFileName>) |
         (otherdrivefilename <DriveFileName>) | (otherdrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::=
-        (query <QueryDriveFile>) | (query:<QueryDriveFile>) |
-        (fullquery <QueryDriveFile>)
+        (query <QueryDriveFile>) | (query:<QueryDriveFile>)
 <DriveFileEntity> ::=
         <DriveFileIDEntity> |
         <DriveFileNameEntity> |

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.13'
+__version__ = '6.27.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -16043,9 +16043,11 @@ def doPrintAddresses():
   cd = buildGAPIObject(API.DIRECTORY)
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile()
-  titlesList = ['Type', 'Email']
+  titlesList = ['Type', 'Email', 'Target']
   userFields = ['primaryEmail', 'aliases', 'suspended']
   groupFields = ['email', 'aliases']
+  domainFields = ['domainName', 'isPrimary', 'domainAliases']
+  resourceFields = ['resourceEmail']
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -16066,11 +16068,13 @@ def doPrintAddresses():
   except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
     accessErrorExit(cd)
   for user in entityList:
-    csvPF.WriteRow({'Type': 'User' if not user['suspended'] else 'SuspendedUser', 'Email': user['primaryEmail']})
+    userEmail = user['primaryEmail']
+    prefix = '' if not user['suspended'] else 'Suspended'
+    csvPF.WriteRow({'Type': f'{prefix}User', 'Email': userEmail})
     for alias in user.get('aliases', []):
-      csvPF.WriteRow({'Type': 'UserAlias', 'Email': alias})
+      csvPF.WriteRow({'Type': f'{prefix}UserAlias', 'Email': alias, 'Target': userEmail})
     for alias in user.get('nonEditableAliases', []):
-      csvPF.WriteRow({'Type': 'UserNEAlias', 'Email': alias})
+      csvPF.WriteRow({'Type': f'{prefix}UserNEAlias', 'Email': alias, 'Target': userEmail})
   printGettingAllAccountEntities(Ent.GROUP)
   try:
     entityList = callGAPIpages(cd.groups(), 'list', 'groups',
@@ -16080,11 +16084,36 @@ def doPrintAddresses():
   except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
     accessErrorExit(cd)
   for group in entityList:
-    csvPF.WriteRow({'Type': 'Group', 'Email': group['email']})
+    groupEmail = group['email']
+    csvPF.WriteRow({'Type': 'Group', 'Email': groupEmail})
     for alias in group.get('aliases', []):
-      csvPF.WriteRow({'Type': 'GroupAlias', 'Email': alias})
+      csvPF.WriteRow({'Type': 'GroupAlias', 'Email': alias, 'Target': groupEmail})
     for alias in group.get('nonEditableAliases', []):
-      csvPF.WriteRow({'Type': 'GroupNEAlias', 'Email': alias})
+      csvPF.WriteRow({'Type': 'GroupNEAlias', 'Email': alias, 'Target': groupEmail})
+  printGettingAllAccountEntities(Ent.RESOURCE_CALENDAR)
+  try:
+    entityList = callGAPIpages(cd.resources().calendars(), 'list', 'items',
+                               pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='resourceEmail',
+                               throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID_INPUT],
+                               customer=GC.Values[GC.CUSTOMER_ID], fields=f'nextPageToken,items({",".join(resourceFields)})')
+  except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+    accessErrorExit(cd)
+  except GAPI.invalidInput as e:
+    entityActionFailedWarning([Ent.RESOURCE_CALENDAR, ''], str(e))
+    return
+  for resource in entityList:
+    csvPF.WriteRow({'Type': 'Resource', 'Email': resource['resourceEmail']})
+  try:
+    entityList = callGAPIitems(cd.domains(), 'list', 'domains',
+                               throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                               customer=GC.Values[GC.CUSTOMER_ID], fields=f'domains({",".join(domainFields)})')
+  except (GAPI.badRequest, GAPI.notFound, GAPI.forbidden):
+    accessErrorExit(cd)
+  for domain in entityList:
+    domainEmail = domain['domainName']
+    csvPF.WriteRow({'Type': 'DomainPrimary' if domain['isPrimary'] else 'DomainSecondary', 'Email': domainEmail})
+    for alias in domain.get('domainAliases', []):
+      csvPF.WriteRow({'Type': 'DomainAlias', 'Email': alias['domainAliasName'], 'Target': domainEmail})
   csvPF.SortRowsTwoTitles('Type', 'Email', False)
   csvPF.writeCSVfile('Addresses')
 
@@ -51438,9 +51467,10 @@ def transferDrive(users):
                    addParents=','.join(addTargetParents), removeParents=','.join(removeTargetParents), fields='')
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.unknownError,
-              GAPI.badRequest, GAPI.sharingRateLimitExceeded, GAPI.insufficientFilePermissions) as e:
+              GAPI.badRequest, GAPI.sharingRateLimitExceeded,
+              GAPI.insufficientFilePermissions, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.crossDomainMoveRestriction) as e:
         entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
-#      except (GAPI.insufficientFilePermissions) as e:
+#      except (GAPI.insufficientFilePermissions, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.crossDomainMoveRestriction) as e:
 #        if not createShortcutsForNonmovableFiles:
 #          entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
 #        else:
