@@ -31,16 +31,16 @@ jobs:
             goal: build
             arch: universal2
             openssl_archs: darwin64-x86_64 darwin64-arm64
-#          - os: windows-2022
-#            jid: 5
-#            goal: build
-#            arch: Win64
-#            openssl_archs: VC-WIN64A
-#          - os: windows-2022
-#            jid: 6
-#            goal: build
-#            arch: Win32
-#            openssl_archs: VC-WIN32
+          - os: windows-2022
+            jid: 5
+            goal: build
+            arch: Win64
+            openssl_archs: VC-WIN64A
+          - os: windows-2022
+            jid: 6
+            goal: build
+            arch: Win32
+            openssl_archs: VC-WIN32
 
     steps:
 
@@ -77,11 +77,11 @@ jobs:
           sudo apt-get -qq --yes update
           sudo apt-get -qq --yes install swig libpcsclite-dev
 
-#      - name: MacOS remove Homebrew
-#        if: runner.os == 'macOS'
-#        run: |
-#          # remove everything except the libraries needed by yubikey-manager
-#          brew uninstall $(brew list | grep -v 'pcre\|swig\|pcsc-lite')
+     #- name: MacOS remove Homebrew
+     #  if: runner.os == 'macOS'
+     #  run: |
+     #    # remove everything except the libraries needed by yubikey-manager
+     #    brew uninstall $(brew list | grep -v 'pcre\|swig\|pcsc-lite')
 
       - name: MacOS install tools
         if: runner.os == 'macOS'
@@ -233,9 +233,6 @@ jobs:
             cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_archs}"
             # install_sw saves us ages processing man pages :-)
             $MAKE install_sw
-            #export PATH="${OPENSSL_INSTALL_PATH}/bin:${PATH}"
-            #echo "PATH=${PATH}" >> $GITHUB_ENV
-            #echo "PATH: ${PATH}"
           fi
 
       - name: Run OpenSSL
@@ -327,9 +324,9 @@ jobs:
           Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\Lib\*" "${env:PYTHON_INSTALL_PATH}\lib\" -recurse
           Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\Include\*" "${env:PYTHON_INSTALL_PATH}\include\" -recurse
           Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\PC\*.h" "${env:PYTHON_INSTALL_PATH}\include\"
-          #export PATH="${PYTHON_INSTALL_PATH}/bin:${PATH}"
-          #echo "PATH=${PATH}" >> $GITHUB_ENV
-          #echo "PATH: ${PATH}"
+          $env:Path = '${PYTHON_INSTALL_PATH}/bin' + $env:Path
+          echo "Path=$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "PATH: ${env:Path}"
 
       - name: Mac/Linux Build Python
         if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
@@ -344,9 +341,9 @@ jobs:
           cd "${PYTHON_SOURCE_PATH}"
           $MAKE altinstall
           $MAKE bininstall
-          #export PATH="${PYTHON_INSTALL_PATH}/bin:${PATH}"
-          #echo "PATH=${PATH}" >> $GITHUB_ENV
-          #echo "PATH: ${PATH}"
+          export PATH="${PATH}:${PYTHON_INSTALL_PATH}/bin"
+          echo "PATH=${PATH}" >> $GITHUB_ENV
+          echo "PATH: ${PATH}"
 
       - name: Run Python
         run: |
@@ -358,8 +355,8 @@ jobs:
           "${PYTHON}" get-pip.py
           "${PYTHON}" -m pip install --upgrade pip
           "${PYTHON}" -m pip install --upgrade wheel
-          "${PYTHON}" -m pip install --upgrade setuptools
-    
+          "${PYTHON}" -m pip install --upgrade setuptools==65.4.1
+
       - name: Install pip requirements
         run: |
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
@@ -384,8 +381,6 @@ jobs:
           git clone https://github.com/pyinstaller/pyinstaller.git
           cd pyinstaller
           export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
-          # temp freeze PyInstaller at 5.3
-          #export latest_release="v5.3"
           git checkout "${latest_release}"
           # remove pre-compiled bootloaders so we fail if bootloader compile fails
           rm -rvf PyInstaller/bootloader/*-*/*
