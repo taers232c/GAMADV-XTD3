@@ -31502,7 +31502,7 @@ def _getResourceCalendarAttributes(cd, body):
     elif myarg in {'description', 'resourcedescription'}:
       body['resourceDescription'] = getStringWithCRsNLs()
     elif myarg in {'type', 'resourcetype'}:
-      body['resourceType'] = getString(Cmd.OB_STRING)
+      body['resourceType'] = getString(Cmd.OB_STRING, minLen=0)
     elif myarg in {'building', 'buildingid'}:
       body['buildingId'] = _getBuildingByNameOrId(cd, minLen=0)
     elif myarg == 'capacity':
@@ -31516,7 +31516,7 @@ def _getResourceCalendarAttributes(cd, body):
     elif myarg in {'floor', 'floorname'}:
       body['floorName'] = getString(Cmd.OB_STRING)
     elif myarg == 'floorsection':
-      body['floorSection'] = getString(Cmd.OB_STRING)
+      body['floorSection'] = getString(Cmd.OB_STRING, minLen=0)
     elif myarg in {'category', 'resourcecategory'}:
       body['resourceCategory'] = getChoice(RESOURCE_CATEGORY_MAP, mapChoice=True)
     elif myarg in {'userdescription', 'uservisibledescription'}:
@@ -31636,7 +31636,7 @@ RESOURCE_ADDTL_FIELDS = [
 RESOURCE_ALL_FIELDS = RESOURCE_DFLT_FIELDS+RESOURCE_ADDTL_FIELDS
 RESOURCE_FIELDS_WITH_CRS_NLS = {'resourceDescription'}
 
-def _showResource(cd, resource, i, count, FJQC, acls=None):
+def _showResource(cd, resource, i, count, FJQC, acls=None, noSelfOwner=False):
 
   def _showResourceField(title, resource, field):
     if field in resource:
@@ -31676,19 +31676,23 @@ def _showResource(cd, resource, i, count, FJQC, acls=None):
     Ind.Increment()
     for rule in acls:
       j += 1
+      if noSelfOwner and rule['role'] == 'owner' and rule['scope']['value'] == resource['resourceEmail']:
+        continue
       printKeyValueListWithCount(ACLRuleKeyValueList(rule), j, jcount)
     Ind.Decrement()
   Ind.Decrement()
 
 def _doInfoResourceCalendars(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  getCalSettings = getCalPermissions = False
+  getCalSettings = getCalPermissions = noSelfOwner = False
   FJQC = FormatJSONQuoteChar()
   acls = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
       getCalPermissions = True
+    elif myarg == 'noselfowner':
+      noSelfOwner = True
     elif myarg == Cmd.ARG_CALENDAR:
       getCalSettings = True
     else:
@@ -31708,15 +31712,17 @@ def _doInfoResourceCalendars(entityList):
         status, acls = _getResourceACLsCalSettings(cal, resource, getCalSettings, getCalPermissions, i, count)
         if not status:
           continue
-      _showResource(cd, resource, i, count, FJQC, acls)
+      _showResource(cd, resource, i, count, FJQC, acls, noSelfOwner)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
 
-# gam info resources <ResourceEntity> [acls] [calendar] [formatjson]
+# gam info resources <ResourceEntity>
+#	[acls] [noselfowner] [calendar] [formatjson]
 def doInfoResourceCalendars():
   _doInfoResourceCalendars(getEntityList(Cmd.OB_RESOURCE_ENTITY))
 
-# gam info resource <ResourceID> [acls] [calendar] [formatjson]
+# gam info resource <ResourceID>
+#	[acls] [noselfowner] [calendar] [formatjson]
 def doInfoResourceCalendar():
   _doInfoResourceCalendars(getStringReturnInList(Cmd.OB_RESOURCE_ID))
 
@@ -31750,15 +31756,15 @@ RESOURCE_FIELDS_CHOICE_MAP = {
 # gam show resources
 #	[allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
 #	[query <String>]
-#	[acls] [calendar] [convertcrnl] [formatjson]
+#	[acls] [noselfowner] [calendar] [convertcrnl] [formatjson]
 # gam print resources [todrive <ToDriveAttribute>*]
 #	[allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
 #	[query <String>]
-#	[acls] [calendar] [convertcrnl] [formatjson [quotechar <Character>]]
+#	[acls] [noselfowner] [calendar] [convertcrnl] [formatjson [quotechar <Character>]]
 def doPrintShowResourceCalendars():
   cd = buildGAPIObject(API.DIRECTORY)
   convertCRNL = GC.Values[GC.CSV_OUTPUT_CONVERT_CR_NL]
-  getCalSettings = getCalPermissions = False
+  getCalSettings = getCalPermissions = noSelfOwner = False
   acls = query = None
   fieldsList = []
   csvPF = CSVPrintFile() if Act.csvFormat() else None
@@ -31773,6 +31779,8 @@ def doPrintShowResourceCalendars():
       fieldsList = RESOURCE_ALL_FIELDS[:]
     elif myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
       getCalPermissions = True
+    elif myarg == 'noselfowner':
+      noSelfOwner = True
     elif myarg == Cmd.ARG_CALENDAR:
       getCalSettings = True
     elif myarg in RESOURCE_FIELDS_CHOICE_MAP:
@@ -31834,7 +31842,7 @@ def doPrintShowResourceCalendars():
       if not status:
         continue
     if not csvPF:
-      _showResource(cd, resource, i, count, FJQC, acls)
+      _showResource(cd, resource, i, count, FJQC, acls, noSelfOwner)
     else:
       if 'buildingId' in resource:
         resource['buildingName'] = _getBuildingNameById(cd, resource['buildingId'])
@@ -31852,12 +31860,18 @@ def doPrintShowResourceCalendars():
           flattenJSON(resource['calendar'], flattened=row)
         if getCalPermissions:
           for rule in acls:
+            if noSelfOwner and rule['role'] == 'owner' and rule['scope']['value'] == resource['resourceEmail']:
+              continue
             csvPF.WriteRowTitles(flattenJSON(rule, flattened=row.copy()))
         else:
           csvPF.WriteRowTitles(row)
       else:
         if getCalPermissions:
-          resource['acls'] = [{'id': rule['id'], 'role': rule['role']} for rule in acls]
+          resource['acls'] = []
+          for rule in acls:
+            if noSelfOwner and rule['role'] == 'owner' and rule['scope']['value'] == resource['resourceEmail']:
+              continue
+            resource['acls'].append({'id': rule['id'], 'role': rule['role']})
         row = {'resourceId': resource['resourceId'], 'JSON': json.dumps(cleanJSON(resource), ensure_ascii=False, sort_keys=True)}
         if 'resourceName' in resource:
           row['resourceName'] = resource['resourceName']
@@ -42765,11 +42779,11 @@ def _showCalendar(calendar, j, jcount, FJQC, acls=None):
 def _processCalendarList(user, calId, j, jcount, cal, function, **kwargs):
   try:
     callGAPI(cal.calendarList(), function,
-             throwReasons=[GAPI.NOT_FOUND, GAPI.DUPLICATE,
+             throwReasons=[GAPI.NOT_FOUND, GAPI.DUPLICATE, GAPI.UNKNOWN_ERROR,
                            GAPI.CANNOT_CHANGE_OWN_ACL, GAPI.CANNOT_CHANGE_OWN_PRIMARY_SUBSCRIPTION],
              **kwargs)
     entityActionPerformed([Ent.USER, user, Ent.CALENDAR, calId], j, jcount)
-  except (GAPI.notFound, GAPI.duplicate,
+  except (GAPI.notFound, GAPI.duplicate, GAPI.unknownError,
           GAPI.cannotChangeOwnAcl, GAPI.cannotChangeOwnPrimarySubscription) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
 

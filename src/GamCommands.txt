@@ -3827,21 +3827,23 @@ gam print features [todrive <ToDriveAttribute>*]
 gam create|add resource <ResourceID> <Name> <ResourceAttribute>*
 gam update resource <ResourceID> <ResourceAttribute>*
 gam delete resource <ResourceID>
-gam info resource <ResourceID> [acls] [calendar]
+gam info resource <ResourceID>
+        [acls] [noselfowner] [calendar]
         [formatjson]
 
 gam update resources <ResourceEntity> <ResourceAttribute>*
 gam delete resources <ResourceEntity>
-gam info resources <ResourceEntity> [acls] [calendar]
+gam info resources <ResourceEntity>
+        [acls] [noselfowner] [calendar]
         [formatjson]
 
 gam show resources [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
         [query <String>]
-        [acls] [calendar] [convertcrnl]
+        [acls] [noselfowner] [calendar] [convertcrnl]
         [formatjson]
 gam print resources [todrive <ToDriveAttribute>*] [allfields|<ResourceFieldName>*|(fields <ResourceFieldNameList>)]
         [query <String>]
-        [acls] [calendar] [convertcrnl]
+        [acls] [noselfowner] [calendar] [convertcrnl]
         [formatjson [quotechar <Character>]]
 
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
