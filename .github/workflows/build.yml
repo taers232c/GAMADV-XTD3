@@ -393,7 +393,7 @@ jobs:
 #          cd ..
 #          echo "---- Installing PyInstaller ----"
 #          "${PYTHON}" -m pip install .
-          "${PYTHON}" -m pip --upgrade pyinstaller
+          "${PYTHON}" -m pip install --upgrade pyinstaller
 
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
