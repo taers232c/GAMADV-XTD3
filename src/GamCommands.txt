@@ -1227,17 +1227,24 @@ gam whatis <EmailItem> [noinfo] [noinivitablecheck]
 gam calendars <CalendarEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam calendars <CalendarEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam calendars <CalendarEntity> delete acls|calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
-gam calendars <CalendarEntity> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
+gam calendars <CalendarEntity> info acls|calendaracls <CalendarACLScopeEntity>
+        [formatjson]
 
-gam calendars <CalendarEntity> show acls|calendaracls [formatjson]
+gam calendars <CalendarEntity> show acls|calendaracls
+        [noselfowner]
+        [formatjson]
 gam calendars <CalendarEntity> print acls|calendaracls [todrive <ToDriveAttribute>*]
+        [noselfowner]
         [formatjson [quotechar <Character>]]
 
 gam calendar <CalendarEntity> create|add <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
 gam calendar <CalendarEntity> update <CalendarACLRole> ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default [sendnotifications <Boolean>]
 gam calendar <CalendarEntity> delete [<CalendarACLRole>] ([user] <EmailAddress>)|(group <EmailAddress>)|(domain [<DomainName>])|default
-gam calendar <CalendarEntity> showacl [formatjson]
+gam calendar <CalendarEntity> showacl
+        [noselfowner]
+        [formatjson]
 gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*]
+        [noselfowner]
         [formatjson [quotechar <Character>]]
 
 <AttendeeAttendance> ::= optional|required
@@ -3847,8 +3854,11 @@ gam resource <ResourceID> update acls|calendaracls <CalendarACLRole> <CalendarAC
 gam resource <ResourceID> delete acls|calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
 gam resource <ResourceID> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
 
-gam resource <ResourceID> show acls|calendaracls [formatjson]
+gam resource <ResourceID> show acls|calendaracls
+        [noselfowner]
+        [formatjson]
 gam resource <ResourceID> print acls|calendaracls [todrive <ToDriveAttribute>*]
+        [noselfowner]
         [formatjson [quotechar <Character>]]
 
 gam resources <ResourceEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
@@ -3856,8 +3866,11 @@ gam resources <ResourceEntity> update acls|calendaracls <CalendarACLRole> <Calen
 gam resources <ResourceEntity> delete acls|calendaracls [<CalendarACLRole>] <CalendarACLScopeEntity>
 gam resources <ResourceEntity> info acls|calendaracls <CalendarACLScopeEntity> [formatjson]
 
-gam resources <ResourceEntity> show acls|calendaracls [formatjson]
+gam resources <ResourceEntity> show acls|calendaracls
+        [noselfowner]
+        [formatjson]
 gam resources <ResourceEntity> print acls|calendaracls [todrive <ToDriveAttribute>*]
+        [noselfowner]
         [formatjson [quotechar <Character>]]
 
 # Schemas
@@ -3892,7 +3905,16 @@ gam sendemail [recipient|to] <RecipientEntity>
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
-gam <UserTypeEntity> sendemail [recipient|to <RecipientEntity>]
+gam <UserTypeEntity> sendemail recipient|to <RecipientEntity>
+        [replyto <EmailAddress>]
+        [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
+        [subject <String>]
+        (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
+        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+        [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
+        (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
+gam <UserTypeEntity> sendemail from <EmailAddress>
         [replyto <EmailAddress>]
         [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
@@ -4811,9 +4833,13 @@ gam <UserTypeEntity> create|add calendaracls <UserCalendarEntity> <CalendarACLRo
 gam <UserTypeEntity> update calendaracls <UserCalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam <UserTypeEntity> delete calendaracls <UserCalendarEntity> <CalendarACLRole>] <CalendarACLScopeEntity>
 
-gam <UserTypeEntity> info calendaracls <UserCalendarEntity> <CalendarACLScopeEntity> [formatjson]
-gam <UserTypeEntity> show calendaracls <UserCalendarEntity> [formatjson]
+gam <UserTypeEntity> info calendaracls <UserCalendarEntity> <CalendarACLScopeEntity>
+        [formatjson]
+gam <UserTypeEntity> show calendaracls <UserCalendarEntity>
+        [noselfowner]
+        [formatjson]
 gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttribute>*]
+        [noselfowner]
         [formatjson [quotechar <Character>]]
 
 Transfer ownership of a selection of users calendars to another user

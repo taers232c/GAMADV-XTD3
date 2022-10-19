@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.14'
+__version__ = '6.27.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7803,7 +7803,7 @@ class CSVPrintFile():
               body['parents'] = [self.todrive['parentId']]
               result = callGAPI(drive.files(), 'create',
                                 throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
-                                                                            GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                            GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR,
                                                                             GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
                                 body=body,
                                 media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
@@ -7811,7 +7811,6 @@ class CSVPrintFile():
             else:
               Act.Set(Act.UPDATE)
               result = callGAPI(drive.files(), 'update',
-                                bailOnInternalError=True,
                                 throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR],
                                 fileId=self.todrive['fileId'],
                                 body=body,
@@ -8089,7 +8088,7 @@ def showJSON(showName, showValue, skipObjects=None, timeObjects=None,
             printKeyValueList([Ind.MultiLineText(objectValue)])
             Ind.Decrement()
         else:
-          printJSONValue(objectValue)
+          printJSONValue(objectValue if objectValue is not None else '')
       else:
         if isinstance(objectValue, str) and not objectValue.isdigit():
           printJSONValue(formatLocalTime(objectValue))
@@ -13004,7 +13003,15 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
-# gam <UserTypeEntity> sendemail [recipient <RecipientEntity>] [replyto <EmailAddress>]
+# gam <UserTypeEntity> sendemail recipient <RecipientEntity> [replyto <EmailAddress>]
+#	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
+#	[subject <String>]
+#	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
+#	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+#	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
+#	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
+# gam <UserTypeEntity> sendemail from <EmailAddress> [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>]
 #	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
@@ -13021,13 +13028,21 @@ def doSendEmail(users=None):
 
   body = {}
   notify = {'subject': '', 'message': '', 'html': False, 'charset': UTF8, 'password': ''}
+  msgFroms = [_getAdminEmail()]
+  count = 1
   if users is None:
-    msgFroms = [None]
     checkArgumentPresent({'recipient', 'recipients', 'to'})
     recipients = getRecipients()
   else:
-    i, count, msgFroms = getEntityArgument(users)
-    recipients = []
+    _, count, entityList = getEntityArgument(users)
+    if checkArgumentPresent({'recipient', 'recipients', 'to'}):
+      msgFroms = [normalizeEmailAddressOrUID(entity) for entity in entityList]
+      recipients = getRecipients()
+    else:
+      if checkArgumentPresent({'from'}):
+        msgFroms = [getString(Cmd.OB_EMAIL_ADDRESS)]
+        count = 1
+      recipients = [normalizeEmailAddressOrUID(entity) for entity in entityList]
   msgHeaders = {}
   ccRecipients = []
   bccRecipients = []
@@ -13040,8 +13055,7 @@ def doSendEmail(users=None):
     myarg = getArgument()
     if users is None and myarg == 'from':
       msgFroms = [getString(Cmd.OB_EMAIL_ADDRESS)]
-    elif users is not None and myarg in {'recipient', 'recipients', 'to'}:
-      recipients = getRecipients()
+      count = 1
     elif myarg == 'replyto':
       msgReplyTo = getString(Cmd.OB_EMAIL_ADDRESS)
     elif myarg == 'subject':
@@ -13098,9 +13112,7 @@ def doSendEmail(users=None):
     return
   if ccRecipients or bccRecipients:
     singleMessage = True
-  if users is None:
-    i = 0
-    count = len(msgFroms)
+  i = 0
   for msgFrom in msgFroms:
     i += 1
     if singleMessage:
@@ -32120,13 +32132,14 @@ def _doInfoCalendarACLs(origUser, user, origCal, calIds, count, ACLScopeEntity, 
 def _getCalendarInfoACLOptions():
   return FormatJSONQuoteChar(formatJSONOnly=True)
 
-# gam calendars <CalendarEntity> info acl|acls <CalendarACLScopeEntity> [formatjson]
+# gam calendars <CalendarEntity> info acl|acls <CalendarACLScopeEntity>
+#	[formatjson]
 def doCalendarsInfoACLs(calIds):
   ACLScopeEntity = getCalendarSiteACLScopeEntity()
   FJQC = _getCalendarInfoACLOptions()
   _doInfoCalendarACLs(None, None, None, calIds, len(calIds), ACLScopeEntity, FJQC)
 
-def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC):
+def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC, noSelfOwner):
   if csvPF:
     printGettingEntityItemForWhom(Ent.CALENDAR_ACL, calId, i, count)
   try:
@@ -32144,17 +32157,24 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC):
     setSysExitRC(NO_ENTITIES_FOUND_RC)
   if not csvPF:
     if not FJQC.formatJSON:
-      entityPerformActionNumItems([entityType, calId], jcount, Ent.CALENDAR_ACL, i, count)
+      if not noSelfOwner:
+        entityPerformActionNumItems([entityType, calId], jcount, Ent.CALENDAR_ACL, i, count)
+      else:
+        entityPerformActionModifierNumItems([entityType, calId], Msg.MAXIMUM_OF, jcount, Ent.CALENDAR_ACL, i, count)
     Ind.Increment()
     j = 0
     for rule in acls:
       j += 1
+      if noSelfOwner and rule['role'] == 'owner' and rule['scope']['value'] == calId:
+        continue
       _showCalendarACL(user, entityType, calId, rule, j, jcount, FJQC)
     Ind.Decrement()
   else:
     if entityType == Ent.CALENDAR:
       if acls:
         for rule in acls:
+          if noSelfOwner and rule['role'] == 'owner' and rule['scope']['value'] == calId:
+            continue
           row = {'calendarId': calId}
           if user:
             row['primaryEmail'] = user
@@ -32171,6 +32191,8 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC):
         csvPF.WriteRowNoFilter({'calendarId': calId, 'primaryEmail': user})
     else: # Ent.RESOURCE_CALENDAR
       for rule in acls:
+        if noSelfOwner and rule['role'] == 'owner' and rule['scope']['value'] == calId:
+          continue
         row = flattenJSON(rule, flattened={'resourceId': user, 'resourceEmail': calId})
         if not FJQC.formatJSON:
           csvPF.WriteRowTitles(row)
@@ -32181,14 +32203,31 @@ def _printShowCalendarACLs(cal, user, entityType, calId, i, count, csvPF, FJQC):
 def _getCalendarPrintShowACLOptions(titles):
   csvPF = CSVPrintFile(titles, 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  getTodriveFJQCOnly(csvPF, FJQC, True)
-  return (csvPF, FJQC)
+  noSelfOwner = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'noselfowner':
+      noSelfOwner = True
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  return (csvPF, FJQC, noSelfOwner)
 
-# gam calendars <CalendarEntity> print acls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
-# gam calendars <CalendarEntity> show acls [formatjson]
-# gam calendar <CalendarEntity> showacl [formatjson]
+# gam calendars <CalendarEntity> print acls [todrive <ToDriveAttribute>*]
+#	[noselfowner]
+#	[formatjson [quotechar <Character>]]
+# gam calendars <CalendarEntity> show acls
+#	[noselfowner]
+#	[formatjson]
+# gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*]
+#	[noselfowner]
+#	[formatjson]
+# gam calendar <CalendarEntity> showacl
+#	[noselfowner]
+#	[formatjson]
 def doCalendarsPrintShowACLs(calIds):
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(['calendarId'])
+  csvPF, FJQC, noSelfOwner = _getCalendarPrintShowACLOptions(['calendarId'])
   count = len(calIds)
   i = 0
   for calId in calIds:
@@ -32196,7 +32235,7 @@ def doCalendarsPrintShowACLs(calIds):
     calId, cal = validateCalendar(calId, i, count)
     if not cal:
       continue
-    _printShowCalendarACLs(cal, None, Ent.CALENDAR, calId, i, count, csvPF, FJQC)
+    _printShowCalendarACLs(cal, None, Ent.CALENDAR, calId, i, count, csvPF, FJQC, noSelfOwner)
   if csvPF:
     csvPF.writeCSVfile('Calendar ACLs')
 
@@ -33605,8 +33644,10 @@ def doResourceDeleteCalendarACLs(entityList):
   role, ACLScopeEntity = getCalendarDeleteACLsOptions(True)
   _resourceUpdateDeleteCalendarACLs(entityList, 'delete', ACLScopeEntity, role, False)
 
-# gam resource <ResourceID> info calendaracls <CalendarACLScopeEntity> [formatjson]
-# gam resources <ResourceEntity> info calendaracls <CalendarACLScopeEntity> [formatjson]
+# gam resource <ResourceID> info calendaracls <CalendarACLScopeEntity>
+#	[formatjson]
+# gam resources <ResourceEntity> info calendaracls <CalendarACLScopeEntity>
+#	[formatjson]
 def doResourceInfoCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
   ACLScopeEntity = getCalendarSiteACLScopeEntity()
@@ -33620,13 +33661,21 @@ def doResourceInfoCalendarACLs(entityList):
       continue
     _infoCalendarACLs(cal, resourceId, Ent.RESOURCE_CALENDAR, calId, i, count, ruleIds, jcount, FJQC)
 
-# gam resource <ResourceID> print calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
-# gam resources <ResourceEntity> print calendaracls [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
-# gam resource <ResourceID> show calendaracls [formatjson]
-# gam resources <ResourceEntity> show calendaracls [formatjson]
+# gam resource <ResourceID> print calendaracls [todrive <ToDriveAttribute>*]
+#	[noselfowner]
+#	[formatjson [quotechar <Character>]]
+# gam resources <ResourceEntity> print calendaracls [todrive <ToDriveAttribute>*]
+#	[noselfowner]
+#	[formatjson [quotechar <Character>]]
+# gam resource <ResourceID> show calendaracls
+#	[noselfowner]
+#	[formatjson]
+# gam resources <ResourceEntity> show calendaracls
+#	[noselfowner]
+#	[formatjson]
 def doResourcePrintShowCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(['resourceId', 'resourceEmail'])
+  csvPF, FJQC, noSelfOwner = _getCalendarPrintShowACLOptions(['resourceId', 'resourceEmail'])
   i = 0
   count = len(entityList)
   for resourceId in entityList:
@@ -33634,7 +33683,7 @@ def doResourcePrintShowCalendarACLs(entityList):
     calId = _validateResourceId(resourceId, i, count)
     if not calId:
       continue
-    _printShowCalendarACLs(cal, resourceId, Ent.RESOURCE_CALENDAR, calId, i, count, csvPF, FJQC)
+    _printShowCalendarACLs(cal, resourceId, Ent.RESOURCE_CALENDAR, calId, i, count, csvPF, FJQC, noSelfOwner)
   if csvPF:
     csvPF.writeCSVfile('Resource Calendar ACLs')
 
@@ -43072,7 +43121,8 @@ def deleteCalendarACLs(users):
   role, ACLScopeEntity = getCalendarDeleteACLsOptions(True)
   updateDeleteCalendarACLs(users, calendarEntity, 'delete', Act.MODIFIER_FROM, ACLScopeEntity, role, False)
 
-# gam <UserTypeEntity> info calendaracls <UserCalendarEntity> <CalendarACLScopeEntity> [formatjson]
+# gam <UserTypeEntity> info calendaracls <UserCalendarEntity> <CalendarACLScopeEntity>
+#	[formatjson]
 def infoCalendarACLs(users):
   calendarEntity = getUserCalendarEntity()
   ACLScopeEntity = getCalendarSiteACLScopeEntity()
@@ -43088,11 +43138,15 @@ def infoCalendarACLs(users):
     _doInfoCalendarACLs(origUser, user, cal, calIds, jcount, ACLScopeEntity, FJQC)
     Ind.Decrement()
 
-# gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
-# gam <UserTypeEntity> show calendaracls <UserCalendarEntity> [formatjson]
+# gam <UserTypeEntity> print calendaracls <UserCalendarEntity> [todrive <ToDriveAttribute>*]
+#	[noselfowner]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show calendaracls <UserCalendarEntity>
+#	[noselfowner]
+#	[formatjson]
 def printShowCalendarACLs(users):
   calendarEntity = getUserCalendarEntity(default='all')
-  csvPF, FJQC = _getCalendarPrintShowACLOptions(['primaryEmail', 'calendarId'])
+  csvPF, FJQC, noSelfOwner = _getCalendarPrintShowACLOptions(['primaryEmail', 'calendarId'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -43104,7 +43158,7 @@ def printShowCalendarACLs(users):
     for calId in calIds:
       j += 1
       calId = convertUIDtoEmailAddress(calId)
-      _printShowCalendarACLs(cal, user, Ent.CALENDAR, calId, j, jcount, csvPF, FJQC)
+      _printShowCalendarACLs(cal, user, Ent.CALENDAR, calId, j, jcount, csvPF, FJQC, noSelfOwner)
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Calendar ACLs')
@@ -51219,6 +51273,10 @@ def collectOrphans(users):
         fileId = fileEntry['id']
         fileName = fileEntry['name']
         fileType = _getEntityMimeType(fileEntry)
+# Deleted 6.26.16
+#        if fileType == Ent.DRIVE_FOLDER and not fileEntry['capabilities']['canAddMyDriveParent']:
+#          # Typically Google Backup & Sync images of laptops
+#          continue
         if not useShortcuts and fileEntry['capabilities']['canAddMyDriveParent']:
           if csvPF:
             csvPF.WriteRow({'Owner': user, 'type': Ent.Singular(fileType), 'id': fileId, 'name': fileName, 'action': 'changeParent'})
@@ -51259,7 +51317,7 @@ def collectOrphans(users):
             result = callGAPI(drive.files(), 'create',
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                           GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
-                                                                          GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                                                                          GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.SHORTCUT_TARGET_INVALID],
                               body=body, fields='id,name', supportsAllDrives=True)
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName, Ent.DRIVE_FILE_SHORTCUT, f'{result["name"]}({result["id"]})'],
                                                                Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
@@ -51267,7 +51325,7 @@ def collectOrphans(users):
           except GAPI.invalidQuery:
             entityActionFailedWarning([Ent.USER, user, fileType, fileName], invalidQuery(query), j, jcount)
           except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest,
-                  GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDriveHierarchyTooDeep) as e:
+                  GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
             entityActionFailedWarning([Ent.USER, user, fileType, fileName, Ent.DRIVE_FILE_SHORTCUT, body['name']], str(e), j, jcount)
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
             userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

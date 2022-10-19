@@ -1,3 +1,23 @@
+6.27.15
+
+Fixed bug in `gam show chromeschemas` that caused a trap due to unexpected data from Google.
+
+Updated `gam <UserTypeEntity> collect orphans` to handle the error:
+```
+ERROR: 403: shortcutTargetInvalid - The specified file is not an allowed shortcut target type.
+```
+These are typically Google Backup & Sync images of laptops.
+
+Fixed bug in `gam <UserTypeEntity> sendemail from <EmailAddress>` that reported:
+```
+User: user@domain.com, Send Email to 0 Recipients
+```
+
+Updated `todrive tdfileid <DriveFileID>` to perform retries for `Internal Error` when updating an existing file.
+
+Added option `noselfowner` to all commands that print or show calendar ACls;
+it suppresses the display of ACLs that reference the calendar itself as its owner.
+
 6.27.14
 
 Extended `gam print addresses` to include information about domains and resource calendars.
