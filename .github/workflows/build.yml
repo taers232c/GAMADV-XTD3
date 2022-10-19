@@ -31,16 +31,16 @@ jobs:
             goal: build
             arch: universal2
             openssl_archs: darwin64-x86_64 darwin64-arm64
-          - os: windows-2022
-            jid: 5
-            goal: build
-            arch: Win64
-            openssl_archs: VC-WIN64A
-          - os: windows-2022
-            jid: 6
-            goal: build
-            arch: Win32
-            openssl_archs: VC-WIN32
+#          - os: windows-2022
+#            jid: 5
+#            goal: build
+#            arch: Win64
+#            openssl_archs: VC-WIN64A
+#          - os: windows-2022
+#            jid: 6
+#            goal: build
+#            arch: Win32
+#            openssl_archs: VC-WIN32
 
     steps:
 
