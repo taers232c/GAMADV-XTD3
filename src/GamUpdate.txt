@@ -1,3 +1,8 @@
+6.27.16
+
+Updated `todrive tdfileid <DriveFileID>` to not perform retries for `Internal Error` when updating an existing file
+as the 6.27.15 update didn't fix the underlying problem.
+
 6.27.15
 
 Fixed bug in `gam show chromeschemas` that caused a trap due to unexpected data from Google.

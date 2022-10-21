@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.15'
+__version__ = '6.27.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7802,6 +7802,7 @@ class CSVPrintFile():
               Act.Set(Act.CREATE)
               body['parents'] = [self.todrive['parentId']]
               result = callGAPI(drive.files(), 'create',
+                                bailOnInternalError=True,
                                 throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                             GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR,
                                                                             GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
@@ -7811,7 +7812,9 @@ class CSVPrintFile():
             else:
               Act.Set(Act.UPDATE)
               result = callGAPI(drive.files(), 'update',
-                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR],
+                                bailOnInternalError=True,
+                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                            GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR],
                                 fileId=self.todrive['fileId'],
                                 body=body,
                                 media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
@@ -45610,17 +45613,23 @@ DRIVE_FIELDS_CHOICE_MAP = {
   }
 
 DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP = {
+  'canacceptownership': 'canAcceptOwnership',
   'canaddchildren': 'canAddChildren',
+  'canaddfolderfromanotherdrive': 'canAddFolderFromAnotherDrive',
   'canaddmydriveparent': 'canAddMyDriveParent',
   'canchangecopyrequireswriterpermission': 'canChangeCopyRequiresWriterPermission',
+  'canchangesecurityupdateenabled': 'canChangeSecurityUpdateEnabled',
   'canchangeviewerscancopycontent': 'canChangeViewersCanCopyContent',
   'cancomment': 'canComment',
   'cancopy': 'canCopy',
   'candelete': 'canDelete',
+  'candeletechildren': 'canDeleteChildren',
   'candownload': 'canDownload',
   'canedit': 'canEdit',
   'canlistchildren': 'canListChildren',
   'canmodifycontent': 'canModifyContent',
+  'canmodifycontentrestriction': 'canModifyContentRestriction',
+  'canmodifylabels': 'canModifyLabels',
   'canmovechildrenoutofdrive': 'canMoveChildrenOutOfDrive',
   'canmovechildrenoutofteamdrive': 'canMoveChildrenOutOfDrive',
   'canmovechildrenwithindrive': 'canMoveChildrenWithinDrive',
@@ -45632,6 +45641,7 @@ DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP = {
   'canmoveitemwithinteamdrive': 'canMoveItemWithinDrive',
   'canmoveteamdriveitem': ['canMoveItemOutOfDrive', 'canMoveItemWithinDrive'],
   'canreaddrive': 'canReadDrive',
+  'canreadlabels': 'canReadLabels',
   'canreadrevisions': 'canReadRevisions',
   'canreadteamdrive': 'canReadDrive',
   'canremovechildren': 'canRemoveChildren',
