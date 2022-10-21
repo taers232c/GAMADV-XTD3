@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.16'
+__version__ = '6.27.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4701,6 +4701,9 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
     elif http_status == 412:
       if 'insufficient archived user licenses' in lmessage:
         error = makeErrorDict(http_status, GAPI.INSUFFICIENT_ARCHIVED_USER_LICENSES, message)
+    elif http_status == 413:
+      if 'request too large' in lmessage:
+        error = makeErrorDict(http_status, GAPI.UPLOAD_TOO_LARGE, message)
     elif http_status == 429:
       if status == 'RESOURCE_EXHAUSTED' or 'quota exceeded' in lmessage:
         error = makeErrorDict(http_status, GAPI.QUOTA_EXCEEDED, message)
@@ -7798,27 +7801,32 @@ class CSVPrintFile():
             body = {'name': title, 'description': self.todrive['description'], 'mimeType': mimeType}
             if body['description'] is None:
               body['description'] = Cmd.QuotedArgumentList(Cmd.AllArguments())
-            if not self.todrive['fileId']:
-              Act.Set(Act.CREATE)
-              body['parents'] = [self.todrive['parentId']]
-              result = callGAPI(drive.files(), 'create',
-                                bailOnInternalError=True,
-                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
-                                                                            GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR,
-                                                                            GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
-                                body=body,
-                                media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
-                                fields=fields, supportsAllDrives=True)
-            else:
-              Act.Set(Act.UPDATE)
-              result = callGAPI(drive.files(), 'update',
-                                bailOnInternalError=True,
-                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS,
-                                                                            GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR],
-                                fileId=self.todrive['fileId'],
-                                body=body,
-                                media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
-                                fields=fields, supportsAllDrives=True)
+            try:
+              if not self.todrive['fileId']:
+                Act.Set(Act.CREATE)
+                body['parents'] = [self.todrive['parentId']]
+                result = callGAPI(drive.files(), 'create',
+                                  bailOnInternalError=True,
+                                  throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                              GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR,
+                                                                              GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                                  body=body,
+                                  media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
+                                  fields=fields, supportsAllDrives=True)
+              else:
+                Act.Set(Act.UPDATE)
+                result = callGAPI(drive.files(), 'update',
+                                  bailOnInternalError=True,
+                                  throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                              GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR, GAPI.INTERNAL_ERROR],
+                                  fileId=self.todrive['fileId'],
+                                  body=body,
+                                  media_body=googleapiclient.http.MediaIoBaseUpload(io.BytesIO(csvFile.getvalue().encode()), mimetype='text/csv', resumable=True),
+                                  fields=fields, supportsAllDrives=True)
+            except GAPI.internalError as e:
+              entityActionFailedWarning([Ent.DRIVE_FILE, body['name']], Msg.UPLOAD_CSV_FILE_INTERNAL_ERROR.format(str(e), str(numRows)))
+              closeFile(csvFile)
+              return
             closeFile(csvFile)
             if (result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and (self.todrive['sheetEntity'] or self.todrive['locale'] or self.todrive['timeZone'] or self.todrive['cellwrap']):
               if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
@@ -48463,7 +48471,7 @@ def createDriveFile(users):
                                                                     GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
                                                                     GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
                                                                     GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.UPLOAD_TOO_LARGE],
                         ocrLanguage=parameters[DFA_OCRLANGUAGE],
                         ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -48498,7 +48506,8 @@ def createDriveFile(users):
           row.update(addCSVData)
         csvPF.WriteRow(row)
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
-            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.teamDriveHierarchyTooDeep) as e:
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed,
+            GAPI.teamDriveHierarchyTooDeep, GAPI.uploadTooLarge) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body['name']], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -48934,7 +48943,7 @@ def updateDriveFile(users):
                                                                             GAPI.SHARE_OUT_NOT_PERMITTED, GAPI.SHARE_OUT_NOT_PERMITTED_TO_USER,
                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                             GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-                                                                            GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
+                                                                            GAPI.CROSS_DOMAIN_MOVE_RESTRICTION, GAPI.UPLOAD_TOO_LARGE],
                               fileId=fileId,
                               ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -48959,7 +48968,7 @@ def updateDriveFile(users):
                 GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
                 GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
                 GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed,
-                GAPI.crossDomainMoveRestriction) as e:
+                GAPI.crossDomainMoveRestriction, GAPI.uploadTooLarge) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

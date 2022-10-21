@@ -156,6 +156,7 @@ TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED = 'teamDrivesSharingRestrictionNotAll
 TIME_RANGE_EMPTY = 'timeRangeEmpty'
 TRANSIENT_ERROR = 'transientError'
 UNKNOWN_ERROR = 'unknownError'
+UPLOAD_TOO_LARGE = 'uploadTooLarge'
 USER_ACCESS = 'userAccess'
 USER_NOT_FOUND = 'userNotFound'
 USER_RATE_LIMIT_EXCEEDED = 'userRateLimitExceeded'
@@ -576,6 +577,8 @@ class transientError(Exception):
   pass
 class unknownError(Exception):
   pass
+class uploadTooLarge(Exception):
+  pass
 class userAccess(Exception):
   pass
 class userNotFound(Exception):
@@ -717,6 +720,7 @@ REASON_EXCEPTION_MAP = {
   TIME_RANGE_EMPTY: timeRangeEmpty,
   TRANSIENT_ERROR: transientError,
   UNKNOWN_ERROR: unknownError,
+  UPLOAD_TOO_LARGE: uploadTooLarge,
   USER_ACCESS: userAccess,
   USER_NOT_FOUND: userNotFound,
   USER_RATE_LIMIT_EXCEEDED: userRateLimitExceeded,

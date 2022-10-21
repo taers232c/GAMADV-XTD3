@@ -412,6 +412,7 @@ UPDATE_ATTENDEE_CHANGES = 'Update attendee changes'
 UPDATE_GAM_TO_64BIT = "You're running a 32-bit version of GAM on a 64-bit version of Windows, upgrade to a windows-x86_64 version of GAM"
 UPDATE_USER_PASSWORD_CHANGE_NOTIFY_MESSAGE = 'The account password for #givenname# #familyname#, #user# has been changed to: #password#\n'
 UPDATE_USER_PASSWORD_CHANGE_NOTIFY_SUBJECT = 'Account #user# password has been changed'
+UPLOAD_CSV_FILE_INTERNAL_ERROR = 'Google reported "{0}" but the file was probably uploaded, check that it has {1} rows'
 UPLOADING_NEW_PUBLIC_CERTIFICATE_TO_GOOGLE = 'Uploading new public certificate to Google...\n'
 USED = 'Used'
 USER_BELONGS_TO_N_GROUPS_THAT_MAP_TO_ORGUNITS = 'User belongs to {0} groups ({1}) that map to OUs'

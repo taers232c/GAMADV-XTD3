@@ -1,3 +1,9 @@
+6.27.17
+
+Updated `todrive tdfileid <DriveFileID>` to display an informative error message when Google generates
+an `Internal Error`. It appears that the file was successfully uploaded and converted to a sheet but
+the conversion took longer that the API was willing to wait, so it generated the error.
+
 6.27.16
 
 Updated `todrive tdfileid <DriveFileID>` to not perform retries for `Internal Error` when updating an existing file
