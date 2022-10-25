@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.17'
+__version__ = '6.27.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7142,6 +7142,16 @@ class CSVPrintFile():
     return True
 
   TDSHEET_ENTITY_MAP = {'tdsheet': 'sheetEntity', 'tdbackupsheet': 'backupSheetEntity', 'tdcopysheet': 'copySheetEntity'}
+  TDSHARE_ACL_ROLES_MAP = {
+    'commenter': 'commenter',
+    'contributor': 'writer',
+    'editor': 'writer',
+    'read': 'reader',
+    'reader': 'reader',
+    'viewer': 'reader',
+    'writer': 'writer',
+    }
+
 
   def GetTodriveParameters(self):
     def invalidTodriveFileIdExit(entityValueList, message, location):
@@ -7201,7 +7211,8 @@ class CSVPrintFile():
                     'sheetdaysoffset': None, 'sheethoursoffset': None,
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'uploadnodata': GC.Values[GC.TODRIVE_UPLOAD_NODATA],
-                    'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER], 'noemail': GC.Values[GC.TODRIVE_NOEMAIL]}
+                    'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER], 'noemail': GC.Values[GC.TODRIVE_NOEMAIL],
+                    'internalbail': True, 'share': {}}
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'tduser':
@@ -7267,6 +7278,12 @@ class CSVPrintFile():
         self.todrive['nobrowser'] = getBoolean()
       elif myarg == 'tdnoemail':
         self.todrive['noemail'] = getBoolean()
+      elif myarg == 'tdinternalbail':
+        self.todrive['internalbail'] = getBoolean()
+      elif myarg == 'tdshare':
+        self.todrive['share']['emailAddress'] = normalizeEmailAddressOrUID(getString(Cmd.OB_EMAIL_ADDRESS))
+        self.todrive['share']['type'] = 'user'
+        self.todrive['share']['role'] = getChoice(self.TDSHARE_ACL_ROLES_MAP, mapChoice=True)
       else:
         Cmd.Backup()
         break
@@ -7825,9 +7842,30 @@ class CSVPrintFile():
                                   fields=fields, supportsAllDrives=True)
             except GAPI.internalError as e:
               entityActionFailedWarning([Ent.DRIVE_FILE, body['name']], Msg.UPLOAD_CSV_FILE_INTERNAL_ERROR.format(str(e), str(numRows)))
-              closeFile(csvFile)
-              return
+              if self.todrive['internalbail']:
+                closeFile(csvFile)
+                return
             closeFile(csvFile)
+            if not self.todrive['fileId'] and self.todrive['share'] and self.todrive['share']['emailAddress'] != user:
+              Act.Set(Act.SHARE)
+              try:
+                callGAPI(drive.permissions(), 'create',
+                         bailOnInternalError=True,
+                         throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
+                         fileId=result['id'], sendNotificationEmail=False, body=self.todrive['share'], fields='', supportsAllDrives=True)
+                entityActionPerformed([Ent.USER, user, Ent.SPREADSHEET, title,
+                                       Ent.TARGET_USER, self.todrive['share']['emailAddress'], Ent.ROLE, self.todrive['share']['role']])
+              except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+                      GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
+                      GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
+                      GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
+                      GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+                      GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
+                      GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
+                      GAPI.invalidSharingRequest, GAPI.fileNeverWritable) as e:
+                entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, title,
+                                           Ent.TARGET_USER, self.todrive['share']['emailAddress'], Ent.ROLE, self.todrive['share']['role']],
+                                          str(e))
             if (result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and (self.todrive['sheetEntity'] or self.todrive['locale'] or self.todrive['timeZone'] or self.todrive['cellwrap']):
               if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
                 _, sheet = buildGAPIServiceObject(API.SHEETSTD, user)
@@ -51565,7 +51603,7 @@ def transferDrive(users):
 #        if not createShortcutsForNonmovableFiles:
 #          entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
 #        else:
-#          _makeXferShortcut(targetDrive, targetUuser, j, jcount, childFileType, childFileId, childFileName, newParentId, newParentName)
+#          _makeXferShortcut(targetDrive, targetUser, j, jcount, childFileType, childFileId, childFileName, newParentId, newParentName)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, actionUser, childFileType, childFileName, Ent.PERMISSION_ID, targetPermissionId], j, jcount)
       except GAPI.invalidSharingRequest as e:

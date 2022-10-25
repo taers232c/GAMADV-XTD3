@@ -513,6 +513,7 @@ If an item contains spaces, it should be surrounded by ".
         (tdnobrowser [<Boolean>])|
         (tdnoemail [<Boolean>])|
         (tdparent (id:<DriveFolderID>)|<DriveFolderName>)|
+        (tdshare <EmailAddress> commenter|reader|writer)|
         (tdsheet (id:<Number>)|<String>)|
         (tdsheettimestamp [<Boolean>] [tdsheettimeformat <String>])
         (tdsheettitle <String>)|

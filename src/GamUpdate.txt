@@ -1,3 +1,9 @@
+6.27.18
+
+Added option `tdshare <EmailAddress> commenter|reader|writer` to `<ToDriveAttribute>`. When a new
+todrive file is created, i.e., `tdfileid <DriveFileID>` is not specified, the uploaded file will
+be shared as specified. `<EmailAddress>` must be valid within your Google Workspace.
+
 6.27.17
 
 Updated `todrive tdfileid <DriveFileID>` to display an informative error message when Google generates

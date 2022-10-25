@@ -101,6 +101,7 @@ class GamAction():
   SENDEMAIL = 'snem'
   SET = 'set '
   SETUP = 'setu'
+  SHARE = 'shar'
   SHOW = 'show'
   SIGNOUT = 'siou'
   SKIP = 'skip'
@@ -210,6 +211,7 @@ class GamAction():
     SENDEMAIL: ['Email Sent', 'Send Email'],
     SET: ['Set', 'Set'],
     SETUP: ['Set Up', 'Set Up'],
+    SHARE: ['Shared', 'Share'],
     SHOW: ['Shown', 'Show'],
     SIGNOUT: ['Signed Out', 'Signout'],
     SKIP: ['Skipped', 'Skip'],
