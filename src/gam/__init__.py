@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.18'
+__version__ = '6.27.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -6524,11 +6524,32 @@ def _addAttachmentsToMessage(message, attachments):
     except (IOError, UnicodeDecodeError) as e:
       usageErrorExit(f'{attachFilename}: {str(e)}')
 
+# Add embedded images to an email message
+def _addEmbeddedImagesToMessage(message, embeddedImages):
+  for embeddedImage in embeddedImages:
+    try:
+      imageFilename = embeddedImage[0]
+      imageContentType, imageEncoding = mimetypes.guess_type(imageFilename)
+      if imageContentType is None or imageEncoding is not None:
+        imageContentType = 'application/octet-stream'
+      main_type, sub_type = imageContentType.split('/', 1)
+      if main_type == 'image':
+        msg = MIMEImage(readFile(imageFilename, 'rb'), _subtype=sub_type)
+      else:
+        msg = MIMEBase(main_type, sub_type)
+        msg.set_payload(readFile(imageFilename, 'rb'))
+      msg.add_header('Content-Disposition', 'attachment', filename=os.path.basename(imageFilename))
+      msg.add_header('Content-ID', f'<{embeddedImage[1]}>')
+      message.attach(msg)
+    except (IOError, UnicodeDecodeError) as e:
+      usageErrorExit(f'{imageFilename}: {str(e)}')
+
 NAME_EMAIL_ADDRESS_PATTERN = re.compile(r'^.*<(.+)>$')
 
 # Send an email
 def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msgFrom=None, msgReplyTo=None,
-               html=False, charset=UTF8, attachments=None, msgHeaders=None, ccRecipients=None, bccRecipients=None, mailBox=None):
+               html=False, charset=UTF8, attachments=None, embeddedImages=None,
+               msgHeaders=None, ccRecipients=None, bccRecipients=None, mailBox=None):
   def checkResult(entityType, recipients):
     if not recipients:
       return
@@ -6556,13 +6577,16 @@ def send_email(msgSubject, msgBody, msgTo, i=0, count=0, clientAccess=False, msg
   # some unicode in HTML body and is ignored in
   # plain text body.
 #  msgBody = msgBody.encode('ascii', 'xmlcharrefreplace').decode(UTF8)
-  if not attachments:
+  if not attachments and not embeddedImages:
     message = MIMEText(msgBody, ['plain', 'html'][html], charset)
   else:
     message = MIMEMultipart()
     msg = MIMEText(msgBody, ['plain', 'html'][html], charset)
     message.attach(msg)
-    _addAttachmentsToMessage(message, attachments)
+    if attachments:
+      _addAttachmentsToMessage(message, attachments)
+    if embeddedImages:
+      _addEmbeddedImagesToMessage(message, embeddedImages)
   message['Subject'] = msgSubject
   message['From'] = msgFrom
   if msgReplyTo is not None:
@@ -7212,7 +7236,7 @@ class CSVPrintFile():
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'uploadnodata': GC.Values[GC.TODRIVE_UPLOAD_NODATA],
                     'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER], 'noemail': GC.Values[GC.TODRIVE_NOEMAIL],
-                    'internalbail': True, 'share': {}}
+                    'share': {}}
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'tduser':
@@ -7278,8 +7302,6 @@ class CSVPrintFile():
         self.todrive['nobrowser'] = getBoolean()
       elif myarg == 'tdnoemail':
         self.todrive['noemail'] = getBoolean()
-      elif myarg == 'tdinternalbail':
-        self.todrive['internalbail'] = getBoolean()
       elif myarg == 'tdshare':
         self.todrive['share']['emailAddress'] = normalizeEmailAddressOrUID(getString(Cmd.OB_EMAIL_ADDRESS))
         self.todrive['share']['type'] = 'user'
@@ -7842,9 +7864,8 @@ class CSVPrintFile():
                                   fields=fields, supportsAllDrives=True)
             except GAPI.internalError as e:
               entityActionFailedWarning([Ent.DRIVE_FILE, body['name']], Msg.UPLOAD_CSV_FILE_INTERNAL_ERROR.format(str(e), str(numRows)))
-              if self.todrive['internalbail']:
-                closeFile(csvFile)
-                return
+              closeFile(csvFile)
+              return
             closeFile(csvFile)
             if not self.todrive['fileId'] and self.todrive['share'] and self.todrive['share']['emailAddress'] != user:
               Act.Set(Act.SHARE)
@@ -8274,6 +8295,7 @@ MACOS_CODENAMES = {
     },
   11: 'Big Sur',
   12: 'Monterey',
+  13: 'Ventura',
   }
 
 def getOSPlatform():
@@ -13050,6 +13072,7 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
 #	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+#	(embedimage <FileName> <String>)*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 # gam <UserTypeEntity> sendemail recipient <RecipientEntity> [replyto <EmailAddress>]
@@ -13058,6 +13081,7 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
 #	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+#	(embedimage <FileName> <String>)*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 # gam <UserTypeEntity> sendemail from <EmailAddress> [replyto <EmailAddress>]
@@ -13066,6 +13090,7 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
 #	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+#	(embedimage <FileName> <String>)*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 def doSendEmail(users=None):
@@ -13100,6 +13125,7 @@ def doSendEmail(users=None):
   singleMessage = False
   tagReplacements = _initTagReplacements()
   attachments = []
+  embeddedImages = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if users is None and myarg == 'from':
@@ -13135,6 +13161,8 @@ def doSendEmail(users=None):
       _getTagReplacement(tagReplacements, False)
     elif myarg == 'attach':
       attachments.append((getFilename(), getCharSet()))
+    elif myarg == 'embedimage':
+      embeddedImages.append((getFilename(), getString(Cmd.OB_STRING)))
     elif myarg in SMTP_HEADERS_MAP:
       if myarg in SMTP_DATE_HEADERS:
         msgDate, _, _ = getTimeOrDeltaFromNow(True)
@@ -13169,7 +13197,8 @@ def doSendEmail(users=None):
                                           Act.MODIFIER_TO, jcount+len(ccRecipients)+len(bccRecipients), Ent.RECIPIENT, i, count)
       send_email(notify['subject'], notify['message'], ','.join(recipients), i, count,
                  msgFrom=msgFrom, msgReplyTo=msgReplyTo, html=notify['html'], charset=notify['charset'],
-                 attachments=attachments, msgHeaders=msgHeaders, ccRecipients=','.join(ccRecipients), bccRecipients=','.join(bccRecipients),
+                 attachments=attachments, embeddedImages=embeddedImages, msgHeaders=msgHeaders,
+                 ccRecipients=','.join(ccRecipients), bccRecipients=','.join(bccRecipients),
                  mailBox=mailBox)
     else:
       entityPerformActionModifierNumItems([Ent.USER, msgFrom], Act.MODIFIER_TO, jcount, Ent.RECIPIENT, i, count)
@@ -13179,7 +13208,7 @@ def doSendEmail(users=None):
         j += 1
         send_email(notify['subject'], notify['message'], recipient, j, jcount,
                    msgFrom=msgFrom, msgReplyTo=msgReplyTo, html=notify['html'], charset=notify['charset'],
-                   attachments=attachments, msgHeaders=msgHeaders, mailBox=mailBox)
+                   attachments=attachments, embeddedImages=embeddedImages, msgHeaders=msgHeaders, mailBox=mailBox)
       Ind.Decrement()
 
 ADDRESS_FIELDS_PRINT_ORDER = ['contactName', 'organizationName', 'addressLine1', 'addressLine2', 'addressLine3', 'locality', 'region', 'postalCode', 'countryCode']
@@ -36504,6 +36533,7 @@ class PasswordOptions():
 UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'address': 'addresses',
   'addresses': 'addresses',
+  'archive': 'archived',
   'archived': 'archived',
   'base64-md5': 'hashFunction',
   'base64-sha1': 'hashFunction',
@@ -36557,6 +36587,7 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'ssh': 'sshPublicKeys',
   'sshkeys': 'sshPublicKeys',
   'sshpublickeys': 'sshPublicKeys',
+  'suspend': 'suspended',
   'suspended': 'suspended',
   'username': 'primaryEmail',
   'website': 'websites',
@@ -58906,6 +58937,7 @@ def _draftImportInsertMessage(users, operation):
   msgHeaders = {}
   tagReplacements = _initTagReplacements()
   attachments = []
+  embeddedImages = []
   internalDateSource = 'receivedTime'
   deleted = processForCalendar = substituteForUserInHeaders = False
   neverMarkSpam = True
@@ -58947,6 +58979,8 @@ def _draftImportInsertMessage(users, operation):
       deleted = getBoolean()
     elif myarg == 'attach':
       attachments.append((getFilename(), getCharSet()))
+    elif myarg == 'embedimage':
+      embeddedImages.append((getFilename(), getString(Cmd.OB_STRING)))
     elif operation == 'import' and myarg == 'nevermarkspam':
       neverMarkSpam = getBoolean()
     elif operation == 'import' and myarg == 'checkspam':
@@ -58989,7 +59023,7 @@ def _draftImportInsertMessage(users, operation):
         _getTagReplacementFieldValues(user, i, count, tagReplacements)
       tmpText = _processTagReplacements(tagReplacements, msgText)
       tmpHTML = _processTagReplacements(tagReplacements, msgHTML)
-    if attachments:
+    if attachments or embeddedImages:
       if tmpText and tmpHTML:
         message = MIMEMultipart('alternative')
         textpart = MIMEText(tmpText, 'plain', UTF8)
@@ -59005,6 +59039,7 @@ def _draftImportInsertMessage(users, operation):
         textpart = MIMEText(tmpText, 'plain', UTF8)
         message.attach(textpart)
       _addAttachmentsToMessage(message, attachments)
+      _addEmbeddedImagesToMessage(message, embeddedImages)
     else:
       if tmpText and tmpHTML:
         message = MIMEMultipart('alternative')
@@ -59063,6 +59098,7 @@ def _draftImportInsertMessage(users, operation):
 #	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
+#	(embedimage <FileName> <String>)*
 def draftMessage(users):
   _draftImportInsertMessage(users, 'draft')
 
@@ -59072,6 +59108,7 @@ def draftMessage(users):
 #	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
+#	(embedimage <FileName> <String>)*
 #	[deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 def importMessage(users):
   _draftImportInsertMessage(users, 'import')
@@ -59082,6 +59119,7 @@ def importMessage(users):
 #	(textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
 #	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
 #	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
+#	(embedimage <FileName> <String>)*
 #	[deleted [<Boolean>]]
 def insertMessage(users):
   _draftImportInsertMessage(users, 'insert')

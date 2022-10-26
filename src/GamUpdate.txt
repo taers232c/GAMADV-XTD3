@@ -1,3 +1,25 @@
+6.27.19
+
+Added option `embedimage <FileName> <String>` to the following commands that allows
+embedding images in HTML email messages.
+```
+gam sendemail [recipient|to] <RecipientEntity>
+gam <UserTypeEntity> sendemail recipient|to <RecipientEntity>
+gam <UserTypeEntity> sendemail from <EmailAddress>
+gam <UserTypeEntity> draft|import|insert message
+```
+
+Your HTML message will contain lines like this:
+```
+<img src="cid:image1"/>
+<img src="cid:image2"/>
+```
+
+Your command line will have: `embedimage file1.jpg image1` embedimage file2.jpg image2`
+
+Added `archive` as a synonym for `archived` and `suspend` as a synonym for `suspended`
+in `<UserBasicAttribute>`.
+
 6.27.18
 
 Added option `tdshare <EmailAddress> commenter|reader|writer` to `<ToDriveAttribute>`. When a new

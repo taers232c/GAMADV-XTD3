@@ -3906,6 +3906,7 @@ gam sendemail [recipient|to] <RecipientEntity>
         (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+        (embedimage <FileName> <String>)*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 gam <UserTypeEntity> sendemail recipient|to <RecipientEntity>
@@ -3915,6 +3916,7 @@ gam <UserTypeEntity> sendemail recipient|to <RecipientEntity>
         (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+        (embedimage <FileName> <String>)*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 gam <UserTypeEntity> sendemail from <EmailAddress>
@@ -3924,6 +3926,7 @@ gam <UserTypeEntity> sendemail from <EmailAddress>
         (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+        (embedimage <FileName> <String>)*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 
@@ -4462,7 +4465,7 @@ gam <UserTypeEntity> show vaultholds|holds
         familyname|lastname|givenname|firstname|email
 
 <UserBasicAttribute> ::=
-        (archived <Boolean>)|
+        (archive|archived <Boolean>)|
         (changepassword|changepasswordatnextlogin <Boolean>)|
         (base64-md5|base64-sha1|crypt|sha|sha1|sha-1|md5|nohash)|
         (customerid <String>)|
@@ -4480,7 +4483,7 @@ gam <UserTypeEntity> show vaultholds|holds
         (password (random [<Integer>])|(uniquerandom [<Integer>])|blocklogin|<Password>)|
         (recoveryemail <EmailAddress>)|
         (recoveryphone <string>)|
-        (suspended <Boolean>)|
+        (suspend|suspended <Boolean>)|
         (<SchemaName>.<FieldName> [scalarnonempty|
                                    [multivalued|multivalue|value|multinonempty [type home|other|work|(custom <String>)]]]
                                   <String>)
@@ -6023,12 +6026,14 @@ gam <UserTypeEntity> draft message
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
+        (embedimage <FileName> <String>)*
 gam <UserTypeEntity> import message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
         (addlabel <LabelName>)* [labels <LabelNameList>]
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
+        (embedimage <FileName> <String>)*
         [deleted [<Boolean>]] [checkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 gam <UserTypeEntity> insert message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
@@ -6036,6 +6041,7 @@ gam <UserTypeEntity> insert message
         (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
+        (embedimage <FileName> <String>)*
         [deleted [<Boolean>]]
 
 gam <UserTypeEntity> archive messages <GroupItem>
