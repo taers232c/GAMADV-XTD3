@@ -308,6 +308,7 @@ jobs:
         shell: powershell
         run: |
           pip install --upgrade pip
+          pip install --upgrade libxml2-python3
           pip install --upgrade sphinx
           sphinx-build --version
 
@@ -363,7 +364,7 @@ jobs:
                                              $package
                "${PYTHON}" -m pip install --force-reinstall --no-deps $package*.whl
                done
-               find $PYTHON_INSTALL_PATH/lib/python3.10/site-packages -type f -name "*.so" -exec du -sh "{}" \;
+               find $PYTHON_INSTALL_PATH/lib/python3.11/site-packages -type f -name "*.so" -exec du -sh "{}" \;
              else
                "${PYTHON}" -m pip install --upgrade --no-binary=:all: cffi
                "${PYTHON}" -m pip install --upgrade cryptography
@@ -374,22 +375,22 @@ jobs:
       - name: Install PyInstaller
         if: matrix.goal == 'build'
         run: |
-          git clone https://github.com/pyinstaller/pyinstaller.git
-          cd pyinstaller
-          export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
-          git checkout "${latest_release}"
-          # remove pre-compiled bootloaders so we fail if bootloader compile fails
-          rm -rvf PyInstaller/bootloader/*-*/*
-          cd bootloader
-          if [[ "${arch}" == "Win32" ]]; then
-            export PYINSTALLER_BUILD_ARGS="--target-arch=32bit"
-          fi
-          echo "PyInstaller build arguments: ${PYINSTALLER_BUILD_ARGS}"
-          "${PYTHON}" ./waf all $PYINSTALLER_BUILD_ARGS
-          cd ..
-          echo "---- Installing PyInstaller ----"
-          "${PYTHON}" -m pip install .
-          #"${PYTHON}" -m pip install --upgrade pyinstaller
+          #git clone https://github.com/pyinstaller/pyinstaller.git
+          #cd pyinstaller
+          #export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
+          #git checkout "${latest_release}"
+          ## remove pre-compiled bootloaders so we fail if bootloader compile fails
+          #rm -rvf PyInstaller/bootloader/*-*/*
+          #cd bootloader
+          #if [[ "${arch}" == "Win32" ]]; then
+          #  export PYINSTALLER_BUILD_ARGS="--target-arch=32bit"
+          #fi
+          #echo "PyInstaller build arguments: ${PYINSTALLER_BUILD_ARGS}"
+          #"${PYTHON}" ./waf all $PYINSTALLER_BUILD_ARGS
+          #cd ..
+          #echo "---- Installing PyInstaller ----"
+          #"${PYTHON}" -m pip install .
+          "${PYTHON}" -m pip install --upgrade pyinstaller
 
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
