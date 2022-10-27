@@ -27,10 +27,15 @@ jobs:
             arch: x86_64
             openssl_archs: linux-x86_64
           - os: macos-12
+            jid: 3
+            goal: build
+            arch: x86_64
+            openssl_archs: darwin64-x86_64
+          - os: macos-12
             jid: 4
             goal: build
-            arch: universal2
-            openssl_archs: darwin64-x86_64 darwin64-arm64
+            arch: arm64
+            openssl_archs: darwin64-arm64
           - os: windows-2022
             jid: 5
             goal: build
@@ -56,7 +61,7 @@ jobs:
         with:
           path: |
             bin.tar.xz
-          key: gam-${{ matrix.jid }}-20221018
+          key: gam-${{ matrix.jid }}-20221027
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -402,14 +407,16 @@ jobs:
              mkdir -p -v "${gampath}"
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
                export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
+	       export gamspec="gam${arch}.spec"
              else
-               export gampath=$(realpath "${gampath}")
-             fi
+               export gampath=$(realpath "${gampath}") 
+	       export gamspec="gam.spec"
+            fi
              export gam="${gampath}/gam"
              echo "gampath=${gampath}" >> $GITHUB_ENV
              echo "gam=${gam}" >> $GITHUB_ENV
              echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
-             "${PYTHON}" -m PyInstaller --clean --distpath="${gampath}" gammacuni.spec
+             "${PYTHON}" -m PyInstaller --clean --distpath="${gampath}" "${gamspec}"
  
       - name: Copy extra package files
         if: matrix.goal == 'build'
@@ -435,7 +442,7 @@ jobs:
         if: runner.os != 'Windows' && matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-universal2.tar.xz"
+              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-$(arch).tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
               this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
               GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-$(arch)-glibc${this_glibc_ver}.tar.xz"
