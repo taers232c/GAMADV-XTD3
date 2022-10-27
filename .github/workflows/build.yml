@@ -407,10 +407,10 @@ jobs:
              mkdir -p -v "${gampath}"
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
                export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
-	       export gamspec="gam${arch}.spec"
+               export gamspec="gam${arch}.spec"
              else
                export gampath=$(realpath "${gampath}") 
-	       export gamspec="gam.spec"
+               export gamspec="gam.spec"
             fi
              export gam="${gampath}/gam"
              echo "gampath=${gampath}" >> $GITHUB_ENV
