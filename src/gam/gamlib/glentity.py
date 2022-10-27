@@ -321,6 +321,7 @@ class GamEntity():
   TYPE = 'type'
   UNICODE_ENCODING_ENABLED = 'unic'
   UNIQUE_ID = 'uniq'
+  URL = 'url '
   USER = 'user'
   USER_ALIAS = 'uali'
   USER_EMAIL = 'uema'
@@ -623,6 +624,7 @@ class GamEntity():
     TYPE: ['Types', 'Type'],
     UNICODE_ENCODING_ENABLED: ['UTF-8 Encoding Enabled', 'UTF-8 Encoding Enabled'],
     UNIQUE_ID: ['Unique IDs', 'Unique ID'],
+    URL: ['URLs', 'URL'],
     USER: ['Users', 'User'],
     USER_ALIAS: ['User Aliases', 'User Alias'],
     USER_EMAIL: ['User Emails', 'User Email'],

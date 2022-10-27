@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.19'
+__version__ = '6.27.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -44498,6 +44498,7 @@ DFA_MODIFIED_TIME = 'modifiedTime'
 DFA_PRESERVE_FILE_TIMES = 'preserveFileTimes'
 DFA_IGNORE_DEFAULT_VISIBILITY = 'ignoreDefaultVisibility'
 DFA_KEEP_REVISION_FOREVER = 'keepRevisionForever'
+DFA_URL = 'url'
 DFA_LOCALFILEPATH = 'localFilepath'
 DFA_LOCALFILENAME = 'localFilename'
 DFA_LOCALMIMETYPE = 'localMimeType'
@@ -44756,6 +44757,7 @@ def initDriveFileAttributes():
           DFA_PRESERVE_FILE_TIMES: False,
           DFA_IGNORE_DEFAULT_VISIBILITY: False,
           DFA_KEEP_REVISION_FOREVER: False,
+          DFA_URL: None,
           DFA_LOCALFILEPATH: None,
           DFA_LOCALFILENAME: None,
           DFA_LOCALMIMETYPE: None,
@@ -44887,6 +44889,7 @@ def getDriveFileCopyAttribute(myarg, body, parameters):
 
 def getDriveFileAttribute(myarg, body, parameters, updateCmd):
   if myarg == 'localfile':
+    parameters[DFA_URL] = None
     parameters[DFA_LOCALFILEPATH] = os.path.expanduser(getString(Cmd.OB_FILE_NAME))
     if parameters[DFA_LOCALFILEPATH] != '-':
       try:
@@ -44921,6 +44924,9 @@ def getDriveFileAttribute(myarg, body, parameters, updateCmd):
       if body.get('mimeType') is None:
         body['mimeType'] = 'application/octet-stream'
     parameters[DFA_LOCALMIMETYPE] = body['mimeType']
+  elif myarg == 'url':
+    parameters[DFA_LOCALFILEPATH] = None
+    parameters[DFA_URL] = getString(Cmd.OB_URL)
   elif myarg =='stripnameprefix':
     parameters[DFA_STRIPNAMEPREFIX] = getString(Cmd.OB_STRING, minLen=0)
   elif myarg == 'replacefilename':
@@ -44959,16 +44965,26 @@ def setPreservedFileTimes(body, parameters, updateCmd):
     body['createdTime'] = parameters[DFA_CREATED_TIME]
 
 def getMediaBody(parameters):
-  try:
-    if parameters[DFA_LOCALFILEPATH] != '-':
-      media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
-    else:
-      media_body = googleapiclient.http.MediaIoBaseUpload(io.BytesIO(sys.stdin.buffer.read()), mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
-    if media_body.size() == 0:
-      media_body = None
-    return media_body
-  except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], e))
+  if parameters[DFA_URL]:
+    try:
+      status, c = getHttpObj(timeout=10).request(parameters[DFA_URL])
+      if status['status'] != '200':
+        entityActionFailedExit([Ent.URL, parameters[DFA_URL]], Msg.URL_ERROR.format(status['status']))
+      parameters[DFA_LOCALMIMETYPE] = status['content-type']
+      return googleapiclient.http.MediaIoBaseUpload(io.BytesIO(c), mimetype=status['content-type'], resumable=True)
+    except (IOError, httplib2.error.ServerNotFoundError) as e:
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_URL], str(e), entityType=Ent.URL))
+  else:
+    try:
+      if parameters[DFA_LOCALFILEPATH] != '-':
+        media_body = googleapiclient.http.MediaFileUpload(parameters[DFA_LOCALFILEPATH], mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
+      else:
+        media_body = googleapiclient.http.MediaIoBaseUpload(io.BytesIO(sys.stdin.buffer.read()), mimetype=parameters[DFA_LOCALMIMETYPE], resumable=True)
+      if media_body.size() == 0:
+        media_body = None
+      return media_body
+    except IOError as e:
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(parameters[DFA_LOCALFILEPATH], str(e)))
 
 DRIVE_ACTIVITY_ACTION_MAP = {
   'comment': 'COMMENT',
@@ -48468,7 +48484,7 @@ returnItemMap = {
   }
 
 # gam <UserTypeEntity> create|add drivefile
-#	[localfile <FileName>|-]
+#	[(localfile <FileName>|-)|(url <URL>)]
 #	[(drivefilename|newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
 #	[stripnameprefix <String>]
 #	<DriveFileCreateAttribute>*
@@ -48518,6 +48534,9 @@ def createDriveFile(users):
     if parameters[DFA_LOCALFILEPATH] != '-' and parameters[DFA_PRESERVE_FILE_TIMES]:
       setPreservedFileTimes(body, parameters, False)
     media_body = getMediaBody(parameters)
+  elif parameters[DFA_URL]:
+    media_body = getMediaBody(parameters)
+    body['mimeType'] = parameters[DFA_LOCALMIMETYPE]
   if csvPF:
     fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
     csvPF.SetTitles(['User', fileNameTitle, 'id'])
@@ -48563,8 +48582,8 @@ def createDriveFile(users):
           else:
             kvList.extend([Ent.DRIVE_FOLDER, result['name'], Ent.DRIVE_FOLDER_ID, result['id']])
           kvList.extend([Ent.DRIVE_PARENT_FOLDER_ID, parentId, Ent.MIMETYPE, result['mimeType']])
-        if parameters[DFA_LOCALFILENAME]:
-          entityModifierNewValueActionPerformed(kvList, Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], i, count)
+        if media_body:
+          entityModifierNewValueActionPerformed(kvList, Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME] or parameters[DFA_URL], i, count)
         else:
           entityActionPerformed(kvList, i, count)
       else:
@@ -48831,7 +48850,7 @@ def checkDriveFileShortcut(users):
     csvPF.writeCSVfile('Check Shortcuts')
 
 # gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
-#	[localfile <FileName>|-]
+#	[(localfile <FileName>|-)|(url <URL>)]
 #	[retainname | (newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
 #	[stripnameprefix <String>]
 #	<DriveFileUpdateAttribute>*
@@ -48895,6 +48914,10 @@ def updateDriveFile(users):
       setPreservedFileTimes(body, parameters, True)
     if not addSheetEntity and not updateSheetEntity:
       media_body = getMediaBody(parameters)
+  elif operation == 'update' and parameters[DFA_URL]:
+    addSheetEntity =  updateSheetEntity = None
+    media_body = getMediaBody(parameters)
+    body['mimeType'] = parameters[DFA_LOCALMIMETYPE]
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -49024,7 +49047,8 @@ def updateDriveFile(users):
               if returnIdLink:
                 writeStdout(f'{result[returnIdLink]}\n')
               elif media_body:
-                entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name']], Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME], j, jcount)
+                entityModifierNewValueActionPerformed([Ent.USER, user, Ent.DRIVE_FILE, result['name']],
+                                                      Act.MODIFIER_WITH_CONTENT_FROM, parameters[DFA_LOCALFILENAME] or parameters[DFA_URL], j, jcount)
               else:
                 entityActionPerformed([Ent.USER, user, _getEntityMimeType(result), result['name']], j, jcount)
             else:

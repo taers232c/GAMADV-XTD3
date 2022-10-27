@@ -5108,7 +5108,6 @@ gam <UserTypeEntity> show datastudiopermissions
         (indexabletext <String>)|
         (keeprevisionforever|pinned)|
         (lastviewedbyme <Time>)|
-        (localfile <FileName>|-)|
         (mimetype <MimeType>)|
         (ocrlanguage <Language>)|
         (preservefiletimes [<Boolean>])|
@@ -5145,7 +5144,7 @@ gam <UserTypeEntity> show datastudiopermissions
         usecontentasindexabletext
 
 gam <UserTypeEntity> create|add drivefile
-        [localfile <FileName>|-]
+        [(localfile <FileName>|-)|(url <URL>)]
         [(drivefilename|newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
         [stripnameprefix <String>]
         <DriveFileCreateAttribute>*
@@ -5165,7 +5164,7 @@ gam <UserTypeEntity> create|add drivefile
          (removeanyownerparentname <DriveFolderName>))
 
 gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|returnlinkonly]
-        [localfile <FileName>|-]
+        [(localfile <FileName>|-)|(url <URL>)]
         [retainname | (newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
         [stripnameprefix <String>]
         <DriveFileUpdateAttribute>*
