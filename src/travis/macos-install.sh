@@ -14,7 +14,7 @@ cp license.rtf $gampath/
 cp Gam*.txt $gampath/
 cp LICENSE $gampath/
 cp cacerts.pem $gampath/
-GAM_ARCHIVE=gamadv-xtd3-$GAMVERSION-$GAMOS-$PLATFORM-legacy.tar
+GAM_ARCHIVE=gamadv-xtd3-$GAMVERSION-$GAMOS-$PLATFORM.tar
 echo "GAM Archive:" $GAM_ARCHIVE
 # tar will cd to dist/ and tar up gam/
 tar -C dist/ --create --file $GAM_ARCHIVE gamadv-xtd3

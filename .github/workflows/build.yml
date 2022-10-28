@@ -27,25 +27,20 @@ jobs:
             arch: x86_64
             openssl_archs: linux-x86_64
           - os: macos-12
-            jid: 3
-            goal: build
-            arch: x86_64
-            openssl_archs: darwin64-x86_64 darwin64-arm64
-          - os: macos-12
             jid: 4
             goal: build
-            arch: arm64
+            arch: universal2
             openssl_archs: darwin64-x86_64 darwin64-arm64
-#          - os: windows-2022
-#            jid: 5
-#            goal: build
-#            arch: Win64
-#            openssl_archs: VC-WIN64A
-#          - os: windows-2022
-#            jid: 6
-#            goal: build
-#            arch: Win32
-#            openssl_archs: VC-WIN32
+          - os: windows-2022
+            jid: 5
+            goal: build
+            arch: Win64
+            openssl_archs: VC-WIN64A
+          - os: windows-2022
+            jid: 6
+            goal: build
+            arch: Win32
+            openssl_archs: VC-WIN32
 
     steps:
 
@@ -413,7 +408,7 @@ jobs:
              mkdir -p -v "${gampath}"
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
                export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
-               export gamspec="gam${arch}.spec"
+               export gamspec="gammacuni.spec"
              else
                export gampath=$(realpath "${gampath}") 
                export gamspec="gam.spec"
@@ -448,7 +443,7 @@ jobs:
         if: runner.os != 'Windows' && matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-$(arch).tar.xz"
+              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-universal2.tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
               this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
               GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-$(arch)-glibc${this_glibc_ver}.tar.xz"
@@ -533,4 +528,3 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           tar cJvvf bin.tar.xz bin/
-
