@@ -36,16 +36,16 @@ jobs:
             goal: build
             arch: arm64
             openssl_archs: darwin64-x86_64 darwin64-arm64
-          - os: windows-2022
-            jid: 5
-            goal: build
-            arch: Win64
-            openssl_archs: VC-WIN64A
-          - os: windows-2022
-            jid: 6
-            goal: build
-            arch: Win32
-            openssl_archs: VC-WIN32
+#          - os: windows-2022
+#            jid: 5
+#            goal: build
+#            arch: Win64
+#            openssl_archs: VC-WIN64A
+#          - os: windows-2022
+#            jid: 6
+#            goal: build
+#            arch: Win32
+#            openssl_archs: VC-WIN32
 
     steps:
 
@@ -61,7 +61,6 @@ jobs:
         with:
           path: |
             bin.tar.xz
-            src/cpython/PCbuild
           key: gam-${{ matrix.jid }}-20221027
 
       - name: Untar Cache archive
@@ -322,6 +321,21 @@ jobs:
           echo "Building for ${env:PYBUILDRELEASE_ARCH}..."
           PCBuild\build.bat -m --pgo -c Release -p "${env:PYBUILDRELEASE_ARCH}"
 
+      - name: Windows Install Python
+        if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          cd "${env:PYTHON_SOURCE_PATH}"
+          mkdir "${env:PYTHON_INSTALL_PATH}\lib"
+          mkdir "${env:PYTHON_INSTALL_PATH}\include"
+          Copy-Item -Path "PCBuild\${env:PYEXTERNALS_PATH}\*" "${env:PYTHON_INSTALL_PATH}\"
+          Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\Lib\*" "${env:PYTHON_INSTALL_PATH}\lib\" -recurse
+          Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\Include\*" "${env:PYTHON_INSTALL_PATH}\include\" -recurse
+          Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\PC\*.h" "${env:PYTHON_INSTALL_PATH}\include\"
+          $env:Path = '${PYTHON_INSTALL_PATH}/bin' + $env:Path
+          echo "Path=$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "PATH: ${env:Path}"
+
       - name: Mac/Linux Build Python
         if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
@@ -349,7 +363,7 @@ jobs:
           "${PYTHON}" get-pip.py
           "${PYTHON}" -m pip install --upgrade pip
           "${PYTHON}" -m pip install --upgrade wheel
-          "${PYTHON}" -m pip install --upgrade setuptools
+          "${PYTHON}" -m pip install --upgrade setuptools==65.4.1
 
       - name: Install pip requirements
         run: |
