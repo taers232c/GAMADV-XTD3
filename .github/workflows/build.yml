@@ -360,7 +360,7 @@ jobs:
                                              $package
                "${PYTHON}" -m pip install --force-reinstall --no-deps $package*.whl
                done
-               find $PYTHON_INSTALL_PATH/lib/python3.11/site-packages -type f -name "*.so" -exec du -sh "{}" \;
+               find $PYTHON_INSTALL_PATH/lib/python3.10/site-packages -type f -name "*.so" -exec du -sh "{}" \;
              else
                "${PYTHON}" -m pip install --upgrade --no-binary=:all: cffi
                "${PYTHON}" -m pip install --upgrade cryptography
