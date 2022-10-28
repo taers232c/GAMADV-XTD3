@@ -3760,11 +3760,13 @@ def SetGlobalVariables():
   if inputFilterSectionName:
     GC.Values[GC.CSV_INPUT_ROW_FILTER] = _getCfgRowFilter(inputFilterSectionName, GC.CSV_INPUT_ROW_FILTER)
     GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER] = _getCfgRowFilter(inputFilterSectionName, GC.CSV_INPUT_ROW_DROP_FILTER)
+    GC.Values[GC.CSV_INPUT_ROWLIMIT] = _getCfgNumber(inputFilterSectionName, GC.CSV_INPUT_ROW_LIMIT)
   if outputFilterSectionName:
     GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
     GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER)
+    GC.Values[GC.CSV_OUTPUT_ROWLIMIT] = _getCfgNumber(outputFilterSectionName, GC.CSV_OUTPUT_ROW_LIMIT)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
 # Global values cleanup
@@ -3863,15 +3865,17 @@ def SetGlobalVariables():
     _setCSVFile('-', GM.Globals[GM.STDOUT].get(GM.REDIRECT_MODE, DEFAULT_FILE_WRITE_MODE), GC.Values[GC.CHARSET], True, False)
   initAPICallsRateCheck()
 # Main process
-# Clear input row filters from parser, children can define but shouldn't inherit global value
-# Clear output header/row filters from parser, children can define or they will inherit global value if not defined
+# Clear input row filters/limit from parser, children can define but shouldn't inherit global value
+# Clear output header/row filters/limit from parser, children can define or they will inherit global value if not defined
   if GM.Globals[GM.PID] == 0:
     for itemName in sorted(GC.VAR_INFO):
       varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
       if varType in {GC.TYPE_HEADERFILTER, GC.TYPE_ROWFILTER}:
         GM.Globals[GM.PARSER].set(sectionName, itemName, '')
+      elif itemName in {GC.CSV_INPUT_ROW_LIMIT, GC.CSV_OUTPUT_ROW_LIMIT}:
+        GM.Globals[GM.PARSER].set(sectionName, itemName, '0')
 # Child process
-# Inherit main process output header/row filters if not locally defined
+# Inherit main process output header/row filters/limit if not locally defined
   else:
     if not GC.Values[GC.CSV_OUTPUT_HEADER_FILTER]:
       GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER][:]
@@ -3881,6 +3885,8 @@ def SetGlobalVariables():
       GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = GM.Globals[GM.CSV_OUTPUT_ROW_FILTER][:]
     if not GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER]:
       GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER][:]
+    if not GC.Values[GC.CSV_OUTPUT_ROW_LIMIT]:
+      GC.Values[GC.CSV_OUTPUT_ROW_LIMIT] = GM.Globals[GM.CSV_OUTPUT_ROW_LIMIT]
 # customer_id, domain and admin_email must be set when enable_dasa = true
   if GC.Values[GC.ENABLE_DASA]:
     errors = 0
@@ -7015,6 +7021,7 @@ class CSVPrintFile():
 
   def __init__(self, titles=None, sortTitles=None, indexedTitles=None):
     self.rows = []
+    self.rowCount = 0
     self.todrive = GM.Globals[GM.CSV_TODRIVE]
     self.titlesSet = set()
     self.titlesList = []
@@ -7048,6 +7055,7 @@ class CSVPrintFile():
     self.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
     self.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
     self.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER])
+    self.SetRowLimit(GC.Values[GC.CSV_OUTPUT_ROW_LIMIT])
     self.SetZeroBlankMimeTypeCounts(False)
 
   def AddTitle(self, title):
@@ -7529,10 +7537,15 @@ class CSVPrintFile():
   def SetRowDropFilter(self, rowDropFilter):
     self.rowDropFilter = rowDropFilter
 
+  def SetRowLimit(self, rowLimit):
+    self.rowLimit = rowLimit
+
   def AppendRow(self, row):
     if self.timestampColumn:
       row[self.timestampColumn] = self.todaysTime
-    self.rows.append(row)
+    if not self.rowLimit or self.rowCount < self.rowLimit:
+      self.rowCount +=1 
+      self.rows.append(row)
 
   def WriteRowNoFilter(self, row):
     self.AppendRow(row)
@@ -8510,6 +8523,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
     csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
     csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
     csvPF.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER])
+    csvPF.SetRowLimit(GC.Values[GC.CSV_OUTPUT_ROW_LIMIT])
   list_type = 'CSV'
   while True:
     dataType, dataItem = mpQueue.get()
@@ -8547,6 +8561,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
       csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
       csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER])
       csvPF.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER])
+      csvPF.SetRowLimit(GC.Values[GC.CSV_OUTPUT_ROW_LIMIT])
     else:
       break
   csvPF.writeCSVfile(list_type)
@@ -8677,7 +8692,7 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
                            csvColumnDelimiter, csvQuoteChar,
                            csvTimestampColumn,
                            csvHeaderFilter, csvHeaderDropFilter,
-                           csvRowFilter, csvRowDropFilter,
+                           csvRowFilter, csvRowDropFilter, csvRowLimit,
                            args):
   global mplock
 
@@ -8703,6 +8718,7 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
     GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
     GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
     GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER] = csvRowDropFilter[:]
+    GM.Globals[GM.CSV_OUTPUT_ROW_LIMIT] = csvRowLimit
     GM.Globals[GM.CSVFILE] = {}
     if mpQueueCSVFile:
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
@@ -8867,7 +8883,7 @@ def MultiprocessGAMCommands(items, showCmds):
                         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
                         GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
-                        GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER],
+                        GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_LIMIT],
                         item],
                        callback=poolCallback, error_callback=poolErrorCallback)
       poolProcessResults[0] += 1
@@ -8972,7 +8988,7 @@ def _getShowCommands():
 def _getMaxRows():
   if checkArgumentPresent('maxrows'):
     return getInteger(minVal=0)
-  return 0
+  return GC.Values[GC.CSV_INPUT_ROW_LIMIT]
 
 # gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 def doBatch(threadBatch=False):

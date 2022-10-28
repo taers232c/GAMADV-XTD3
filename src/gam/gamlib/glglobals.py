@@ -49,9 +49,11 @@ CSV_KEY_FIELD = 'cskf'
 CSV_SUBKEY_FIELD = 'cssk'
 CSV_DATA_FIELD = 'csdf'
 # Filter for input column values
-CSV_INPUT_ROW_FILTER = 'corf'
+CSV_INPUT_ROW_FILTER = 'cirf'
 # Filter for input column drop values
-CSV_INPUT_ROW_DROP_FILTER = 'cord'
+CSV_INPUT_ROW_DROP_FILTER = 'cird'
+# Limit number of input rows
+CSV_INPUT_ROW_LIMIT = 'cirl'
 # Column delimiter in CSV output file
 CSV_OUTPUT_COLUMN_DELIMITER = 'codl'
 # Quote character in CSV output file
@@ -64,6 +66,8 @@ CSV_OUTPUT_HEADER_DROP_FILTER = 'cohd'
 CSV_OUTPUT_ROW_FILTER = 'corf'
 # Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'cord'
+# Limit number of output rows
+CSV_OUTPUT_ROW_LIMIT = 'corl'
 # Add timestamp column to CSV output file
 CSV_OUTPUT_TIMESTAMP_COLUMN = 'csv_output_timestamp_column'
 # Current API services
@@ -197,12 +201,14 @@ Globals = {
   CSV_DATA_FIELD: None,
   CSV_INPUT_ROW_FILTER: [],
   CSV_INPUT_ROW_DROP_FILTER: [],
+  CSV_INPUT_ROW_LIMIT: 0,
   CSV_OUTPUT_COLUMN_DELIMITER: None,
   CSV_OUTPUT_QUOTE_CHAR: None,
   CSV_OUTPUT_HEADER_FILTER: [],
   CSV_OUTPUT_HEADER_DROP_FILTER: [],
   CSV_OUTPUT_ROW_FILTER: [],
   CSV_OUTPUT_ROW_DROP_FILTER: [],
+  CSV_OUTPUT_ROW_LIMIT: 0,
   CSV_OUTPUT_TIMESTAMP_COLUMN: None,
   CURRENT_API_SERVICES: {},
   CURRENT_CLIENT_API: None,

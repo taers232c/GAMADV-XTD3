@@ -20,8 +20,6 @@
 
 """
 
-import re
-
 # Products/SKUs
 _PRODUCTS = {
   '101001': 'Cloud Identity Free',

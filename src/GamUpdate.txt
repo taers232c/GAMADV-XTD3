@@ -3,6 +3,10 @@
 Added option `url <URL>` to `gam <UserTypeEntity> create|update drivefile` that allows
 GAM to upload files referenced by `URL` to Google Drive.
 
+Added `csv_input_row_limit` variable to `gam.cfg` that is used to limit the number of rows read from a CSV file.
+
+Added `csv_output_row_limit` variable to `gam.cfg` that is used to limit the number of rows written to a CSV file.
+
 6.27.19
 
 Added option `embedimage <FileName> <String>` to the following commands that allows

@@ -999,12 +999,15 @@ showsections
 
 ## Select an output filter section from gam.cfg and process a GAM command using values from that section
 The only <VariableName>s recognized in this <Section> are: csv_output_header_filter, csv_output_header_drop_filter,
-csv_output_row_filter and csv_output_row_drop_filter.
+csv_output_row_filter, csv_output_row_drop_filter and csv_output_row_limit.
+
 <SelectOutputFilter> ::=
         selectfilter|selectoutputfilter <Section>
 
 ## Select an input filter section from gam.cfg and process a GAM command using values from that section
-The only <VariableName>s recognized in this <Section> are: csv_input_row_filter and csv_input_row_drop_filter.
+The only <VariableName>s recognized in this <Section> are: csv_input_row_filter, csv_input_row_drop_filter
+and csv_input_row_limit.
+
 <SelectInputFilter> ::=
         selectinputfilter <Section>
 

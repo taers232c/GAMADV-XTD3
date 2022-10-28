@@ -56,6 +56,7 @@ jobs:
         with:
           path: |
             bin.tar.xz
+            src/cpython/PCbuild
           key: gam-${{ matrix.jid }}-20221027
 
       - name: Untar Cache archive
@@ -302,7 +303,6 @@ jobs:
         shell: powershell
         run: |
           pip install --upgrade pip
-          pip install --upgrade libxml2-python3
           pip install --upgrade sphinx
           sphinx-build --version
 
@@ -315,21 +315,6 @@ jobs:
           Copy-Item -Path "${env:GITHUB_WORKSPACE}\src\tools\openssl.props" -Destination PCBuild\ -Verbose
           echo "Building for ${env:PYBUILDRELEASE_ARCH}..."
           PCBuild\build.bat -m --pgo -c Release -p "${env:PYBUILDRELEASE_ARCH}"
-
-      - name: Windows Install Python
-        if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
-        shell: powershell
-        run: |
-          cd "${env:PYTHON_SOURCE_PATH}"
-          mkdir "${env:PYTHON_INSTALL_PATH}\lib"
-          mkdir "${env:PYTHON_INSTALL_PATH}\include"
-          Copy-Item -Path "PCBuild\${env:PYEXTERNALS_PATH}\*" "${env:PYTHON_INSTALL_PATH}\"
-          Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\Lib\*" "${env:PYTHON_INSTALL_PATH}\lib\" -recurse
-          Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\Include\*" "${env:PYTHON_INSTALL_PATH}\include\" -recurse
-          Copy-Item -Path "${env:PYTHON_SOURCE_PATH}\PC\*.h" "${env:PYTHON_INSTALL_PATH}\include\"
-          $env:Path = '${PYTHON_INSTALL_PATH}/bin' + $env:Path
-          echo "Path=$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          echo "PATH: ${env:Path}"
 
       - name: Mac/Linux Build Python
         if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
@@ -358,7 +343,7 @@ jobs:
           "${PYTHON}" get-pip.py
           "${PYTHON}" -m pip install --upgrade pip
           "${PYTHON}" -m pip install --upgrade wheel
-          "${PYTHON}" -m pip install --upgrade setuptools==65.4.1
+          "${PYTHON}" -m pip install --upgrade setuptools
 
       - name: Install pip requirements
         run: |
@@ -384,22 +369,22 @@ jobs:
       - name: Install PyInstaller
         if: matrix.goal == 'build'
         run: |
-          #git clone https://github.com/pyinstaller/pyinstaller.git
-          #cd pyinstaller
-          #export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
-          #git checkout "${latest_release}"
-          ## remove pre-compiled bootloaders so we fail if bootloader compile fails
-          #rm -rvf PyInstaller/bootloader/*-*/*
-          #cd bootloader
-          #if [[ "${arch}" == "Win32" ]]; then
-          #  export PYINSTALLER_BUILD_ARGS="--target-arch=32bit"
-          #fi
-          #echo "PyInstaller build arguments: ${PYINSTALLER_BUILD_ARGS}"
-          #"${PYTHON}" ./waf all $PYINSTALLER_BUILD_ARGS
-          #cd ..
-          #echo "---- Installing PyInstaller ----"
-          #"${PYTHON}" -m pip install .
-          "${PYTHON}" -m pip install --upgrade pyinstaller
+          git clone https://github.com/pyinstaller/pyinstaller.git
+          cd pyinstaller
+          export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
+          git checkout "${latest_release}"
+          # remove pre-compiled bootloaders so we fail if bootloader compile fails
+          rm -rvf PyInstaller/bootloader/*-*/*
+          cd bootloader
+          if [[ "${arch}" == "Win32" ]]; then
+            export PYINSTALLER_BUILD_ARGS="--target-arch=32bit"
+          fi
+          echo "PyInstaller build arguments: ${PYINSTALLER_BUILD_ARGS}"
+          "${PYTHON}" ./waf all $PYINSTALLER_BUILD_ARGS
+          cd ..
+          echo "---- Installing PyInstaller ----"
+          "${PYTHON}" -m pip install .
+          #"${PYTHON}" -m pip install --upgrade pyinstaller
 
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
@@ -410,7 +395,7 @@ jobs:
                export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
                export gamspec="gammacuni.spec"
              else
-               export gampath=$(realpath "${gampath}") 
+               export gampath=$(realpath "${gampath}")
                export gamspec="gam.spec"
              fi
              export gam="${gampath}/gam"

@@ -1072,7 +1072,7 @@ class GamCLArgs():
     self.argv = self.argv[0:self.argvI]+arguments+self.argv[self.argvI:]
     self.argvLen += len(arguments)
 
-# Restore 
+# Restore
   def RestoreArguments(self):
     self.argv = self.origArgv[:]
     self.argvI = self.origArgvI
