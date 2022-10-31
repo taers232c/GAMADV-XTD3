@@ -8254,25 +8254,25 @@ def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None
 TIME_OFFSET_UNITS = [('day', SECONDS_PER_DAY), ('hour', SECONDS_PER_HOUR), ('minute', SECONDS_PER_MINUTE), ('second', 1)]
 
 def getLocalGoogleTimeOffset(testLocation=GOOGLE_TIMECHECK_LOCATION):
-  # we disable SSL verify so we can still get time even if clock
-  # is way off. This could be spoofed / MitM but we'll fail for those
-  # situations everywhere else but here.
+  # Try with http first, if time is close (<MAX_LOCAL_GOOGLE_TIME_OFFSET seconds), retry with https
   httpObj = getHttpObj()
-  httpObj.disable_ssl_certificate_validation = True
-  try:
-    googleUTC = datetime.datetime.strptime(httpObj.request('https://'+testLocation, 'HEAD')[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
-  except (httplib2.HttpLib2Error, RuntimeError, ValueError) as e:
-    handleServerError(e)
-  offset = remainder = int(abs((datetime.datetime.now(iso8601.UTC)-googleUTC).total_seconds()))
-  timeoff = []
-  for tou in TIME_OFFSET_UNITS:
-    uval, remainder = divmod(remainder, tou[1])
-    if uval:
-      timeoff.append(f'{uval} {tou[0]}{"s" if uval != 1 else ""}')
-  if not timeoff:
-    timeoff.append(Msg.LESS_THAN_1_SECOND)
-  nicetime = ', '.join(timeoff)
-  return (offset, nicetime)
+  for prot in ['http', 'https']:
+    try:
+      googleUTC = datetime.datetime.strptime(httpObj.request(f'{prot}://'+testLocation, 'HEAD')[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
+    except (httplib2.HttpLib2Error, RuntimeError, ValueError) as e:
+      handleServerError(e)
+    offset = remainder = int(abs((datetime.datetime.now(iso8601.UTC)-googleUTC).total_seconds()))
+    if offset < MAX_LOCAL_GOOGLE_TIME_OFFSET and prot == 'http':
+      continue
+    timeoff = []
+    for tou in TIME_OFFSET_UNITS:
+      uval, remainder = divmod(remainder, tou[1])
+      if uval:
+        timeoff.append(f'{uval} {tou[0]}{"s" if uval != 1 else ""}')
+    if not timeoff:
+      timeoff.append(Msg.LESS_THAN_1_SECOND)
+    nicetime = ', '.join(timeoff)
+    return (offset, nicetime)
 
 def _getServerTLSUsed(location):
   url = 'https://'+location

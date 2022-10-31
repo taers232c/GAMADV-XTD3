@@ -1,4 +1,3 @@
-lxml
 cryptography
 distro; sys_platform == 'linux'
 filelock
@@ -11,3 +10,4 @@ importlib.metadata; python_version < '3.8'
 passlib
 python-dateutil
 pathvalidate
+lxml == 4.9.1
