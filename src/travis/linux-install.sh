@@ -16,6 +16,7 @@ echo "GAM Archive:" $GAM_ARCHIVE
 # tar will cd to dist and tar up gam/
 tar -C dist/ --create --file $GAM_ARCHIVE --xz gamadv-xtd3
 echo "PyInstaller GAM info:"
-$gam version extended
+#$gam version extended
+$gam version
 echo "GAM packages:"
 ls -l gamadv-xtd3-*.tar.xz
