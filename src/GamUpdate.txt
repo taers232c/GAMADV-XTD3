@@ -1,3 +1,8 @@
+6.28.00
+
+* Upgraded to Python 3.11.0
+* Upgraded to OpenSSL 3.0.7 where possible.
+
 6.27.21
 
 Eliminated superfluous column header `labels` in `gam print cigroups`.
