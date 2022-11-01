@@ -1,3 +1,14 @@
+6.27.21
+
+Eliminated superfluous column header `labels` in `gam print cigroups`.
+
+Added command to forward messages; this is experimental, test.
+```
+gam <UserTypeEntity> forward message|messages recipient|to <RecipientEntity>
+        (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+
+         [quick|notquick] [doit] [max_to_forward <Number>])|(ids <MessageIDEntity>)
+```
+
 6.27.20
 
 Added option `url <URL>` to `gam <UserTypeEntity> create|update drivefile` that allows

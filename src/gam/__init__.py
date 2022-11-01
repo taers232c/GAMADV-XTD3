@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.27.20'
+__version__ = '6.27.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4236,11 +4236,11 @@ def getService(api, httpObj):
         return service
       except googleapiclient.errors.UnknownApiNameOrVersion as e:
         systemErrorExit(GOOGLE_API_ERROR_RC, Msg.UNKNOWN_API_OR_VERSION.format(str(e), __author__))
-      except (googleapiclient.errors.InvalidJsonError, KeyError, ValueError):
+      except (googleapiclient.errors.InvalidJsonError, KeyError, ValueError) as e:
         if n != retries:
-          waitOnFailure(n, retries, INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
+          waitOnFailure(n, retries, INVALID_JSON_RC, str(e))
           continue
-        systemErrorExit(INVALID_JSON_RC, Msg.INVALID_JSON_INFORMATION)
+        systemErrorExit(INVALID_JSON_RC, str(e))
       except (http_client.ResponseNotReady, OSError, googleapiclient.errors.HttpError) as e:
         errMsg = f'Connection error: {str(e) or repr(e)}'
         if n != retries:
@@ -22762,8 +22762,8 @@ def doPrintShowBrowserTokens():
       csvPF.SetSortTitles(['token'])
     csvPF.writeCSVfile('Chrome Browser Enrollment Tokens')
 
-def buildChatServiceObject():
-  _, chat = buildGAPIServiceObject(API.CHAT, None)
+def buildChatServiceObject(user=None):
+  _, chat = buildGAPIServiceObject(API.CHAT, user)
   return chat
 
 def setupChatURL(chat):
@@ -30214,6 +30214,7 @@ def doPrintCIGroups():
     csvPF.SetJSONTitles(PRINT_CIGROUPS_JSON_TITLES)
   csvPF.MapTitles('name', 'id')
   csvPF.MapTitles('displayName', 'name')
+  csvPF.RemoveTitles('labels')
   updateFieldsForCIGroupMatchPatterns(matchPatterns, groupFieldsLists['ci'], csvPF)
   if groupFieldsLists['ci']:
     keepName = 'name' in groupFieldsLists['ci']
@@ -58505,6 +58506,7 @@ def _convertLabelNamesToIds(gmail, bodyLabels, labelNameMap, addLabelIfMissing):
 MESSAGES_MAX_TO_KEYWORDS = {
   Act.ARCHIVE: 'maxtoarchive',
   Act.DELETE: 'maxtodelete',
+  Act.FORWARD: 'maxtoforward',
   Act.MODIFY: 'maxtomodify',
   Act.PRINT: 'maxtoprint',
   Act.SHOW: 'maxtoshow',
@@ -58655,7 +58657,7 @@ def archiveMessages(users):
                            throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
                            userId='me', id=messageId, format='raw')
         stream = StringIOobject()
-        stream.write(base64.urlsafe_b64decode(str(message['raw'])))
+        stream.write(base64.urlsafe_b64decode(str(message['raw'])).decode(UTF8))
         try:
           callGAPI(gm.archive(), 'insert',
                    throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID],
@@ -58841,6 +58843,91 @@ def processMessages(users):
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash <Number>])|(ids <ThreadIDEntity>)
 def processThreads(users):
   _processMessagesThreads(users, Ent.THREAD)
+
+# gam <UserTypeEntity> forward message|messages recipient|to <RecipientEntity>
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_forward <Number>])|(ids <MessageIDEntity>)
+def forwardMessages(users):
+  def getRecipients():
+    if checkArgumentPresent('select'):
+      _, recipients = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+      return [normalizeEmailAddressOrUID(emailAddress, noUid=True) for emailAddress in recipients]
+    return getNormalizedEmailAddressEntity()
+
+  checkArgumentPresent({'recipient', 'recipients', 'to'})
+  recipients = getRecipients()
+  entityType = Ent.MESSAGE
+  parameters = _initMessageThreadParameters(entityType, False, 1)
+  includeSpamTrash = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if _getMessageSelectParameters(myarg, parameters):
+      pass
+    else:
+      unknownArgumentExit()
+  _finalizeMessageSelectParameters(parameters, True)
+  msgTo = ','.join(recipients)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, gmail, messageIds = _validateUserGetMessageIds(user, i, count, parameters['messageEntity'])
+    if not gmail:
+      continue
+    try:
+      if parameters['messageEntity'] is None:
+        printGettingAllEntityItemsForWhom(Ent.MESSAGE, user, i, count)
+        listResult = callGAPIpages(gmail.users().messages(), 'list', parameters['listType'],
+                                   pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
+                                   throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
+                                   userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
+                                   maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
+        messageIds = [message['id'] for message in listResult]
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalid, GAPI.invalidArgument) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+      continue
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      continue
+    jcount = len(messageIds)
+    if jcount == 0:
+      entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    if parameters['messageEntity'] is None:
+      if parameters['maxToProcess'] and jcount > parameters['maxToProcess']:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), parameters['maxToProcess']), i, count)
+        continue
+      if not parameters['doIt']:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.USE_DOIT_ARGUMENT_TO_PERFORM_ACTION, i, count)
+        continue
+    entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
+    Ind.Increment()
+    j = 0
+    for messageId in messageIds:
+      j += 1
+      try:
+        message = callGAPI(gmail.users().messages(), 'get',
+                           throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                           userId='me', id=messageId, format='raw')
+        stream = StringIOobject()
+        message = re.sub(r'\nTo: .+\n', f'\nTo: {msgTo}\n', base64.urlsafe_b64decode(str(message['raw'])).decode(UTF8))
+        message = re.sub(r'\nCc: .*\n', '\n', message)
+        stream.write(message)
+      except (GAPI.serviceNotAvailable, GAPI.badRequest):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
+      except (GAPI.notFound, GAPI.invalidArgument) as e:
+        entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
+        continue
+      try:
+        result = callGAPI(gmail.users().messages(), 'send',
+                          throwReasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.AUTH_ERROR, GAPI.DOMAIN_POLICY,
+                                        GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
+                          userId='me', body={'raw': base64.urlsafe_b64encode(bytes(message, UTF8)).decode(UTF8)}, fields='id')
+        entityActionPerformedMessage([Ent.RECIPIENT, msgTo], f"{result['id']}", i, count)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
+              GAPI.invalidArgument, GAPI.forbidden) as e:
+        entityActionFailedWarning([Ent.RECIPIENT, msgTo], str(e), i, count)
+    Ind.Decrement()
 
 SMTP_HEADERS_MAP = {
   'accept-language': 'Accept-Language',
@@ -60767,9 +60854,15 @@ EMAILSETTINGS_FORWARD_POP_ACTION_CHOICE_MAP = {
   'trash': 'trash',
   }
 
+# gam <UserTypeEntity> forward message|messages recipient|to <RecipientEntity>
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_forward <Number>])|(ids <MessageIDEntity>)
 # gam <UserTypeEntity> forward <FalseValues>
 # gam <UserTypeEntity> forward <TrueValues> keep|leaveininbox|archive|delete|trash|markread <EmailAddress>
 def setForward(users):
+  if checkArgumentPresent([Cmd.ARG_MESSAGE, Cmd.ARG_MESSAGES]):
+    Act.Set(Act.FORWARD)
+    forwardMessages(users)
+    return
   enable = getBoolean(None)
   body = {'enabled': enable}
   if enable:
