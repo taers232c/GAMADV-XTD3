@@ -97,6 +97,8 @@ jobs:
       language: generic
       osx_image: xcode12.4
       env:
+        - BUILD_PYTHON_VERSION=$MACOS_BUILD_PYTHON_VERSION
+        - MIN_PYTHON_VERSION=$MACOS_MIN_PYTHON_VERSION
         - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
 #    - os: windows
 #      name: "Windows 64-bit"

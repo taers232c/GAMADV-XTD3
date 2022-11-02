@@ -5,11 +5,11 @@ echo "This device has $cpucount CPUs for compiling..."
 
 # Use official Python.org version of Python which is backwards compatible
 # with older MacOS versions
-export pyfile=python-$MACOS_BUILD_PYTHON_VERSION-macos11.pkg
+export pyfile=python-$BUILD_PYTHON_VERSION-macos11.pkg
 /bin/rm -f $pyfile
 
-wget https://www.python.org/ftp/python/$MACOS_BUILD_PYTHON_VERSION/$pyfile
-echo "Installing Python $MACOS_BUILD_PYTHON_VERSION..."
+wget https://www.python.org/ftp/python/$BUILD_PYTHON_VERSION/$pyfile
+echo "Installing Python $BUILD_PYTHON_VERSION..."
 sudo installer -pkg ./$pyfile -target /
 
 cd ~
