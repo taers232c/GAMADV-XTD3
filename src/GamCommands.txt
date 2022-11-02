@@ -6069,6 +6069,11 @@ gam <UserTypeEntity> untrash messages|threads
 gam <UserTypeEntity> forward message|messages recipient|to <RecipientEntity>
         (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+
          [quick|notquick] [doit] [max_to_forward <Number>])|(ids <MessageIDEntity>)
+        [subject <String>]
+gam <UserTypeEntity> forward thread|thtreads recipient|to <RecipientEntity>
+        (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+
+         quick|notquick] [doit] [max_to_forward <Number>])|(ids <ThreadIDEntity>)
+        [subject <String>]
 
 gam <UserTypeEntity> show messages|threads
         (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])*

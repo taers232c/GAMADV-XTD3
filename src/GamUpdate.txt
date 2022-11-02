@@ -1,7 +1,18 @@
 6.28.00
 
-* Upgraded to Python 3.11.0
+* Upgraded to Python 3.11.0 where possible.
 * Upgraded to OpenSSL 3.0.7 where possible.
+
+Fixed bug in `gam forward message` where messages originally sent to multiple recipients
+were not forwarded correctly.
+
+Added command to forward threads; all messages referenced by the thread are forwarded; this is experimental, test.
+```
+gam <UserTypeEntity> forward thread|threads recipient|to <RecipientEntity>
+        (((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+
+         [quick|notquick] [doit] [max_to_forward <Number>])|(ids <MessageIDEntity>)
+        [subject <String>]
+```
 
 6.27.21
 
