@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.01'
+__version__ = '6.28.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -58940,7 +58940,7 @@ def forwardMessagesThreads(users, entityType):
           stream = StringIOobject()
           message = base64.urlsafe_b64decode(str(message['raw'])).decode(UTF8)
           message = re.sub(r'(?sm)\nTo:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', f'\nTo: {msgTo}', message)
-          message = re.sub(r'(?sm)\nCc:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', '\n', message)
+          message = re.sub(r'(?sm)\nCc:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', '', message)
           if not subject:
             message = re.sub(r'\nSubject: ', r'\nSubject: Fwd: ', message)
           else:
