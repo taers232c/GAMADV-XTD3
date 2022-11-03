@@ -1,3 +1,7 @@
+6.28.01
+
+Fixed bug in `gam forward message|thread` where subject was blanked out.
+
 6.28.00
 
 * Upgraded to Python 3.11.0 where possible.

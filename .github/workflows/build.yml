@@ -250,9 +250,8 @@ jobs:
           cd "${GITHUB_WORKSPACE}/src"
           git clone https://github.com/python/cpython.git
           cd "${PYTHON_SOURCE_PATH}"
-          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
             export LATEST_STABLE_TAG="v3.10.8"
-            export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
           else
             export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
           fi

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.00'
+__version__ = '6.28.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -58861,7 +58861,7 @@ def forwardMessagesThreads(users, entityType):
   recipients = getRecipients()
   parameters = _initMessageThreadParameters(entityType, False, 1)
   includeSpamTrash = False
-  subject = ' '
+  subject = ''
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if _getMessageSelectParameters(myarg, parameters):
