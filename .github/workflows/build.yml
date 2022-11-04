@@ -440,7 +440,10 @@ jobs:
 
       - name: Basic Tests all jobs
         run: |
-          if [[ "${RUNNER_OS}" |= "macOS" || $(arch) != "arm64"]]; then
+          if [[ "${RUNNER_OS}" |= "macOS" ]]; then
+              $gam version extended
+              export GAMVERSION=$($gam version simple)
+          elif [[ $(arch) != "arm64"]]; then
               $gam version extended
               export GAMVERSION=$($gam version simple)
           else
@@ -506,7 +509,7 @@ jobs:
       - name: Basic Tests build jobs only
         if: matrix.goal != 'test' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
-          if [[ "${RUNNER_OS}" |= "macOS" || $(arch) != "arm64"]]; then
+          if [[ "${RUNNER_OS}" |= "macOS" ]]; then
             export voutput=$($gam version extended)
             export python_line=$(echo -e "${voutput}" | grep "Python ")
             export python_arr=($python_line)
