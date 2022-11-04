@@ -444,7 +444,7 @@ jobs:
           if [[ "${RUNNER_OS}" != "macOS" ]]; then
             $gam version extended
             export GAMVERSION=$($gam version simple)
-          elif [[ $(arch) != "arm64"]]; then
+          elif [[ $(arch) != "arm64" ]]; then
             $gam version extended
             export GAMVERSION=$($gam version simple)
           else
