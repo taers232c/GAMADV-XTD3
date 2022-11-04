@@ -138,9 +138,18 @@ case $gamos in
     gamos="macos"
     case $gamarch in
       x86_64)
-        gamfile="macos-x86_64.tar";;
+        osversion=$(sw_vers -productVersion)
+        osversion=${osversion:0:2}
+        echo ${osversion}
+        case ${osversion:0:2} in
+          12|13)
+            gamfile="macos-x86_64.tar.xz";;
+          *)
+            gamfile="macos-x86_64-legacy.tar";;
+        esac
+        ;;
       arm|arm64|aarch64)
-        gamfile="macos-universal2.tar.xz";;
+        gamfile="macos-arm64.tar.xz";;
       *)
         echo_red "ERROR: this installer currently only supports x86_64 and arm64 MacOS. Looks like you're running on $gamarch. Exiting."
         exit
