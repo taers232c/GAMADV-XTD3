@@ -9,6 +9,7 @@ defaults:
     working-directory: src
 
 env:
+  GAMVERSION: 6.28.03
   OPENSSL_CONFIG_OPTS: no-fips
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -30,12 +31,14 @@ jobs:
             jid: 2
             goal: build
             arch: x86_64
-            openssl_archs: darwin64-x86_64 darwin64-arm64
+            #openssl_archs: darwin64-x86_64 darwin64-arm64
+            openssl_archs: darwin64-x86_64
           - os: macos-12
             jid: 3
             goal: build
             arch: arm64
-            openssl_archs: darwin64-x86_64 darwin64-arm64
+            #openssl_archs: darwin64-x86_64 darwin64-arm64
+            openssl_archs: darwin64-arm64
           - os: macos-12
             jid: 4
             goal: build
@@ -458,6 +461,8 @@ jobs:
 
       - name: Linux/MacOS package
         if: runner.os != 'Windows' && matrix.goal == 'build'
+        env:
+          arch: ${{ matrix.arch }}
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-$(arch).tar.xz"
