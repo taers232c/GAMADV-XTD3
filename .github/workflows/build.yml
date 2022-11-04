@@ -9,7 +9,6 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION="6.28.03"
   OPENSSL_CONFIG_OPTS: no-fips
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -444,6 +443,8 @@ jobs:
           if [[ "${RUNNER_OS}" |= "macOS" || $(arch) != "arm64"]]; then
               $gam version extended
               export GAMVERSION=$($gam version simple)
+          else
+              export GAMVERSION="6.28.03"
           fi
           echo "GAM Version ${GAMVERSION}"
           echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
