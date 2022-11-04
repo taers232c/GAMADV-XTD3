@@ -407,7 +407,7 @@ jobs:
                export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
                if [[ "${arch}" == "arm64" ]]; then
                  export gamspec="gamarm64.spec"
-               elif [[ "${arch}" == "x86_66" ]]; then
+               elif [[ "${arch}" == "x86_64" ]]; then
                  export gamspec="gamx86_64.spec"
                else
                  export gamspec="gammacuni.spec"
@@ -440,6 +440,8 @@ jobs:
 
       - name: Basic Tests for build
         if: matrix.goal == 'build'
+        env:
+          arch: ${{ matrix.arch }}
         run: |
           if [[ "${RUNNER_OS}" != "macOS" ]]; then
             $gam version extended
