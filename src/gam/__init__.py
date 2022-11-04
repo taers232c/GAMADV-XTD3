@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.02'
+__version__ = '6.28.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -58881,7 +58881,7 @@ def forwardMessagesThreads(users, entityType):
     service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
     try:
       if parameters['messageEntity'] is None:
-        printGettingAllEntityItemsForWhom(Ent.MESSAGE, user, i, count)
+        printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
                                    pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
                                    throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
@@ -58939,12 +58939,12 @@ def forwardMessagesThreads(users, entityType):
                              userId='me', id=messageId, format='raw')
           stream = StringIOobject()
           message = base64.urlsafe_b64decode(str(message['raw'])).decode(UTF8)
-          message = re.sub(r'(?sm)\nTo:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', f'\nTo: {msgTo}', message)
-          message = re.sub(r'(?sm)\nCc:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', '', message)
+          message = re.sub(r'(?sm)\nTo:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', f'\nTo: {msgTo}', message, 1)
+          message = re.sub(r'(?sm)\nCc:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', '', message, 1)
           if not subject:
-            message = re.sub(r'\nSubject: ', r'\nSubject: Fwd: ', message)
+            message = re.sub(r'\nSubject: ', r'\nSubject: Fwd: ', message, 1)
           else:
-            message = re.sub(r'(?sm)\nSubject:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', f'\nSubject: {subject}', message)
+            message = re.sub(r'(?sm)\nSubject:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', f'\nSubject: {subject}', message, 1)
           stream.write(message)
           try:
             result = callGAPI(gmail.users().messages(), 'send',

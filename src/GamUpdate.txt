@@ -1,3 +1,7 @@
+6.28.03
+
+Build MacOS x86_64 and arm64 executables.
+
 6.28.02
 
 Fixed bug in `gam forward message|thread` that misformatted the message when `Cc:` was present.

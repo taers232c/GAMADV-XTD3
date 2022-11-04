@@ -27,6 +27,16 @@ jobs:
             arch: x86_64
             openssl_archs: linux-x86_64
           - os: macos-12
+            jid: 2
+            goal: build
+            arch: x86_64
+            openssl_archs: darwin64-x86_64 darwin64-arm64
+          - os: macos-12
+            jid: 3
+            goal: build
+            arch: arm64
+            openssl_archs: darwin64-x86_64 darwin64-arm64
+          - os: macos-12
             jid: 4
             goal: build
             arch: universal2
@@ -387,13 +397,21 @@ jobs:
 
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
+        env:
+          arch: ${{ matrix.arch }}
         run: |
              export gampath="./dist/gamadv-xtd3"
              mkdir -p -v "${gampath}"
              export gamspec="gam.spec"
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
                export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
-               export gamspec="gammacuni.spec"
+               if [[ "${arch}" == "arm64" ]]; then
+                 export gamspec="gamarm64.spec"
+               elif [[ "${arch}" == "x86_66" ]]; then
+                 export gamspec="gamx86_64.spec"
+               else
+                 export gamspec="gammacuni.spec"
+               fi
              elif [[ "${RUNNER_OS}" == "Windows" ]]; then
                # Work around issue where PyInstaller picks up python3.dll from other Python versions
                # https://github.com/pyinstaller/pyinstaller/issues/7102
@@ -431,7 +449,7 @@ jobs:
         if: runner.os != 'Windows' && matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-universal2.tar.xz"
+              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-$(arch).tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
               this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
               GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-$(arch)-glibc${this_glibc_ver}.tar.xz"
