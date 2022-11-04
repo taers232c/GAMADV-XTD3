@@ -9,6 +9,7 @@ defaults:
     working-directory: src
 
 env:
+  GAMVERSION="6.28.03"
   OPENSSL_CONFIG_OPTS: no-fips
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -440,10 +441,12 @@ jobs:
 
       - name: Basic Tests all jobs
         run: |
-             $gam version extended
-             export GAMVERSION=$($gam version simple)
-             echo "GAM Version ${GAMVERSION}"
-             echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
+          if [[ "${RUNNER_OS}" |= "macOS" || $(arch) != "arm64"]]; then
+              $gam version extended
+              export GAMVERSION=$($gam version simple)
+          fi
+          echo "GAM Version ${GAMVERSION}"
+          echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
 
       - name: Linux/MacOS package
         if: runner.os != 'Windows' && matrix.goal == 'build'
@@ -502,22 +505,24 @@ jobs:
       - name: Basic Tests build jobs only
         if: matrix.goal != 'test' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
-          export voutput=$($gam version extended)
-          export python_line=$(echo -e "${voutput}" | grep "Python ")
-          export python_arr=($python_line)
-          export this_python=${python_arr[1]}
-          if [[ "${this_python}" != "${COMPILED_PYTHON_VERSION}" ]]; then
-            echo "ERROR: Tried to compile Python ${COMPILED_PYTHON_VERSION} but ended up with ${this_python}"
-            exit 1
+          if [[ "${RUNNER_OS}" |= "macOS" || $(arch) != "arm64"]]; then
+            export voutput=$($gam version extended)
+            export python_line=$(echo -e "${voutput}" | grep "Python ")
+            export python_arr=($python_line)
+            export this_python=${python_arr[1]}
+            if [[ "${this_python}" != "${COMPILED_PYTHON_VERSION}" ]]; then
+              echo "ERROR: Tried to compile Python ${COMPILED_PYTHON_VERSION} but ended up with ${this_python}"
+              exit 1
+            fi
+            export openssl_line=$(echo -e "${voutput}" | grep "OpenSSL ")
+            export openssl_arr=($openssl_line)
+            export this_openssl="${openssl_arr[1]}"
+            if [[ "${this_openssl}" != "${COMPILED_OPENSSL_VERSION}" ]]; then
+              echo "ERROR: Tried to compile OpenSSL ${COMPILED_OPENSSL_VERSION} but ended up with ${this_openssl}"
+              exit 1
+            fi
+            echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
           fi
-          export openssl_line=$(echo -e "${voutput}" | grep "OpenSSL ")
-          export openssl_arr=($openssl_line)
-          export this_openssl="${openssl_arr[1]}"
-          if [[ "${this_openssl}" != "${COMPILED_OPENSSL_VERSION}" ]]; then
-            echo "ERROR: Tried to compile OpenSSL ${COMPILED_OPENSSL_VERSION} but ended up with ${this_openssl}"
-            exit 1
-          fi
-          echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v3
