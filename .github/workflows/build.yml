@@ -438,16 +438,17 @@ jobs:
               cp -v gam-setup.bat $gampath
           fi
 
-      - name: Basic Tests all jobs
+      - name: Basic Tests for build
+        if: matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" != "macOS" ]]; then
-              $gam version extended
-              export GAMVERSION=$($gam version simple)
+            $gam version extended
+            export GAMVERSION=$($gam version simple)
           elif [[ $(arch) != "arm64"]]; then
-              $gam version extended
-              export GAMVERSION=$($gam version simple)
+            $gam version extended
+            export GAMVERSION=$($gam version simple)
           else
-              export GAMVERSION="6.28.03"
+            export GAMVERSION="6.28.03"
           fi
           echo "GAM Version ${GAMVERSION}"
           echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
@@ -456,10 +457,10 @@ jobs:
         if: runner.os != 'Windows' && matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-$(arch).tar.xz"
+            GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-$(arch).tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
-              this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-$(arch)-glibc${this_glibc_ver}.tar.xz"
+            this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
+            GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-$(arch)-glibc${this_glibc_ver}.tar.xz"
           fi
           tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
 
