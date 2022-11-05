@@ -9,9 +9,6 @@ env:
     - MIN_PYTHON_VERSION=3.11.0
     - LINUX_BUILD_OPENSSL_VERSION=3.0.7
     - LINUX_MIN_OPENSSL_VERSION=3.0.7
-#    - WINDOWS_BUILD_OPENSSL_VERSION=1.1.1q
-#    - WINDOWS_MIN_OPENSSL_VERSION=1.1.1q
-#    - WINDOWS_LIB_SSL_VERSION="1_1"
     - MACOS_BUILD_PYTHON_VERSION=3.10.8
     - MACOS_MIN_PYTHON_VERSION=3.10.8
     - MACOS_BUILD_OPENSSL_VERSION=1.1.1s
@@ -30,12 +27,6 @@ cache:
 jobs:
   fast_finish: true
   include:
-#    - os: linux
-#      name: "Linux 64-bit Jammy"
-#      dist: jammy
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=true
     - os: linux
       name: "Linux 64-bit Focal"
       dist: focal
@@ -60,14 +51,6 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
-#    - os: linux
-#      name: "Linux ARM64 Jammy"
-#      dist: jammy
-#      arch: arm64
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=true
-#      filter_secrets: false
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal
@@ -100,16 +83,6 @@ jobs:
         - BUILD_PYTHON_VERSION=$MACOS_BUILD_PYTHON_VERSION
         - MIN_PYTHON_VERSION=$MACOS_MIN_PYTHON_VERSION
         - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
-#    - os: windows
-#      name: "Windows 64-bit"
-#      language: shell
-#      env:
-#        - MIN_OPENSSL_VERSION=$WINDOWS_MIN_OPENSSL_VERSION
-#    - os: windows
-#      name: "Windows 32-bit"
-#      language: shell
-#      env:
-#        - MIN_OPENSSL_VERSION=$WINDOWS_MIN_OPENSSL_VERSION
 
 before_install:
 - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then

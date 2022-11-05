@@ -6360,7 +6360,7 @@ gam <UserTypeEntity> info contacts
         [formatjson]
 
 <PeoplePrintShowUserContactSelection> ::=
-        [(selectcontactgroup <PeopleContactGroupItem>)|
+        [(selectcontactgroup <PeopleContactGroupItem>)|(filtercontactgroup <PeopleContactGroupItem>)|
             ([query <QueryContact>] [selectmaincontacts|selectothercontacts])]
         [emailmatchpattern <RegularExpression> [emailmatchtype work|home|other|<String>]]
 

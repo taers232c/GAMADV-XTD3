@@ -10,4 +10,4 @@ importlib.metadata; python_version < '3.8'
 passlib
 python-dateutil
 pathvalidate
-lxml == 4.9.1
+lxml == 4.8.0

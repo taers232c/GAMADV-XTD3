@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.03'
+__version__ = '6.28.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7544,7 +7544,7 @@ class CSVPrintFile():
     if self.timestampColumn:
       row[self.timestampColumn] = self.todaysTime
     if not self.rowLimit or self.rowCount < self.rowLimit:
-      self.rowCount +=1 
+      self.rowCount +=1
       self.rows.append(row)
 
   def WriteRowNoFilter(self, row):
@@ -18508,14 +18508,16 @@ PEOPLE_DIRECTORY_MERGE_SOURCES_CHOICE_MAP = {
 
 def _initPeopleContactQueryAttributes(printShowCmd):
   return {'query': None, 'updateTime': None,
-          'contactGroup': None, 'group': None, 'mainContacts': True, 'otherContacts': printShowCmd, 'emailMatchPattern': None, 'emailMatchType': None}
+          'contactGroupSelect': None, 'contactGroupFilter': None, 'group': None, 'dropMemberships': False,
+          'mainContacts': True, 'otherContacts': printShowCmd, 'emailMatchPattern': None, 'emailMatchType': None}
 
 def _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, unknownAction, printShowCmd):
   if myarg == 'query':
     contactQuery['query'] = getString(Cmd.OB_QUERY)
   elif myarg in {'contactgroup', 'selectcontactgroup'}:
     if entityType == Ent.USER:
-      contactQuery['contactGroup'] = getString(Cmd.OB_CONTACT_GROUP_ITEM)
+      contactQuery['contactGroupSelect'] = getString(Cmd.OB_CONTACT_GROUP_ITEM)
+      contactQuery['contactGroupFilter'] = None
       contactQuery['mainContacts'] = True
       contactQuery['otherContacts'] = False
     else:
@@ -18535,16 +18537,26 @@ def _getPeopleContactQueryAttributes(contactQuery, myarg, entityType, unknownAct
     if unknownAction > 0:
       Cmd.Backup()
     return False
+  elif myarg == 'filtercontactgroup':
+    if entityType == Ent.USER:
+      contactQuery['contactGroupFilter'] = getString(Cmd.OB_CONTACT_GROUP_ITEM)
+      contactQuery['contactGroupSelect'] = None
+      contactQuery['mainContacts'] = True
+      contactQuery['otherContacts'] = False
+    else:
+      unknownArgumentExit()
   elif myarg in {'maincontacts', 'selectmaincontacts'}:
     if entityType == Ent.USER:
-      contactQuery['contactGroup'] = None
+      contactQuery['contactGroupSelect'] = None
+      contactQuery['contactGroupFilter'] = None
       contactQuery['mainContacts'] = True
       contactQuery['otherContacts'] = False
     else:
       unknownArgumentExit()
   elif myarg in {'othercontacts', 'selectothercontacts'}:
     if entityType == Ent.USER:
-      contactQuery['contactGroup'] = None
+      contactQuery['contactGroupSelect'] = None
+      contactQuery['contactGroupFilter'] = None
       contactQuery['mainContacts'] = False
       contactQuery['otherContacts'] = True
     else:
@@ -18657,14 +18669,25 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
     printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=contactQuery['query'])
     pageMessage = getPageMessage()
 # Contact group not selected
-    if not contactQuery['contactGroup']:
+    if not contactQuery['contactGroupSelect']:
       if not contactQuery['query']:
-        entityList = callGAPIpages(people.people().connections(), 'list', 'connections',
-                                   pageMessage=pageMessage,
-                                   throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                                   pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
-                                   resourceName='people/me', sources=sources, personFields=fields,
-                                   sortOrder=sortOrder, fields='nextPageToken,connections')
+        results = callGAPIpages(people.people().connections(), 'list', 'connections',
+                                pageMessage=pageMessage,
+                                throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
+                                resourceName='people/me', sources=sources, personFields=fields,
+                                sortOrder=sortOrder, fields='nextPageToken,connections')
+        if contactQuery['contactGroupFilter']:
+          entityList = []
+          for person in results:
+            for membership in person.get(PEOPLE_MEMBERSHIPS, []):
+              if membership.get('contactGroupMembership', {}).get('contactGroupResourceName', '') == contactQuery['group']:
+                if contactQuery['dropMemberships']:
+                  person.pop(PEOPLE_MEMBERSHIPS)
+                entityList.append(person)
+                break
+        else:
+          entityList = results
       else:
         results = callGAPI(people.people(), 'searchContacts',
                            throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
@@ -18686,7 +18709,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
                             resourceName=resourceName, sources=sources, personFields=fields)
 
           entityList.append(result)
-    if contactQuery['contactGroup'] or contactQuery['query']:
+    if contactQuery['contactGroupSelect'] or contactQuery['contactGroupFilter'] or contactQuery['query']:
       showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
       writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
     return entityList
@@ -18885,12 +18908,12 @@ def _clearUpdatePeopleContacts(users, updateContacts):
     user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
     if not people:
       continue
-    if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+    if contactQuery['contactGroupSelect']:
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroupSelect'],
                                                                  None, None, entityType, user, i, count)
       if not groupId:
         if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroupSelect']], Msg.DOES_NOT_EXIST, i, count)
         continue
       contactQuery['group'] = groupId
     if queriedContacts:
@@ -19073,12 +19096,12 @@ def dedupReplaceDomainUserPeopleContacts(users):
     user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
     if not people:
       continue
-    if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+    if contactQuery['contactGroupSelect']:
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroupSelect'],
                                                                  None, None, entityType, user, i, count)
       if not groupId:
         if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroupSelect']], Msg.DOES_NOT_EXIST, i, count)
         continue
       contactQuery['group'] = groupId
     if queriedContacts:
@@ -19144,12 +19167,12 @@ def deleteUserPeopleContacts(users):
     user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
     if not people:
       continue
-    if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+    if contactQuery['contactGroupSelect']:
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroupSelect'],
                                                                  None, None, entityType, user, i, count)
       if not groupId:
         if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroupSelect']], Msg.DOES_NOT_EXIST, i, count)
         continue
       contactQuery['group'] = groupId
     if queriedContacts:
@@ -19494,6 +19517,9 @@ def printShowUserPeopleContacts(users):
   if countsOnly:
     fieldsList = ['emailAddresses']
   if contactQuery['mainContacts']:
+    if contactQuery['contactGroupFilter'] and fieldsList and 'memberships' not in fieldsList:
+      fieldsList.append('memberships')
+      contactQuery['dropMemberships'] = True
     fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
   if contactQuery['otherContacts']:
     if not fieldsList:
@@ -19516,13 +19542,14 @@ def printShowUserPeopleContacts(users):
       contactGroupIDs, contactGroupNames = getPeopleContactGroupsInfo(people, entityType, user, i, count)
       if contactGroupNames is False:
         continue
-    if contactQuery['contactGroup']:
+    contactGroupSelectFilter = contactQuery['contactGroupSelect'] or contactQuery['contactGroupFilter']
+    if contactGroupSelectFilter:
       groupId, _, contactGroupNames =\
-        validatePeopleContactGroup(people, contactQuery['contactGroup'],
+        validatePeopleContactGroup(people, contactGroupSelectFilter,
                                    contactGroupIDs, contactGroupNames, entityType, user, i, count)
       if not groupId:
         if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactGroupSelectFilter], Msg.DOES_NOT_EXIST, i, count)
         continue
       contactQuery['group'] = groupId
     if contactQuery['mainContacts']:
@@ -19996,12 +20023,12 @@ def _processPeopleContactPhotos(users, function):
     user, people = buildGAPIServiceObject(API.PEOPLE, user, i, count)
     if not people:
       continue
-    if contactQuery['contactGroup']:
-      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroup'],
+    if contactQuery['contactGroupSelect']:
+      groupId, _, contactGroupNames = validatePeopleContactGroup(people, contactQuery['contactGroupSelect'],
                                                                  None, None, entityType, user, i, count)
       if not groupId:
         if contactGroupNames:
-          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroup']], Msg.DOES_NOT_EXIST, i, count)
+          entityActionFailedWarning([entityType, user, Ent.CONTACT_GROUP, contactQuery['contactGroupSelect']], Msg.DOES_NOT_EXIST, i, count)
         continue
       contactQuery['group'] = groupId
     if queriedContacts:

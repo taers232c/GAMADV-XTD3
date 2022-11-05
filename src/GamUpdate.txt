@@ -1,3 +1,12 @@
+6.28.04
+
+Added `filtercontactgroup <PeopleContactGroupItem>` to `<PeoplePrintShowUserContactSelection>`
+that is used by `gam <UserTypeEntity> print|show contacts`. When `selectcontactgroup <PeopleContactGroupItem>`
+is used in these commands, GAM makes an API call to get the list of contacts in `<PeopleContactGroupItem>`
+and then makes an API call per contact to get the details; this may exceed quota limits.
+When `filtercontactgroup <PeopleContactGroupItem>` is used, GAM makes an API call to get all contacts and
+then filters the list to only those in `<PeopleContactGroupItem>`; quota limits should not apply.
+
 6.28.03
 
 Build MacOS x86_64 and arm64 executables.

@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.28.03
+  GAMVERSION: 6.28.04
   OPENSSL_CONFIG_OPTS: no-fips
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -31,19 +31,12 @@ jobs:
             jid: 2
             goal: build
             arch: x86_64
-            #openssl_archs: darwin64-x86_64 darwin64-arm64
             openssl_archs: darwin64-x86_64
           - os: macos-12
             jid: 3
             goal: build
             arch: arm64
-            #openssl_archs: darwin64-x86_64 darwin64-arm64
             openssl_archs: darwin64-arm64
-          - os: macos-12
-            jid: 4
-            goal: build
-            arch: universal2
-            openssl_archs: darwin64-x86_64 darwin64-arm64
           - os: windows-2022
             jid: 5
             goal: build
@@ -375,7 +368,7 @@ jobs:
                                              cryptography
                "${PYTHON}" -m pip install --force-reinstall --no-deps cryptography*.whl
              fi
-             "${PYTHON}" -m pip install --upgrade -r requirementsmacuni.txt ${PIP_ARGS}
+             "${PYTHON}" -m pip install --upgrade -r requirements.txt ${PIP_ARGS}
              "${PYTHON}" -m pip list
 
       - name: Install PyInstaller
@@ -412,8 +405,6 @@ jobs:
                  export gamspec="gamarm64.spec"
                elif [[ "${arch}" == "x86_64" ]]; then
                  export gamspec="gamx86_64.spec"
-               else
-                 export gamspec="gammacuni.spec"
                fi
              elif [[ "${RUNNER_OS}" == "Windows" ]]; then
                # Work around issue where PyInstaller picks up python3.dll from other Python versions
