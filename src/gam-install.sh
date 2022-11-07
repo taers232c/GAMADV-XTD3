@@ -142,7 +142,7 @@ case $gamos in
         osversion=${osversion:0:2}
         echo ${osversion}
         case ${osversion:0:2} in
-          12|13)
+          11|12|13)
             gamfile="macos-x86_64.tar.xz";;
           *)
             gamfile="macos-x86_64-legacy.tar";;
