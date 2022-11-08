@@ -1,3 +1,13 @@
+6.28.05
+
+Added the following items to `<UserMultiAttribute>`:
+* `employeeid <String>` as a synonym for `externalids organization <String>`
+* `manager <String>` as a synonym for `relations manager <String>`
+
+Added the following items to `<UserFieldName>`:
+* `employeeid` as a synonym for `externalids`
+* `manager` as a synonym for `relations`
+
 6.28.04
 
 Added `filtercontactgroup <PeopleContactGroupItem>` to `<PeoplePrintShowUserContactSelection>`

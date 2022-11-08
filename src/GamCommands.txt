@@ -4433,21 +4433,26 @@ gam <UserTypeEntity> show vaultholds|holds
         customerid|
         deletiontime|
         email|emails|otheremail|otheremails|
+        employeeid|
         externalids|externalid|
-        familyname|firstname|fullname|givenname|lastname|name|
+        familyname|lastname|
+        fullname|
         gender|
+        givenname|firstname|
         id|
         ims|im|
         includeinglobaladdresslist|gal|
         ipwhitelisted|
         isdelegatedadmin|admin|isadmin|
-        ismailboxsetup|
         isenforcedin2sv|is2svenforced|
         isenrolledin2sv|is2svenrolled|
+        ismailboxsetup|
         keyword|keywords|
         language|languages|
         lastlogintime|
         locations|location|
+        manager|
+        name|
         noneditablealiases|aliases|nicknames|
         notes|note|
         organizations|organization|
@@ -4498,7 +4503,7 @@ gam <UserTypeEntity> show vaultholds|holds
                 [locality <String>] [region <String>] [postalcode <String>]
                 [country <String>] [countrycode <String>]
                 notprimary|primary)|
-        (otheremail home|other|work|<String> <String>)|
+        (employeeid <String>)|
         (externalid account|customer|login_id|network|organization|<String> <String>)|
         (im type home|other|work|(custom <String>)
                 protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|
@@ -4508,12 +4513,14 @@ gam <UserTypeEntity> show vaultholds|holds
         (location [type default|desk|<String>] area <String>
                 [building|buildingid <String>] [floor|floorname <String>]
                 [section|floorsection <String>] [desk|deskcode <String>] endlocation)|
+        (manager <String>)|
         (organization [type domain_only|school|unknown|work] [customtype <String>]
                 [name <String>] [title <String>] [department <String>]
                 [symbol <String>] [costcenter <String>] [location <String>]
                 [description <String>] [domain <String>]
                 [fulltimeequivalent <Integer>]
                 notprimary|primary)|
+        (otheremail home|other|work|<String> <String>)|
         (phone [type assistant|callback|car|company_main|grand_central|home|
                 home_fax|isdn|main|mobile|other|other_fax|pager|radio|telex|tty_tdd|
                 work|work_fax|work_mobile|work_pager|(custom <String>)]

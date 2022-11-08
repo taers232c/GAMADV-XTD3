@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.04'
+__version__ = '6.28.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -36842,6 +36842,12 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         body['name'].pop('fullName')
       if 'sshPublicKeys' in body and 'fingerprint' in body['sshPublicKeys']:
         body['sshPublicKeys'].pop('fingerprint')
+    elif myarg == 'employeeid':
+      entry = {'type': 'organization', 'value': getString(Cmd.OB_STRING, minLen=0)}
+      appendItemToBodyList(body, 'externalIds', entry, 'value')
+    elif myarg == 'manager':
+      entry = {'type': 'manager', 'value': getString(Cmd.OB_STRING, minLen=0)}
+      appendItemToBodyList(body, 'relations', entry, 'value')
     elif myarg in UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP:
       up = UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP[myarg]
       userProperty = UProp.PROPERTIES[up]
@@ -37748,6 +37754,7 @@ USER_FIELDS_CHOICE_MAP = {
   'deletiontime': 'deletionTime',
   'email': 'emails',
   'emails': 'emails',
+  'employeeid': 'externalIds',
   'externalid': 'externalIds',
   'externalids': 'externalIds',
   'familyname': 'name.familyName',
@@ -37776,6 +37783,7 @@ USER_FIELDS_CHOICE_MAP = {
   'lastname': 'name.familyName',
   'location': 'locations',
   'locations': 'locations',
+  'manager': 'relations',
   'name': ['name.givenName', 'name.familyName', 'name.fullName'],
   'nicknames': ['aliases', 'nonEditableAliases'],
   'noneditablealiases': ['aliases', 'nonEditableAliases'],
