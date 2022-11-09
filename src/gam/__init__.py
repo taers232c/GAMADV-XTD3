@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.05'
+__version__ = '6.28.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7893,7 +7893,7 @@ class CSVPrintFile():
                       GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
                       GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
                       GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
-                      GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+                      GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
                       GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
                       GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
                       GAPI.invalidSharingRequest, GAPI.fileNeverWritable) as e:
@@ -49111,7 +49111,7 @@ def updateDriveFile(users):
         except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
                 GAPI.unknownError, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
                 GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
-                GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+                GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
                 GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed,
                 GAPI.crossDomainMoveRestriction, GAPI.uploadTooLarge) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
@@ -49643,7 +49643,7 @@ def _copyPermissions(drive, user, i, count, j, jcount,
               GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
-              GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+              GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
               GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
@@ -53314,7 +53314,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
               GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
-              GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+              GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
               GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
@@ -53429,7 +53429,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
               GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
               GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.sharingRateLimitExceeded,
               GAPI.insufficientAdministratorPrivileges,
-              GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+              GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.organizerOnNonTeamDriveItemNotSupported, GAPI.fileOrganizerOnNonTeamDriveNotSupported,
               GAPI.cannotUpdatePermission, GAPI.cannotModifyInheritedTeamDrivePermission, GAPI.fieldNotWritable) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, fileName], str(e), j, jcount)
@@ -53557,7 +53557,7 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
               GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
-              GAPI.publishOutNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+              GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
               GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
               GAPI.ownerOnTeamDriveItemNotSupported,
               GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
@@ -59345,9 +59345,9 @@ def printShowMessagesThreads(users, entityType):
         if show_all_headers:
           if not headers:
             headers = '---------- Original message ----------\n'
-          for header in part['headers']:
+          for header in part.get('headers', []):
             headers += header['name']+': '+_decodeHeader(header['value'])+'\n'
-        else:
+        elif 'headers' in part:
           for name in headersToShow:
             for header in part['headers']:
               if name == header['name'].lower():
