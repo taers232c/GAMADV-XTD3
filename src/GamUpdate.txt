@@ -1,3 +1,21 @@
+6.28.07
+
+Added option `csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*` to `gam <UserTypeEntity> copy drivefile`
+that causes GAM to output CSV data detailing the name, id and mimeType of the copied files and folders
+rather than text messages. These are the CSV headers:
+```
+User,name,id,newName,newId,mimeType
+```
+You can add additional columns of data from the command line to the CSV data with `(addcsvdata <FieldName> <String>)*`.
+
+Added option `suppressnotselectedmessages [<Boolean>]` to `gam <UserTypeEntity> copy drivefile`
+that causes GAM to suppress text messages referencing files and folders not selected for copying by the following options:
+```
+copysubfiles false [filenamematchpattern <RegularExpression>] [filemimetype [not] <MimeTypeList>]
+copysubfolders false [foldernamematchpattern <RegularExpression>
+copysubshortcuts false [shortcutnamematchpattern <RegularExpression>
+```
+
 6.28.06
 
 Fixed bug in `gam <UserTypeEntity> print|show messages ... showbody` that caused a trap.

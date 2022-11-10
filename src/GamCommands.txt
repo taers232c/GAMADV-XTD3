@@ -3993,7 +3993,7 @@ gam create|add teamdrive <Name>
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide|hidden <Boolean>]
-        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
+        [(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 gam update teamdrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsFieldName> <Boolean>)*
@@ -4030,7 +4030,7 @@ gam <UserTypeEntity> create|add teamdrive <Name> adminaccess
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide <Boolean>]
-        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
+        [(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 gam <UserTypeEntity> delete teamdrive <SharedDriveEntity>
         adminaccess [allowitemdeletion]
 gam <UserTypeEntity> info teamdrive <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>]
@@ -5201,7 +5201,8 @@ gam <UserTypeEntity> update drivefile <DriveFileEntity> [copy] [returnidonly|ret
 gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [newfilename <DriveFileName>] (replacefilename <RegularExpression> <String>)*
         [stripnameprefix <String>]
-        [excludetrashed] [returnidonly|returnlinkonly]
+        [excludetrashed]
+        [(csv [todrive <ToDriveAttribute>*]) | (returnidonly|returnlinkonly)]
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
@@ -5230,6 +5231,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [copysheetprotectedrangesinheritedpermissions [<Boolean>]]
         [copysheetprotectedrangesnoninheritedpermissions [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
+        [suppressnotselectedmessages [<Boolean>]]
 
 gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
@@ -5276,7 +5278,7 @@ gam <UserTypeEntity> info drivefile <DriveFileEntity>
 
 gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
         [<DriveFileParentAttribute>|convertparents]
-        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
+        [(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 
 gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
         [csv [todrive <ToDriveAttribute>*]]
@@ -5880,7 +5882,7 @@ gam <UserTypeEntity> print filters [labelidsonly] [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> create form
         title <String> [description <String>] [isquiz [Boolean>]
         [drivefilename <DriveFileName>] [<DriveFileParentAttribute>]
-        [csv [todrive <ToDriveAttribute>*]] [returnidonly]
+        [(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 gam <UserTypeEntity> update form <DriveFileEntity>
         [title <String>] [description <String>] [isquiz [Boolean>]
 

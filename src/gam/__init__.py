@@ -48529,7 +48529,7 @@ def processFilenameReplacements(name, replacements):
     name = re.sub(replacement[0], replacement[1], name)
   return name
 
-returnItemMap = {
+createReturnItemMap = {
   'returnidonly': 'id',
   'returnlinkonly': 'webViewLink',
   'returneditlinkonly': 'editLink'
@@ -48540,24 +48540,24 @@ returnItemMap = {
 #	[(drivefilename|newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
 #	[stripnameprefix <String>]
 #	<DriveFileCreateAttribute>*
-#	[csv [todrive <ToDriveAttribute>*]] [returnidonly|returnlinkonly|returneditlinkonly|showdetails]
-#	(addcsvdata <FieldName> <String>)*
+#	[(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*)) |
+#	 (returnidonly|returnlinkonly|returneditlinkonly|showdetails)]
 def createDriveFile(users):
   csvPF = media_body = None
+  addCSVData = {}
   returnIdLink = None
   showDetails = False
   body = {}
   newName = None
   assignLocalName = True
-  addCSVData = {}
   parameters = initDriveFileAttributes()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'drivefilename', 'newfilename'}:
       newName = getString(Cmd.OB_DRIVE_FILE_NAME)
       assignLocalName = False
-    elif myarg in returnItemMap:
-      returnIdLink = returnItemMap[myarg]
+    elif myarg in createReturnItemMap:
+      returnIdLink = createReturnItemMap[myarg]
       showDetails = False
     elif myarg == 'showdetails':
       returnIdLink = None
@@ -48566,7 +48566,7 @@ def createDriveFile(users):
       csvPF = CSVPrintFile()
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'addcsvdata':
+    elif csvPF and myarg == 'addcsvdata':
       k = getString(Cmd.OB_STRING)
       addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     else:
@@ -48656,7 +48656,7 @@ def createDriveFile(users):
 
 # gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
 #	[<DriveFileParentAttribute>|convertparents]
-#	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
+#	[(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 def createDriveFileShortcut(users):
   csvPF = baseShortcutName = None
   convertParents = newParentsSpecified = returnIdOnly = False
@@ -49879,10 +49879,17 @@ def _checkForExistingShortcut(drive, fileId, fileName, parentId):
     pass
   return None
 
+copyReturnItemMap = {
+  'returnidonly': 'id',
+  'returnlinkonly': 'webViewLink',
+  }
+
 # gam <UserTypeEntity> copy drivefile <DriveFileEntity>
 #	[newfilename <DriveFileName>] (replacefilename <RegularExpression> <String>)*
 #	[stripnameprefix <String>]
-#	[excludetrashed] [returnidonly|returnlinkonly]
+#	[excludetrashed]
+#	[(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*)) |
+#	 (returnidonly|returnlinkonly)]
 #	[summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
 #	[<DriveFileParentAttribute>]
 #	[mergewithparent [<Boolean>]] [recursive [depth <Number>]]
@@ -49911,7 +49918,15 @@ def _checkForExistingShortcut(drive, fileId, fileName, parentId):
 #	[copysheetprotectedrangesinheritedpermissions [<Boolean>]]
 #	[copysheetprotectedrangesnoninheritedpermissions [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
+#	[suppressnotselectedmessages [<Boolean>]]
 def copyDriveFile(users):
+  def _writeCSVData(user, name, id, newName, newId, mimeType):
+    row = {'User': user, fileNameTitle: name, 'id': id,
+           newFileNameTitle: newName, 'newId': newId, 'mimeType': mimeType}
+    if addCSVData:
+      row.update(addCSVData)
+    csvPF.WriteRow(row)
+    
   def _cloneFolderCopy(drive, user, i, count, j, jcount,
                        source, targetChildren, newFolderName, newParentId, newParentName, mergeParentModifiedTime,
                        statistics, copyMoveOptions, atTop):
@@ -49924,7 +49939,10 @@ def copyDriveFile(users):
     if atTop and copyMoveOptions['mergeWithParent']:
       action = Act.Get()
       Act.Set(Act.MERGE)
-      entityPerformActionModifierItemValueList(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, newParentNameId], j, jcount)
+      if not csvPF:
+        entityPerformActionModifierItemValueList(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, newParentNameId], j, jcount)
+      else:
+        _writeCSVData(user, folderName, folderId, newParentName, newParentId, MIMETYPE_GA_FOLDER)
       Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_MERGED)
       if (copyMoveOptions['copyMergeWithParentFolderPermissions'] and
@@ -49950,7 +49968,10 @@ def copyDriveFile(users):
             newFolderId = target['id']
             action = Act.Get()
             Act.Set(Act.MERGE)
-            entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'], j, jcount)
+            if not csvPF:
+              entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'], j, jcount)
+            else:
+              _writeCSVData(user, folderName, folderId, newFolderName, newFolderId, MIMETYPE_GA_FOLDER)
             Act.Set(action)
             _incrStatistic(statistics, STAT_FOLDER_MERGED)
             if (copyMoveOptions[['copyMergedSubFolderPermissions', 'copyMergedTopFolderPermissions'][atTop]] and
@@ -49996,10 +50017,12 @@ def copyDriveFile(users):
       newFolderId = result['id']
       if returnIdLink:
         writeStdout(f'{result[returnIdLink]}\n')
-      else:
+      elif not csvPF:
         entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
                                                    [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'],
                                                    j, jcount)
+      else:
+        _writeCSVData(user, folderName, folderId, newFolderName, newFolderId, body['mimeType'])
       _incrStatistic(statistics, STAT_FOLDER_COPIED_MOVED)
       if copyMoveOptions[['copySubFolderPermissions', 'copyTopFolderPermissions'][atTop]]:
         _copyPermissions(drive, user, i, count, j, jcount,
@@ -50130,7 +50153,8 @@ def copyDriveFile(users):
         childMimeType = child['mimeType']
         kvList = [Ent.USER, user, _getEntityMimeType(child), childNameId]
         if not _checkChildCopyAllowed(childMimeType, childName):
-          entityActionNotPerformedWarning(kvList, Msg.NOT_SELECTED, k, kcount)
+          if not suppressNotSelectedMessages:
+            entityActionNotPerformedWarning(kvList, Msg.NOT_SELECTED, k, kcount)
           continue
         trashed = child.pop('trashed', False)
         if (childId == newFolderId) or (excludeTrashed and trashed):
@@ -50179,9 +50203,12 @@ def copyDriveFile(users):
                               bailOnInternalError=True,
                               throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR],
                               fileId=childId, body=child, fields='id,name', supportsAllDrives=True)
-            entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
-                                                       [Ent.DRIVE_FOLDER, newFolderNameId, Ent.DRIVE_FILE, f"{result['name']}({result['id']})"],
-                                                       k, kcount)
+            if not csvPF:
+              entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
+                                                         [Ent.DRIVE_FOLDER, newFolderNameId, Ent.DRIVE_FILE, f"{result['name']}({result['id']})"],
+                                                         k, kcount)
+            else:
+              _writeCSVData(user, child['name'], childId, result['name'], result['id'], child['mimeType'])
             _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
             copiedSourceFiles[childId] = result['id']
             copiedTargetFiles.add(result['id']) # Don't recopy file copied into a sub-folder
@@ -50213,13 +50240,15 @@ def copyDriveFile(users):
       Ind.Decrement()
 
   fileIdEntity = getDriveFileEntity()
+  csvPF = None
+  addCSVData = {}
+  returnIdLink = None
   copyBody = {}
   parentBody = {}
   parentParms = initDriveFileAttributes()
   copyParameters = initDriveFileAttributes()
   copyMoveOptions = initCopyMoveOptions(True)
-  excludeTrashed = newParentsSpecified = recursive = False
-  returnIdLink = None
+  excludeTrashed = newParentsSpecified = recursive = suppressNotSelectedMessages = False
   maxdepth = -1
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -50227,10 +50256,8 @@ def copyDriveFile(users):
       pass
     elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
-    elif myarg == 'returnidonly':
-      returnIdLink = 'id'
-    elif myarg == 'returnlinkonly':
-      returnIdLink = 'webViewLink'
+    elif myarg in copyReturnItemMap:
+      returnIdLink = copyReturnItemMap[myarg]
     elif myarg == 'excludetrashed':
       excludeTrashed = True
     elif myarg == 'recursive':
@@ -50239,10 +50266,25 @@ def copyDriveFile(users):
       maxdepth = getInteger(minVal=-1)
     elif myarg == 'convert':
       deprecatedArgument(myarg)
+    elif myarg == 'csv':
+      csvPF = CSVPrintFile()
+    elif csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif csvPF and myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == 'suppressnotselectedmessages':
+      suppressNotSelectedMessages = getBoolean()
     elif getDriveFileCopyAttribute(myarg, copyBody, copyParameters):
       pass
     else:
       unknownArgumentExit()
+  if csvPF:
+    fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
+    newFileNameTitle = f'new{fileNameTitle.capitalize()}'
+    csvPF.SetTitles(['User', fileNameTitle, 'id', newFileNameTitle, 'newId', 'mimeType'])
+    if addCSVData:
+      csvPF.AddTitles(sorted(addCSVData.keys()))
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -50412,11 +50454,13 @@ def copyDriveFile(users):
                             body=source, fields='id,name,webViewLink', supportsAllDrives=True)
           if returnIdLink:
             writeStdout(f'{result[returnIdLink]}\n')
-          else:
+          elif not csvPF:
             entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
                                                        [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FILE, f"{result['name']}({result['id']})"],
                                                        j, jcount)
-            _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
+          else:
+            _writeCSVData(user, sourceName, sourceId, result['name'], result['id'], source['mimeType'])
+          _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
           if (source['mimeType'] == MIMETYPE_GA_SPREADSHEET and
               (copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] or
                copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
@@ -50449,6 +50493,8 @@ def copyDriveFile(users):
     Ind.Decrement()
     if copyMoveOptions['summary']:
       _printStatistics(user, statistics, i, count, True)
+  if csvPF:
+    csvPF.writeCSVfile('Copied Files-Folders')
 
 # gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
 #	[summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
@@ -54536,7 +54582,7 @@ def _getSharedDriveRestrictions(myarg, body):
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<SharedDriveRestrictionsFieldName> <Boolean>)*
 #	[hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
-#	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
+#	[(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 def createSharedDrive(users, useDomainAdminAccess=False):
   requestId = str(uuid.uuid4())
   body = {'name': getString(Cmd.OB_NAME, checkBlank=True)}
@@ -54667,7 +54713,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<SharedDriveRestrictionsFieldName> <Boolean>)*
 #	[hide|hidden <Boolean>]
-#	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
+#	[(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 def doCreateSharedDrive():
   createSharedDrive([_getAdminEmail()], True)
 
@@ -60638,7 +60684,7 @@ def updateFormRequestUpdateMasks(ubody):
 
 # gam <UserTypeEntity> create form title <String> [description <String>] [isquiz [<Boolean>]]
 #	[drivefilename <DriveFileName>] [<DriveFileParentAttribute>]
-#	[csv [todrive <ToDriveAttribute>*]] [returnidonly]
+#	[(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 def createForm(users):
   csvPF = None
   returnIdOnly = False
