@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.06'
+__version__ = '6.28.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -49920,13 +49920,13 @@ copyReturnItemMap = {
 #	[sendemailifrequired [<Boolean>]]
 #	[suppressnotselectedmessages [<Boolean>]]
 def copyDriveFile(users):
-  def _writeCSVData(user, name, id, newName, newId, mimeType):
-    row = {'User': user, fileNameTitle: name, 'id': id,
+  def _writeCSVData(user, oldName, oldId, newName, newId, mimeType):
+    row = {'User': user, fileNameTitle: oldName, 'id': oldId,
            newFileNameTitle: newName, 'newId': newId, 'mimeType': mimeType}
     if addCSVData:
       row.update(addCSVData)
     csvPF.WriteRow(row)
-    
+
   def _cloneFolderCopy(drive, user, i, count, j, jcount,
                        source, targetChildren, newFolderName, newParentId, newParentName, mergeParentModifiedTime,
                        statistics, copyMoveOptions, atTop):
