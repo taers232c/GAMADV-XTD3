@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.07'
+__version__ = '6.28.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2032,6 +2032,10 @@ class StartEndTime():
       self.startTime = ISOformatTimeStamp(self.startDateTime)
       self.endDateTime = currDate+datetime.timedelta(seconds=-1)
       self.endTime = ISOformatTimeStamp(self.endDateTime)
+    elif myarg == 'today':
+      currDate = todaysDate()
+      self.startDateTime = currDate
+      self.startTime = ISOformatTimeStamp(self.startDateTime)
     elif myarg == 'range':
       self.startDateTime, _, self.startTime = self._getValueOrDeltaFromNow(True)
       self.endDateTime, _, self.endTime = self._getValueOrDeltaFromNow(True)
@@ -12019,7 +12023,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 # gam report <ActivityApplictionName> [todrive <ToDriveAttribute>*]
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
 #	[([start <Time>] [end <Time>])|(range <Time> <Time>)|
-#	 yesterday|thismonth|(previousmonths <Integer>)]
+#	 yesterday|today|thismonth|(previousmonths <Integer>)]
 #	[filtertime.* <Time>] [filter|filters <String>]
 #	[event|events <EventNameList>] [ip <String>]
 #	[groupidfilter <String>]
@@ -12029,7 +12033,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
 #	[allverifyuser <UserItem>]
 #	[(date <Date>)|(range <Date> <Date>)|
-#	 yesterday|thismonth|(previousmonths <Integer>)]
+#	 yesterday|today|thismonth|(previousmonths <Integer>)]
 #	[nodatechange | (fulldatarequired all|<UserServiceNameList>)]
 #	[filtertime.* <Time>] [filter|filters <String>]
 #	[(fields|parameters <String>)|(services <UserServiceNameList>)]
@@ -12037,7 +12041,7 @@ REPORT_ACTIVITIES_TIME_OBJECTS = {'time'}
 #	[maxresults <Number>]
 # gam report customers|customer|domain [todrive <ToDriveAttribute>*]
 #	[(date <Date>)|(range <Date> <Date>)|
-#	 yesterday|thismonth|(previousmonths <Integer>)]
+#	 yesterday|today|thismonth|(previousmonths <Integer>)]
 #	[nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
 #	[(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 def doReport():
@@ -12292,7 +12296,7 @@ def doReport():
       select = False
     elif myarg == 'showorgunit':
       showOrgUnit = True
-    elif usageReports and myarg in {'date', 'yesterday'}:
+    elif usageReports and myarg in {'date', 'yesterday', 'today'}:
       startEndTime.Get('start' if myarg == 'date' else myarg)
       startEndTime.endDateTime = startEndTime.startDateTime
       userCustomerRange = False
@@ -12335,7 +12339,7 @@ def doReport():
       noAuthorizedApps = True
     elif activityReports and myarg == 'maxactivities':
       maxActivities = getInteger(minVal=0)
-    elif activityReports and myarg in {'start', 'starttime', 'end', 'endtime', 'yesterday'}:
+    elif activityReports and myarg in {'start', 'starttime', 'end', 'endtime', 'yesterday', 'today'}:
       startEndTime.Get(myarg)
     elif activityReports and myarg in {'event', 'events'}:
       for event in getString(Cmd.OB_EVENT_NAME_LIST).replace(',', ' ').split():
@@ -45060,7 +45064,8 @@ CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP = {'driveui': 'legacy', 'legacy': 'le
 # gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
 #	[(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
 #	 (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
-#	[([start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>])|(range <Date>|<Time> <Date>|<Time>)]
+#	[([start <Date>|<Time>] [end <Date>|<Time>])|(range <Date>|<Time> <Date>|<Time>)|
+#	 yesterday|today|thismonth|(previousmonths <Integer>)]
 #	[action|actions [not] <DriveActivityActionList>]
 #	[consolidationstrategy legacy|none]
 #	[idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
@@ -45130,7 +45135,7 @@ def printDriveActivity(users):
       query = f"mimeType = '{MIMETYPE_GA_FOLDER}' and name = '{getEscapedDriveFileName()}'"
     elif myarg == 'query':
       query = _mapDrive2QueryToDrive3(getString(Cmd.OB_QUERY))
-    elif myarg in {'start', 'starttime', 'end', 'endtime', 'range'}:
+    elif myarg in {'start', 'starttime', 'end', 'endtime', 'yesterday', 'today', 'range', 'thismonth', 'previousmonths'}:
       startEndTime.Get(myarg)
     elif myarg in {'action', 'actions'}:
       negativeAction = checkArgumentPresent('not')

@@ -3656,7 +3656,7 @@ gam report usage customer [todrive <ToDriveAttribute>*]
 gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]
         [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
         [([start <Time>] [end <Time>])|(range <Time> <Time>)|
-         yesterday|thismonth|(previousmonths <Integer>)]
+         yesterday|today|thismonth|(previousmonths <Integer>)]
         [filtertime.* <Time>] [filter|filters <String>]
         [event|events <EventNameList>] [ip <String>]
         [groupidfilter <String>]
@@ -3681,7 +3681,7 @@ gam report <ActivityApplicationName> [todrive <ToDriveAttribute>*]
 
 gam report customers|customer|domain [todrive <ToDriveAttribute>*]
         [(date <Date>)|(range <Date> <Date>)|
-          yesterday|thismonth|(previousmonths <Integer>)]
+          yesterday|today|thismonth|(previousmonths <Integer>)]
         [nodatechange | (fulldatarequired all|<CustomerServiceNameList>)]
         [(fields|parameters <String>)|(services <CustomerServiceNameList>)] [noauthorizedapps]
 
@@ -3698,7 +3698,7 @@ gam report users|user [todrive <ToDriveAttribute>*]
         [(user all|<UserItem>)|(orgunit|org|ou <OrgUnitPath> [showorgunit])|(select <UserTypeEntity>)]
         [allverifyuser <UserItem>]
         [(date <Date>)|(range <Date> <Date>)|
-          yesterday|thismonth|(previousmonths <Integer>)]
+          yesterday|today|thismonth|(previousmonths <Integer>)]
         [nodatechange | (fulldatarequired all|<UserServiceNameList>)]
         [filtertime.* <Time>] [filter|filters <String>]
         [(fields|parameters <String>)|(services <UserServiceNameList>)]
@@ -5788,8 +5788,8 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
         [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
-        [([start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>])|(range <Date> <Date>)|
-         yesterday|thismonth|(previousmonths <Integer>)]
+        [([start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>])|(range <Date>|<Time> <Date)|<Time>|
+         yesterday|today|thismonth|(previousmonths <Integer>)]
         [action|actions [not] <DriveActivityActionList>]
         [consolidationstrategy legacy|none]
         [idmapfile <FileName>|(gsheet <UserGoogleSheet>)(gdoc <UserGoogleDoc>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]

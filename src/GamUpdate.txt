@@ -1,3 +1,10 @@
+6.28.08
+
+Added option `today` to `gam report` to look for events on the current day. This will be most useful
+with `gam report <ActivityApplictionName>` as `gam report users|customers` rarely has data for the current day.
+
+Added option `today` to `gam <UserTypeEntity> print|show driveactivity` to look for events on the current day.
+
 6.28.07
 
 Added option `csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*` to `gam <UserTypeEntity> copy drivefile`
