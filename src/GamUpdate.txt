@@ -1,3 +1,11 @@
+6.28.09
+
+Updated `gam <UserTypeEntity> print filelist "query:mimeType='application/vnd.google-apps.folder'" to prevent the
+following error.
+```
+ERROR: Invalid choice (query:mimetype='application/vnd): Expected <capabilities|contentrestrictions|labelinfo|labels|lastmodifyinguser|owners|parents|permissions|sharinguser|shortcutdetails|trashinguser>
+```
+
 6.28.08
 
 Added option `today` to `gam report` to look for events on the current day. This will be most useful
