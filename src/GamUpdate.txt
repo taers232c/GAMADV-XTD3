@@ -1,3 +1,22 @@
+6.28.10
+
+Added option `addcsvdata <FieldName> <String>` to `gam create shareddrive ... csv`. This adds
+additional columns of data to the CSV file output. For example, you are building student Shared Drives
+and want to add ACLs to them adding the students as organizers. By adding the student's primary email address
+to the CSV output, it can be used in subsequent commands.
+```
+StudentSharedDrives.csv
+primaryEmail,Name
+bob@domain.com,Bob Jones
+mary@domain.com,Mary Smith
+...
+
+# Create the student Shared Drives
+gam redirect stdout ./StudentSharedDrivesCreated.txt multiprocess redirect stderr stdout redirect csv ./StudentSharedDrivesCreated.csv multiprocess csv StudentSharedDrives.csv gam create shareddrive "~Name" csv addcsvdata primaryEmail "~primaryEmail"
+# Add ACLs granting the students organizer access to their Shared Drives.
+gam redirect stdout ./StudentSharedDrivesAccess.txt multiprocess redirect stderr stdout csv StudentSharedDrivesCreated.csv gam add drivefileacl "~id" user "~primaryEmail" role organizer
+```
+
 6.28.09
 
 Updated `gam <UserTypeEntity> print filelist "query:mimeType='application/vnd.google-apps.folder'" to prevent the

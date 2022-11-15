@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.09'
+__version__ = '6.28.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -11140,7 +11140,7 @@ def doPrintShowSvcAccts():
   if csvPF:
     csvPF.writeCSVfile('Service Accounts')
 
-def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size):
+def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size, b64enc_pub=True):
   printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.GENERATING_NEW_PRIVATE_KEY)
   private_key = rsa.generate_private_key(public_exponent=65537, key_size=key_size, backend=default_backend())
   private_pem = private_key.private_bytes(encoding=serialization.Encoding.PEM,
@@ -11171,10 +11171,12 @@ def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size):
   builder = builder.add_extension(x509.ExtendedKeyUsage([x509.oid.ExtendedKeyUsageOID.SERVER_AUTH]), critical=True)
   certificate = builder.sign(private_key=private_key, algorithm=hashes.SHA256(), backend=default_backend())
   public_cert_pem = certificate.public_bytes(serialization.Encoding.PEM).decode()
+  printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.DONE_GENERATING_PRIVATE_KEY_AND_PUBLIC_CERTIFICATE)
+  if not b64enc_pub:
+    return (private_pem, public_cert_pem)
   publicKeyData = base64.b64encode(public_cert_pem.encode())
   if isinstance(publicKeyData, bytes):
     publicKeyData = publicKeyData.decode()
-  printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.DONE_GENERATING_PRIVATE_KEY_AND_PUBLIC_CERTIFICATE)
   return (private_pem, publicKeyData)
 
 def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, private_key_id):
@@ -54587,12 +54589,13 @@ def _getSharedDriveRestrictions(myarg, body):
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<SharedDriveRestrictionsFieldName> <Boolean>)*
 #	[hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
-#	[(csv [todrive <ToDriveAttribute>*]) | returnidonly]
+#	[(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
 def createSharedDrive(users, useDomainAdminAccess=False):
   requestId = str(uuid.uuid4())
   body = {'name': getString(Cmd.OB_NAME, checkBlank=True)}
   updateBody = {}
   csvPF = None
+  addCSVData = {}
   hide = returnIdOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -54610,12 +54613,17 @@ def createSharedDrive(users, useDomainAdminAccess=False):
       csvPF = CSVPrintFile()
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif csvPF and myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
     else:
       unknownArgumentExit()
   if csvPF:
     csvPF.SetTitles(['User', 'name', 'id'])
+    if addCSVData:
+      csvPF.AddTitles(sorted(addCSVData.keys()))
   for field in ['backgroundImageFile', 'colorRgb', 'orgUnitId']:
     if field in body:
       updateBody[field] = body.pop(field)
@@ -54642,7 +54650,10 @@ def createSharedDrive(users, useDomainAdminAccess=False):
         elif not csvPF:
           entityActionPerformed([Ent.USER, user, Ent.SHAREDDRIVE_NAME, body['name'], Ent.SHAREDDRIVE_ID, driveId], i, count)
         else:
-          csvPF.WriteRow({'User': user, 'name': body['name'], 'id': driveId})
+          row = {'User': user, 'name': body['name'], 'id': driveId}
+          if addCSVData:
+            row.update(addCSVData)
+          csvPF.WriteRow(row)
         doUpdate = True
         break
       except (GAPI.transientError, GAPI.teamDriveAlreadyExists) as e:
@@ -54718,7 +54729,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<SharedDriveRestrictionsFieldName> <Boolean>)*
 #	[hide|hidden <Boolean>]
-#	[(csv [todrive <ToDriveAttribute>*]) | returnidonly]
+#	[(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
 def doCreateSharedDrive():
   createSharedDrive([_getAdminEmail()], True)
 
