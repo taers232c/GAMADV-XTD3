@@ -5202,7 +5202,8 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [newfilename <DriveFileName>] (replacefilename <RegularExpression> <String>)*
         [stripnameprefix <String>]
         [excludetrashed]
-        [(csv [todrive <ToDriveAttribute>*]) | (returnidonly|returnlinkonly)]
+        [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) |
+         (returnidonly|returnlinkonly)]
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]

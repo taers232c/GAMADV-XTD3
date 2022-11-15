@@ -1,3 +1,8 @@
+6.28.11
+
+Fixed bug in  `gam <UserTypeEntity> update contact ... birthday ""` that caused a trap
+rather that clearing the birthday from the contact.
+
 6.28.10
 
 Added option `addcsvdata <FieldName> <String>` to `gam create shareddrive ... csv`. This adds

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.10'
+__version__ = '6.28.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -18274,7 +18274,8 @@ class PeopleManager():
 
     def getDate(entry, fieldName):
       event = getYYYYMMDD(minLen=0, returnDateTime=True)
-      entry[fieldName] = {'year': event.year, 'month': event.month, 'day': event.day}
+      if event:
+        entry[fieldName] = {'year': event.year, 'month': event.month, 'day': event.day}
 
     def PrimaryNotPrimary(pnp, entry):
       if pnp == 'notprimary':
