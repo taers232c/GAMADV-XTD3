@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.28.11'
+__version__ = '6.28.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13066,6 +13066,8 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
     notify[field] = notify[field].replace('#domain#', domain)
     notify[field] = notify[field].replace('#givenname#', body['name'].get('givenName', ''))
     notify[field] = notify[field].replace('#familyname#', body['name'].get('familyName', ''))
+
+  def _makePasswordSubstitutions(field):
     notify[field] = notify[field].replace('#password#', notify['password'])
 
   userName, domain = splitEmailAddress(body['primaryEmail'])
@@ -13084,6 +13086,8 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
     _getTagReplacementFieldValues(body['primaryEmail'], i, count, tagReplacements, body if createMessage else None)
   notify['subject'] = _processTagReplacements(tagReplacements, notify['subject'])
   notify['message'] = _processTagReplacements(tagReplacements, notify['message'])
+  _makePasswordSubstitutions('subject')
+  _makePasswordSubstitutions('message')
   for recipient in notify['recipients']:
     send_email(notify['subject'], notify['message'], recipient, i, count,
                msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])

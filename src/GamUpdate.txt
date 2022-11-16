@@ -1,3 +1,8 @@
+6.28.12
+
+Fixed bug in `gam create|update user ... password random notify <EmailAddress>` that caused a trap
+when the random password contained `{` and `}`.
+
 6.28.11
 
 Fixed bug in  `gam <UserTypeEntity> update contact ... birthday ""` that caused a trap
