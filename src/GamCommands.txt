@@ -3318,15 +3318,6 @@ gam show cigroup-members
         [types <CIGroupTypeList>]
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
 
-# Licenses
-
-gam print licenses [todrive <ToDriveAttribute>*]
-        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
-        [maxresults <Integer>] [countsonly]
-gam show licenses
-        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
-        [maxresults <Integer>]
-
 # Cloud Identity Devices
 
 <DeviceID> ::= devices/<String>
@@ -3442,6 +3433,69 @@ gam update deviceuserstate <DeviceUserEntity> [clientid <String>]
         [compliantstate|compliancestate compliant|noncompliant] [managedstate clear|managed|unmanaged]
         [healthscore very_poor|poor|neutral|good|very_good] [scorereason clear|<String>]
         (customvalue (bool|boolean <Boolean>)|(number <Integer>)|(string <String>))*
+
+# Inbound SSO
+
+<SSOProfileDisplayName> ::= <String>
+<SSOProfileName> ::= id:inboundSamlSsoProfiles/<String>
+<SSOProfileItem> ::= <SSOProfileDisplayName>|<SSOProfileName>
+<SSOProfileItemList> ::= "<SSOProfileItem>(,<SSOProfileItem>)*"
+
+gam create inboundssoprofile [name <SSOProfileDisplayName>]
+        [entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
+gam update inboundssoprofile <SSOProfileItem>
+        [entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
+gam delete inboundssoprofile <SSOProfileItem>
+
+gam info inboundssoprofile <SSOProfileItem>
+        [formatjson]
+gam show inboundssoprofiles
+        [formatjson]
+gam print inboundssoprofiles [todrive <ToDriveAttribute>*]
+        [[formatjson [quotechar <Character>]]
+
+<SSOCredentialsName> ::= [id:]inboundSamlSsoProfiles/<String>/idpCredentials/<String>
+
+gam create inboundssocredential profile <SSOProfileItem>
+        (pemfile <FileName>)|(generatekey [keysize 1024|2048|4096]) [replaceolddest]
+gam delete inboundssocredential <SSOCredentialsName>
+
+gam info inboundssocredential <SSOCredentialsName>
+        [formatjson]
+gam show inboundssocredentials [profile|profiles <SSOProfileItemList>]
+        [formatjson]
+gam print inboundssocredentials [profile|profiles <SSOProfileItemList>]
+        [[formatjson [quotechar <Character>]]
+
+<SSOAssignmentName> ::= [id:]inboundSsoAssignments/<String>
+<SSOAssignmentSelector> ::=
+        <SSOAssignmentName> |
+	groups/<String> |
+        group:<EmailAddress> |
+	orgunits/<String> |
+	orgunit:<OrgUnitPath>
+
+gam create inboundssoassignment (group <GroupItem> rank <Number>)|(ou|org|orgunit <OrgUnitItem>)
+        (mode sso_off)|(mode saml_sso profile <SSOProfileItem>)(mode domain_wide_saml_if_enabled) [neverredirect]
+gam update inboundssoassignment [(group <GroupItem> rank <Number>)|(ou|org|orgunit <OrgUnitItem>)]
+        [(mode sso_off)|(mode saml_sso profile <SSOProfileItem>)(mode domain_wide_saml_if_enabled)] [neverredirect]
+gam delete inboundssoassignment <SSOAssignmentName>
+
+gam info inboundssoassignment <SSOAssignmentSelector>
+        [formatjson]
+gam show inboundssoassignments
+        [formatjson]
+gam print inboundssoassignments [todrive <ToDriveAttribute>*]
+        [[formatjson [quotechar <Character>]]
+
+# Licenses
+
+gam print licenses [todrive <ToDriveAttribute>*]
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+        [maxresults <Integer>] [countsonly]
+gam show licenses
+        [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
+        [maxresults <Integer>]
 
 # Mobile Devices
 
@@ -6035,14 +6089,14 @@ gam <UserTypeEntity> print labels|label [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> draft message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
-        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (textmessage|message <String>)|(textfile|file|emlfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
 gam <UserTypeEntity> import message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
         (addlabel <LabelName>)* [labels <LabelNameList>]
-        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (textmessage|message <String>)|(textfile|file|emlfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
@@ -6050,7 +6104,7 @@ gam <UserTypeEntity> import message
 gam <UserTypeEntity> insert message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
         (addlabel <LabelName>)* [labels <LabelNameList>]
-        (textmessage|message <String>)|(textfile|file <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
+        (textmessage|message <String>)|(textfile|file|emlfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
         (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
         (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*

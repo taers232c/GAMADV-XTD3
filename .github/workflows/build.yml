@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.28.12
+  GAMVERSION: 6.29.00
   OPENSSL_CONFIG_OPTS: no-fips
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -63,7 +63,7 @@ jobs:
           path: |
             bin.tar.xz
             src/cpython
-          key: gam-${{ matrix.jid }}-20221102
+          key: gam-${{ matrix.jid }}-20221119
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -257,7 +257,7 @@ jobs:
           git clone https://github.com/python/cpython.git
           cd "${PYTHON_SOURCE_PATH}"
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            export LATEST_STABLE_TAG="v3.10.8"
+            export LATEST_STABLE_TAG="v3.11.0"
           else
             export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
           fi

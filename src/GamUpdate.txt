@@ -1,3 +1,12 @@
+6.29.00
+
+Added option `emlfile <FileName> [charset <CharSet>]` to `gam <UserTypeEntity> draft|insert|import message` that
+allows processing an EML message file. SMTP headers specified in the command will replace those in the message file.
+
+Following Jay's lead, added commands to manage/display Inbound SSO.
+* https://github.com/taers232c/GAMADV-XTD3/wiki/Inbound-SSO
+* https://admin.google.com/ac/security/sso
+
 6.28.12
 
 Fixed bug in `gam create|update user ... password random notify <EmailAddress>` that caused a trap

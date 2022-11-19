@@ -207,11 +207,14 @@ class GamEntity():
   GUARDIAN = 'guar'
   GUARDIAN_INVITATION = 'gari'
   GUARDIAN_AND_INVITATION = 'gani'
-  IMAP_ENABLED = 'imap'
-  INSTANCE = 'inst'
   IAM_POLICY = 'iamp'
+  IMAP_ENABLED = 'imap'
+  INBOUND_SSO_ASSIGNMENT = 'insa'
+  INBOUND_SSO_CREDENTIALS = 'insc'
+  INBOUND_SSO_PROFILE = 'insp'
+  INSTANCE = 'inst'
   ITEM = 'item'
-  ISSUER_CN = 'iss'
+  ISSUER_CN = 'iscn'
   KEYBOARD_SHORTCUTS_ENABLED = 'kbsc'
   LABEL = 'labe'
   LABEL_ID = 'labi'
@@ -512,6 +515,9 @@ class GamEntity():
     GUARDIAN_AND_INVITATION: ['Guardians and Invitations', 'Guardian and Invitation'],
     IAM_POLICY: ['IAM Policies', 'IAM Policy'],
     IMAP_ENABLED: ['IMAP Enabled', 'IMAP Enabled'],
+    INBOUND_SSO_ASSIGNMENT: ['Inbound SSO Assignments', 'Inbound SSO Assignment'],
+    INBOUND_SSO_CREDENTIALS: ['Inbound SSO Credentials', 'Inbound SSO Credential'],
+    INBOUND_SSO_PROFILE: ['Inbound SSO Profiles', 'Inbound SSO Profile'],
     INSTANCE: ['Instances', 'Instance'],
     ISSUER_CN: ['Issuer CNs', 'Issuer CN'],
     ITEM: ['Items', 'Item'],
