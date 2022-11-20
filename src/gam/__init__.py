@@ -39115,7 +39115,7 @@ def doDeleteInboundSSOProfile():
     _processInboundSSOProfileResult(result, kvlist, 'delete')
   except GAPI.notFound:
     entityActionFailedWarning(kvlist, Msg.DOES_NOT_EXIST)
-  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+  except (GAPI.failedPrecondition, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
           GAPI.systemError, GAPI.permissionDenied, GAPI.internalError) as e:
     entityActionFailedWarning(kvlist, str(e))
@@ -39307,7 +39307,7 @@ def doDeleteInboundSSOCredential(ci=None, name=None):
     _processInboundSSOCredentialsResult(result, kvlist, 'delete')
   except GAPI.notFound:
     entityActionFailedWarning(kvlist, Msg.DOES_NOT_EXIST)
-  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+  except (GAPI.failedPrecondition, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
           GAPI.systemError, GAPI.permissionDenied, GAPI.internalError) as e:
     entityActionFailedWarning(kvlist, str(e))
@@ -39549,7 +39549,7 @@ def doDeleteInboundSSOAssignment():
     _processInboundSSOAssignmentResult(result, kvlist, None, None, 'delete')
   except GAPI.notFound:
     entityActionFailedWarning(kvlist, Msg.DOES_NOT_EXIST)
-  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+  except (GAPI.failedPrecondition, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
           GAPI.systemError, GAPI.permissionDenied, GAPI.internalError) as e:
     entityActionFailedWarning(kvlist, str(e))
@@ -59999,6 +59999,8 @@ def _draftImportInsertMessage(users, operation):
       tmpFile.close()
     else:
       for header, value in iter(msgHeaders.items()):
+        if substituteForUserInHeaders:
+          value = _substituteForUser(value, user, userName)
         msgText = re.sub(fr'(?sm)\n{header}:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', f'\n{header}: {value}', msgText, 1)
       message_bytes = msgText.encode('ascii')
       base64_bytes = base64.b64encode(message_bytes)
