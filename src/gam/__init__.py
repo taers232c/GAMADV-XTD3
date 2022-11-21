@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.00'
+__version__ = '6.29.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -59157,7 +59157,7 @@ def printShowLabels(users):
       labelList = userLabelList[origUser]
     if csvPF:
       printGettingEntityItemForWhom(Ent.LABEL, user, i, count)
-    labels = _getUserGmailLabels(gmail, user, i, count, 'labels(id,name,type)')
+    labels = _getUserGmailLabels(gmail, user, i, count, 'labels')
     if not labels:
       continue
     if not labelList:
@@ -59893,6 +59893,7 @@ def _draftImportInsertMessage(users, operation):
       filename = getString(Cmd.OB_FILE_NAME)
       msgText = readFile(filename, encoding='ascii')
       emlFile = True
+      internalDateSource = 'dateHeader'
     elif myarg == 'replace':
       _getTagReplacement(tagReplacements, False)
     elif operation in IMPORT_INSERT and myarg == 'addlabel':
