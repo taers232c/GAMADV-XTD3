@@ -1,3 +1,8 @@
+6.29.02
+
+Updated `gam info|print|show crostelemetry` to avoid the following trap:
+```KeyError: 'temperatureCelsius'```
+
 6.29.01
 
 Fixed bug in `gam <UserTypeEntity> print|show labels` where fields `messageListVisibility`,
