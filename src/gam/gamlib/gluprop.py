@@ -115,6 +115,8 @@ PROPERTIES = {
     {CLASS: PC_STRING, TITLE: 'Last Name',},
   'fullName':
     {CLASS: PC_STRING, TITLE: 'Full Name',},
+  'displayName':
+    {CLASS: PC_STRING, TITLE: 'Display Name',},
   'languages':
     {CLASS: PC_LANGUAGES, TITLE: 'Languages',},
   'languageCode':

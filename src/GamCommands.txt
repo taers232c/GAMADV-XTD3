@@ -4486,6 +4486,7 @@ gam <UserTypeEntity> show vaultholds|holds
         creationtime|
         customerid|
         deletiontime|
+        displayname|
         email|emails|otheremail|otheremails|
         employeeid|
         externalids|externalid|
@@ -4531,6 +4532,7 @@ gam <UserTypeEntity> show vaultholds|holds
         (changepassword|changepasswordatnextlogin <Boolean>)|
         (base64-md5|base64-sha1|crypt|sha|sha1|sha-1|md5|nohash)|
         (customerid <String>)|
+        (displayname <String>)|
         (email|primaryemail|username <EmailAddress>)|
         (firstname|givenname <String>)|
         (gal|includeinglobaladdresslist <Boolean>)|

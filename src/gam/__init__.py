@@ -36611,6 +36611,7 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'changepasswordatnextlogin': 'changePasswordAtNextLogin',
   'crypt': 'hashFunction',
   'customerid': 'customerId',
+  'displayname': 'displayName',
   'email': 'primaryEmail',
   'emails': 'emails',
   'externalid': 'externalIds',
@@ -36887,6 +36888,13 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       elif up == 'familyName':
         body.setdefault('name', {})
         body['name'][up] = getString(Cmd.OB_STRING, minLen=0, maxLen=60)
+      elif up == 'displayName':
+        body.setdefault('name', {})
+        # sigh, the API is wonky. If we set just displayName
+        # we get an error. But if we also "set" fullName which is
+        # really just a concat of first/last name and can't be set
+        # then it works. Go figure.
+        body['name']['displayName'] = body['name']['fullName'] = getString(Cmd.OB_STRING, minLen=0, maxLen=256)
       elif PwdOpts.ProcessPropertyArgument(myarg, up, body):
         pass
       elif propertyClass == UProp.PC_BOOLEAN:
@@ -37668,6 +37676,7 @@ USER_NAME_PROPERTY_PRINT_ORDER = [
   'givenName',
   'familyName',
   'fullName',
+  'displayName',
   ]
 USER_LANGUAGE_PROPERTY_PRINT_ORDER = [
   'languages',
@@ -37778,6 +37787,7 @@ USER_FIELDS_CHOICE_MAP = {
   'creationtime': 'creationTime',
   'customerid': 'customerId',
   'deletiontime': 'deletionTime',
+  'displayname': 'name.displayName',
   'email': 'emails',
   'emails': 'emails',
   'employeeid': 'externalIds',
@@ -37810,7 +37820,7 @@ USER_FIELDS_CHOICE_MAP = {
   'location': 'locations',
   'locations': 'locations',
   'manager': 'relations',
-  'name': ['name.givenName', 'name.familyName', 'name.fullName'],
+  'name': ['name.givenName', 'name.familyName', 'name.fullName', 'name.displayName'],
   'nicknames': ['aliases', 'nonEditableAliases'],
   'noneditablealiases': ['aliases', 'nonEditableAliases'],
   'note': 'notes',

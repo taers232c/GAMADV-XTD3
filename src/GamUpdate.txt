@@ -1,6 +1,10 @@
+6.29.03
+
+Thanks to Jay, added support for the user field `displayName that can be set independently of `fullName`.
+
 6.29.02
 
-Updated `gam info|print|show crostelemetry` to avoid the following trap:
+Thanks to Jay, updated `gam info|print|show crostelemetry` to avoid the following trap:
 ```KeyError: 'temperatureCelsius'```
 
 6.29.01
