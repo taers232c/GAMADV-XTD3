@@ -24,9 +24,9 @@ import sys
 import gam
 
 def main():
-  if sys.platform.startswith('win'):
+  if platform.system() != 'Linux':
     multiprocessing.freeze_support()
-  multiprocessing.set_start_method('spawn' if platform.system() != 'Linux' else 'fork')
+    multiprocessing.set_start_method('spawn')
   gam.initializeLogging()
   rc = gam.ProcessGAMCommand(sys.argv)
   try:
