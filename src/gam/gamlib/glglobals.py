@@ -20,8 +20,6 @@
 
 """
 
-import os
-
 # The following GM_XXX constants are arbitrary but must be unique
 # Most errors print a message and bail out with a return code
 # Some commands want to set a non-zero return code but not bail
@@ -182,8 +180,6 @@ SYS_ENCODING = 'syen'
 TBATCH_QUEUE = 'batq'
 # CSV todrive options
 CSV_TODRIVE = 'todr'
-# Are we on Windows?
-WINDOWS = 'wndo'
 #
 Globals = {
   ADMIN: None,
@@ -259,6 +255,5 @@ Globals = {
   SYSEXITRC: 0,
   SYS_ENCODING: 'utf-8',
   TBATCH_QUEUE: None,
-  CSV_TODRIVE: {},
-  WINDOWS: os.name == 'nt',
+  CSV_TODRIVE: {}
   }

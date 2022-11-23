@@ -1,6 +1,12 @@
+6.29.04
+
+Updated multiprocessing on MacOS to use `spawn` instead of `fork` when starting subprocesses
+as `fork` was unreliable when large numbers (>20) of threads were used; subprocesses would
+hang and never complete.
+
 6.29.03
 
-Thanks to Jay, added support for the user field `displayName that can be set independently of `fullName`.
+Thanks to Jay, added support for the user field `displayName` that can be set independently of `fullName`.
 
 6.29.02
 

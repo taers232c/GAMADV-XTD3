@@ -17,19 +17,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import multiprocessing
+import platform
+import sys
 
 import gam
 
 def main():
   if sys.platform.startswith('win'):
     multiprocessing.freeze_support()
-  if sys.platform == 'darwin':
-    # https://bugs.python.org/issue33725 in Python 3.8.0 seems
-    # to break parallel operations with errors about extra -b
-    # command line arguments
-    multiprocessing.set_start_method('fork')
+  multiprocessing.set_start_method('spawn' if platform.system() != 'Linux' else 'fork')
   gam.initializeLogging()
   rc = gam.ProcessGAMCommand(sys.argv)
   try:

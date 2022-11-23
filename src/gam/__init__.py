@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.03'
+__version__ = '6.29.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -410,7 +410,7 @@ def supportsColoredText():
   # Make a rudimentary check for Windows. Though Windows does seem to support
   # colorization with VT100 emulation, it is disabled by default. Therefore,
   # we'll simply disable it in GAM on Windows for now.
-  return not GM.Globals[GM.WINDOWS]
+  return not sys.platform.startswith('win')
 
 def createColoredText(text, color):
   """Uses ANSI escape characters to create colored text in supported terminals.
@@ -8517,7 +8517,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
   GC.Values[GC.TIMEZONE] = tzinfo
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-  if GM.Globals[GM.WINDOWS]:
+  if multiprocessing.get_start_method() == 'spawn':
     Cmd = glclargs.GamCLArgs()
   else:
     csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
@@ -8553,7 +8553,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
       Cmd.InitializeArguments(dataItem)
     elif dataType == GM.REDIRECT_QUEUE_GLOBALS:
       GM.Globals = dataItem
-      if GM.Globals[GM.WINDOWS]:
+      if multiprocessing.get_start_method() == 'spawn':
         reopenSTDFile(GM.STDOUT)
         reopenSTDFile(GM.STDERR)
     elif dataType == GM.REDIRECT_QUEUE_VALUES:
@@ -8590,7 +8590,7 @@ def initializeCSVFileQueueHandler(mpQueueStdout, mpQueueStderr):
 def terminateCSVFileQueueHandler(mpQueue, mpQueueHandler):
   GM.Globals[GM.PARSER] = None
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = None
-  if GM.Globals[GM.WINDOWS]:
+  if multiprocessing.get_start_method() == 'spawn':
     mpQueue.put((GM.REDIRECT_QUEUE_ARGS, Cmd.AllArguments()))
     savedValues = saveNonPickleableValues()
     mpQueue.put((GM.REDIRECT_QUEUE_GLOBALS, GM.Globals))
@@ -8620,11 +8620,12 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
 
   if sys.platform.startswith('win'):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
+  if multiprocessing.get_start_method() == 'spawn':
     GM.Globals = gmGlobals.copy()
     GC.Values = gcValues.copy()
   pid0DataItem = [KEYBOARD_INTERRUPT_RC, None]
   pidData = {}
-  if GM.Globals[GM.WINDOWS]:
+  if multiprocessing.get_start_method() == 'spawn':
     if GM.Globals[stdtype][GM.REDIRECT_NAME] == 'null':
       fd = open(os.devnull, GM.Globals[stdtype][GM.REDIRECT_MODE], encoding=UTF8)
     elif GM.Globals[stdtype][GM.REDIRECT_NAME] == '-':
@@ -8822,7 +8823,7 @@ def MultiprocessGAMCommands(items, showCmds):
   except AssertionError as e:
     Cmd.SetLocation(0)
     usageErrorExit(str(e))
-  if GM.Globals[GM.WINDOWS]:
+  if multiprocessing.get_start_method() == 'spawn':
     savedValues = saveNonPickleableValues()
   if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
     mpQueueStdout, mpQueueHandlerStdout = initializeStdQueueHandler(GM.STDOUT, GM.Globals, GC.Values)
@@ -8837,7 +8838,7 @@ def MultiprocessGAMCommands(items, showCmds):
       mpQueueStderr = mpQueueStdout
   else:
     mpQueueStderr = None
-  if GM.Globals[GM.WINDOWS]:
+  if multiprocessing.get_start_method() == 'spawn':
     restoreNonPickleableValues(savedValues)
   if mpQueueStdout:
     mpQueueStdout.put((0, GM.REDIRECT_QUEUE_DATA, GM.Globals[GM.STDOUT][GM.REDIRECT_MULTI_FD].getvalue()))
@@ -9431,7 +9432,7 @@ Append an 'r' to grant read-only access or an 'a' to grant action-only access.
       i += 1
   prompt = f'Please enter 0-{numScopes-1}[a|r] or {"|".join(OAUTH2_CMDS)}: '
   while True:
-    os.system(['clear', 'cls'][GM.Globals[GM.WINDOWS]])
+    os.system(['clear', 'cls'][sys.platform.startswith('win')])
     sys.stdout.write(menu % tuple(selectedScopes))
     while True:
       choice = readStdin(prompt)
