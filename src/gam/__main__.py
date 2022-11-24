@@ -17,6 +17,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import multiprocessing
+import platform
 import sys
 
 import gam
@@ -32,4 +34,7 @@ def main():
 
 # Run from command line
 if __name__ == '__main__':
+  if platform.system() != 'Linux':
+    multiprocessing.freeze_support()
+    multiprocessing.set_start_method('spawn')
   main()
