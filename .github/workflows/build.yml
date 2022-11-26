@@ -175,7 +175,6 @@ jobs:
           export COMPILED_OPENSSL_VERSION=${LATEST_STABLE_TAG:8} # Trim the openssl- prefix
           echo "COMPILED_OPENSSL_VERSION=${COMPILED_OPENSSL_VERSION}" >> $GITHUB_ENV
           mv -v "${OPENSSL_SOURCE_PATH}" "${OPENSSL_SOURCE_PATH}-${openssl_arch}"
-          fi
 
       - name: Windows NASM Install
         uses: ilammy/setup-nasm@v1
