@@ -208,8 +208,10 @@ jobs:
       - name: Run OpenSSL
         if: matrix.goal == 'build'
         run: |
-          "${OPENSSL_INSTALL_PATH}/bin/openssl" version
-          file "${OPENSSL_INSTALL_PATH}/bin/openssl"
+          if [[ "${RUNNER_OS}" != "macOS" ]]; then
+            "${OPENSSL_INSTALL_PATH}/bin/openssl" version
+            file "${OPENSSL_INSTALL_PATH}/bin/openssl"
+          fi
 
       - name: Get latest stable Python source
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
@@ -230,18 +232,12 @@ jobs:
         if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         run: |
           cd "${PYTHON_SOURCE_PATH}"
-          if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            extra_args=( "--enable-universalsdk" "--with-universal-archs=universal2" )
-          else
-            extra_args=( )
-          fi
           ./configure --with-openssl="${OPENSSL_INSTALL_PATH}" \
                       --prefix="${PYTHON_INSTALL_PATH}" \
                       --enable-shared \
                       --with-ensurepip=upgrade \
                       --enable-optimizations \
-                      --with-lto \
-                      "${extra_args[@]}"
+                      --with-lto
 
       - name: Windows Get External Python deps
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
