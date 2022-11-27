@@ -314,6 +314,8 @@ jobs:
         shell: powershell
         run: |
           pip install --upgrade pip
+          pip install --upgrade liblxml2
+          pip install --upgrade libxslt
           pip install --upgrade lxml
           pip install --upgrade sphinx
           sphinx-build --version
