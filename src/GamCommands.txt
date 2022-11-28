@@ -4046,7 +4046,7 @@ gam show teamdrivethemes
 gam create|add teamdrive <Name>
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
-        [hide|hidden <Boolean>]
+        [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
 gam update teamdrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
@@ -6622,7 +6622,7 @@ gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
-        [hide|hidden <Boolean>]
+        [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 gam <UserTypeEntity> update teamdrive <SharedDriveEntity> [adminaccess|asadmin] [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*

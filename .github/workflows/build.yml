@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.29.04
+  GAMVERSION: 6.29.05
   OPENSSL_CONFIG_OPTS: no-fips
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -27,16 +27,16 @@ jobs:
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
-#          - os: macos-12
-#            jid: 2
-#            goal: build
-#            arch: x86_64
-#            openssl_archs: darwin64-x86_64 darwin64-arm64
-#          - os: macos-12
-#            jid: 3
-#            goal: build
-#            arch: arm64
-#            openssl_archs: darwin64-arm64 darwin64-x86_64
+          - os: macos-12
+            jid: 2
+            goal: build
+            arch: x86_64
+            openssl_archs: darwin64-x86_64
+          - os: macos-12
+            jid: 3
+            goal: build
+            arch: arm64
+            openssl_archs: darwin64-arm64
           - os: windows-2022
             jid: 5
             goal: build
@@ -63,8 +63,7 @@ jobs:
           path: |
             bin.tar.xz
             src/cpython
-#          key: gam-${{ matrix.jid }}-20221102
-          key: gam-${{ matrix.jid }}-20221127
+          key: gam-${{ matrix.jid }}-20221102
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -314,8 +313,6 @@ jobs:
         shell: powershell
         run: |
           pip install --upgrade pip
-          pip install --upgrade liblxml2
-          pip install --upgrade libxslt
           pip install --upgrade lxml
           pip install --upgrade sphinx
           sphinx-build --version

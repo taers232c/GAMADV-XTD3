@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.04'
+__version__ = '6.29.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -55255,6 +55255,26 @@ def _getSharedDriveRestrictions(myarg, body):
     return True
   return False
 
+def _moveSharedDriveToOU(orgUnit, orgUnitId, driveId, user, i, count, ci=None):
+  action = Act.Get()
+  name = f'orgUnits/-/memberships/shared_drive;{driveId}'
+  if ci is None:
+    ci = buildGAPIObject(API.CLOUDIDENTITY_ORGUNITS_BETA)
+  cibody = {'customer': _getCustomersCustomerIdWithC(),
+            'destinationOrgUnit': f'orgUnits/{orgUnitId[3:]}'}
+  try:
+    callGAPI(ci.orgUnits().memberships(), 'move',
+             name=name, body=cibody)
+    Act.Set(Act.MOVE)
+    entityModifierNewValueActionPerformed([Ent.SHAREDDRIVE, driveId], Act.MODIFIER_TO, f'{Ent.Singular(Ent.ORGANIZATIONAL_UNIT)}: {orgUnit}', i, count)
+  except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.internalError,
+          GAPI.noManageTeamDriveAdministratorPrivilege) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], str(e), i, count)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  Act.Set(action)
+  return ci
+
 # gam <UserTypeEntity> create|add shareddrive <Name> [adminaccess|asadmin]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<SharedDriveRestrictionsFieldName> <Boolean>)*
@@ -55267,6 +55287,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
   csvPF = None
   addCSVData = {}
   hide = returnIdOnly = False
+  orgUnit = orgUnitId = ci = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if _getSharedDriveTheme(myarg, body):
@@ -55276,7 +55297,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
     elif myarg in {'hide', 'hidden'}:
       hide = getBoolean()
     elif myarg in {'ou', 'org', 'orgunit'}:
-      _, body['orgUnitId'] = getOrgUnitId()
+      orgUnit, orgUnitId = getOrgUnitId()
     elif myarg == 'returnidonly':
       returnIdOnly = True
     elif myarg == 'csv':
@@ -55294,7 +55315,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
     csvPF.SetTitles(['User', 'name', 'id'])
     if addCSVData:
       csvPF.AddTitles(sorted(addCSVData.keys()))
-  for field in ['backgroundImageFile', 'colorRgb', 'orgUnitId']:
+  for field in ['backgroundImageFile', 'colorRgb']:
     if field in body:
       updateBody[field] = body.pop(field)
   i, count, users = getEntityArgument(users)
@@ -55341,7 +55362,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
-    if doUpdate and (updateBody or hide):
+    if doUpdate and (updateBody or hide or orgUnit):
       try:
         if updateBody:
           Act.Set(Act.UPDATE)
@@ -55388,6 +55409,8 @@ def createSharedDrive(users, useDomainAdminAccess=False):
                 entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
                 break
               time.sleep(retry*retry)
+        if orgUnit:
+          ci = _moveSharedDriveToOU(orgUnit, orgUnitId, driveId, user, i, count, ci)
       except (GAPI.forbidden, GAPI.badRequest, GAPI.noManageTeamDriveAdministratorPrivilege) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], str(e), i, count)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -55411,14 +55434,13 @@ def updateSharedDrive(users, useDomainAdminAccess=False):
   fileIdEntity = getSharedDriveEntity()
   body = {}
   hide = None
-  orgUnit = None
-  ci = None
+  orgUnit = orgUnitId = ci = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'name':
       body['name'] = getString(Cmd.OB_NAME, checkBlank=True)
     elif myarg in {'ou', 'org', 'orgunit'}:
-      orgUnit = getOrgUnitItem()
+      orgUnit, orgUnitId = getOrgUnitId()
     elif _getSharedDriveTheme(myarg, body):
       pass
     elif _getSharedDriveRestrictions(myarg, body):
@@ -55457,17 +55479,7 @@ def updateSharedDrive(users, useDomainAdminAccess=False):
                  driveId=driveId)
         entityActionPerformed([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], i, count)
       if orgUnit:
-        _, orgUnitId = getOrgUnitId(None, orgUnit)
-        orgUnitId = f'orgUnits/{orgUnitId[3:]}'
-        name = f'orgUnits/-/memberships/shared_drive;{driveId}'
-        if ci is None:
-          ci = buildGAPIObject(API.CLOUDIDENTITY_ORGUNITS_BETA)
-          cibody = {'customer': _getCustomersCustomerIdWithC()}
-        cibody['destinationOrgUnit'] = orgUnitId
-        callGAPI(ci.orgUnits().memberships(), 'move',
-                 name=name, body=cibody)
-        Act.Set(Act.MOVE)
-        entityModifierNewValueActionPerformed([Ent.SHAREDDRIVE, driveId], Act.MODIFIER_TO, f'{Ent.Singular(Ent.ORGANIZATIONAL_UNIT)}: {orgUnit}', i, count)
+        ci = _moveSharedDriveToOU(orgUnit, orgUnitId, driveId, user, i, count, ci)
     except (GAPI.notFound, GAPI.forbidden, GAPI.badRequest, GAPI.internalError,
             GAPI.noManageTeamDriveAdministratorPrivilege) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], str(e), i, count)
