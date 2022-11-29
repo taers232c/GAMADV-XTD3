@@ -3443,8 +3443,10 @@ gam update deviceuserstate <DeviceUserEntity> [clientid <String>]
 
 gam create inboundssoprofile [name <SSOProfileDisplayName>]
         [entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
+	[returnnameonly]
 gam update inboundssoprofile <SSOProfileItem>
         [entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
+	[returnnameonly]
 gam delete inboundssoprofile <SSOProfileItem>
 
 gam info inboundssoprofile <SSOProfileItem>

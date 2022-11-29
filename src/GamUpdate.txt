@@ -1,3 +1,10 @@
+6.29.06
+
+Following Jay's lead, added option `returnnameonly` to `gam create|update inboundssoprofile` that
+causes GAM to display just the profile name of the created|updated profile. This will be useful
+in scripts that create|update a profile and then want to perform subsequent GAM commands that
+reference the profile.
+
 6.29.05
 
 Improved code for `gam [<UserTypeEntity>] create teamdrive <Name> ou <OrgUnitItem>`.

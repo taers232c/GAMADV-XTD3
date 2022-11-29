@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.05'
+__version__ = '6.29.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -39036,6 +39036,7 @@ def _convertInboundSSOProfileDisplaynameToName(ci=None, displayName=''):
   usageErrorExit(errMsg)
 
 def _getInboundSSOProfileArguments(body):
+  returnNameOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'name':
@@ -39048,9 +39049,11 @@ def _getInboundSSOProfileArguments(body):
       body.setdefault('idpConfig', {})['logoutRedirectUri'] = getString(Cmd.OB_STRING)
     elif myarg == 'changepasswordurl':
       body.setdefault('idpConfig', {})['changePasswordUri'] = getString(Cmd.OB_STRING)
+    elif myarg == 'returnnameonly':
+      returnNameOnly = True
     else:
       unknownArgumentExit()
-  return body
+  return (returnNameOnly, body)
 
 def _showInboundSSOProfile(profile, FJQC, i=0, count=0):
   if FJQC is not None and FJQC.formatJSON:
@@ -39061,11 +39064,14 @@ def _showInboundSSOProfile(profile, FJQC, i=0, count=0):
     showJSON(None, profile)
     Ind.Decrement()
 
-def _processInboundSSOProfileResult(result, kvlist, function):
+def _processInboundSSOProfileResult(result, returnNameOnly, kvlist, function):
   if result['done']:
     if 'error' not in result:
       if 'response' in result:
-        _showInboundSSOProfile(result['response'], None)
+        if not returnNameOnly:
+          _showInboundSSOProfile(result['response'], None)
+        else:
+          writeStdout(f'{result["response"]["name"]}\n')
       else:
         entityActionPerformed(kvlist)
     else:
@@ -39075,19 +39081,20 @@ def _processInboundSSOProfileResult(result, kvlist, function):
 
 # gam create inboundssoprofile [name <SSOProfileName>]
 #	[entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
+#	[returnnameonly]
 def doCreateInboundSSOProfile():
   ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
   body = {'customer': normalizeChannelCustomerID(GC.Values[GC.CUSTOMER_ID]),
           'displayName': 'SSO Profile'
          }
-  body = _getInboundSSOProfileArguments(body)
+  returnNameOnly, body = _getInboundSSOProfileArguments(body)
   kvlist = [Ent.INBOUND_SSO_PROFILE, body['displayName']]
   try:
     result = callGAPI(ci.inboundSamlSsoProfiles(), 'create',
                       throwReasons=GAPI.CISSO_CREATE_THROW_REASONS,
                       bailOnInternalError=True,
                       body=body)
-    _processInboundSSOProfileResult(result, kvlist, 'create')
+    _processInboundSSOProfileResult(result, returnNameOnly, kvlist, 'create')
   except (GAPI.failedPrecondition, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
           GAPI.systemError, GAPI.permissionDenied, GAPI.internalError) as e:
@@ -39095,17 +39102,18 @@ def doCreateInboundSSOProfile():
 
 # gam update inboundssoprofile <SSOProfileItem>
 #	[entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
+#	[returnnameonly]
 def doUpdateInboundSSOProfile():
   ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
   name = _convertInboundSSOProfileDisplaynameToName(ci, getString(Cmd.OB_STRING))
-  body = _getInboundSSOProfileArguments({})
+  returnNameOnly, body = _getInboundSSOProfileArguments({})
   kvlist = [Ent.INBOUND_SSO_PROFILE, name]
   try:
     result = callGAPI(ci.inboundSamlSsoProfiles(), 'patch',
                       throwReasons=GAPI.CISSO_UPDATE_THROW_REASONS,
                       bailOnInternalError=True,
                       name=name, updateMask=','.join(body.keys()), body=body)
-    _processInboundSSOProfileResult(result, kvlist, 'update')
+    _processInboundSSOProfileResult(result, returnNameOnly, kvlist, 'update')
   except GAPI.notFound:
     entityActionFailedWarning(kvlist, Msg.DOES_NOT_EXIST)
   except (GAPI.failedPrecondition, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
@@ -39124,7 +39132,7 @@ def doDeleteInboundSSOProfile():
                       throwReasons=GAPI.CISSO_UPDATE_THROW_REASONS,
                       bailOnInternalError=True,
                       name=name)
-    _processInboundSSOProfileResult(result, kvlist, 'delete')
+    _processInboundSSOProfileResult(result, True, kvlist, 'delete')
   except GAPI.notFound:
     entityActionFailedWarning(kvlist, Msg.DOES_NOT_EXIST)
   except (GAPI.failedPrecondition, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
