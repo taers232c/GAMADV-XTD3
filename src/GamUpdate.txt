@@ -1,3 +1,8 @@
+6.29.07
+
+Added option `from <EmailAddress>` to `gam create|update user ... notify <EmailAddressList>` that
+uses `<EmailAddress>` as the from address rather than the admin user identified in oauth2.txt.
+
 6.29.06
 
 Following Jay's lead, added option `returnnameonly` to `gam create|update inboundssoprofile` that

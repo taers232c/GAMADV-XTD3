@@ -140,7 +140,6 @@ case $gamos in
       x86_64)
         osversion=$(sw_vers -productVersion)
         osversion=${osversion:0:2}
-        echo ${osversion}
         case ${osversion:0:2} in
           11|12|13)
             gamfile="macos-x86_64.tar.xz";;

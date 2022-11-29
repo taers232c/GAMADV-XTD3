@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.06'
+__version__ = '6.29.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13099,6 +13099,8 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
   notify['message'] = _processTagReplacements(tagReplacements, notify['message'])
   _makePasswordSubstitutions('subject')
   _makePasswordSubstitutions('message')
+  if 'from' in notify:
+    msgFrom = notify['from']
   for recipient in notify['recipients']:
     send_email(notify['subject'], notify['message'], recipient, i, count,
                msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
@@ -36822,6 +36824,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       notify['message'], notify['charset'], notify['html'] = getStringOrFile(myarg)
     elif myarg == 'html':
       notify['html'] = getBoolean()
+    elif myarg == 'from':
+      notify['from'] = getString(Cmd.OB_EMAIL_ADDRESS)
     elif PwdOpts.ProcessArgument(myarg, notify, notFoundBody):
       pass
     elif myarg == 'replace':
@@ -37222,6 +37226,7 @@ def createUserAddAliases(cd, user, aliasList, i, count):
 #	[alias|aliases <EmailAddressList>]
 #	[license <SKUID> [product|productid <ProductID>]]
 #	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+#	    [from <EmailAddress>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	(replace <Tag> <String>)*
@@ -37298,6 +37303,7 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 #	[alias|aliases <EmailAddressList>]
 #	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+#	    [from <EmailAddress>]
 #	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
 #	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
 #	[notifyonupdate [<Boolean>]]
@@ -49772,7 +49778,8 @@ def updateDriveFile(users):
                                                                             GAPI.SHARE_OUT_NOT_PERMITTED, GAPI.SHARE_OUT_NOT_PERMITTED_TO_USER,
                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                             GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-                                                                            GAPI.CROSS_DOMAIN_MOVE_RESTRICTION, GAPI.UPLOAD_TOO_LARGE],
+                                                                            GAPI.CROSS_DOMAIN_MOVE_RESTRICTION, GAPI.UPLOAD_TOO_LARGE,
+                                                                            GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN],
                               fileId=fileId,
                               ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -49798,7 +49805,7 @@ def updateDriveFile(users):
                 GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
                 GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
                 GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed,
-                GAPI.crossDomainMoveRestriction, GAPI.uploadTooLarge) as e:
+                GAPI.crossDomainMoveRestriction, GAPI.uploadTooLarge, GAPI.fileOwnerNotMemberOfWriterDomain) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)

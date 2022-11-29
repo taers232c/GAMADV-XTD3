@@ -4621,6 +4621,7 @@ gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
         [alias|aliases <EmailAddressList>]
         [license <SKUID> [product|productid <ProductID>]]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+            [from <EmailAaddress>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         (replace <Tag> <UserReplacement>)*
@@ -4639,6 +4640,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+            [from <EmailAaddress>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
@@ -4670,6 +4672,7 @@ gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactio
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+            [from <EmailAaddress>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
@@ -4701,6 +4704,7 @@ gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactio
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+            [from <EmailAaddress>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
              (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
