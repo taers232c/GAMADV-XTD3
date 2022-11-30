@@ -1,3 +1,7 @@
+6.29.08
+
+Fixed bug where `csvfile -:fieldName` was not properly recognized on Windows.
+
 6.29.07
 
 Added option `from <EmailAddress>` to `gam create|update user ... notify <EmailAddressList>` that

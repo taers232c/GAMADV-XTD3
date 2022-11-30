@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.07'
+__version__ = '6.29.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -6114,7 +6114,11 @@ def getEntitiesFromFile(shlexSplit, returnSet=False):
 # <FileName>(:<FieldName>)+ [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
 #	[endcsv|(fields <FieldNameList>)] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
 def getEntitiesFromCSVFile(shlexSplit, returnSet=False):
-  drive, fileFieldName = os.path.splitdrive(getString(Cmd.OB_FILE_NAME_FIELD_NAME))
+  fileFieldName = getString(Cmd.OB_FILE_NAME_FIELD_NAME)
+  if platform.system() == 'Windows' and not fileFieldName.startswith('-:'):
+    drive, fileFieldName = os.path.splitdrive(fileFieldName)
+  else:
+    drive = ''
   if fileFieldName.find(':') == -1:
     Cmd.Backup()
     invalidArgumentExit(Cmd.OB_FILE_NAME_FIELD_NAME)
