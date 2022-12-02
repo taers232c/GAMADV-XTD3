@@ -1,3 +1,16 @@
+6.29.09
+
+Fixed bug in `gam <UserTypeEntity> create tasklist` that caused a trap.
+
+Added `countsonly` option to `gam <UserTypeEntity> print|show tasks|tasklists` that causes GAM to display
+the number of tasks|tasklists for a user rather than listing the details.
+
+Added option `due <Time>` to `<TaskAttribute>` that can be used to set a task due date
+in `gam <UserTypeEntity> create|update` task.
+
+Fixed bug in `gam update chromepolicy` that caused an error with this prefix:
+`1 Chrome Policy Update Failed: Invalid enum value:`
+
 6.29.08
 
 Fixed bug where `csvfile -:fieldName` was not properly recognized on Windows.

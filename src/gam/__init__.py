@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.08'
+__version__ = '6.29.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4715,7 +4715,7 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
       if 'request too large' in lmessage:
         error = makeErrorDict(http_status, GAPI.UPLOAD_TOO_LARGE, message)
     elif http_status == 429:
-      if status == 'RESOURCE_EXHAUSTED' or 'quota exceeded' in lmessage:
+      if status == 'RESOURCE_EXHAUSTED' or 'quota exceeded' in lmessage or 'insufficient quota' in lmessage:
         error = makeErrorDict(http_status, GAPI.QUOTA_EXCEEDED, message)
   else:
     if 'error_description' in error:
@@ -13105,9 +13105,10 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
   _makePasswordSubstitutions('message')
   if 'from' in notify:
     msgFrom = notify['from']
+  mailBox = notify.get('mailbox', None)
   for recipient in notify['recipients']:
     send_email(notify['subject'], notify['message'], recipient, i, count,
-               msgFrom=msgFrom, html=notify['html'], charset=notify['charset'])
+               msgFrom=msgFrom, html=notify['html'], charset=notify['charset'], mailBox=mailBox)
 
 # gam sendemail [recipient|to] <RecipientEntity> [from <EmailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
@@ -23235,6 +23236,9 @@ def _getOrgunitsOrgUnitIdPath(orgUnit):
 def commonprefix(m):
   '''Given a list of strings m, return string which is prefix common to all'''
   s1 = min(m)
+  loc = s1.find('ENUM_')
+  if loc > 0:
+    return s1[:loc+5]
   s2 = max(m)
   for i, c in enumerate(s1):
     if c != s2[i]:
@@ -23570,11 +23574,12 @@ def doUpdateChromePolicy():
   updatePolicyRequests(body, orgUnit, printer_id, app_id)
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchModify',
-             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
+             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND,
+                           GAPI.SERVICE_NOT_AVAILABLE, GAPI.QUOTA_EXCEEDED],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
     actionPerformedNumItems(count, Ent.CHROME_POLICY)
-  except (GAPI.notFound, GAPI.serviceNotAvailable) as e:
+  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.quotaExceeded) as e:
     entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
@@ -36830,6 +36835,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       notify['html'] = getBoolean()
     elif myarg == 'from':
       notify['from'] = getString(Cmd.OB_EMAIL_ADDRESS)
+    elif myarg == 'mailbox':
+      notify['mailbox'] = getString(Cmd.OB_EMAIL_ADDRESS)
     elif PwdOpts.ProcessArgument(myarg, notify, notFoundBody):
       pass
     elif myarg == 'replace':
@@ -63597,6 +63604,8 @@ def getTaskAttribute(myarg, body):
     body[myarg] = getStringWithCRsNLs()
   elif myarg == 'status':
     body[myarg] = getChoice(TASK_STATUS_MAP, mapChoice=True)
+  elif myarg == 'due':
+    body[myarg] = getTimeOrDeltaFromNow()
   else:
     return False
   return True
@@ -63730,14 +63739,14 @@ TASK_QUERY_STATE_MAP = {
 #	[updatedmin <Time>]
 #	[showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
 #	[orderby completed|due|updated]
-#	[compact|formatjson]
+#	[countsonly|compact|formatjson]
 # gam <UserTypeEntity> print tasks [tasklists <TasklistIDEntity>] [todrive <ToDriveAttribute>*]
 #	[completedmin <Time>] [completedmax <Time>]
 #	[duemin <Time>] [duemax <Time>]
 #	[updatedmin <Time>]
 #	[showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
 #	[orderby completed|due|updated]
-#	[formatjson [quotechar <Character>]]
+#	[countsonly | (formatjson [quotechar <Character>])]
 def printShowTasks(users):
   def _showTaskAndChildren(tasklist, taskId, k, compact):
     if taskId in taskParentsProcessed:
@@ -63775,11 +63784,12 @@ def printShowTasks(users):
   csvPF = CSVPrintFile(['User', 'tasklistId', 'id', 'taskId', 'title', 'status', 'due', 'updated', 'completed'], 'sortall') if Act.csvFormat() else None
   if csvPF:
     csvPF.SetEscapeChar(None)
+  CSVTitle = 'Tasks'
   FJQC = FormatJSONQuoteChar(csvPF)
   tasklistEntity = None
   tlkwargs = {'maxResults': 100}
   kwargs = {'maxResults': 100}
-  compact = False
+  compact = countsOnly = False
   orderBy = orderByNoDataValue = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -63798,6 +63808,10 @@ def printShowTasks(users):
       compact = True
     elif myarg == 'orderby':
       orderBy, orderByNoDataValue = getChoice(TASK_ORDERBY_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'countsonly':
+      countsOnly = True
+      if csvPF:
+        csvPF.SetTitles(['User', CSVTitle])
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if csvPF and FJQC.formatJSON:
@@ -63815,6 +63829,8 @@ def printShowTasks(users):
                                 pageMessage=getPageMessage(),
                                 throwReasons=GAPI.TASKLIST_THROW_REASONS,
                                 **tlkwargs)
+      except GAPI.notFound:
+        results = []
       except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, None], str(e), i, count)
         continue
@@ -63824,9 +63840,11 @@ def printShowTasks(users):
       tasklists = [tasklist['id'] for tasklist in results]
       jcount = len(tasklists)
     else:
-      user, svc, tasklists, jcount = _validateUserGetObjectList(user, i, count, tasklistEntity, api=API.TASKS, showAction=FJQC is None or not FJQC.formatJSON)
+      user, svc, tasklists, jcount = _validateUserGetObjectList(user, i, count, tasklistEntity, api=API.TASKS,
+                                                                showAction=FJQC is None or not FJQC.formatJSON)
       if jcount == 0:
         continue
+    taskCount = 0
     Ind.Increment()
     j = 0
     for tasklist in tasklists:
@@ -63837,6 +63855,10 @@ def printShowTasks(users):
         tasks = callGAPIpages(svc.tasks(), 'list', 'items',
                               throwReasons=GAPI.TASK_THROW_REASONS,
                               tasklist=tasklist, **kwargs)
+        kcount = len(tasks)
+        if countsOnly:
+          taskCount += kcount
+          continue
         taskParents = {None: []}
         taskData = {}
         taskParentsProcessed = set()
@@ -63859,7 +63881,6 @@ def printShowTasks(users):
             taskParents[None].append(taskInfo)
           taskParents[None].sort(key=lambda k: (k[orderBy], k['parent'], k['position']))
         if not csvPF:
-          kcount = len(tasks)
           if not FJQC.formatJSON:
             entityPerformActionNumItems([Ent.TASKLIST, tasklist], kcount, Ent.TASK, j, jcount)
           Ind.Increment()
@@ -63877,8 +63898,13 @@ def printShowTasks(users):
       except GAPI.serviceNotAvailable:
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)
     Ind.Decrement()
+    if countsOnly:
+      if csvPF:
+        csvPF.WriteRowTitles({'User': user, CSVTitle: taskCount})
+      else:
+        printEntityKVList([Ent.USER, user], [CSVTitle, taskCount], i, count)
   if csvPF:
-    csvPF.writeCSVfile('Tasks')
+    csvPF.writeCSVfile(CSVTitle)
 
 TASKLIST_SKIP_OBJECTS = ['selfLink']
 TASKLIST_TIME_OBJECTS = ['updated']
@@ -63906,6 +63932,8 @@ def processTasklists(users):
   action = Act.Get()
   if action != Act.CREATE:
     tasklistEntity = getUserObjectEntity(Cmd.OB_TASKLIST_ID_ENTITY, Ent.TASKLIST)
+  else:
+    tasklistEntity = {'item': Ent.TASKLIST, 'list': [None], 'dict': None}
   if action in {Act.DELETE, Act.CLEAR}:
     FJQC = None
     checkForExtraneousArguments()
@@ -63925,7 +63953,8 @@ def processTasklists(users):
   for user in users:
     i += 1
     user, svc, tasklists, jcount = _validateUserGetObjectList(user, i, count, tasklistEntity,
-                                                              api=API.TASKS, showAction=FJQC is None or not FJQC.formatJSON)
+                                                              api=API.TASKS,
+                                                              showAction=action != Act.CREATE and (FJQC is None or not FJQC.formatJSON))
     if jcount == 0:
       continue
     Ind.Increment()
@@ -63974,19 +64003,25 @@ def processTasklists(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> show tasklists
-#	[formatjson]
+#	[countsonly|formatjson]
 # gam <UserTypeEntity> print tasklists [todrive <ToDriveAttribute>*]
-#	[formatjson [quotechar <Character>]]
+#	[countsonly | (formatjson [quotechar <Character>])]
 def printShowTasklists(users):
   csvPF = CSVPrintFile(['User', 'id', 'title']) if Act.csvFormat() else None
   if csvPF:
     csvPF.SetEscapeChar(None)
+  CSVTitle = 'TaskLists'
   FJQC = FormatJSONQuoteChar(csvPF)
+  countsOnly = False
   kwargs = {'maxResults': 100}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif myarg == 'countsonly':
+      countsOnly = True
+      if csvPF:
+        csvPF.SetTitles(['User', CSVTitle])
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   i, count, users = getEntityArgument(users)
@@ -64001,32 +64036,41 @@ def printShowTasklists(users):
                                 pageMessage=getPageMessage(),
                                 throwReasons=GAPI.TASKLIST_THROW_REASONS,
                                 **kwargs)
-      if not csvPF:
-        jcount = len(tasklists)
-        if not  FJQC.formatJSON:
-          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TASKLIST, i, count)
-        Ind.Increment()
-        j = 0
-        for tasklist in tasklists:
-          j += 1
-          _showTasklist(tasklist, j, jcount, FJQC)
-        Ind.Decrement()
-      else:
-        for tasklist in tasklists:
-          row = flattenJSON(tasklist, flattened={'User': user}, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS)
-          if not FJQC.formatJSON:
-            csvPF.WriteRowTitles(row)
-          elif csvPF.CheckRowTitles(row):
-            row = {'User': user, 'id': tasklist['id'], 'title': tasklist.get('title', '')}
-            row['JSON'] = json.dumps(cleanJSON(tasklist, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS),
-                                     ensure_ascii=False, sort_keys=True)
-            csvPF.WriteRowNoFilter(row)
-    except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
+    except GAPI.notFound:
+      tasklists = []
+    except (GAPI.badRequest, GAPI.invalid) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, None], str(e), i, count)
+      continue
     except GAPI.serviceNotAvailable:
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      continue
+    jcount = len(tasklists)
+    if countsOnly:
+      if csvPF:
+        csvPF.WriteRowTitles({'User': user, CSVTitle: jcount})
+      else:
+        printEntityKVList([Ent.USER, user], [CSVTitle, jcount], i, count)
+    elif not csvPF:
+      if not  FJQC.formatJSON:
+        entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TASKLIST, i, count)
+      Ind.Increment()
+      j = 0
+      for tasklist in tasklists:
+        j += 1
+        _showTasklist(tasklist, j, jcount, FJQC)
+      Ind.Decrement()
+    else:
+      for tasklist in tasklists:
+        row = flattenJSON(tasklist, flattened={'User': user}, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS)
+        if not FJQC.formatJSON:
+          csvPF.WriteRowTitles(row)
+        elif csvPF.CheckRowTitles(row):
+          row = {'User': user, 'id': tasklist['id'], 'title': tasklist.get('title', '')}
+          row['JSON'] = json.dumps(cleanJSON(tasklist, skipObjects=TASKLIST_SKIP_OBJECTS, timeObjects=TASKLIST_TIME_OBJECTS),
+                                   ensure_ascii=False, sort_keys=True)
+          csvPF.WriteRowNoFilter(row)
   if csvPF:
-    csvPF.writeCSVfile('Tasklists')
+    csvPF.writeCSVfile(CSVTitle)
 
 def getCRMOrgId():
   setTrueCustomerId()

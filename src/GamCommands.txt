@@ -6567,7 +6567,8 @@ gam <UserTypeEntity> show profile
 <TaskAttribute> ::=
         (title <String>)|
         (notes <String>)|
-        (status needsaction|completed)
+        (status needsaction|completed)|
+        (due <Time>)
 
 gam <UserTypeEntity> create task <TasklistIDEntity>
         <TaskAttribute>* [parent <TaskID>] [previous <TaskID>]
@@ -6588,14 +6589,14 @@ gam <UserTypeEntity> show tasks [tasklists <TasklistIDEntity>]
         [updatedmin <Time>]
         [showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
         [orderby completed|due|updated]
-        [compact|formatjson]
+        [countsonly|compact|formatjson]
 gam <UserTypeEntity> print tasks [tasklists <TasklistIDEntity>] [todrive <ToDriveAttribute>*]
         [completedmin <Time>] [completedmax <Time>]
         [duemin <Time>] [duemax <Time>]
         [updatedmin <Time>]
         [showcompleted [<Boolean>]] [showdeleted [<Boolean>]] [showhidden [<Boolean>]] [showall]
         [orderby completed|due|updated]
-        [formatjson [quotechar <Character>]]
+        [countsonly | (formatjson [quotechar <Character>])]
 
 <TasklistAttribute> ::=
         (title <String>)
@@ -6612,9 +6613,9 @@ gam <UserTypeEntity> clear tasklist <TasklistIDEntity>
 gam <UserTypeEntity> info tasklist <TasklistIDEntity>
         [formatjson]
 gam <UserTypeEntity> show tasklists
-        [formatjson]
+        [countsonly|formatjson]
 gam <UserTypeEntity> print tasklists [todrive <ToDriveAttribute>*]
-        [formatjson [quotechar <Character>]]
+        [countsonly | (formatjson [quotechar <Character>])]
 
 # Users - Team Drives
 
