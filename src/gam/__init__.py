@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.10'
+__version__ = '6.29.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -23233,6 +23233,24 @@ def _getOrgunitsOrgUnitIdPath(orgUnit):
   orgUnitPath, orgUnitId = getOrgUnitId(None, orgUnit)
   return (orgUnitPath, f'orgunits/{orgUnitId[3:]}')
 
+def _getChromePolicySchemaName():
+  name = getString(Cmd.OB_SCHEMA_NAME)
+  if not name.startswith('customers'):
+    name = f'customers/{GC.Values[GC.CUSTOMER_ID]}/policySchemas/{name}'
+  return name
+
+def _getChromePolicySchema(cp, name, fields):
+  if not name.startswith('customers'):
+    name = f'customers/{GC.Values[GC.CUSTOMER_ID]}/policySchemas/{name}'
+  try:
+    return callGAPI(cp.customers().policySchemas(), 'get',
+                    throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                    name=name, fields=fields)
+  except GAPI.notFound:
+    entityDoesNotExistExit(Ent.CHROME_POLICY_SCHEMA, name)
+  except (GAPI.badRequest, GAPI.forbidden):
+    accessErrorExit(None)
+
 def commonprefix(m):
   '''Given a list of strings m, return string which is prefix common to all'''
   s1 = min(m)
@@ -23245,6 +23263,54 @@ def commonprefix(m):
       return s1[:i]
   return s1
 
+def simplifyChromeSchema(schema):
+  schema_name = schema['name'].split('/')[-1]
+  schema_dict = {'name': schema_name,
+                 'description': schema.get('policyDescription', ''),
+                 'settings': {}
+                }
+  fieldDescriptions = schema['fieldDescriptions']
+  for mtype in schema['definition']['messageType']:
+    for setting in mtype['field']:
+      setting_name = setting['name']
+      setting_dict = {'name': setting_name,
+                      'constraints': None,
+                      'descriptions':  [],
+                      'type': setting['type'],
+                     }
+      if setting_dict['type'] == 'TYPE_STRING' and setting.get('label') == 'LABEL_REPEATED':
+        setting_dict['type'] = 'TYPE_LIST'
+      if setting_dict['type'] == 'TYPE_ENUM':
+        type_name = setting['typeName']
+        for an_enum in schema['definition']['enumType']:
+          if an_enum['name'] == type_name:
+            setting_dict['enums'] = [enum['name'] for enum in an_enum['value']]
+            setting_dict['enum_prefix'] = commonprefix(setting_dict['enums'])
+            prefix_len = len(setting_dict['enum_prefix'])
+            setting_dict['enums'] = [enum[prefix_len:] for enum in setting_dict['enums'] if not enum.endswith('UNSPECIFIED')]
+            setting_dict['descriptions'] = ['']*len(setting_dict['enums'])
+            for i, an in enumerate(setting_dict['enums']):
+              for fdesc in fieldDescriptions:
+                if fdesc.get('field') == setting_name:
+                  for d in fdesc.get('knownValueDescriptions', []):
+                    if d['value'][prefix_len:] == an:
+                      setting_dict['descriptions'][i] = d.get('description', '')
+                      break
+                  break
+            break
+      elif setting_dict['type'] == 'TYPE_MESSAGE':
+        continue
+      else:
+        setting_dict['enums'] = None
+        for fdesc in schema['fieldDescriptions']:
+          if fdesc['field'] == setting_name:
+            if 'knownValueDescriptions' in fdesc:
+              setting_dict['descriptions'] = fdesc['knownValueDescriptions']
+            elif 'description' in fdesc:
+              setting_dict['descriptions'] = [fdesc['description']]
+      schema_dict['settings'][setting_name.lower()] = setting_dict
+  return(schema_name, schema_dict)
+
 def buildChromeSchemas(cp=None, sfilter=None):
   if not cp:
     cp = buildGAPIObject(API.CHROMEPOLICY)
@@ -23254,51 +23320,7 @@ def buildChromeSchemas(cp=None, sfilter=None):
                           parent=parent, filter=sfilter)
   schema_objects = {}
   for schema in schemas:
-    schema_name = schema['name'].split('/')[-1]
-    schema_dict = {'name': schema_name,
-                   'description': schema.get('policyDescription', ''),
-                   'settings': {}
-                  }
-    fieldDescriptions = schema['fieldDescriptions']
-    for mtype in schema['definition']['messageType']:
-      for setting in mtype['field']:
-        setting_name = setting['name']
-        setting_dict = {'name': setting_name,
-                        'constraints': None,
-                        'descriptions':  [],
-                        'type': setting['type'],
-                       }
-        if setting_dict['type'] == 'TYPE_STRING' and setting.get('label') == 'LABEL_REPEATED':
-          setting_dict['type'] = 'TYPE_LIST'
-        if setting_dict['type'] == 'TYPE_ENUM':
-          type_name = setting['typeName']
-          for an_enum in schema['definition']['enumType']:
-            if an_enum['name'] == type_name:
-              setting_dict['enums'] = [enum['name'] for enum in an_enum['value']]
-              setting_dict['enum_prefix'] = commonprefix(setting_dict['enums'])
-              prefix_len = len(setting_dict['enum_prefix'])
-              setting_dict['enums'] = [enum[prefix_len:] for enum in setting_dict['enums'] if not enum.endswith('UNSPECIFIED')]
-              setting_dict['descriptions'] = ['']*len(setting_dict['enums'])
-              for i, an in enumerate(setting_dict['enums']):
-                for fdesc in fieldDescriptions:
-                  if fdesc.get('field') == setting_name:
-                    for d in fdesc.get('knownValueDescriptions', []):
-                      if d['value'][prefix_len:] == an:
-                        setting_dict['descriptions'][i] = d.get('description', '')
-                        break
-                    break
-              break
-        elif setting_dict['type'] == 'TYPE_MESSAGE':
-          continue
-        else:
-          setting_dict['enums'] = None
-          for fdesc in schema['fieldDescriptions']:
-            if fdesc['field'] == setting_name:
-              if 'knownValueDescriptions' in fdesc:
-                setting_dict['descriptions'] = fdesc['knownValueDescriptions']
-              elif 'description' in fdesc:
-                setting_dict['descriptions'] = [fdesc['description']]
-        schema_dict['settings'][setting_name.lower()] = setting_dict
+    schema_name, schema_dict = simplifyChromeSchema(schema)
     schema_objects[schema_name.lower()] = schema_dict
   return schema_objects
 
@@ -23316,7 +23338,6 @@ def updatePolicyRequests(body, orgUnit, printer_id, app_id):
 def doDeleteChromePolicy():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   customer = _getCustomersCustomerIdWithC()
-  schemas = buildChromeSchemas(cp)
   app_id = orgUnit = printer_id = None
   body = {'requests': []}
   while Cmd.ArgumentsRemaining():
@@ -23327,10 +23348,9 @@ def doDeleteChromePolicy():
       printer_id = getString(Cmd.OB_PRINTER_ID)
     elif myarg == 'appid':
       app_id = getString(Cmd.OB_APP_ID)
-    elif myarg in schemas:
-      body['requests'].append({'policySchema': schemas[myarg]['name']})
     else:
-      unknownArgumentExit()
+      schema = _getChromePolicySchema(cp, myarg, 'name')
+      body['requests'].append({'policySchema': schema['name'].split('/')[-1]})
   if not orgUnit:
     missingArgumentExit('orgunit')
   count = len(body['requests'])
@@ -23431,7 +23451,6 @@ def doUpdateChromePolicy():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   cv = None
   customer = _getCustomersCustomerIdWithC()
-  schemas = buildChromeSchemas(cp)
   app_id = channelMap = orgUnit = printer_id = None
   body = {'requests': []}
   while Cmd.ArgumentsRemaining():
@@ -23442,8 +23461,8 @@ def doUpdateChromePolicy():
       printer_id = getString(Cmd.OB_PRINTER_ID)
     elif myarg == 'appid':
       app_id = getString(Cmd.OB_APP_ID)
-    elif myarg in schemas:
-      schemaName = schemas[myarg]['name']
+    else:
+      schemaName, schema = simplifyChromeSchema(_getChromePolicySchema(cp, myarg, '*'))
       body['requests'].append({'policyValue': {'policySchema': schemaName, 'value': {}},
                                'updateMask': ''})
       while Cmd.ArgumentsRemaining():
@@ -23467,19 +23486,19 @@ def doUpdateChromePolicy():
             casedField = field['name']
             lowerField = casedField.lower()
             # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
-            schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(lowerField)
-            if schema:
-              body['requests'][-1]['policyValue']['value'][casedField] = getSpecialVtypeValue(schema['type'], field['value'])
+            tmschema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(lowerField)
+            if tmschema:
+              body['requests'][-1]['policyValue']['value'][casedField] = getSpecialVtypeValue(tmschema['type'], field['value'])
               body['requests'][-1]['updateMask'] += f'{casedField},'
               continue
-            vtype = schemas[myarg]['settings'].get(lowerField, {}).get('type')
+            vtype = schema['settings'].get(lowerField, {}).get('type')
             value = field['value']
             if vtype in ['TYPE_INT64', 'TYPE_INT32', 'TYPE_UINT64']:
               value = int(value)
             elif vtype in ['TYPE_BOOL']:
               pass
             elif vtype in ['TYPE_ENUM']:
-              value = f"{schemas[myarg]['settings'][lowerField]['enum_prefix']}{value}"
+              value = f"{schema['settings'][lowerField]['enum_prefix']}{value}"
             elif vtype in ['TYPE_LIST']:
               value = value.split(',')
             if myarg == 'chrome.users.chromebrowserupdates' and casedField == 'targetVersionPrefixSetting':
@@ -23502,27 +23521,27 @@ def doUpdateChromePolicy():
             body['requests'][-1]['updateMask'] += f'{casedField},'
           break
         # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
-        schema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(field)
-        if schema:
-          casedField = schema['casedField']
-          vtype = schema['type']
+        tmschema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(field)
+        if tmschema:
+          casedField = tmschema['casedField']
+          vtype = tmschema['type']
           if vtype == 'downloadUri':
             value = getString(Cmd.OB_STRING)
           elif vtype != 'timeOfDay':
-            if 'default' not in  schema:
-              value = getInteger(minVal=schema['minVal'], maxVal=schema['maxVal'])*schema['scale']
+            if 'default' not in tmschema:
+              value = getInteger(minVal=tmschema['minVal'], maxVal=tmschema['maxVal'])*tmschema['scale']
             else:
-              value = getIntegerEmptyAllowed(minVal=schema['minVal'], maxVal=schema['maxVal'], default=schema['default'])*schema['scale']
+              value = getIntegerEmptyAllowed(minVal=tmschema['minVal'], maxVal=tmschema['maxVal'], default=tmschema['default'])*tmschema['scale']
           else:
             value = getHHMM()
           body['requests'][-1]['policyValue']['value'][casedField] = getSpecialVtypeValue(vtype, value)
           body['requests'][-1]['updateMask'] += f'{casedField},'
           continue
-        if field not in schemas[myarg]['settings']:
+        if field not in schema['settings']:
           Cmd.Backup()
-          missingChoiceExit(schemas[myarg]['settings'])
-        casedField = schemas[myarg]['settings'][field]['name']
-        vtype = schemas[myarg]['settings'][field]['type']
+          missingChoiceExit(schema['settings'])
+        casedField = schema['settings'][field]['name']
+        vtype = schema['settings'][field]['type']
         value = getString(Cmd.OB_STRING, minLen=0 if vtype == 'TYPE_STRING' else 1)
         if vtype in ['TYPE_INT64', 'TYPE_INT32', 'TYPE_UINT64']:
           if not value.isnumeric():
@@ -23539,8 +23558,8 @@ def doUpdateChromePolicy():
             invalidChoiceExit(value, TRUE_FALSE, True)
         elif vtype in ['TYPE_ENUM']:
           value = value.upper()
-          prefix = schemas[myarg]['settings'][field]['enum_prefix']
-          enum_values = schemas[myarg]['settings'][field]['enums']
+          prefix = schema['settings'][field]['enum_prefix']
+          enum_values = schema['settings'][field]['enums']
           if value in enum_values:
             value = f'{prefix}{value}'
           elif value.replace(prefix, '') in enum_values:
@@ -23567,8 +23586,6 @@ def doUpdateChromePolicy():
             invalidArgumentExit(Msg.CHROME_TARGET_VERSION_FORMAT)
         body['requests'][-1]['policyValue']['value'][casedField] = value
         body['requests'][-1]['updateMask'] += f'{casedField},'
-    else:
-      unknownArgumentExit()
   if not orgUnit:
     missingArgumentExit('orgunit')
   if not body['requests'][-1]['updateMask']:
@@ -23813,12 +23830,6 @@ def doCreateChromePolicyImage():
   except (GAPI.invalidArgument, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.CHROME_POLICY_IMAGE, f"{schema['name']}", Ent.FILE, f"{parameters[DFA_LOCALFILEPATH]}"], str(e))
 
-def _getChromePolicySchemaName():
-  name = getString(Cmd.OB_SCHEMA_NAME)
-  if not name.startswith('customers'):
-    name = f'customers/{GC.Values[GC.CUSTOMER_ID]}/policySchemas/{name}'
-  return name
-
 def _showChromePolicySchema(schema, FJQC, i=0, count=0):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(schema), ensure_ascii=False, sort_keys=True))
@@ -23857,8 +23868,8 @@ def doInfoChromePolicySchemas():
   fields = getFieldsFromFieldsList(fieldsList)
   try:
     schema = callGAPI(cp.customers().policySchemas(), 'get',
-                            throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
-                            name=name, fields=fields)
+                      throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                      name=name, fields=fields)
     _showChromePolicySchema(schema, FJQC, 0, 0)
   except GAPI.notFound:
     entityUnknownWarning(Ent.CHROME_POLICY_SCHEMA, name)

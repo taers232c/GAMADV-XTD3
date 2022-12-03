@@ -1,3 +1,7 @@
+6.29.11
+
+Improved performance of `gam update chromepolicy`.
+
 6.29.10
 
 Attempted to fix issues in `gam update chromepolicy` with schemas `chrome.users.apps.InstallType`
