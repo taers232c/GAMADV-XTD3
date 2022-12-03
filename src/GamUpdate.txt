@@ -1,3 +1,7 @@
+6.29.12
+
+Fixed issue in `gam update chromepolicy` with schema `chrome.users.apps.ManagedConfiguration`.
+
 6.29.11
 
 Improved performance of `gam update chromepolicy`.

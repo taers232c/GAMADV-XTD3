@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.11'
+__version__ = '6.29.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -23514,7 +23514,7 @@ def doUpdateChromePolicy():
                   Cmd.Backup()
                   invalidArgumentExit(f'{milestone} for {casedField}: {value}')
                 value =  f'{milestone}.'
-              elif not CHROME_TARGET_VERSION_PATTERN.match(value):
+              elif value and not CHROME_TARGET_VERSION_PATTERN.match(value):
                 Cmd.Backup()
                 invalidArgumentExit(f'{Msg.CHROME_TARGET_VERSION_FORMAT} for {casedField}: {value}')
             body['requests'][-1]['policyValue']['value'][casedField] = value
@@ -23581,7 +23581,7 @@ def doUpdateChromePolicy():
               Cmd.Backup()
               invalidArgumentExit(f'{milestone} for {casedField}: {value}')
             value = f'{milestone}.'
-          elif not CHROME_TARGET_VERSION_PATTERN.match(value):
+          elif value and not CHROME_TARGET_VERSION_PATTERN.match(value):
             Cmd.Backup()
             invalidArgumentExit(Msg.CHROME_TARGET_VERSION_FORMAT)
         body['requests'][-1]['policyValue']['value'][casedField] = value
@@ -23597,12 +23597,12 @@ def doUpdateChromePolicy():
   updatePolicyRequests(body, orgUnit, printer_id, app_id)
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchModify',
-             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND,
+             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
                            GAPI.SERVICE_NOT_AVAILABLE, GAPI.QUOTA_EXCEEDED],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
     actionPerformedNumItems(count, Ent.CHROME_POLICY)
-  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.quotaExceeded) as e:
+  except (GAPI.notFound, GAPI.permissionDenied, GAPI.serviceNotAvailable, GAPI.quotaExceeded) as e:
     entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
   except GAPI.invalidArgument as e:
     actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
@@ -23647,6 +23647,8 @@ def doPrintShowChromePolicies():
     norm['fields'] = []
     name = policy['value']['policySchema']
     values = policy.get('value', {}).get('value', {})
+    if name == 'chrome.users.apps.ManagedConfiguration' and 'managedConfiguration' in values:
+      values['managedConfiguration'] = json.dumps(values['managedConfiguration'], ensure_ascii=False).replace('\\n', '').replace('\\"', '"')[1:-1]
     for setting, value in values.items():
       # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
       schema = CHROME_SCHEMA_TYPE_MESSAGE.get(name, {}).get(setting.lower())
@@ -23703,6 +23705,7 @@ def doPrintShowChromePolicies():
   cd = buildGAPIObject(API.DIRECTORY)
   customer = _getCustomersCustomerIdWithC()
   csvPF = CSVPrintFile(CHROME_POLICY_SORT_TITLES, indexedTitles=CHROME_POLICY_INDEXED_TITLES) if Act.csvFormat() else None
+  csvPF.SetEscapeChar(None)
   FJQC = FormatJSONQuoteChar(csvPF)
   appId = orgUnit = policySchemaFilter = printerId = None
   showPolicies = CHROME_POLICY_SHOW_ALL
