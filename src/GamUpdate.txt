@@ -1,3 +1,8 @@
+6.29.10
+
+Attempted to fix issues in `gam update chromepolicy` with schemas `chrome.users.apps.InstallType`
+and `chrome.users.apps.IncludeInChromeWebStoreCollection`.
+
 6.29.09
 
 Fixed bug in `gam <UserTypeEntity> create tasklist` that caused a trap.

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.09'
+__version__ = '6.29.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -23250,6 +23250,7 @@ def buildChromeSchemas(cp=None, sfilter=None):
     cp = buildGAPIObject(API.CHROMEPOLICY)
   parent = _getCustomersCustomerIdWithC()
   schemas = callGAPIpages(cp.customers().policySchemas(), 'list', 'policySchemas',
+                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                           parent=parent, filter=sfilter)
   schema_objects = {}
   for schema in schemas:
@@ -23303,7 +23304,8 @@ def buildChromeSchemas(cp=None, sfilter=None):
 
 def updatePolicyRequests(body, orgUnit, printer_id, app_id):
   for request in body['requests']:
-    request['policyTargetKey'] = {'targetResource': orgUnit}
+    request.setdefault('policyTargetKey', {})
+    request['policyTargetKey']['targetResource'] = orgUnit
     if printer_id:
       request['policyTargetKey']['additionalTargetKeys'] = {'printer_id': printer_id}
     elif app_id:
@@ -23456,7 +23458,11 @@ def doUpdateChromePolicy():
           break # field is actually a new policy name or orgunit
         # JSON
         if field == 'json':
-          jsonData = getJSON(['additionalTargetKeys', 'direct', 'name', 'orgUnitPath', 'parentOrgUnitPath'])
+          jsonData = getJSON(['direct', 'name', 'orgUnitPath', 'parentOrgUnitPath'])
+          if 'additionalTargetKeys' in jsonData:
+            body['requests'][-1].setdefault('policyTargetKey', {})
+            for atk in jsonData['additionalTargetKeys']:
+              body['requests'][-1]['policyTargetKey']['additionalTargetKeys'] = {atk['name']: atk['value']}
           for field in jsonData.get('fields', []):
             casedField = field['name']
             lowerField = casedField.lower()
