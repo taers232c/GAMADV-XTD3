@@ -401,7 +401,7 @@ If an item contains spaces, it should be surrounded by ".
 <HoldItem> ::= <UniqueID>|<String>
 <HostName> ::= <String>
 <iCalUID> ::= <String>
-<JSONData> ::= <String>
+<JSONData> ::= (json [charset <Charset>] <String>) | (json file <FileName> [charset <Charset>]) |
 <Key> ::= <String>
 <LabelID> ::= Label_<String>
 <LabelName> ::= <String>
@@ -897,11 +897,11 @@ Specify a collection of items by directly specifying them; the item type is dete
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)
 <DriveFilePermissionEntity> ::=
         <DriveFilePermissionList> |
-        (json [charset <Charset>] <JSONData>) | (json file <FileName> [charset <Charset>]) |
+        <JSONData> |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::=
         <DriveFilePermissionIDList> |
-        (json [charset <Charset>] <JSONData>) | (json file <FileName> [charset <Charset>]) |
+        <JSONData> |
         <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DriveFileRevisionIDEntity> ::=
         (<DriveFileRevisionID>) | (id[ |:]<DriveFileRevisionID>) (ids[ |:]<DriveFileRevisionIDList>)
@@ -1309,9 +1309,8 @@ gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*]
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
         hangoutsmeet|
-        (json [charset <Charset>] <JSONData>)|
-        (json file <FileName> [charset <Charset>])|
-        (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
+        <JSONData>|
+        (jsonattendees [charset <Charset>] <String>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
         (noreminders|(reminder email|popup <Number>))|
         (optionalattendee <EmailAddress>)|
@@ -2062,13 +2061,10 @@ gam print crostelemetry [todrive <ToDriveAttribute>*]
 gam create chromepolicyimage <ChromePolicyImageSchemaName> <FileName>
 
 gam update chromepolicy
-        (<SchemaName>
-          (<Field> <Value>)+ |
-          (json [charset <Charset>] <JSONData>) |
-          (json file <FileName> [charset <Charset>])
-        )+
+        (<SchemaName> ((<Field> <Value>)+ | <JSONData>))+
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
-gam delete chromepolicy <SchemaName>+
+gam delete chromepolicy
+        (<SchemaName> [<JSONData>])+
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 gam show chromepolicies
         ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
@@ -2744,7 +2740,7 @@ gam show domainaliases|aliasdomains [formatjson]
         (im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
         (initials <String>)|
         (jot clear|(work|home|other|keywords|user> <String>))|
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
+        <JSONData>||
         (language <Language>)|
         (location <String>)|
         (maidenname <String>)|
@@ -3013,8 +3009,8 @@ gam audit monitor list <EmailAddress>
         (whocanaddreferences all_members|owners_and_managers|managers_only|owners_only|none)|
         (whocanmarkfavoritereplyonowntopic all_members|owners_and_managers|managers_only|owners_only|none)
 <GroupAttribute> ::=
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
         <GroupSettingsAttribute>|
+        <JSONData>|
         (whocandiscovergroup all_members_can_discover|all_in_domain_can_discover|anyone_can_discover)|
         (whocanassistcontent all_members|owners_and_managers|managers_only|owners_only|none)|
         (whocanmoderatecontent all_members|owners_and_managers|owners_only|none)|
@@ -3617,7 +3613,7 @@ gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 <PrinterAttribute> ::=
         (description <String>)|
         (displayname <String>)|
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
+        <JSONData>|
         (makeandmodel <String>)|
         (ou|org|orgunit <OrgUnitItem>)|
         (uri <String>)|
@@ -4611,7 +4607,7 @@ gam <UserTypeEntity> show vaultholds|holds
         (website clear)
 
 <UserAttribute> ::=
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
+        <JSONData>|
         <UserBasicAttribute>|
         <UserMultiAttribute>|
         <UserClearAttribute>
@@ -4977,9 +4973,8 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (guestscanseeotherguests <Boolean>)|
         guestscantseeotherguests|
         hangoutsmeet|
-        (json [charset <Charset>] <JSONData>)|
-        (json file <FileName> [charset <Charset>])|
-        (jsonattendees [charset <Charset>] <JSONData>)|(jsonattendees file <FileName> [charset <Charset>])|
+        <JSONData>|
+        (jsonattendees [charset <Charset>] <String>)|(jsonattendees file <FileName> [charset <Charset>])|
         (location <String>)|
         (noreminders|(reminder email|popup <Number>))|
         (optionalattendee <EmailAddress>)|
@@ -5360,14 +5355,14 @@ gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
 
 <DriveFilePermissionEntity> ::=
         <DriveFilePermissionList> |
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
+        <JSONData>|
         <FileSelector> |
         <CSVFileSelector> |
         <CSVkmdSelector> |
         <CSVDataSelector>
 <DriveFilePermissionIDEntity> ::=
         <DriveFilePermissionIDList> |
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]) |
+        <JSONData>|
         <FileSelector> |
         <CSVFileSelector> |
         <CSVkmdSelector> |
@@ -5929,9 +5924,7 @@ gam <UserTypeEntity> print delegates|delegate [todrive <ToDriveAttribute>*] [sho
         trash
 
 gam <UserTypeEntity> [create|add] filter
-        (<FilterCriteria>+ <FilterAction>+) |
-        ((json [charset <Charset>] <String>) |
-         (json file <FileName> [charset <Charset>]))
+        (<FilterCriteria>+ <FilterAction>+) | <JSONData>
         [buildpath [<Boolean>]]
 gam <UserTypeEntity> delete filters <FilterIDEntity>
 
@@ -6293,8 +6286,8 @@ gam <UserTypeEntity> create note [title <String>]
         ((text <String>)|
          (textfile <FileName> [charset <CharSet>])|
          (gdoc <UserGoogleDoc>)|
-         (([missingtextvalue <String>] (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))))
-         (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))
+         <JSONData>)
+        [missingtextvalue <String>]
         [copyacls [copyowneraswriter]]
         [compact|formatjson|nodetails]
 gam <UserTypeEntity> delete note <NoteNameEntity>
@@ -6330,11 +6323,11 @@ gam <UserTypeEntity> get noteattachments <NotesNameEntity>
 
 gam <UserTypeEntity> create noteacl <NotesNameEntity>
         (user|group <EmailAddress>)+
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
+        <JSONData>
         [nodetails]
 gam <UserTypeEntity> delete noteacl <NotesNameEntity>
         (user|group <EmailAddress>)+
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])
+        <JSONData>
 
 # Users - Licenses
 
@@ -6366,7 +6359,7 @@ gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addon
         (interests clear|<String>)|
         (initials <String>)|
         (jot clear|(work|home|other|keywords|user> <String>))|
-        (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>])|
+        <JSONData>||
         (language <Language>)|
         (locale clear|<Language>)|
         (location clear|<String>)|
@@ -6481,7 +6474,7 @@ gam <UserTypeEntity> print othercontacts [todrive <ToDriveAttribute>*]
 
 <PeopleContactGroupAttribute> ::=
         (clientdata <String> <String>)|
-        (json [charset <Charset>] <JSONData>) | (json file <FileName> [charset <Charset>])|
+        <JSONData>|
         name <String>
 
 <PeopleContactGroupField> ::=

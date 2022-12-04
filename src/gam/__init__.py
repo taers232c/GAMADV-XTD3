@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.12'
+__version__ = '6.29.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -23333,13 +23333,15 @@ def updatePolicyRequests(body, orgUnit, printer_id, app_id):
     elif app_id:
       request['policyTargetKey']['additionalTargetKeys'] = {'app_id': app_id}
 
-# gam delete chromepolicy <SchemaName>+
+# gam delete chromepolicy
+#	(<SchemaName> [<JSONData>])+
 #	ou|org|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 def doDeleteChromePolicy():
   cp = buildGAPIObject(API.CHROMEPOLICY)
   customer = _getCustomersCustomerIdWithC()
   app_id = orgUnit = printer_id = None
   body = {'requests': []}
+  schemaNameList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'ou', 'org', 'orgunit'}:
@@ -23350,24 +23352,32 @@ def doDeleteChromePolicy():
       app_id = getString(Cmd.OB_APP_ID)
     else:
       schema = _getChromePolicySchema(cp, myarg, 'name')
-      body['requests'].append({'policySchema': schema['name'].split('/')[-1]})
+      schemaName = schema['name'].split('/')[-1]
+      schemaNameList.append(schemaName)
+      body['requests'].append({'policySchema': schemaName})
+      if checkArgumentPresent('json'):
+        jsonData = getJSON(['direct', 'name', 'orgUnitPath', 'parentOrgUnitPath'])
+        if 'additionalTargetKeys' in jsonData:
+          body['requests'][-1].setdefault('policyTargetKey', {})
+          for atk in jsonData['additionalTargetKeys']:
+            body['requests'][-1]['policyTargetKey']['additionalTargetKeys'] = {atk['name']: atk['value']}
   if not orgUnit:
     missingArgumentExit('orgunit')
   count = len(body['requests'])
-  performActionNumItems(count, Ent.CHROME_POLICY)
-  if count == 0:
-    return
+  if count != 1:
+    entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], count, Ent.CHROME_POLICY)
+    if count == 0:
+      return
   updatePolicyRequests(body, orgUnit, printer_id, app_id)
+  kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_POLICY, ','.join(schemaNameList)]
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchInherit',
              throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
-    actionPerformedNumItems(count, Ent.CHROME_POLICY)
-  except (GAPI.notFound, GAPI.serviceNotAvailable) as e:
-    entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
-  except GAPI.invalidArgument as e:
-    actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
+    entityActionPerformed(kvList)
+  except (GAPI.invalidArgument, GAPI.notFound, GAPI.serviceNotAvailable) as e:
+    entityActionFailedWarning(kvList, str(e))
 
 CHROME_SCHEMA_TYPE_MESSAGE = {
   'chrome.users.AutoUpdateCheckPeriodNew':
@@ -23434,7 +23444,8 @@ CHROME_SCHEMA_TYPE_MESSAGE = {
 CHROME_TARGET_VERSION_CHANNEL_MINUS_PATTERN = re.compile(r'^([a-z]+)-(\d+)$')
 CHROME_TARGET_VERSION_PATTERN = re.compile(r'^(\d{1,4}\.){1,4}$')
 
-# gam update chromepolicy (<SchemaName> (<Field> <Value>)+)+
+# gam update chromepolicy
+#	(<SchemaName> ((<Field> <Value>)+ | <JSONData>))+
 #	ou|orgunit <OrgUnitItem> [(printerid <PrinterID>)|(appid <AppID>)]
 def doUpdateChromePolicy():
   def getSpecialVtypeValue(vtype, value):
@@ -23453,6 +23464,7 @@ def doUpdateChromePolicy():
   customer = _getCustomersCustomerIdWithC()
   app_id = channelMap = orgUnit = printer_id = None
   body = {'requests': []}
+  schemaNameList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'ou', 'org', 'orgunit'}:
@@ -23463,6 +23475,7 @@ def doUpdateChromePolicy():
       app_id = getString(Cmd.OB_APP_ID)
     else:
       schemaName, schema = simplifyChromeSchema(_getChromePolicySchema(cp, myarg, '*'))
+      schemaNameList.append(schemaName)
       body['requests'].append({'policyValue': {'policySchema': schemaName, 'value': {}},
                                'updateMask': ''})
       while Cmd.ArgumentsRemaining():
@@ -23591,21 +23604,21 @@ def doUpdateChromePolicy():
   if not body['requests'][-1]['updateMask']:
     body['requests'].pop()
   count = len(body['requests'])
-  performActionNumItems(count, Ent.CHROME_POLICY)
-  if count == 0:
-    return
+  if count != 1:
+    entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], count, Ent.CHROME_POLICY)
+    if count == 0:
+      return
   updatePolicyRequests(body, orgUnit, printer_id, app_id)
+  kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_POLICY, ','.join(schemaNameList)]
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchModify',
              throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
                            GAPI.SERVICE_NOT_AVAILABLE, GAPI.QUOTA_EXCEEDED],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
-    actionPerformedNumItems(count, Ent.CHROME_POLICY)
-  except (GAPI.notFound, GAPI.permissionDenied, GAPI.serviceNotAvailable, GAPI.quotaExceeded) as e:
-    entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
-  except GAPI.invalidArgument as e:
-    actionFailedNumItems(count, Ent.CHROME_POLICY, str(e))
+    entityActionPerformed(kvList)
+  except (GAPI.invalidArgument, GAPI.notFound, GAPI.permissionDenied, GAPI.serviceNotAvailable, GAPI.quotaExceeded) as e:
+    entityActionFailedWarning(kvList, str(e))
 
 CHROME_POLICY_SORT_TITLES = ['name', 'orgUnitPath', 'parentOrgUnitPath', 'direct']
 CHROME_POLICY_INDEXED_TITLES = ['fields']
@@ -63054,7 +63067,8 @@ def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
 #	((text <String>)|
 #        (textfile <FileName> [charset <CharSet>])|
 #	 (gdoc <UserGoogleDoc>)|
-#        (([missingtextvalue <String>] (json [charset <Charset>] <JSONData>)|(json file <FileName> [charset <Charset>]))))
+#	 <JSONData)
+#       [missingtextvalue <String>]
 #	[copyacls [copyowneraswriter]
 #	[compact|formatjson|nodetails]
 def createNote(users):

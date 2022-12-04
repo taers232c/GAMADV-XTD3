@@ -1,3 +1,9 @@
+6.29.13
+
+Updated status messages in `gam delete|update chromepolicy` to be more informative.
+
+Fixed bug in `gam delete chromepolicy` with schema chrome.users.apps.InstallType.
+
 6.29.12
 
 Fixed issue in `gam update chromepolicy` with schemas `chrome.users.apps.ManagedConfiguration`,
