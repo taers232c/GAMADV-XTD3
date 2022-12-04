@@ -23647,7 +23647,9 @@ def doPrintShowChromePolicies():
     norm['fields'] = []
     name = policy['value']['policySchema']
     values = policy.get('value', {}).get('value', {})
-    if name == 'chrome.users.apps.ManagedConfiguration' and 'managedConfiguration' in values:
+    if name in {'chrome.devices.managedguest.apps.ManagedConfiguration',
+                'chrome.devices.kiosk.apps.ManagedConfiguration',
+                'chrome.users.apps.ManagedConfiguration'} and 'managedConfiguration' in values:
       values['managedConfiguration'] = json.dumps(values['managedConfiguration'], ensure_ascii=False).replace('\\n', '').replace('\\"', '"')[1:-1]
     for setting, value in values.items():
       # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases

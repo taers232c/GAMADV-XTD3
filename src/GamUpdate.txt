@@ -1,6 +1,7 @@
 6.29.12
 
-Fixed issue in `gam update chromepolicy` with schema `chrome.users.apps.ManagedConfiguration`.
+Fixed issue in `gam update chromepolicy` with schemas `chrome.users.apps.ManagedConfiguration`,
+`chrome.devices.managedguest.apps.ManagedConfiguration` and `chrome.devices.kiosk.apps.ManagedConfiguration`.
 
 6.29.11
 
