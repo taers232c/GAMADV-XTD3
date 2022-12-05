@@ -1,3 +1,8 @@
+6.29.14
+
+Added option `stripcrsfromtitle` to `gam <UserTypeEntity> print|show datastudioassets` that causes carriage returns,
+linefeeds and nulls to be stripped from asset titles.
+
 6.29.13
 
 Updated status messages in `gam delete|update chromepolicy` to be more informative.

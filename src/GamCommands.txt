@@ -5078,17 +5078,19 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
 <DataStudioPermissionList> ::= "<DataStudioPermission>(,<DataStudioPermission>)*"
 <DataStudioPermissionEntity> ::= <DataStudioPermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
-gam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
+stam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
         [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]
           [orderby title [ascending|descending]]) |
          (assetids <DataStudioAssetIDEntity>)]
+        [stripcrsfromtitle]
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show datastudioassets
         [([assettype report|datasource|all] [title <String>]
           [owner <Emailddress>] [includetrashed]
           [orderby title [ascending|descending]]) |
          (assetids <DataStudioAssetIDEntity>)]
+        [stripcrsfromtitle]
         [formatjson]
 
 gam <UserTypeEntity> add datastudiopermissions

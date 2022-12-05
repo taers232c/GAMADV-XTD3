@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.13'
+__version__ = '6.29.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -56292,15 +56292,19 @@ DATASTUDIO_ASSETS_TIME_OBJECTS = {'updateTime', 'updateByMeTime', 'createTime', 
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
+#	[stripcrsfromtitle]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show datastudioassets
 #	[([assettype report|datasource|all] [title <String>]
 #	  [owner <Emailddress>] [includetrashed]
 #	  [orderby title [ascending|descending]]) |
 #	 (assetids <DataStudioAssetIDEntity>)]
+#	[stripcrsfromtitle]
 #	[formatjson]
 def printShowDataStudioAssets(users):
   def _printAsset(asset, user):
+    if stripCRsFromTitle:
+      asset['title'] = _stripControlCharsFromName(asset['title'])
     row = flattenJSON(asset, flattened={'User': user})
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(row)
@@ -56309,6 +56313,8 @@ def printShowDataStudioAssets(users):
                               'JSON': json.dumps(cleanJSON(asset, timeObjects=DATASTUDIO_ASSETS_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
 
   def _showAsset(asset):
+    if stripCRsFromTitle:
+      asset['title'] = _stripControlCharsFromName(asset['title'])
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(asset, timeObjects=DATASTUDIO_ASSETS_TIME_OBJECTS), ensure_ascii=False, sort_keys=False))
     else:
@@ -56322,6 +56328,7 @@ def printShowDataStudioAssets(users):
   OBY = OrderBy(DATASTUDIO_ASSETS_ORDERBY_CHOICE_MAP, ascendingKeyword='ascending', descendingKeyword='')
   parameters, assetTypes = initDataStudioAssetSelectionParameters()
   assetIdEntity = None
+  stripCRsFromTitle = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -56330,6 +56337,8 @@ def printShowDataStudioAssets(users):
       pass
     elif myarg in {'assetid', 'assetids'}:
       assetIdEntity = getUserObjectEntity(Cmd.OB_USER_ENTITY, Ent.DATASTUDIO_ASSETID)
+    elif myarg == 'stripcrsfromtitle':
+      stripCRsFromTitle = True
     elif myarg == 'orderby':
       OBY.GetChoice()
     else:
