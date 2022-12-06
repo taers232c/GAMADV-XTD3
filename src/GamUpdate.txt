@@ -1,3 +1,7 @@
+6.29.15
+
+Updated `gam [<UserTypeEntity>] info|print|show drivelabels languagecode <DriveLabelLanguageCode>` to use the BCP-47 language code.
+
 6.29.14
 
 Added option `stripcrsfromtitle` to `gam <UserTypeEntity> print|show datastudioassets` that causes carriage returns,

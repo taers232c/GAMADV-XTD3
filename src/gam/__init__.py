@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.14'
+__version__ = '6.29.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -985,6 +985,20 @@ def getLabelColor():
     invalidArgumentExit('|'.join(LABEL_COLORS))
   missingArgumentExit(Cmd.OB_LABEL_COLOR_HEX)
 
+# Language codes used in Drive Labels
+BCP47_LANGUAGE_CODES_MAP = {
+  'ar-sa': 'ar-SA', 'cs-cz': 'cs-CZ', 'da-dk': 'da-DK', 'de-de': 'de-DE', #Arabic Saudi Arabia, Czech Czech Republic, Danish Denmark, German Germany
+  'el-gr': 'el-GR', 'en-au': 'en-AU', 'en-gb': 'en-GB', 'en-ie': 'en-IE', #Modern Greek Greece, English Australia, English United Kingdom, English Ireland
+  'en-us': 'en-US', 'en-za': 'en-ZA', 'es-es': 'es-ES', 'es-mx': 'es-MX', #English United States, English South Africa, Spanish Spain, Spanish Mexico
+  'fi-fi': 'fi-FI', 'fr-ca': 'fr-CA', 'fr-fr': 'fr-FR', 'he-il': 'he-IL', #Finnish Finland, French Canada, French France, Hebrew Israel
+  'hi-in': 'hi-IN', 'hu-hu': 'hu-HU', 'id-id': 'id-ID', 'it-it': 'it-IT', #Hindi India, Hungarian Hungary, Indonesian Indonesia, Italian Italy
+  'ja-jp': 'ja-JP', 'ko-kr': 'ko-KR', 'nl-be': 'nl-BE', 'nl-nl': 'nl-NL', #Japanese Japan, Korean Republic of Korea, Dutch Belgium, Dutch Netherlands
+  'no-no': 'no-NO', 'pl-pl': 'pl-PL', 'pt-br': 'pt-BR', 'pt-pt': 'pt-PT', #Norwegian Norway, Polish Poland, Portuguese Brazil, Portuguese Portugal
+  'ro-ro': 'ro-RO', 'ru-ru': 'ru-RU', 'sk-sk': 'sk-SK', 'sv-se': 'sv-SE', #Romanian Romania, Russian Russian Federation, Slovak Slovakia, Swedish Sweden
+  'th-th': 'th-TH', 'tr-tr': 'tr-TR', 'zh-cn': 'zh-CN', 'zh-hk': 'zh-HK', #Thai Thailand, Turkish Turkey, Chinese China, Chinese Hong Kong
+  'zh-tw': 'zh-TW' #Chinese Taiwan
+  }
+
 # Valid language codes
 LANGUAGE_CODES_MAP = {
   'ach': 'ach', 'af': 'af', 'ag': 'ga', 'ak': 'ak', 'am': 'am', 'ar': 'ar', 'az': 'az', #Luo, Afrikaans, Irish, Akan, Amharic, Arabica, Azerbaijani
@@ -1011,99 +1025,90 @@ LANGUAGE_CODES_MAP = {
   'zh-cn': 'zh-CN', 'zh-hk': 'zh-HK', 'zh-tw': 'zh-TW', 'zu': 'zu', #Chinese (Simplified), Chinese (Hong Kong/Traditional), Chinese (Taiwan/Traditional), Zulu
   }
 
-def getLanguageCode():
-  if Cmd.ArgumentsRemaining():
-    choice = Cmd.Current().strip().lower().replace('_', '-')
-    if choice in LANGUAGE_CODES_MAP:
-      Cmd.Advance()
-      return LANGUAGE_CODES_MAP[choice]
-    invalidChoiceExit(choice, LANGUAGE_CODES_MAP, False)
-  missingChoiceExit(LANGUAGE_CODES_MAP)
-
 LOCALE_CODES_MAP = {
   '': '',
-  'ar_eg': 'ar_EG', #Arabic, Egypt
-  'az_az': 'az_AZ', #Azerbaijani, Azerbaijan
-  'be_by': 'be_BY', #Belarusian, Belarus
-  'bg_bg': 'bg_BG', #Bulgarian, Bulgaria
-  'bn_in': 'bn_IN', #Bengali, India
-  'ca_es': 'ca_ES', #Catalan, Spain
-  'cs_cz': 'cs_CZ', #Czech, Czech Republic
-  'cy_gb': 'cy_GB', #Welsh, United Kingdom
-  'da_dk': 'da_DK', #Danish, Denmark
-  'de_ch': 'de_CH', #German, Switzerland
-  'de_de': 'de_DE', #German, Germany
-  'el_gr': 'el_GR', #Greek, Greece
-  'en_au': 'en_AU', #English, Australia
-  'en_ca': 'en_CA', #English, Canada
-  'en_gb': 'en_GB', #English, United Kingdom
-  'en_ie': 'en_IE', #English, Ireland
-  'en_us': 'en_US', #English, U.S.A.
-  'es_ar': 'es_AR', #Spanish, Argentina
-  'es_bo': 'es_BO', #Spanish, Bolivia
-  'es_cl': 'es_CL', #Spanish, Chile
-  'es_co': 'es_CO', #Spanish, Colombia
-  'es_ec': 'es_EC', #Spanish, Ecuador
-  'es_es': 'es_ES', #Spanish, Spain
-  'es_mx': 'es_MX', #Spanish, Mexico
-  'es_py': 'es_PY', #Spanish, Paraguay
-  'es_uy': 'es_UY', #Spanish, Uruguay
-  'es_ve': 'es_VE', #Spanish, Venezuela
-  'fi_fi': 'fi_FI', #Finnish, Finland
-  'fil_ph': 'fil_PH', #Filipino, Philippines
-  'fr_ca': 'fr_CA', #French, Canada
-  'fr_fr': 'fr_FR', #French, France
-  'gu_in': 'gu_IN', #Gujarati, India
-  'hi_in': 'hi_IN', #Hindi, India
-  'hr_hr': 'hr_HR', #Croatian, Croatia
-  'hu_hu': 'hu_HU', #Hungarian, Hungary
-  'hy_am': 'hy_AM', #Armenian, Armenia
-  'in_id': 'in_ID', #Indonesian, Indonesia
-  'it_it': 'it_IT', #Italian, Italy
-  'iw_il': 'iw_IL', #Hebrew, Israel
-  'ja_jp': 'ja_JP', #Japanese, Japan
-  'ka_ge': 'ka_GE', #Georgian, Georgia
-  'kk_kz': 'kk_KZ', #Kazakh, Kazakhstan
-  'kn_in': 'kn_IN', #Kannada, India
-  'ko_kr': 'ko_KR', #Korean, Korea
-  'lt_lt': 'lt_LT', #Lithuanian, Lithuania
-  'lv_lv': 'lv_LV', #Latvian, Latvia
-  'ml_in': 'ml_IN', #Malayalam, India
-  'mn_mn': 'mn_MN', #Mongolian, Mongolia
-  'mr_in': 'mr_IN', #Marathi, India
-  'my_mn': 'my_MN', #Burmese, Myanmar
-  'nl_nl': 'nl_NL', #Dutch, Netherlands
-  'nn_no': 'nn_NO', #Nynorsk, Norway
-  'no_no': 'no_NO', #Bokmal, Norway
-  'pa_in': 'pa_IN', #Punjabi, India
-  'pl_pl': 'pl_PL', #Polish, Poland
-  'pt_br': 'pt_BR', #Portuguese, Brazil
-  'pt_pt': 'pt_PT', #Portuguese, Portugal
-  'ro_ro': 'ro_RO', #Romanian, Romania
-  'ru_ru': 'ru_RU', #Russian, Russia
-  'sk_sk': 'sk_SK', #Slovak, Slovakia
-  'sl_si': 'sl_SI', #Slovenian, Slovenia
-  'sr_rs': 'sr_RS', #Serbian, Serbia
-  'sv_se': 'sv_SE', #Swedish, Sweden
-  'ta_in': 'ta_IN', #Tamil, India
-  'te_in': 'te_IN', #Telugu, India
-  'th_th': 'th_TH', #Thai, Thailand
-  'tr_tr': 'tr_TR', #Turkish, Turkey
-  'uk_ua': 'uk_UA', #Ukrainian, Ukraine
-  'vi_vn': 'vi_VN', #Vietnamese, Vietnam
-  'zh_cn': 'zh_CN', #Simplified Chinese, China
-  'zh_hk': 'zh_HK', #Traditional Chinese, Hong Kong SAR China
-  'zh_tw': 'zh_TW', #Traditional Chinese, Taiwan
+  'ar-eg': 'ar_EG', #Arabic, Egypt
+  'az-az': 'az_AZ', #Azerbaijani, Azerbaijan
+  'be-by': 'be_BY', #Belarusian, Belarus
+  'bg-bg': 'bg_BG', #Bulgarian, Bulgaria
+  'bn-in': 'bn_IN', #Bengali, India
+  'ca-es': 'ca_ES', #Catalan, Spain
+  'cs-cz': 'cs_CZ', #Czech, Czech Republic
+  'cy-gb': 'cy_GB', #Welsh, United Kingdom
+  'da-dk': 'da_DK', #Danish, Denmark
+  'de-ch': 'de_CH', #German, Switzerland
+  'de-de': 'de_DE', #German, Germany
+  'el-gr': 'el_GR', #Greek, Greece
+  'en-au': 'en_AU', #English, Australia
+  'en-ca': 'en_CA', #English, Canada
+  'en-gb': 'en_GB', #English, United Kingdom
+  'en-ie': 'en_IE', #English, Ireland
+  'en-us': 'en_US', #English, U.S.A.
+  'es-ar': 'es_AR', #Spanish, Argentina
+  'es-bo': 'es_BO', #Spanish, Bolivia
+  'es-cl': 'es_CL', #Spanish, Chile
+  'es-co': 'es_CO', #Spanish, Colombia
+  'es-ec': 'es_EC', #Spanish, Ecuador
+  'es-es': 'es_ES', #Spanish, Spain
+  'es-mx': 'es_MX', #Spanish, Mexico
+  'es-py': 'es_PY', #Spanish, Paraguay
+  'es-uy': 'es_UY', #Spanish, Uruguay
+  'es-ve': 'es_VE', #Spanish, Venezuela
+  'fi-fi': 'fi_FI', #Finnish, Finland
+  'fil-ph': 'fil_PH', #Filipino, Philippines
+  'fr-ca': 'fr_CA', #French, Canada
+  'fr-fr': 'fr_FR', #French, France
+  'gu-in': 'gu_IN', #Gujarati, India
+  'hi-in': 'hi_IN', #Hindi, India
+  'hr-hr': 'hr_HR', #Croatian, Croatia
+  'hu-hu': 'hu_HU', #Hungarian, Hungary
+  'hy-am': 'hy_AM', #Armenian, Armenia
+  'in-id': 'in_ID', #Indonesian, Indonesia
+  'it-it': 'it_IT', #Italian, Italy
+  'iw-il': 'iw_IL', #Hebrew, Israel
+  'ja-jp': 'ja_JP', #Japanese, Japan
+  'ka-ge': 'ka_GE', #Georgian, Georgia
+  'kk-kz': 'kk_KZ', #Kazakh, Kazakhstan
+  'kn-in': 'kn_IN', #Kannada, India
+  'ko-kr': 'ko_KR', #Korean, Korea
+  'lt-lt': 'lt_LT', #Lithuanian, Lithuania
+  'lv-lv': 'lv_LV', #Latvian, Latvia
+  'ml-in': 'ml_IN', #Malayalam, India
+  'mn-mn': 'mn_MN', #Mongolian, Mongolia
+  'mr-in': 'mr_IN', #Marathi, India
+  'my-mn': 'my_MN', #Burmese, Myanmar
+  'nl-nl': 'nl_NL', #Dutch, Netherlands
+  'nn-no': 'nn_NO', #Nynorsk, Norway
+  'no-no': 'no_NO', #Bokmal, Norway
+  'pa-in': 'pa_IN', #Punjabi, India
+  'pl-pl': 'pl_PL', #Polish, Poland
+  'pt-br': 'pt_BR', #Portuguese, Brazil
+  'pt-pt': 'pt_PT', #Portuguese, Portugal
+  'ro-ro': 'ro_RO', #Romanian, Romania
+  'ru-ru': 'ru_RU', #Russian, Russia
+  'sk-sk': 'sk_SK', #Slovak, Slovakia
+  'sl-si': 'sl_SI', #Slovenian, Slovenia
+  'sr-rs': 'sr_RS', #Serbian, Serbia
+  'sv-se': 'sv_SE', #Swedish, Sweden
+  'ta-in': 'ta_IN', #Tamil, India
+  'te-in': 'te_IN', #Telugu, India
+  'th-th': 'th_TH', #Thai, Thailand
+  'tr-tr': 'tr_TR', #Turkish, Turkey
+  'uk-ua': 'uk_UA', #Ukrainian, Ukraine
+  'vi-vn': 'vi_VN', #Vietnamese, Vietnam
+  'zh-cn': 'zh_CN', #Simplified Chinese, China
+  'zh-hk': 'zh_HK', #Traditional Chinese, Hong Kong SAR China
+  'zh-tw': 'zh_TW', #Traditional Chinese, Taiwan
   }
 
-def getLocaleCode():
+def getLanguageCode(languageCodeMap):
   if Cmd.ArgumentsRemaining():
-    choice = Cmd.Current().strip().lower().replace('-', '_')
-    if choice in LOCALE_CODES_MAP:
+    choice = Cmd.Current().strip().lower().replace('_', '-')
+    if choice in languageCodeMap:
       Cmd.Advance()
-      return LOCALE_CODES_MAP[choice]
-    invalidChoiceExit(choice, LOCALE_CODES_MAP, False)
-  missingChoiceExit(LOCALE_CODES_MAP)
+      return languageCodeMap[choice]
+    invalidChoiceExit(choice, languageCodeMap, False)
+  missingChoiceExit(languageCodeMap)
 
 def addCourseIdScope(courseId):
   if not courseId.isdigit() and courseId[:2] not in {'d:', 'p:'}:
@@ -3712,7 +3717,7 @@ def SetGlobalVariables():
           minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
           value = str(getFloat(minVal=minVal, maxVal=maxVal))
         elif varType == GC.TYPE_LOCALE:
-          value = getLocaleCode()
+          value = getLanguageCode(LOCALE_CODES_MAP)
         elif varType == GC.TYPE_PASSWORD:
           minLen, maxLen = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
           value = getString(Cmd.OB_STRING, checkBlank=True, minLen=minLen, maxLen=maxLen)
@@ -7282,7 +7287,7 @@ class CSVPrintFile():
       elif myarg == 'tdclearfilter':
         self.todrive['clearfilter'] = getBoolean()
       elif myarg == 'tdlocale':
-        self.todrive['locale'] = getLocaleCode()
+        self.todrive['locale'] = getLanguageCode(LOCALE_CODES_MAP)
       elif myarg == 'tdtimezone':
         self.todrive['timeZone'] = getString(Cmd.OB_STRING, minLen=0)
       elif myarg == 'tdtimestamp':
@@ -13729,7 +13734,7 @@ def doPrintShowChannelItems(entityType):
     elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg == 'name':
       name = getString(Cmd.OB_STRING)
     elif (entityType in {Ent.CHANNEL_OFFER, Ent.CHANNEL_PRODUCT, Ent.CHANNEL_SKU}) and myarg == 'language':
-      kwargs['languageCode'] = getLanguageCode()
+      kwargs['languageCode'] = getLanguageCode(LANGUAGE_CODES_MAP)
     elif (entityType in {Ent.CHANNEL_CUSTOMER, Ent.CHANNEL_OFFER}) and myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING)
     elif (entityType == Ent.CHANNEL_SKU) and myarg == 'productid':
@@ -14203,7 +14208,7 @@ def doUpdateCustomer():
     elif myarg in {'phone', 'phonenumber'}:
       body['phoneNumber'] = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == 'language':
-      body['language'] = getLanguageCode()
+      body['language'] = getLanguageCode(LANGUAGE_CODES_MAP)
     else:
       unknownArgumentExit()
   if body:
@@ -16777,7 +16782,7 @@ class ContactsManager():
       elif fieldName == CONTACT_SENSITIVITY:
         fields[fieldName] = getChoice(ContactsManager.SENSITIVITY_CHOICE_MAP, mapChoice=True)
       elif fieldName == CONTACT_LANGUAGE:
-        fields[fieldName] = getLanguageCode()
+        fields[fieldName] = getLanguageCode(LANGUAGE_CODES_MAP)
       elif fieldName == CONTACT_NOTES:
         fields[fieldName] = getStringWithCRsNLsOrFile()[0]
       elif fieldName == CONTACT_ADDRESSES:
@@ -26599,7 +26604,7 @@ def getGroupAttrValue(argument, gs_body):
     if attrType == GC.TYPE_EMAIL_OPTIONAL and gs_body[attrName] is None:
       gs_body[attrName] = ''
   elif attrType == GC.TYPE_LANGUAGE:
-    gs_body[attrName] = getLanguageCode()
+    gs_body[attrName] = getLanguageCode(LANGUAGE_CODES_MAP)
   else: # GC.TYPE_INTEGER
     minVal, maxVal = attribute[GC.VAR_LIMITS]
     if attrName == 'maxMessageBytes':
@@ -31321,7 +31326,7 @@ def _getBuildingAttributes(body):
       if myarg == 'addressLines':
         body['address'][myarg] = getStringWithCRsNLs().split('\n')
       elif myarg == 'languageCode':
-        body['address'][myarg] = getLanguageCode()
+        body['address'][myarg] = getLanguageCode(LANGUAGE_CODES_MAP)
       else:
         body['address'][myarg] = getString(Cmd.OB_STRING, minLen=0)
     else:
@@ -45631,7 +45636,7 @@ def getDriveFileCopyAttribute(myarg, body, parameters):
   elif myarg in {'keeprevisionforever', 'pinned'}:
     parameters[DFA_KEEP_REVISION_FOREVER] = getBoolean()
   elif myarg == 'ocrlanguage':
-    parameters[DFA_OCRLANGUAGE] = getLanguageCode()
+    parameters[DFA_OCRLANGUAGE] = getLanguageCode(LANGUAGE_CODES_MAP)
   elif myarg == 'description':
     body['description'] = getStringWithCRsNLs()
   elif myarg == 'mimetype':
@@ -54894,7 +54899,7 @@ def _getDisplayDriveLabelsParameters(myarg, parameters):
   if myarg in DRIVELABELS_PROJECTION_CHOICE_MAP:
     parameters['view'] = DRIVELABELS_PROJECTION_CHOICE_MAP[myarg]
   elif myarg == 'language':
-    parameters['languageCode'] = getChoice(LANGUAGE_CODES_MAP, mapChoice=True)
+    parameters['languageCode'] = getLanguageCode(BCP47_LANGUAGE_CODES_MAP)
   elif myarg in ADMIN_ACCESS_OPTIONS:
     parameters['useAdminAccess'] = True
   elif myarg == 'publishedonly':
@@ -54928,7 +54933,7 @@ def _showDriveLabel(label, j, jcount, FJQC):
   Ind.Decrement()
 
 # gam [<UserTypeEntity>] info drivelabels <DriveLabelNameEntity>
-#	[[basic|full] [languagecode <LanguageCode>]
+#	[[basic|full] [languagecode <DriveLabelLanguageCode>]
 #	[formatjson] [adminaccess|asadmin]
 def infoDriveLabels(users, useAdminAccess=False):
   driveLabelNameEntity = getUserObjectEntity(Cmd.OB_DRIVE_LABEL_NAME, Ent.DRIVE_LABEL_NAME, shlexSplit=True)
@@ -54973,12 +54978,12 @@ def doInfoDriveLabels():
   infoDriveLabels([_getAdminEmail()], True)
 
 # gam [<UserTypeEntity>] print drivelabels> [todrive <ToDriveAttribute>*]
-#	[basic|full] [languagecode <LanguageCode>]
+#	[basic|full] [languagecode <DriveLabelLanguageCode>]
 #	[publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
 #	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
 # gam [<UserTypeEntity>] show drivelabels
+#	[basic|full] [languagecode <DriveLabelLanguageCode>]
 #	[publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
-#	[formatjson [quotechar <Character>]] [adminaccess|asadmin]
 #	[formatjson] [adminaccess|asadmin]
 def printShowDriveLabels(users, useAdminAccess=False):
   csvPF = CSVPrintFile(['User', 'name', 'description', 'id'], 'sortall') if Act.csvFormat() else None
@@ -62116,7 +62121,7 @@ def printShowPop(users):
 
 # gam <UserTypeEntity> language <Language>
 def setLanguage(users):
-  language = getLanguageCode()
+  language = getLanguageCode(LANGUAGE_CODES_MAP)
   checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
