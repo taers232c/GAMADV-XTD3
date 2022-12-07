@@ -1,3 +1,10 @@
+6.29.16
+
+Fixed bug introduced in 6.29.15 that caused an error like this:
+```
+ERROR: Config File: gam.cfg, Section: DEFAULT, Item: todrive_locale, Value: "en_us", Expected: ,ar-eg,az-az,be-by,bg-bg,bn-in,ca-es,cs-cz,cy-gb,da-dk,de-ch,de-de,el-gr,en-au,en-ca,en-gb,en-ie,en-us,es-ar,es-bo,es-cl,es
+```
+
 6.29.15
 
 Updated `gam [<UserTypeEntity>] info|print|show drivelabels languagecode <DriveLabelLanguageCode>` to use the BCP-47 language code.

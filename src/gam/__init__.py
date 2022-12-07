@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.15'
+__version__ = '6.29.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3192,7 +3192,7 @@ def SetGlobalVariables():
     return ''
 
   def _getCfgLocale(sectionName, itemName):
-    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)).lower().replace('-', '_')
+    value = _stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)).lower().replace('_', '-')
     if value in LOCALE_CODES_MAP:
       return LOCALE_CODES_MAP[value]
     _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.EXPECTED}: {",".join(LOCALE_CODES_MAP)}')
