@@ -1,3 +1,7 @@
+6.29.17
+
+Added option `todrive tdcellnumberformat text|number` that causes GAM to set the Sheet Number format when uploading files with `todrive`.
+
 6.29.16
 
 Fixed bug introduced in 6.29.15 that caused an error like this:

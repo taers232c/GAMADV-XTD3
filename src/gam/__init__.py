@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.16'
+__version__ = '6.29.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7239,6 +7239,7 @@ class CSVPrintFile():
       return drive
 
     CELL_WRAP_MAP = {'clip': 'CLIP', 'overflow': 'OVERFLOW_CELL', 'overflowcell': 'OVERFLOW_CELL', 'wrap': 'WRAP'}
+    CELL_NUMBER_FORMAT_MAP = {'text': 'TEXT', 'number': 'NUMBER'}
 
     localUser = localParent = False
     tdfileidLocation = tdparentLocation = tdaddsheetLocation = tdupdatesheetLocation = tduserLocation = Cmd.Location()
@@ -7247,7 +7248,7 @@ class CSVPrintFile():
       tdsheetLocation[sheetEntity] = Cmd.Location()
     self.todrive = {'user': GC.Values[GC.TODRIVE_USER], 'title': None, 'description': None,
                     'sheetEntity': None, 'addsheet': False, 'updatesheet': False, 'sheettitle': None,
-                    'cellwrap': None, 'clearfilter': GC.Values[GC.TODRIVE_CLEARFILTER],
+                    'cellwrap': None, 'cellnumberformat': None, 'clearfilter': GC.Values[GC.TODRIVE_CLEARFILTER],
                     'backupSheetEntity': None, 'copySheetEntity': None,
                     'locale': GC.Values[GC.TODRIVE_LOCALE], 'timeZone': GC.Values[GC.TODRIVE_TIMEZONE],
                     'timestamp': GC.Values[GC.TODRIVE_TIMESTAMP], 'timeformat': GC.Values[GC.TODRIVE_TIMEFORMAT],
@@ -7284,6 +7285,8 @@ class CSVPrintFile():
           self.todrive['addsheet'] = False
       elif myarg == 'tdcellwrap':
         self.todrive['cellwrap'] = getChoice(CELL_WRAP_MAP, mapChoice=True)
+      elif myarg == 'tdcellnumberformat':
+        self.todrive['cellnumberformat'] = getChoice(CELL_NUMBER_FORMAT_MAP, mapChoice=True)
       elif myarg == 'tdclearfilter':
         self.todrive['clearfilter'] = getBoolean()
       elif myarg == 'tdlocale':
@@ -7831,12 +7834,16 @@ class CSVPrintFile():
                 body['requests'].append({'updateSheetProperties':
                                            {'properties': {'sheetId': self.todrive['sheetEntity']['sheetId'], 'title': sheetTitle}, 'fields': 'title'}})
             body['requests'].append({'updateCells': {'range': {'sheetId': self.todrive['sheetEntity']['sheetId']}, 'fields': '*'}})
-            body['requests'].append({'pasteData': {'coordinate': {'sheetId': self.todrive['sheetEntity']['sheetId'], 'rowIndex': '0', 'columnIndex': '0'},
-                                                   'data': csvFile.read(), 'type': 'PASTE_NORMAL', 'delimiter': self.columnDelimiter}})
             if self.todrive['cellwrap']:
               body['requests'].append({'repeatCell': {'range': {'sheetId': self.todrive['sheetEntity']['sheetId']},
                                                       'fields': 'userEnteredFormat.wrapStrategy',
                                                       'cell': {'userEnteredFormat': {'wrapStrategy': self.todrive['cellwrap']}}}})
+            if self.todrive['cellnumberformat']:
+              body['requests'].append({'repeatCell': {'range': {'sheetId': self.todrive['sheetEntity']['sheetId']},
+                                                      'fields': 'userEnteredFormat.numberFormat',
+                                                      'cell': {'userEnteredFormat': {'numberFormat': {'type': self.todrive['cellnumberformat']}}}}})
+            body['requests'].append({'pasteData': {'coordinate': {'sheetId': self.todrive['sheetEntity']['sheetId'], 'rowIndex': '0', 'columnIndex': '0'},
+                                                   'data': csvFile.read(), 'type': 'PASTE_NORMAL', 'delimiter': self.columnDelimiter}})
             if self.todrive['copySheetEntity']:
               body['requests'].append({'copyPaste': {'source': {'sheetId': self.todrive['sheetEntity']['sheetId']},
                                                      'destination': {'sheetId': self.todrive['copySheetEntity']['sheetId']}, 'pasteType': 'PASTE_NORMAL'}})
@@ -7913,7 +7920,9 @@ class CSVPrintFile():
                 entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, title,
                                            Ent.TARGET_USER, self.todrive['share']['emailAddress'], Ent.ROLE, self.todrive['share']['role']],
                                           str(e))
-            if (result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and (self.todrive['sheetEntity'] or self.todrive['locale'] or self.todrive['timeZone'] or self.todrive['cellwrap']):
+            if ((result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and
+                (self.todrive['sheetEntity'] or self.todrive['locale'] or self.todrive['timeZone'] or
+                 self.todrive['cellwrap'] or self.todrive['cellplainnumber'])):
               if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
                 _, sheet = buildGAPIServiceObject(API.SHEETSTD, user)
                 if sheet is None:
@@ -18620,9 +18629,9 @@ PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS = {
   'orderby', 'basic', 'thin', 'full', 'showdeleted',
   }
 
-def _getPeopleContactEntityList(entityType, unknownAction, dedupCommand=False):
+def _getPeopleContactEntityList(entityType, unknownAction, noEntityArguments={}):
   contactQuery = _initPeopleContactQueryAttributes(False)
-  if dedupCommand and (not Cmd.ArgumentsRemaining() or Cmd.PeekArgumentPresent({'matchtype', 'domain'})):
+  if noEntityArguments and (not Cmd.ArgumentsRemaining() or Cmd.PeekArgumentPresent(noEntityArguments)):
     # <PeopleResourceNameEntity>|<PeopleUserContactSelection> are optional in dedup|replacedomain contacts
     entityList = None
     queriedContacts = True
@@ -19108,7 +19117,7 @@ def dedupReplaceDomainUserPeopleContacts(users):
   entityType = Ent.USER
   peopleEntityType = Ent.PEOPLE_CONTACT
   sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
-  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1, True)
+  entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1, {'matchtype', 'domain'})
   emailMatchType = False
   replaceDomains = {}
   while Cmd.ArgumentsRemaining():

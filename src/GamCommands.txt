@@ -560,6 +560,7 @@ If an item contains spaces, it should be surrounded by ".
             [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
+        (tdcellnumberformat text|number)|
         (tdcellwrap clip|overflow|wrap)|
         (tdupdatesheet [<Boolean>])|
         (tduploadnodata [<Boolean>])|
