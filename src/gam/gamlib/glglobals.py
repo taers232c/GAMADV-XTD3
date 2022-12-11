@@ -48,8 +48,12 @@ CSV_SUBKEY_FIELD = 'cssk'
 CSV_DATA_FIELD = 'csdf'
 # Filter for input column values
 CSV_INPUT_ROW_FILTER = 'cirf'
+# Mode (and|or) for input column values
+CSV_INPUT_ROW_FILTER_MODE = 'cirm'
 # Filter for input column drop values
 CSV_INPUT_ROW_DROP_FILTER = 'cird'
+# Mode (and|or) for input column drop values
+CSV_INPUT_ROW_DROP_FILTER_MODE = 'cidm'
 # Limit number of input rows
 CSV_INPUT_ROW_LIMIT = 'cirl'
 # Column delimiter in CSV output file
@@ -62,8 +66,12 @@ CSV_OUTPUT_HEADER_FILTER = 'cohf'
 CSV_OUTPUT_HEADER_DROP_FILTER = 'cohd'
 # Filter for output column values
 CSV_OUTPUT_ROW_FILTER = 'corf'
+# Mode (and|or) for output column values
+CSV_OUTPUT_ROW_FILTER_MODE = 'corm'
 # Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'cord'
+# Mode (and|or) for output column drop values
+CSV_OUTPUT_ROW_DROP_FILTER_MODE = 'codm'
 # Limit number of output rows
 CSV_OUTPUT_ROW_LIMIT = 'corl'
 # Add timestamp column to CSV output file
@@ -196,14 +204,18 @@ Globals = {
   CSV_SUBKEY_FIELD: None,
   CSV_DATA_FIELD: None,
   CSV_INPUT_ROW_FILTER: [],
+  CSV_INPUT_ROW_FILTER_MODE: True,
   CSV_INPUT_ROW_DROP_FILTER: [],
+  CSV_INPUT_ROW_DROP_FILTER_MODE: False,
   CSV_INPUT_ROW_LIMIT: 0,
   CSV_OUTPUT_COLUMN_DELIMITER: None,
   CSV_OUTPUT_QUOTE_CHAR: None,
   CSV_OUTPUT_HEADER_FILTER: [],
   CSV_OUTPUT_HEADER_DROP_FILTER: [],
   CSV_OUTPUT_ROW_FILTER: [],
+  CSV_OUTPUT_ROW_FILTER_MODE: True,
   CSV_OUTPUT_ROW_DROP_FILTER: [],
+  CSV_OUTPUT_ROW_DROP_FILTER_MODE: False,
   CSV_OUTPUT_ROW_LIMIT: 0,
   CSV_OUTPUT_TIMESTAMP_COLUMN: None,
   CURRENT_API_SERVICES: {},

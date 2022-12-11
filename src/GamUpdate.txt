@@ -1,6 +1,24 @@
+6.29.18
+
+Added the following variables to `gam.cfg` to provide more flexibility when multiple row filters are specified.
+
+* `csv_input_row_filter_mode allmatch|anymatch`
+  * `allmatch` - all filters must match to include in input; this is the default and is the current behavior
+  * `anymatch` - any filter must match to include in input
+* `csv_input_row_drop_filter_mode allmatch|anymatch`
+  * `allmatch` - all filters must match to drop from input
+  * `anymatch` - any filter must match to drop from input; this is the default and is the current behavior
+* `csv_output_row_filter_mode allmatch|anymatch`
+  * `allmatch` - all filters must match to include in output; this is the default and is the current behavior
+  * `anymatch` - any filter must match to include in output
+* `csv_output_row_drop_filter_mode allmatch|anymatch`
+  * `allmatch` - all filters must match to drop from output
+  * `anymatch` - any filter must match to drop from output; this is the default and is the current behavior
+
 6.29.17
 
 Added option `todrive tdcellnumberformat text|number` that causes GAM to set the Sheet Number format when uploading files with `todrive`.
+If the option is not specified, no number format is specified.
 
 6.29.16
 

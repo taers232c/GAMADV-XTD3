@@ -93,8 +93,12 @@ CSV_INPUT_COLUMN_DELIMITER = 'csv_input_column_delimiter'
 CSV_INPUT_QUOTE_CHAR = 'csv_input_quote_char'
 # Filter for input column values
 CSV_INPUT_ROW_FILTER = 'csv_input_row_filter'
+# Mode (and|or) for input column values
+CSV_INPUT_ROW_FILTER_MODE = 'csv_input_row_filter_mode'
 # Filter for input column drop values
 CSV_INPUT_ROW_DROP_FILTER = 'csv_input_row_drop_filter'
+# Mode (and|or) for input column drop values
+CSV_INPUT_ROW_DROP_FILTER_MODE = 'csv_input_row_drop_filter_mode'
 # Limit number of input rows
 CSV_INPUT_ROW_LIMIT = 'csv_input_row_limit'
 # Convert newlines in text fields to "\n" in CSV output file
@@ -113,8 +117,12 @@ CSV_OUTPUT_LINE_TERMINATOR = 'csv_output_line_terminator'
 CSV_OUTPUT_QUOTE_CHAR = 'csv_output_quote_char'
 # Filter for output column values
 CSV_OUTPUT_ROW_FILTER = 'csv_output_row_filter'
+# Mode (and|or) for output column values
+CSV_OUTPUT_ROW_FILTER_MODE = 'csv_output_row_filter_mode'
 # Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'csv_output_row_drop_filter'
+# Mode (and|or) for output column drop values
+CSV_OUTPUT_ROW_DROP_FILTER_MODE = 'csv_output_row_drop_filter_mode'
 # Limit number of output rows
 CSV_OUTPUT_ROW_LIMIT = 'csv_output_row_limit'
 # Column header subfield name delimiter in CSV output file
@@ -278,7 +286,9 @@ Defaults = {
   CSV_INPUT_COLUMN_DELIMITER: ',',
   CSV_INPUT_QUOTE_CHAR: '\'"\'',
   CSV_INPUT_ROW_FILTER: '',
+  CSV_INPUT_ROW_FILTER_MODE: 'allmatch',
   CSV_INPUT_ROW_DROP_FILTER: '',
+  CSV_INPUT_ROW_DROP_FILTER_MODE: 'anymatch',
   CSV_INPUT_ROW_LIMIT: '0',
   CSV_OUTPUT_COLUMN_DELIMITER: ',',
   CSV_OUTPUT_CONVERT_CR_NL: FALSE,
@@ -288,7 +298,9 @@ Defaults = {
   CSV_OUTPUT_LINE_TERMINATOR: 'lf',
   CSV_OUTPUT_QUOTE_CHAR: '\'"\'',
   CSV_OUTPUT_ROW_FILTER: '',
+  CSV_OUTPUT_ROW_FILTER_MODE: 'allmatch',
   CSV_OUTPUT_ROW_DROP_FILTER: '',
+  CSV_OUTPUT_ROW_DROP_FILTER_MODE: 'anymatch',
   CSV_OUTPUT_ROW_LIMIT: '0',
   CSV_OUTPUT_SUBFIELD_DELIMITER: '.',
   CSV_OUTPUT_TIMESTAMP_COLUMN: '',
@@ -411,7 +423,9 @@ VAR_INFO = {
   CSV_INPUT_COLUMN_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},
   CSV_INPUT_QUOTE_CHAR: {VAR_TYPE: TYPE_CHARACTER},
   CSV_INPUT_ROW_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
+  CSV_INPUT_ROW_FILTER_MODE: {VAR_TYPE: TYPE_CHOICE, VAR_CHOICES: {'allmatch': True, 'anymatch': False}},
   CSV_INPUT_ROW_DROP_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
+  CSV_INPUT_ROW_DROP_FILTER_MODE: {VAR_TYPE: TYPE_CHOICE, VAR_CHOICES: {'allmatch': True, 'anymatch': False}},
   CSV_INPUT_ROW_LIMIT: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, None)},
   CSV_OUTPUT_COLUMN_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_CONVERT_CR_NL: {VAR_TYPE: TYPE_BOOLEAN},
@@ -421,7 +435,9 @@ VAR_INFO = {
   CSV_OUTPUT_LINE_TERMINATOR: {VAR_TYPE: TYPE_CHOICE, VAR_CHOICES: {'cr': '\r', 'lf': '\n', 'crlf': '\r\n'}},
   CSV_OUTPUT_QUOTE_CHAR: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_ROW_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
+  CSV_OUTPUT_ROW_FILTER_MODE: {VAR_TYPE: TYPE_CHOICE, VAR_CHOICES: {'allmatch': True, 'anymatch': False}},
   CSV_OUTPUT_ROW_DROP_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
+  CSV_OUTPUT_ROW_DROP_FILTER_MODE: {VAR_TYPE: TYPE_CHOICE, VAR_CHOICES: {'allmatch': True, 'anymatch': False}},
   CSV_OUTPUT_ROW_LIMIT: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (0, None)},
   CSV_OUTPUT_SUBFIELD_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_TIMESTAMP_COLUMN: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},

@@ -542,6 +542,8 @@ If an item contains spaces, it should be surrounded by ".
 <ToDriveAttribute> ::=
         (tdaddsheet [<Boolean>])|
         (tdbackupsheet (id:<Number>)|<String>)|
+        (tdcellnumberformat text|number)|
+        (tdcellwrap clip|overflow|wrap)|
         (tdclearfilter [<Boolean>])|
         (tdcopysheet (id:<Number>)|<String>)|
         (tddescription <String>)|
@@ -560,8 +562,6 @@ If an item contains spaces, it should be surrounded by ".
             [tddaysoffset <Number>] [tdhoursoffset <Number])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
-        (tdcellnumberformat text|number)|
-        (tdcellwrap clip|overflow|wrap)|
         (tdupdatesheet [<Boolean>])|
         (tduploadnodata [<Boolean>])|
         (tduser <EmailAddress>)
@@ -1038,14 +1038,15 @@ showsections
 
 ## Select an output filter section from gam.cfg and process a GAM command using values from that section
 The only <VariableName>s recognized in this <Section> are: csv_output_header_filter, csv_output_header_drop_filter,
-csv_output_row_filter, csv_output_row_drop_filter and csv_output_row_limit.
+csv_output_row_filter, csv_output_row_filter_mode, csv_output_row_drop_filter, csv_output_row_drop_filter_mode
+and csv_output_row_limit.
 
 <SelectOutputFilter> ::=
         selectfilter|selectoutputfilter <Section>
 
 ## Select an input filter section from gam.cfg and process a GAM command using values from that section
-The only <VariableName>s recognized in this <Section> are: csv_input_row_filter, csv_input_row_drop_filter
-and csv_input_row_limit.
+The only <VariableName>s recognized in this <Section> are: csv_input_row_filter, csv_input_row_filter_mode,
+csv_input_row_drop_filter, csv_input_row_drop_filter_mode and csv_input_row_limit.
 
 <SelectInputFilter> ::=
         selectinputfilter <Section>
