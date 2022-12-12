@@ -1,3 +1,7 @@
+6.29.19
+
+Fixed bug introduced in 6.29.17 in `todrive` that caused a trap.
+
 6.29.18
 
 Added the following variables to `gam.cfg` to provide more flexibility when multiple row filters are specified.

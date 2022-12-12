@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.18'
+__version__ = '6.29.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7951,7 +7951,7 @@ class CSVPrintFile():
                                           str(e))
             if ((result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and
                 (self.todrive['sheetEntity'] or self.todrive['locale'] or self.todrive['timeZone'] or
-                 self.todrive['cellwrap'] or self.todrive['cellplainnumber'])):
+                 self.todrive['cellwrap'] or self.todrive['cellnumberformat'])):
               if not GC.Values[GC.TODRIVE_CLIENTACCESS]:
                 _, sheet = buildGAPIServiceObject(API.SHEETSTD, user)
                 if sheet is None:
