@@ -399,11 +399,11 @@ jobs:
         run: |
              if [[ "${staticx}" == "yes" ]]; then
                export PYINSTALLER_BUILD_ONEFILE="yes"
-               export distpath="./dist/gam"
+               export distpath="./dist/gamadv-xtd3"
                export gampath="${distpath}"
              else
                export distpath="./dist"
-               export gampath="${distpath}/gam"
+               export gampath="${distpath}/gamadv-xtd3"
              fi
              mkdir -p -v "${gampath}"
              export gamspec="gam.spec"
