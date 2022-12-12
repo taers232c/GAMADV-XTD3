@@ -98,7 +98,7 @@ jobs:
           bash ./rust.sh -y
           source $HOME/.cargo/env
           # needed for Rust to compile cryptography Python package for universal2
-          #rustup target add aarch64-apple-darwin
+          rustup target add aarch64-apple-darwin
 
       - name: Windows Configure VCode
         uses: ilammy/msvc-dev-cmd@v1
@@ -270,8 +270,7 @@ jobs:
         run: |
           cd "${PYTHON_SOURCE_PATH}"
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            #extra_args=( "--enable-universalsdk" "--with-universal-archs=universal2" )
-            extra_args=( )
+            extra_args=( "--enable-universalsdk" "--with-universal-archs=universal2" )
           else
             extra_args=( )
           fi
@@ -361,13 +360,13 @@ jobs:
         run: |
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
                "${PYTHON}" -m pip install --upgrade cffi ${PIP_ARGS}
-               #"${PYTHON}" -m pip download --only-binary :all: \
-               #                              --dest . \
-               #                              --no-cache \
-               #                              --no-deps \
-               #                              --platform macosx_10_15_universal2 \
-               #                              cryptography
-               #"${PYTHON}" -m pip install --force-reinstall --no-deps cryptography*.whl
+               "${PYTHON}" -m pip download --only-binary :all: \
+                                             --dest . \
+                                             --no-cache \
+                                             --no-deps \
+                                             --platform macosx_10_15_universal2 \
+                                             cryptography
+               "${PYTHON}" -m pip install --force-reinstall --no-deps cryptography*.whl
              fi
              "${PYTHON}" -m pip install --upgrade -r requirements.txt ${PIP_ARGS}
              "${PYTHON}" -m pip list
