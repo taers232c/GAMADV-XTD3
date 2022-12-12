@@ -94,7 +94,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           # Install latest Rust
-          curl -fsS -o rust.sh https://sh.rustup.rs
+          curl --retry 5 --retry-connrefused -fsS -o rust.sh https://sh.rustup.rs
           bash ./rust.sh -y
           source $HOME/.cargo/env
           # needed for Rust to compile cryptography Python package for universal2
@@ -112,6 +112,7 @@ jobs:
           arch: ${{ matrix.arch }}
           jid: ${{ matrix.jid }}
           openssl_archs: ${{ matrix.openssl_archs }}
+          staticx: ${{ matrix.staticx }}
         run: |
           echo "We are running on ${RUNNER_OS}"
           LD_LIBRARY_PATH="${OPENSSL_INSTALL_PATH}/lib:${PYTHON_INSTALL_PATH}/lib"
@@ -153,6 +154,7 @@ jobs:
           fi
           echo "We'll run make with: ${MAKEOPT}"
           echo "JID=${jid}" >> $GITHUB_ENV
+          echo "staticx=${staticx}" >> $GITHUB_ENV
           echo "arch=${arch}" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $GITHUB_ENV
           echo "MAKE=${MAKE}" >> $GITHUB_ENV
@@ -350,7 +352,7 @@ jobs:
 
       - name: Upgrade pip, wheel, etc
         run: |
-          curl -O https://bootstrap.pypa.io/get-pip.py
+          curl --retry 5 --retry-connrefused -O https://bootstrap.pypa.io/get-pip.py
           "${PYTHON}" get-pip.py
           "${PYTHON}" -m pip install --upgrade pip
           "${PYTHON}" -m pip install --upgrade wheel
@@ -374,29 +376,35 @@ jobs:
       - name: Install PyInstaller
         if: matrix.goal == 'build'
         run: |
-          #git clone https://github.com/pyinstaller/pyinstaller.git
-          #cd pyinstaller
-          #export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
-          #git checkout "${latest_release}"
-          ## remove pre-compiled bootloaders so we fail if bootloader compile fails
-          #rm -rvf PyInstaller/bootloader/*-*/*
-          #cd bootloader
-          #if [[ "${arch}" == "Win32" ]]; then
-          #  export PYINSTALLER_BUILD_ARGS="--target-arch=32bit"
-          #fi
-          #echo "PyInstaller build arguments: ${PYINSTALLER_BUILD_ARGS}"
-          #"${PYTHON}" ./waf all $PYINSTALLER_BUILD_ARGS
-          #cd ..
-          #echo "---- Installing PyInstaller ----"
-          #"${PYTHON}" -m pip install .
-          "${PYTHON}" -m pip install --upgrade pyinstaller
+          git clone https://github.com/pyinstaller/pyinstaller.git
+          cd pyinstaller
+          export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
+          git checkout "${latest_release}"
+          # remove pre-compiled bootloaders so we fail if bootloader compile fails
+          rm -rvf PyInstaller/bootloader/*-*/*
+          cd bootloader
+          if [[ "${arch}" == "Win32" ]]; then
+            export PYINSTALLER_BUILD_ARGS="--target-arch=32bit"
+          fi
+          echo "PyInstaller build arguments: ${PYINSTALLER_BUILD_ARGS}"
+          "${PYTHON}" ./waf all $PYINSTALLER_BUILD_ARGS
+          cd ..
+          echo "---- Installing PyInstaller ----"
+          "${PYTHON}" -m pip install .
 
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
         env:
           arch: ${{ matrix.arch }}
         run: |
-             export gampath="./dist/gamadv-xtd3"
+             if [[ "${staticx}" == "yes" ]]; then
+               export PYINSTALLER_BUILD_ONEFILE="yes"
+               export distpath="./dist/gam"
+               export gampath="${distpath}"
+             else
+               export distpath="./dist"
+               export gampath="${distpath}/gam"
+             fi
              mkdir -p -v "${gampath}"
              export gamspec="gam.spec"
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
@@ -417,7 +425,7 @@ jobs:
              echo "gampath=${gampath}" >> $GITHUB_ENV
              echo "gam=${gam}" >> $GITHUB_ENV
              echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
-             "${PYTHON}" -m PyInstaller --clean --distpath="${gampath}" "${gamspec}"
+             "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${distpath}" "${gamspec}"
  
       - name: Copy extra package files
         if: matrix.goal == 'build'
@@ -445,7 +453,7 @@ jobs:
           echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
 
       - name: Linux/MacOS package
-        if: runner.os != 'Windows' && matrix.goal == 'build'
+        if: runner.os != 'Windows' && matrix.goal == 'build' && matrix.staticx != 'yes'
         env:
           arch: ${{ matrix.arch }}
         run: |
@@ -458,14 +466,14 @@ jobs:
           echo "GAM Archive ${GAM_ARCHIVE}"
           tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
 
-      - name: Linux 64-bit install patchelf/staticx
-        if: runner.os == 'Linux' && contains(runner.arch, '64') && matrix.goal != 'test'
+      - name: Install StaticX
+        if: matrix.staticx == 'yes'
         run: |
           "${PYTHON}" -m pip install --upgrade patchelf-wrapper
           "${PYTHON}" -m pip install --upgrade staticx
 
-      - name: Linux 64-bit Make Static
-        if: runner.os == 'Linux' && contains(runner.arch, '64') && matrix.goal != 'test'
+      - name: Make Static
+        if: matrix.staticx == 'yes'
         run: |
           case $RUNNER_ARCH in
             X64)
@@ -478,14 +486,14 @@ jobs:
           echo "ldlib=${ldlib}"
           $PYTHON -m staticx -l "${ldlib}" "${gam}" "${gam}-staticx"
           
-      - name: Linux Run StaticX-ed
-        if: runner.os == 'Linux' && contains(runner.arch, '64') && matrix.goal != 'test'
+      - name: Run StaticX
+        if: matrix.staticx == 'yes'
         run: |
           "${gam}-staticx" version extended
           mv -v "${gam}-staticx" "${gam}"
 
       - name: Linux package staticx
-        if: runner.os == 'Linux' && contains(runner.arch, '64') && matrix.goal != 'test'
+        if: matrix.staticx == 'yes'
         run: |
           GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-$(uname -m)-legacy.tar.xz"
           tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
@@ -497,9 +505,9 @@ jobs:
           GAM_ARCHIVE="../gamadv-xtd3-${GAMVERSION}-windows-${GAM_ARCHIVE_ARCH}.zip"
           /c/Program\ Files/7-Zip/7z.exe a -tzip $GAM_ARCHIVE gamadv-xtd3 "-xr@${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" -bb3
           cd ..
-          /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.11/bin/candle.exe -arch "${WIX_ARCH}" gam.wxs
-          /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.11/bin/light.exe -ext /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.11/bin/WixUIExtension.dll gam.wixobj -o "gamadv-xtd3-${GAMVERSION}-windows-${GAM_ARCHIVE_ARCH}.msi" || true;
-          rm -v -f *.wixpdb
+          #/c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.11/bin/candle.exe -arch "${WIX_ARCH}" gam.wxs
+          #/c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.11/bin/light.exe -ext /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.11/bin/WixUIExtension.dll gam.wixobj -o "gamadv-xtd3-${GAMVERSION}-windows-${GAM_ARCHIVE_ARCH}.msi" || true;
+          #rm -v -f *.wixpdb
 
       - name: Basic Tests build jobs only
         if: matrix.goal != 'test' && steps.cache-python-ssl.outputs.cache-hit != 'true'
