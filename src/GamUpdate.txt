@@ -1,3 +1,7 @@
+6.29.20
+
+Fixed bug in `gam <UserTypeEntity> archive messages <GroupItem>` that caused a trap.
+
 6.29.19
 
 Fixed bug introduced in 6.29.17 in `todrive` that caused a trap.
