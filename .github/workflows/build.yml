@@ -225,7 +225,8 @@ jobs:
           file "${OPENSSL_INSTALL_PATH}/bin/openssl"
 
       - name: Get latest stable Python source
-        if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        #if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        if: matrix.goal == 'build'
         run: |
           cd "${GITHUB_WORKSPACE}/src"
           git clone https://github.com/python/cpython.git
@@ -240,7 +241,8 @@ jobs:
           echo "COMPILED_PYTHON_VERSION=${COMPILED_PYTHON_VERSION}" >> $GITHUB_ENV
 
       - name: Mac/Linux Configure Python
-        if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        #if: matrix.goal == 'build' && runner.os != 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        if: matrix.goal == 'build'
         run: |
           cd "${PYTHON_SOURCE_PATH}"
           ./configure --with-openssl="${OPENSSL_INSTALL_PATH}" \
