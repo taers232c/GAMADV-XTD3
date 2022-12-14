@@ -1,7 +1,3 @@
-6.30.00
-
-* Upgraded to Python 3.11.1 where possible.
-
 6.29.20
 
 Fixed bug in `gam <UserTypeEntity> archive messages <GroupItem>` that caused a trap.
