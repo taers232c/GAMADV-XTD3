@@ -1,3 +1,7 @@
+6.29.21
+
+Fixed bugs in `gam selectfilter` that caused traps or inappropriate error messages.
+
 6.29.20
 
 Fixed bug in `gam <UserTypeEntity> archive messages <GroupItem>` that caused a trap.

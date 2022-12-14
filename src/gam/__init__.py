@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.20'
+__version__ = '6.29.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3770,18 +3770,18 @@ def SetGlobalVariables():
 # Process selectfilter|selectoutputfilter|selectinputfilter
   if inputFilterSectionName:
     GC.Values[GC.CSV_INPUT_ROW_FILTER] = _getCfgRowFilter(inputFilterSectionName, GC.CSV_INPUT_ROW_FILTER)
-    GC.Values[GC.CSV_INPUT_ROW_FILTER_MODE] = _getCfgBoolean(inputFilterSectionName, GC.CSV_INPUT_ROW_FILTER_MODE)
+    GC.Values[GC.CSV_INPUT_ROW_FILTER_MODE] = _getCfgChoice(inputFilterSectionName, GC.CSV_INPUT_ROW_FILTER_MODE)
     GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER] = _getCfgRowFilter(inputFilterSectionName, GC.CSV_INPUT_ROW_DROP_FILTER)
-    GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER_MODE] = _getCfgBoolean(inputFilterSectionName, GC.CSV_INPUT_ROW_DROP_FILTER_MODE)
-    GC.Values[GC.CSV_INPUT_ROWLIMIT] = _getCfgNumber(inputFilterSectionName, GC.CSV_INPUT_ROW_LIMIT)
+    GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER_MODE] = _getCfgChoice(inputFilterSectionName, GC.CSV_INPUT_ROW_DROP_FILTER_MODE)
+    GC.Values[GC.CSV_INPUT_ROW_LIMIT] = _getCfgNumber(inputFilterSectionName, GC.CSV_INPUT_ROW_LIMIT)
   if outputFilterSectionName:
     GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
     GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
-    GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE] = _getCfgBoolean(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER_MODE)
+    GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE] = _getCfgChoice(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER_MODE)
     GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER)
-    GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE] = _getCfgBoolean(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE)
-    GC.Values[GC.CSV_OUTPUT_ROWLIMIT] = _getCfgNumber(outputFilterSectionName, GC.CSV_OUTPUT_ROW_LIMIT)
+    GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE] = _getCfgChoice(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE)
+    GC.Values[GC.CSV_OUTPUT_ROW_LIMIT] = _getCfgNumber(outputFilterSectionName, GC.CSV_OUTPUT_ROW_LIMIT)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
 # Global values cleanup
