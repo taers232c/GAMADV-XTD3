@@ -1,3 +1,57 @@
+6.30.00
+
+Added option `returnidonly` to `gam <UserTypeEntity> show fileinfo <DriveFileEntity>`
+that causes GAM to return just the file ID of the files in `<DriveFileEntity>` file as output.
+```
+$ gam user user@domain.com show fileinfo root returnidonly
+0AHYenC8f12ALUk9xyz
+
+$ gam user testsimple show fileinfo name "Test File" returnidonly
+0B3YenC8f12ALflhUTmtNS3E2Vk9LSUpBVXRSUG5lQ29GWkRtWHM1VzU1blc4ZW1pb2FnNTA
+```
+
+Added option `returnpathonly` to `gam <UserTypeEntity> show filepath <DriveFileEntity>`
+that causes GAM to return just the file path of the files in `<DriveFileEntity>` file as output.
+```
+$ gam user user@domain.com show filepath name "Test File" returnpathonly
+My Drive/Classroom/Test File
+
+$ gam user user@domain.com show filepath 0AJ6mqwXP9wHxUk9xyz returnpathonly
+TS Shared Drive 6
+
+$ gam user testsimple show filepath 0AJ6mqwXP9wHxUk9xyz returnpathonly fullpath
+SharedDrive(TS Shared Drive 6)
+
+$ gam user user@domain.com show filepath teamdriveid 0AJ6mqwXP9wHxUk9xyz teamdrivefilename "TS TD6 Doc" returnpathonly
+SharedDrive(TS Shared Drive 6)/TS SD6 Folder/TS TD6 Doc
+```
+
+Added command `gam comment <String>*` that displays the comment data on stdout.
+This can be used to validate `csv_input_row_filters` and column value extraction.
+```
+$ more Comment.csv 
+col1,col2
+aaa,111
+bbb,222
+ccc,333
+$ gam config csv_input_row_drop_filter "col1:regex:bbb" csv Comment.csv gam comment "Col1:~~col1~~" "Col2:~~col2~~"
+2022-12-16T12:41:50.045-08:00,0/2,Using 2 processes...
+Col1:aaa Col2:111
+Col1:ccc Col2:333
+```
+
+Updated `gam <UserTypeEntity> create|delete license <SKUIDList>` to take a list of SKUs.
+
+Updated `gam create user <EmailAddress> ... license <SKUIDList>` to take a list of SKUs.
+
+Updated `gam <UserTypeEntity> sync license <SKUIDList>` to take a list of SKUs and
+added option `allskus|onesku` that is required when multiple SKUs are specified.
+
+* `allskus` indicates that users in `<UserTypeEntity>` will  be updated to have all of the SKUs in `<SKUIDList>`.
+  * This is typically used when assigning different types of licenses, such as an Enterprise license and a Voice license.
+* `onesku` indicates that users in `<UserTypeEntity>` with none of the licenses in`<SKUIDList>` will be updated to have the first available license SKU in `<SKUIDList>`.
+  * This is typically used with Google Education Plus or Google Education Standard licenses, which are split across multiple SKUs.
+
 6.29.21
 
 Fixed bugs in `gam selectfilter` that caused traps or inappropriate error messages.

@@ -137,7 +137,7 @@ _SKUS = {
   }
 
 def getProductAndSKU(sku):
-  l_sku = sku.lower().replace('-', '').replace(' ', '').strip()
+  l_sku = sku.lower().replace('-', '').replace(' ', '').replace('"', '').replace("'", '').strip()
   if l_sku.startswith('nv:'):
     if ':' in sku[3:]:
       return sku[3:].split(':', 1)

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.29.21'
+__version__ = '6.30.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -1308,12 +1308,12 @@ def getGoogleSKU():
       return SKU.getProductAndSKU(sku)
   missingArgumentExit(Cmd.OB_SKU_ID)
 
-def getGoogleSKUList():
+def getGoogleSKUList(allowUnknownProduct=False):
   if Cmd.ArgumentsRemaining():
     skusList = []
     for sku in Cmd.Current().split(','):
       productId, sku = SKU.getProductAndSKU(sku)
-      if not productId:
+      if not productId and not allowUnknownProduct:
         invalidChoiceExit(sku, SKU.getSortedSKUList(), False)
       if (productId, sku) not in skusList:
         skusList.append((productId, sku))
@@ -2502,6 +2502,11 @@ def printGettingEntityItemForWhom(entityItem, forWhom, i=0, count=0):
     Ent.SetGetting(entityItem)
     Ent.SetGettingForWhom(forWhom)
     writeStderr(f'{Msg.GETTING} {Ent.PluralGetting()} {Msg.FOR} {forWhom}{currentCountNL(i, count)}')
+
+def stderrEntityMessage(entityValueList, message, i=0, count=0):
+  writeStderr(formatKeyValueList(Ind.Spaces(),
+                                 Ent.FormatEntityValueList(entityValueList)+[message],
+                                 currentCountNL(i, count)))
 
 FIRST_ITEM_MARKER = '%%first_item%%'
 LAST_ITEM_MARKER = '%%last_item%%'
@@ -8436,6 +8441,10 @@ def doCheckConnection():
     writeStdout(createGreenText('All hosts passed!\n'))
   else:
     systemErrorExit(3, createYellowText('Some hosts failed to connect! Please follow the recommendations for those hosts to correct any issues and try again.'))
+
+# gam comment
+def doComment():
+  writeStdout(Cmd.QuotedArgumentList(Cmd.Remaining())+'\n')
 
 # gam version [check|checkrc|simple|extended] [timeoffset] [location <HostName>]
 def doVersion(checkForArgs=True):
@@ -18663,9 +18672,9 @@ PEOPLE_CONTACT_DEPRECATED_SELECT_ARGUMENTS = {
   'orderby', 'basic', 'thin', 'full', 'showdeleted',
   }
 
-def _getPeopleContactEntityList(entityType, unknownAction, noEntityArguments={}):
+def _getPeopleContactEntityList(entityType, unknownAction, noEntityArguments=None):
   contactQuery = _initPeopleContactQueryAttributes(False)
-  if noEntityArguments and (not Cmd.ArgumentsRemaining() or Cmd.PeekArgumentPresent(noEntityArguments)):
+  if noEntityArguments is not None and (not Cmd.ArgumentsRemaining() or Cmd.PeekArgumentPresent(noEntityArguments)):
     # <PeopleResourceNameEntity>|<PeopleUserContactSelection> are optional in dedup|replacedomain contacts
     entityList = None
     queriedContacts = True
@@ -35716,7 +35725,7 @@ def doPrintVaultCounts():
                                  accountType=Ent.VAULT_MATTER)
   while not operation.get('done'):
     if doWait:
-      printEntityMessage([Ent.VAULT_OPERATION, operation['name']], Msg.IS_NOT_DONE_CHECKING_IN_SECONDS.format(operationWait))
+      stderrEntityMessage([Ent.VAULT_OPERATION, operation['name']], Msg.IS_NOT_DONE_CHECKING_IN_SECONDS.format(operationWait))
       time.sleep(operationWait)
     try:
       operation = callGAPI(v.operations(), 'get',
@@ -36889,8 +36898,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     'notifyOnUpdate': True,
     'setChangePasswordOnCreate': False,
     'lic': None,
-    LICENSE_PRODUCTID: None,
-    LICENSE_SKUID: None,
+    LICENSE_PRODUCT_SKUIDS: [],
     }
   if updateCmd:
     body = {}
@@ -36942,11 +36950,14 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     elif not updateCmd and myarg in {'licence', 'license'}:
       if parameters['lic'] is None:
         parameters['lic'] = buildGAPIObject(API.LICENSING)
-      parameters[LICENSE_PRODUCTID], parameters[LICENSE_SKUID] = getGoogleSKU()
+      parameters[LICENSE_PRODUCT_SKUIDS] = getGoogleSKUList(allowUnknownProduct=True)
       if checkArgumentPresent(['product', 'productid']):
-        parameters[LICENSE_PRODUCTID] = getGoogleProduct()
-      elif not parameters[LICENSE_PRODUCTID]:
-        invalidChoiceExit(parameters[LICENSE_SKUID], SKU.getSortedSKUList(), True)
+        productId = getGoogleProduct()
+        for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+          productSku = (productId, productSku[1])
+      for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+        if not productSku[0]:
+          invalidChoiceExit(productSku[1], SKU.getSortedSKUList(), True)
     elif updateCmd and myarg == 'updateoufromgroup':
       groupOrgUnitMap = _getGroupOrgUnitMap()
     elif updateCmd and myarg == 'updateprimaryemail':
@@ -37352,14 +37363,19 @@ def doCreateUser():
       createUserAddAliases(cd, result['primaryEmail'], addAliases, 0, 0)
     if notify.get('recipients'):
       sendCreateUpdateUserNotification(result, notify, tagReplacements)
-    if parameters[LICENSE_SKUID] is not None:
+    for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+      productId = productSku[0]
+      skuId = productSku[1]
       try:
         callGAPI(parameters['lic'].licenseAssignments(), 'insert',
-                 throwReasons=[GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR],
-                 productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
-        entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])])
-      except (GAPI.duplicate, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid, GAPI.userNotFound, GAPI.backendError) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], str(e))
+                 throwReasons=[GAPI.INTERNAL_ERROR, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
+                               GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                 productId=productId, skuId=skuId, body={'userId': user}, fields='')
+        entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)])
+      except (GAPI.internalError, GAPI.duplicate, GAPI.conditionNotMet, GAPI.invalid,
+              GAPI.userNotFound, GAPI.forbidden, GAPI.backendError, GAPI.serviceNotAvailable) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], str(e))
   except GAPI.duplicate:
     duplicateAliasGroupUserWarning(cd, [Ent.USER, user])
   except GAPI.invalidSchemaValue:
@@ -46815,6 +46831,7 @@ def _formatFileDriveLabels(showLabels, labels, result, printMode, delimiter):
     result['labelsIds'] = delimiter.join([label['id'] for label in labels])
 
 # gam <UserTypeEntity> info drivefile <DriveFileEntity>
+#	[returnidonly]
 #	[filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[showdrivename] [showshareddrivepermissions]
@@ -46822,6 +46839,7 @@ def _formatFileDriveLabels(showLabels, labels, result, printMode, delimiter):
 #	[showparentsidsaslist]
 #	[stripcrsfromname]
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity>
+#	[returnidonly]
 #	[filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[showdrivename] [showshareddrivepermissions]
@@ -46836,7 +46854,7 @@ def showFileInfo(users):
     if getPermissionsForSharedDrives or DFF.showSharedDriveNames:
       _setSkipObjects(skipObjects, ['driveId'], DFF.fieldsList)
 
-  getPermissionsForSharedDrives = filepath = fullpath = showParentsIdsAsList = showNoParents = stripCRsFromName = False
+  getPermissionsForSharedDrives = filepath = fullpath = returnIdOnly = showParentsIdsAsList = showNoParents = stripCRsFromName = False
   showLabels = None
   simpleLists = []
   skipObjects = set()
@@ -46859,6 +46877,8 @@ def showFileInfo(users):
     elif myarg == 'showshareddrivepermissions':
       getPermissionsForSharedDrives = True
       permissionsFields = 'nextPageToken,permissions'
+    elif myarg == 'returnidonly':
+      returnIdOnly = True
     elif DFF.ProcessArgument(myarg):
       pass
     else:
@@ -46879,10 +46899,16 @@ def showFileInfo(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    if returnIdOnly:
+      GC.Values[GC.SHOW_GETTINGS] = False
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=Ent.DRIVE_FILE_OR_FOLDER if not FJQC.formatJSON else None,
+                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][FJQC.formatJSON or returnIdOnly],
                                                   orderBy=DFF.orderBy)
     if jcount == 0:
+      continue
+    if returnIdOnly:
+      for fileId in fileIdEntity['list']:
+        writeStdout(f'{fileId}\n')
       continue
     if not showParentsIdsAsList and DFF.parentsSubFields['isRoot']:
       try:
@@ -48712,13 +48738,14 @@ def printFileList(users):
 #	[oneitemperrow]
 #	[stripcrsfromname] [fullpath]
 # gam <UserTypeEntity> show filepaths <DriveFileEntity>
+#	[returnpathonly]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[stripcrsfromname] [fullpath]
 def printShowFilePaths(users):
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   csvPF = CSVPrintFile(['Owner', 'id', fileNameTitle, 'paths'], 'sortall', ['paths']) if Act.csvFormat() else None
   fileIdEntity = getDriveFileEntity()
-  fullpath = oneItemPerRow = stripCRsFromName = False
+  fullpath = oneItemPerRow = returnPathOnly = stripCRsFromName = False
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -48728,6 +48755,8 @@ def printShowFilePaths(users):
       fullpath = True
     elif myarg == 'stripcrsfromname':
       stripCRsFromName = True
+    elif csvPF is None and myarg == 'returnpathonly':
+      returnPathOnly = True
     elif csvPF and myarg == 'oneitemperrow':
       oneItemPerRow = True
       csvPF.RemoveTitles('paths')
@@ -48742,8 +48771,10 @@ def printShowFilePaths(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
+    if returnPathOnly:
+      GC.Values[GC.SHOW_GETTINGS] = False
     user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity,
-                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][csvPF is not None],
+                                                  entityType=[Ent.DRIVE_FILE_OR_FOLDER, None][(csvPF is not None) or returnPathOnly],
                                                   orderBy=OBY.orderBy)
     if jcount == 0:
       continue
@@ -48762,17 +48793,29 @@ def printShowFilePaths(users):
         result = callGAPI(drive.files(), 'get',
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields=pathFields, supportsAllDrives=True)
+        if returnPathOnly and result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == MY_DRIVE:
+          writeStdout(f'{MY_DRIVE}\n')
+          continue
         if stripCRsFromName:
           result['name'] = _stripControlCharsFromName(result['name'])
         driveId = result.get('driveId')
         if driveId:
           if result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == TEAM_DRIVE:
             result['name'] = _getSharedDriveNameFromId(drive, driveId)
+            if returnPathOnly:
+              if fullpath:
+                writeStdout(f'SharedDrive({result["name"]})\n')
+              else:
+                writeStdout(f'{result["name"]}\n')
+              continue
         if fullpath:
           extendFileTree(fileTree, [result], None, False)
           extendFileTreeParents(drive, fileTree, pathFields)
         entityType, paths, _ = getFilePaths(drive, fileTree, result, filePathInfo, addParentsToTree=True, fullpath=fullpath)
-        if not csvPF:
+        if returnPathOnly:
+          for path in paths:
+            writeStdout(f'{path}\n')
+        elif not csvPF:
           kcount = len(paths)
           entityPerformActionNumItems([entityType, f'{result["name"]} ({fileId})'], kcount, Ent.DRIVE_PATH, j, jcount)
           Ind.Increment()
@@ -57367,96 +57410,159 @@ def printUserGroupsList(users):
   csvPF.writeCSVfile('User GroupsList')
 
 # License command utilities
-LICENSE_SKUID = 'skuId'
-LICENSE_PRODUCTID = 'productId'
-LICENSE_OLDSKUID = 'oldSkuId'
+LICENSE_PRODUCT_SKUIDS = 'productSkuIds'
 LICENSE_PREVIEW_TITLES = ['user', 'productId', 'skuId', 'action', 'message']
 
 def getLicenseParameters(operation):
   lic = buildGAPIObject(API.LICENSING)
-  parameters = {}
-  parameters[LICENSE_PRODUCTID], parameters[LICENSE_SKUID] = getGoogleSKU()
+  parameters = {LICENSE_PRODUCT_SKUIDS: [], 'csvPF': None, 'preview': False, 'syncOperation': 'addremove', 'syncACLsMode': None}
+  skuLocation = Cmd.Location()
+  if operation != 'patch':
+    parameters[LICENSE_PRODUCT_SKUIDS] = getGoogleSKUList(allowUnknownProduct=True)
+  else:
+    parameters[LICENSE_PRODUCT_SKUIDS] = [getGoogleSKU()]
   if checkArgumentPresent(['product', 'productid']):
-    parameters[LICENSE_PRODUCTID] = getGoogleProduct()
-  elif not parameters[LICENSE_PRODUCTID]:
-    invalidChoiceExit(parameters[LICENSE_SKUID], SKU.getSortedSKUList(), True)
+    productId = getGoogleProduct()
+    for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+      productSku = (productId, productSku[1])
   if operation == 'patch':
     checkArgumentPresent('from')
-    productId, parameters[LICENSE_OLDSKUID] = getGoogleSKU()
+    productId, oldSkuId = getGoogleSKU()
     if not productId:
-      invalidChoiceExit(parameters[LICENSE_OLDSKUID], SKU.getSortedSKUList(), True)
+      invalidChoiceExit(oldSkuId, SKU.getSortedSKUList(), True)
+    skuId = parameters[LICENSE_PRODUCT_SKUIDS][0][1]
+    parameters[LICENSE_PRODUCT_SKUIDS] = [(productId, skuId, oldSkuId)]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if operation == 'sync' and myarg in {'addonly', 'removeonly'}:
+      parameters['syncOperation'] = myarg
+    elif operation == 'sync' and myarg in {'allskus', 'onesku'}:
+      parameters['syncACLsMode'] = myarg
+    elif myarg == 'preview':
+      parameters['preview'] = True
+    elif myarg == 'actioncsv':
+      titles = LICENSE_PREVIEW_TITLES
+      if operation == 'patch':
+        titles.insert(2, 'oldskuId')
+      parameters['csvPF'] = CSVPrintFile(titles)
+    else:
+      unknownArgumentExit()
+  for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+    if not productSku[0]:
+      Cmd.SetLocation(skuLocation)
+      invalidChoiceExit(productSku[1], SKU.getSortedSKUList(), False)
   if operation == 'sync':
-    parameters['syncOperation'] = getSyncOperation()
-  parameters['preview'] = checkArgumentPresent('preview')
-  if checkArgumentPresent('actioncsv'):
-    titles = LICENSE_PREVIEW_TITLES
-    if operation == 'patch':
-      titles.insert(2, 'oldskuId')
-    parameters['csvPF'] = CSVPrintFile(titles)
-  else:
-    parameters['csvPF'] = None
-  checkForExtraneousArguments()
+    if len(parameters[LICENSE_PRODUCT_SKUIDS]) > 1:
+      if parameters['syncACLsMode'] is None:
+        missingArgumentExit('allskus|onesku')
+      if parameters['syncACLsMode'] == 'onesku':
+        # With onesku, all SKU productIds must be the same
+        baseProductId = parameters[LICENSE_PRODUCT_SKUIDS][0][0]
+        baseSkuId = parameters[LICENSE_PRODUCT_SKUIDS][0][1]
+        for i in range(1, len(parameters[LICENSE_PRODUCT_SKUIDS])):
+          productId = parameters[LICENSE_PRODUCT_SKUIDS][i][0]
+          if baseProductId != productId:
+            skuId = parameters[LICENSE_PRODUCT_SKUIDS][i][1]
+            Cmd.SetLocation(skuLocation)
+            usageErrorExit(Msg.ALL_SKU_PRODUCTIDS_MUST_MATCH.format(f'{baseProductId}:{baseSkuId}', f'{productId}:{skuId}'))
+    else:
+      parameters['syncACLsMode'] = 'allskus'
   return (lic, parameters)
 
-def _writeLicenseAction(parameters, user, action, message):
+def _writeLicenseAction(productId, skuId, oldSkuId, parameters, user, action, message):
+  actionName = Act.PerformedName(action) if message == Act.SUCCESS else Act.ToPerformName(action)
   if action != Act.UPDATE:
     parameters['csvPF'].WriteRow({'user': user,
-                                  'productId': parameters[LICENSE_PRODUCTID],
-                                  'skuId': parameters[LICENSE_SKUID],
-                                  'action': Act.PerformedName(action),
+                                  'productId': productId,
+                                  'skuId': skuId,
+                                  'action': actionName,
                                   'message': message})
   else:
     parameters['csvPF'].WriteRow({'user': user,
-                                  'productId': parameters[LICENSE_PRODUCTID],
-                                  'oldskuId': parameters[LICENSE_OLDSKUID],
-                                  'skuId': parameters[LICENSE_SKUID],
-                                  'action': Act.PerformedName(action),
+                                  'productId': productId,
+                                  'oldskuId': oldSkuId,
+                                  'skuId': skuId,
+                                  'action': actionName,
                                   'message': message})
 
-def _createLicenses(lic, parameters, count, users):
+def _createLicenses(lic, productId, skuId, parameters, jcount, users, i, count, returnDoneSet=False):
   Act.Set([Act.ADD, Act.ADD_PREVIEW][parameters['preview']])
   if parameters['preview']:
     message = Act.PREVIEW
-  i = 0
+  noAvailableLicenses = False
+  doneSet = set()
+  if not returnDoneSet:
+    entityPerformActionNumItems([Ent.LICENSE, SKU.skuIdToDisplayName(skuId)], jcount, Ent.USER, i, count)
+  else:
+    entityPerformActionModifierNumItems([Ent.LICENSE, SKU.skuIdToDisplayName(skuId)], Msg.MAXIMUM_OF, jcount, Ent.USER, i, count)
+  Ind.Increment()
+  j = 0
   for user in users:
-    i += 1
+    j += 1
+    if returnDoneSet:
+      origUser = user
+      doneSet.add(user)
     user = normalizeEmailAddressOrUID(user)
-    try:
-      if not parameters['preview']:
-        callGAPI(lic.licenseAssignments(), 'insert',
-                 throwReasons=[GAPI.INTERNAL_ERROR, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
-                               GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
-                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                 productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], body={'userId': user}, fields='')
-        message = Act.SUCCESS
-      entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.internalError, GAPI.duplicate, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid, GAPI.serviceNotAvailable) as e:
-      message = str(e)
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], message, i, count)
-    except (GAPI.userNotFound, GAPI.backendError) as e:
-      message = str(e)
-      entityUnknownWarning(Ent.USER, user, i, count)
+    if not noAvailableLicenses:
+      try:
+        if not parameters['preview']:
+          callGAPI(lic.licenseAssignments(), 'insert',
+                   bailOnInternalError=True,
+                   throwReasons=[GAPI.INTERNAL_ERROR, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
+                                 GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                   retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                   productId=productId, skuId=skuId, body={'userId': user}, fields='')
+          message = Act.SUCCESS
+        entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], j, jcount)
+      except (GAPI.internalError, GAPI.duplicate, GAPI.invalid,
+              GAPI.forbidden, GAPI.serviceNotAvailable) as e:
+        message = str(e)
+        entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], message, j, jcount)
+      except (GAPI.conditionNotMet, GAPI.backendError) as e:
+        message = str(e)
+        entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], message, j, jcount)
+        if ("there aren't enough available licenses" in message.lower() or
+            "backend error" in message.lower()):
+          noAvailableLicenses = True
+      except GAPI.userNotFound as e:
+        message = str(e)
+        entityUnknownWarning(Ent.USER, user, j, jcount)
+    else:
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], message, j, jcount)
     if parameters['csvPF']:
-      _writeLicenseAction(parameters, user, Act.ADD, message)
+      _writeLicenseAction(productId, skuId, None, parameters, user, Act.ADD, message)
+    if returnDoneSet and noAvailableLicenses:
+      doneSet.remove(origUser)
+      break
+  Ind.Decrement()
+  if returnDoneSet:
+    return doneSet
 
-# gam <UserTypeEntity> create|add license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
+# gam <UserTypeEntity> create|add license <SKUIDList> [product|productid <ProductID>] [preview] [actioncsv]
 def createLicense(users):
   lic, parameters = getLicenseParameters('insert')
-  _, count, users = getEntityArgument(users)
-  _createLicenses(lic, parameters, count, users)
+  _, jcount, users = getEntityArgument(users)
+  count = len(parameters[LICENSE_PRODUCT_SKUIDS])
+  i = 0
+  for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+    i += 1
+    _createLicenses(lic, productSku[0], productSku[1], parameters, jcount, users, i, count)
   if parameters['csvPF']:
     parameters['csvPF'].writeCSVfile('Create Licenses')
 
 # gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID> [preview] [actioncsv]
 def updateLicense(users):
   lic, parameters = getLicenseParameters('patch')
-  i, count, users = getEntityArgument(users)
+  j, jcount, users = getEntityArgument(users)
   Act.Set([Act.UPDATE, Act.UPDATE_PREVIEW][parameters['preview']])
   if parameters['preview']:
     message = Act.PREVIEW
-  body = {'skuId': parameters[LICENSE_SKUID]}
+  productId, skuId, oldSkuId = parameters[LICENSE_PRODUCT_SKUIDS][0]
+  body = {'skuId': skuId}
+  entityPerformActionNumItems([Ent.LICENSE, SKU.skuIdToDisplayName(skuId)], jcount, Ent.USER)
+  Ind.Increment()
   for user in users:
-    i += 1
+    j += 1
     user = normalizeEmailAddressOrUID(user)
     try:
       if not parameters['preview']:
@@ -57465,28 +57571,32 @@ def updateLicense(users):
                  throwReasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
                                GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                 productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_OLDSKUID], userId=user, body=body, fields='')
+                 productId=productId, skuId=oldSkuId, userId=user, body=body, fields='')
         message = Act.SUCCESS
-      entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(parameters[LICENSE_SKUID])],
-                                            Act.MODIFIER_FROM, SKU.skuIdToDisplayName(parameters[LICENSE_OLDSKUID]), i, count)
-    except (GAPI.internalError, GAPI.notFound, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid, GAPI.serviceNotAvailable) as e:
+      entityModifierNewValueActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.skuIdToDisplayName(skuId)],
+                                            Act.MODIFIER_FROM, SKU.skuIdToDisplayName(oldSkuId), j, jcount)
+    except (GAPI.internalError, GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid,
+            GAPI.forbidden, GAPI.backendError, GAPI.serviceNotAvailable) as e:
       message = str(e)
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_OLDSKUID])], message, i, count)
-    except (GAPI.userNotFound, GAPI.backendError) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(oldSkuId)], message, j, jcount)
+    except GAPI.userNotFound as e:
       message = str(e)
-      entityUnknownWarning(Ent.USER, user, i, count)
+      entityUnknownWarning(Ent.USER, user, j, jcount)
     if parameters['csvPF']:
-      _writeLicenseAction(parameters, user, Act.UPDATE, message)
+      _writeLicenseAction(productId, skuId, oldSkuId, parameters, user, Act.UPDATE, message)
+  Ind.Decrement()
   if parameters['csvPF']:
     parameters['csvPF'].writeCSVfile('Update Licenses')
 
-def _deleteLicenses(lic, parameters, count, users):
+def _deleteLicenses(lic, productId, skuId, parameters, jcount, users, i, count):
   Act.Set([Act.DELETE, Act.DELETE_PREVIEW][parameters['preview']])
   if parameters['preview']:
     message = Act.PREVIEW
-  i = 0
+  entityPerformActionNumItems([Ent.LICENSE, SKU.skuIdToDisplayName(skuId)], jcount, Ent.USER, i, count)
+  Ind.Increment()
+  j = 0
   for user in users:
-    i += 1
+    j += 1
     user = normalizeEmailAddressOrUID(user)
     try:
       if not parameters['preview']:
@@ -57494,40 +57604,84 @@ def _deleteLicenses(lic, parameters, count, users):
                  throwReasons=[GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
                                GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                 productId=parameters[LICENSE_PRODUCTID], skuId=parameters[LICENSE_SKUID], userId=user)
+                 productId=productId, skuId=skuId, userId=user)
         message = Act.SUCCESS
-      entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], i, count)
-    except (GAPI.internalError, GAPI.notFound, GAPI.forbidden, GAPI.conditionNotMet, GAPI.invalid, GAPI.serviceNotAvailable) as e:
+      entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], j, jcount)
+    except (GAPI.internalError, GAPI.notFound, GAPI.conditionNotMet, GAPI.invalid,
+            GAPI.forbidden, GAPI.backendError, GAPI.serviceNotAvailable) as e:
       message = str(e)
-      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(parameters[LICENSE_SKUID])], message, i, count)
-    except (GAPI.userNotFound, GAPI.backendError) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], message, j, jcount)
+    except GAPI.userNotFound as e:
       message = str(e)
-      entityUnknownWarning(Ent.USER, user, i, count)
+      entityUnknownWarning(Ent.USER, user, j, jcount)
     if parameters['csvPF']:
-      _writeLicenseAction(parameters, user, Act.DELETE, message)
+      _writeLicenseAction(productId, skuId, None, parameters, user, Act.DELETE, message)
+  Ind.Decrement()
 
-# gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
+# gam <UserTypeEntity> delete license <SKUIDList> [product|productid <ProductID>] [preview] [actioncsv]
 def deleteLicense(users):
   lic, parameters = getLicenseParameters('delete')
-  _, count, users = getEntityArgument(users)
-  _deleteLicenses(lic, parameters, count, users)
+  _, jcount, users = getEntityArgument(users)
+  count = len(parameters[LICENSE_PRODUCT_SKUIDS])
+  i = 0
+  for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+    i += 1
+    _deleteLicenses(lic, productSku[0], productSku[1], parameters, jcount, users, i, count)
   if parameters['csvPF']:
     parameters['csvPF'].writeCSVfile('Delete Licenses')
 
-# gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addonly|removeonly] [preview] [actioncsv]
+# gam <UserTypeEntity> sync license <SKUIDList> [product|productid <ProductID>]
+#	[addonly|removeonly] [allskus|onesku] [preview] [actioncsv]
 def syncLicense(users):
   lic, parameters = getLicenseParameters('sync')
   _, _, users = getEntityArgument(users)
   usersSet = set()
+  currentLicenses = {}
   for user in users:
     usersSet.add(normalizeEmailAddressOrUID(user))
-  currentLicenses = set(getItemsToModify(Cmd.ENTITY_LICENSES, parameters[LICENSE_SKUID]))
-  if parameters['syncOperation'] != 'addonly':
-    deleteSet = currentLicenses-usersSet
-    _deleteLicenses(lic, parameters, len(deleteSet), deleteSet)
-  if parameters['syncOperation'] != 'removeonly':
-    addSet = usersSet-currentLicenses
-    _createLicenses(lic, parameters, len(addSet), addSet)
+  for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+    skuId = productSku[1]
+    currentLicenses[skuId] = set(getItemsToModify(Cmd.ENTITY_LICENSES, skuId))
+  count = len(parameters[LICENSE_PRODUCT_SKUIDS])
+  if parameters['syncACLsMode'] != 'onesku':
+    i = 0
+    for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+      i += 1
+      if parameters['syncOperation'] != 'addonly':
+        deleteSet = currentLicenses[skuId]-usersSet
+        _deleteLicenses(lic, productSku[0], productSku[1], parameters, len(deleteSet), deleteSet, i, count)
+      if parameters['syncOperation'] != 'removeonly':
+        addSet = usersSet-currentLicenses[skuId]
+        _createLicenses(lic, productSku[0], productSku[1], parameters, len(addSet), addSet, i, count)
+  else: #parameters['syncACLsMode'] == 'onesku':
+    if parameters['syncOperation'] != 'addonly':
+      i = 0
+      for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+        i += 1
+        deleteSet = currentLicenses[productSku[1]]-usersSet
+        _deleteLicenses(lic, productSku[0], productSku[1], parameters, len(deleteSet), deleteSet, i, count)
+    if parameters['syncOperation'] != 'removeonly':
+      addSet = usersSet.copy()
+      for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+        addSet = addSet-currentLicenses[productSku[1]]
+      i = 0
+      for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+        if not addSet:
+          break
+        i += 1
+        addSet -= _createLicenses(lic, productSku[0], productSku[1], parameters, len(addSet), addSet, i, count, returnDoneSet=True)
+      if addSet:
+        skuIds = []
+        for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+          productId = productSku[0]
+          skuIds.append(SKU.formatSKUIdDisplayName(productSku[1]))
+        formattedSkuIds = ','.join(skuIds)
+        message = Msg.NO_AVAILABLE_LICENSES
+        for user in addSet:
+          user = normalizeEmailAddressOrUID(user)
+          entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, formattedSkuIds], message)
+          if parameters['csvPF']:
+            _writeLicenseAction(productId, formattedSkuIds, None, parameters, user, Act.ADD, message)
   if parameters['csvPF']:
     parameters['csvPF'].writeCSVfile('Sync Licenses')
 
@@ -62020,10 +62174,9 @@ def printShowForwardingAddresses(users):
 def _showImap(user, i, count, result):
   enabled = result['enabled']
   kvList = [Ent.Singular(Ent.IMAP_ENABLED), enabled]
-  if enabled:
-    for item in result:
-      if item != 'enabled':
-        kvList += [item, result[item]]
+  for item in result:
+    if item != 'enabled':
+      kvList += [item, result[item]]
   printEntityKVList([Ent.USER, user], kvList, i, count)
 #
 EMAILSETTINGS_IMAP_EXPUNGE_BEHAVIOR_CHOICE_MAP = {
@@ -64474,6 +64627,7 @@ BATCH_CSV_COMMANDS = {
 MAIN_COMMANDS = {
   'checkconn':			(Act.CHECK, doCheckConnection),
   'checkconnection':		(Act.CHECK, doCheckConnection),
+  'comment':			(Act.COMMENT, doComment),
   'help': 			(Act.PERFORM, doUsage),
   'list': 			(Act.LIST, doListType),
   'report': 			(Act.REPORT, doReport),
@@ -65976,6 +66130,8 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_GUARDIANINVITATIONS:	Cmd.ARG_GUARDIANINVITATION,
   Cmd.ARG_GUARDIANINVITE:	Cmd.ARG_GUARDIANINVITATION,
   Cmd.ARG_GUARDIANS:		Cmd.ARG_GUARDIAN,
+  Cmd.ARG_HOLD:			Cmd.ARG_VAULTHOLD,
+  Cmd.ARG_HOLDS:		Cmd.ARG_VAULTHOLD,
   Cmd.ARG_IMAP4:		Cmd.ARG_IMAP,
   Cmd.ARG_INVITEGUARDIAN:	Cmd.ARG_GUARDIANINVITATION,
   Cmd.ARG_LABELS:		Cmd.ARG_LABEL,

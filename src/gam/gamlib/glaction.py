@@ -39,6 +39,7 @@ class GamAction():
   CLEAR = 'clea'
   CLOSE = 'clos'
   COLLECT = 'collect'
+  COMMENT = 'comment'
   COPY = 'copy'
   CREATE = 'crea'
   CREATE_PREVIEW = 'crep'
@@ -150,6 +151,7 @@ class GamAction():
     CLEAR: ['Cleared', 'Clear'],
     CLOSE: ['Closed', 'Close'],
     COLLECT: ['Collected', 'Collect'],
+    COMMENT: ['Commented', 'Comment'],
     COPY: ['Copied', 'Copy'],
     CREATE: ['Created', 'Create'],
     CREATE_PREVIEW: ['Created (Preview)', 'Create (Preview)'],
@@ -284,6 +286,9 @@ class GamAction():
 
   def PerformedName(self, action):
     return self._NAMES[action][0]
+
+  def ToPerformName(self, action):
+    return self._NAMES[action][1]
 
   def csvFormat(self):
     return self.action == self.PRINT

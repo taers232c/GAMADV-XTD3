@@ -1103,6 +1103,9 @@ gam [<Select>] [<SelectFInputFilter>] [<SelectOutputilter>] [<Config>] [<Redirec
 # Check connection to Google
 gam checkconnection
 
+# Comment
+gam comment <String>*
+
 # Version and Help
 
 gam version [check|checkrc|simple|extended] [timeoffset] [location <HostName>]
@@ -4655,7 +4658,7 @@ gam <UserTypeEntity> show vaultholds|holds
 gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
-        [license <SKUID> [product|productid <ProductID>]]
+        [license <SKUIDList> [product|productid <ProductID>]]
         [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
             [from <EmailAaddress>]
             [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
@@ -5368,6 +5371,7 @@ gam <UserTypeEntity> trash drivefile <DriveFileEntity>
 gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 
 gam <UserTypeEntity> info drivefile <DriveFileEntity>
+        [returnidonly]
         [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [showdrivename] [showshareddrivepermissions]
@@ -5773,6 +5777,7 @@ gam <UserTypeEntity> collect orphans
         permissionmatchaction|pma process|skip
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
+        [returnidonly]
         [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [showdrivename] [showshareddrivepermissions]
@@ -5782,6 +5787,7 @@ gam <UserTypeEntity> show fileinfo <DriveFileEntity>
         [formatjson]
 
 gam <UserTypeEntity> show filepath <DriveFileEntity>
+        [returnidonly]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [stripcrsfromname] [fullpath]
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*]
@@ -6373,10 +6379,10 @@ gam <UserTypeEntity> delete noteacl <NotesNameEntity>
 
 # Users - Licenses
 
-gam <UserTypeEntity> create|add license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
+gam <UserTypeEntity> create|add license <SKUIDList> [product|productid <ProductID>] [preview] [actioncsv]
 gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [from] <SKUID> [preview] [actioncsv]
-gam <UserTypeEntity> delete license <SKUID> [product|productid <ProductID>] [preview] [actioncsv]
-gam <UserTypeEntity> sync license <SKUID> [product|productid <ProductID>] [addonly|removeonly] [preview] [actioncsv]
+gam <UserTypeEntity> delete license <SKUIDList> [product|productid <ProductID>] [preview] [actioncsv]
+gam <UserTypeEntity> sync license <SKUIDList> [product|productid <ProductID>] [addonly|removeonly] [allskus|onesku] [preview] [actioncsv]
 
 # Users - Contacts and Profiles
 
