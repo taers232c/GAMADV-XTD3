@@ -30269,7 +30269,7 @@ PRINT_CIGROUPS_JSON_TITLES = ['email', 'JSON']
 #	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
-#	[allfields|(<CIGroupFieldName>* [fields <CIGroupFieldNameList>])]
+#	[basic|allfields|(<CIGroupFieldName>* [fields <CIGroupFieldNameList>])]
 #	[roles <GroupRoleList>] [memberrestrictions]
 #	[members|memberscount] [managers|managerscount] [owners|ownerscount] [totalcount] [countsonly]
 #	[types <CIGroupTypeList>]
@@ -30346,6 +30346,9 @@ def doPrintCIGroups():
       groupFieldsLists = {'ci': []}
       for field in CIGROUP_FIELDS_CHOICE_MAP:
         addFieldToFieldsList(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
+    elif myarg == 'basic':
+      sortHeaders = True
+      groupFieldsLists = {'ci': ['*']}
     elif myarg == 'sortheaders':
       sortHeaders = getBoolean()
     elif myarg in CIGROUP_FIELDS_CHOICE_MAP:
@@ -30373,7 +30376,7 @@ def doPrintCIGroups():
   csvPF.MapTitles('displayName', 'name')
   csvPF.RemoveTitles('labels')
   updateFieldsForCIGroupMatchPatterns(matchPatterns, groupFieldsLists['ci'], csvPF)
-  if groupFieldsLists['ci']:
+  if groupFieldsLists['ci'] and groupFieldsLists['ci'][0] != '*':
     keepName = 'name' in groupFieldsLists['ci']
     groupFieldsLists['ci'].append('name')
     fields = ','.join(set(groupFieldsLists['ci']))

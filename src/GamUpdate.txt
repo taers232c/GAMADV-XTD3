@@ -57,6 +57,9 @@ added option `allskus|onesku` that is required when multiple SKUs are specified.
 * `onesku` indicates that users in `<UserTypeEntity>` with none of the licenses in`<SKUIDList>` will be updated to have the first available license SKU in `<SKUIDList>`.
   * This is typically used with Google Education Plus or Google Education Standard licenses, which are split across multiple SKUs.
 
+Added option `basic` to `gam print cigroups` that causes GAM to display the basic
+Cloud Identity Group fields, i.e., those fields that do not require an additional API call per group,
+
 6.29.21
 
 Fixed bugs in `gam selectfilter` that caused traps or inappropriate error messages.
