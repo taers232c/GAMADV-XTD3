@@ -10,6 +10,11 @@ $ gam user testsimple show fileinfo name "Test File" returnidonly
 0B3YenC8f12ALflhUTmtNS3E2Vk9LSUpBVXRSUG5lQ29GWkRtWHM1VzU1blc4ZW1pb2FnNTA
 ```
 
+Changed the display format of file paths for files on Shared Drives.
+
+* Old format - SharedDrive(TS Shared Drive 6)/TS SD6 Folder/TS TD6 Doc
+* New format -SharedDrives/TS Shared Drive 6/TS SD6 Folder/TS TD6 Doc
+
 Added option `returnpathonly` to `gam <UserTypeEntity> show filepath <DriveFileEntity>`
 that causes GAM to return just the file path of the files in `<DriveFileEntity>` file as output.
 ```
@@ -20,10 +25,10 @@ $ gam user user@domain.com show filepath 0AJ6mqwXP9wHxUk9xyz returnpathonly
 TS Shared Drive 6
 
 $ gam user testsimple show filepath 0AJ6mqwXP9wHxUk9xyz returnpathonly fullpath
-SharedDrive(TS Shared Drive 6)
+SharedDrives/TS Shared Drive 6
 
 $ gam user user@domain.com show filepath teamdriveid 0AJ6mqwXP9wHxUk9xyz teamdrivefilename "TS TD6 Doc" returnpathonly
-SharedDrive(TS Shared Drive 6)/TS SD6 Folder/TS TD6 Doc
+SharedDrives/TS Shared Drive 6//TS SD6 Folder/TS TD6 Doc
 ```
 
 Added command `gam comment <String>*` that displays the comment data on stdout.

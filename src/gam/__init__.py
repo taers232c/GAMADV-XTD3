@@ -46272,7 +46272,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
     if (result['mimeType'] == MIMETYPE_GA_FOLDER) and result.get('driveId') and (result['name'] == TEAM_DRIVE):
       parentName = _getSharedDriveNameFromId(drive, result['driveId'])
       if parentName != TEAM_DRIVE:
-        return f'SharedDrive({parentName})'
+        return f'{SHARED_DRIVES}/{parentName}'
     return result['name']
 
   def _followParent(paths, parentId):
@@ -47559,7 +47559,7 @@ def initFileTree(drive, shareddrive, DLP, shareddriveFields, showParent, user, i
       name = callGAPI(drive.drives(), 'get',
                       throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                       driveId=fileId, fields='name')['name']
-      fileTree[f_file['id']]['info']['name'] = f'SharedDrive({name})'
+      fileTree[f_file['id']]['info']['name'] = f'{SHARED_DRIVES}/{name}'
     else:
       fileId = None
     if DLP and (DLP.getSharedDriveNames or DLP.checkLocation in {LOCATION_ALL_DRIVES, LOCATION_ONLY_SHARED_DRIVES}):
@@ -47569,7 +47569,7 @@ def initFileTree(drive, shareddrive, DLP, shareddriveFields, showParent, user, i
       for tdrive in tdrives:
         fileId = tdrive['id']
         if fileId not in fileTree:
-          fileTree[fileId] = {'info': {'id': fileId, 'name': f'SharedDrive({tdrive["name"]})', 'mimeType': MIMETYPE_GA_FOLDER},
+          fileTree[fileId] = {'info': {'id': fileId, 'name': f'{SHARED_DRIVES}/{tdrive["name"]}', 'mimeType': MIMETYPE_GA_FOLDER},
                               'noParents': True, 'children': []}
         for field in shareddriveFields:
           if field in tdrive:
@@ -48793,7 +48793,7 @@ def printShowFilePaths(users):
         result = callGAPI(drive.files(), 'get',
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                           fileId=fileId, fields=pathFields, supportsAllDrives=True)
-        if returnPathOnly and result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == MY_DRIVE:
+        if returnPathOnly and result['mimeType'] == MIMETYPE_GA_FOLDER and result['name'] == MY_DRIVE and not result.get('parents'):
           writeStdout(f'{MY_DRIVE}\n')
           continue
         if stripCRsFromName:
@@ -48804,7 +48804,7 @@ def printShowFilePaths(users):
             result['name'] = _getSharedDriveNameFromId(drive, driveId)
             if returnPathOnly:
               if fullpath:
-                writeStdout(f'SharedDrive({result["name"]})\n')
+                writeStdout(f'{SHARED_DRIVES}/{result["name"]}\n')
               else:
                 writeStdout(f'{result["name"]}\n')
               continue

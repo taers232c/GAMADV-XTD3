@@ -8,8 +8,8 @@ GAM installation script.
 OPTIONS:
    -h      show help.
    -d      Directory where gam folder will be installed. Default is \$HOME/bin/
+   -a      Architecture to install (i386, x86_64, x86_64_legacy, arm, arm64). Default is to detect your arch with "uname -m".
    -o      OS we are running (linux, macos). Default is to detect your OS with "uname -s".
-   -a      Architecture to install (x86_64, arm64); only applies to Linux. Default is to detect your arch with "uname -m".
    -b      OS version. Default is to detect on MacOS and Linux.
    -l      Just upgrade GAM to latest version. Skips project creation and auth.
    -p      Profile update (true, false). Should script add gam command to environment. Default is true.
@@ -56,7 +56,7 @@ done
 target_dir=${target_dir%/}
 
 update_profile() {
-        [ $2 -eq 1 ] || [ -f "$1" ] || return 1
+        [ "$2" -eq 1 ] || [ -f "$1" ] || return 1
 
         grep -F "$alias_line" "$1" > /dev/null 2>&1
         if [ $? -ne 0 ]; then
@@ -87,11 +87,16 @@ echo -e '\x1B[0m'
 
 version_gt()
 {
+# MacOS < 10.13 doesn't support sort -V
+echo "" | sort -V > /dev/null 2>&1
+vsort_failed=$?
 echo "Check:${2}"
 if [ "${1}" = "${2}" ]; then
   true
+elif (( $vsort_failed != 0 )); then
+  false
 else
-  test "$(printf '%s\n' "$@" | sort -n | head -n 1)" != "$1"
+  test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
 fi
 }
 
@@ -154,8 +159,13 @@ case $gamos in
         exit
     esac
     ;;
+  MINGW64_NT*)
+    gamos="windows"
+    echo "You are running Windows"
+    gamfile="-windows-x86_64.zip"
+    ;;
   *)
-    echo_red "Sorry, this installer currently only supports Linux and MacOS. Looks like you're runnning on $gamos. Exiting."
+    echo_red "Sorry, this installer currently only supports Linux and MacOS. Looks like you're running on $gamos. Exiting."
     exit
     ;;
 esac
@@ -166,8 +176,14 @@ else
   release_url="https://api.github.com/repos/taers232c/GAMADV-XTD3/releases/tags/v$gamversion"
 fi
 
-echo_yellow "Checking GitHub URL $release_url for $gamversion GAM release..."
-release_json=$(curl -s $release_url 2>&1 /dev/null)
+if [ -z ${GHCLIENT+x} ]; then
+  check_type="unauthenticated"
+else
+  check_type="authenticated"
+fi
+
+echo_yellow "Checking GitHub URL $release_url for $gamversion GAM release ($check_type)..."
+release_json=$(curl -s "$GHCLIENT" "$release_url" 2>&1 /dev/null)
 
 echo_yellow "Getting file and download URL..."
 # Python is sadly the nearest to universal way to safely handle JSON with Bash
@@ -217,12 +233,12 @@ if (( $rc != 0 )); then
   exit
 fi
 
-browser_download_url=$(echo "$release_json" | $pycmd -c "$pycode" browser_download_url $gamversion)
+browser_download_url=$(echo "$release_json" | $pycmd -c "$pycode" browser_download_url "$gamversion")
 if [[ ${browser_download_url:0:5} = "ERROR" ]]; then
   echo_red "${browser_download_url}"
   exit
 fi
-name=$(echo "$release_json" | $pycmd -c "$pycode" name $gamversion)
+name=$(echo "$release_json" | $pycmd -c "$pycode" name "$gamversion")
 if [[ ${name:0:5} = "ERROR" ]]; then
   echo_red "${name}"
   exit
@@ -234,14 +250,20 @@ temp_archive_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
 # Clean up after ourselves even if we are killed with CTRL-C
 trap "rm -rf $temp_archive_dir" EXIT
 
-echo_yellow "Downloading file $name from $browser_download_url to $temp_archive_dir."
+echo_yellow "Downloading file $name from $browser_download_url to $temp_archive_dir ($check_type)..."
 # Save archive to temp w/o losing our path
-(cd $temp_archive_dir && curl -O -L $browser_download_url)
+(cd "$temp_archive_dir" && curl -# -O -L $GHCLIENT $browser_download_url)
 
 mkdir -p "$target_dir"
 
 echo_yellow "Extracting archive to $target_dir"
-tar $strip_gamadv_xtd3 -xf $temp_archive_dir/$name -C "$target_dir"
+if [[ "${name}" == *.tar.xz ]]; then
+  tar $strip_gamadv_xtd3 -xf "$temp_archive_dir"/"$name" -C "$target_dir"
+elif [[ "${name}" == *.tar ]]; then
+  tar $strip_gamadv_xtd3 -xf "$temp_archive_dir"/"$name" -C "$target_dir"
+else
+  unzip "${temp_archive_dir}/${name}" -d "${target_dir}"
+fi
 rc=$?
 if (( $rc != 0 )); then
   echo_red "ERROR: extracting the GAM archive with tar failed with error $rc. Exiting."
@@ -380,7 +402,7 @@ while $admin_authorized; do
 done
 
 echo_green "Here's information about your new GAM installation:"
-"$target_dir/$target_gam" $config_cmd save version
+"$target_dir/$target_gam" $config_cmd save version extended
 rc=$?
 if (( $rc != 0 )); then
   echo_red "ERROR: Failed running GAM for the first time with $rc. Please report this error to GAM mailing list. Exiting."
