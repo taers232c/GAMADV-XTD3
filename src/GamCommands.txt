@@ -3312,7 +3312,7 @@ gam info cigroups <GroupEntity>
         [memberemaildisplaypattern|memberemailskippattern <RegularExpression>]
         [formatjson]
 gam print cigroups [todrive <ToDriveAttribute>*]
-        [(cimember|ciowner <UserItem>)|(select <GroupEntity>)]
+        [(cimember|ciowner <UserItem>)|(select <GroupEntity>)|(query <String>)]
         [showownedby <UserItem>]
         [emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
         [descriptionmatchpattern [not] <RegularExpression>]

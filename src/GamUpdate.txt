@@ -58,7 +58,9 @@ added option `allskus|onesku` that is required when multiple SKUs are specified.
   * This is typically used with Google Education Plus or Google Education Standard licenses, which are split across multiple SKUs.
 
 Added option `basic` to `gam print cigroups` that causes GAM to display the basic
-Cloud Identity Group fields, i.e., those fields that do not require an additional API call per group,
+Cloud Identity Group fields, i.e., those fields that do not require an additional API call per group.
+
+Following Jay's lead, added option `query <String>` to `gam print cigroups`.
 
 6.29.21
 

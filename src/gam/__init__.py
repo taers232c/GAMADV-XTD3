@@ -30272,7 +30272,7 @@ def updateFieldsForCIGroupMatchPatterns(matchPatterns, fieldsList, csvPF=None):
 PRINT_CIGROUPS_JSON_TITLES = ['email', 'JSON']
 
 # gam print cigroups [todrive <ToDriveAttribute>*]
-#	[(cimember|ciowner <UserItem>)|(select <GroupEntity>)]
+#	[(cimember|ciowner <UserItem>)|(select <GroupEntity>)|(query <String>)]
 #	[showownedby <UserItem>]
 #	[emailmatchpattern [not] <RegularExpression>] [namematchpattern [not] <RegularExpression>]
 #	[descriptionmatchpattern [not] <RegularExpression>]
@@ -30319,13 +30319,14 @@ def doPrintCIGroups():
   memberRestrictions = sortHeaders = False
   memberDisplayOptions = initGroupMemberDisplayOptions()
   pageSize = 500
+  parent = f'customers/{GC.Values[GC.CUSTOMER_ID]}'
   groupFieldsLists = {'ci': ['groupKey']}
   csvPF = CSVPrintFile(['email'])
   FJQC = FormatJSONQuoteChar(csvPF)
   rolesSet = set()
   typesSet = set()
   memberOptions = initMemberOptions()
-  entitySelection = groupMembers = query = showOwnedBy = None
+  entitySelection = groupMembers = memberQuery = query = showOwnedBy = None
   matchPatterns = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -30335,10 +30336,13 @@ def doPrintCIGroups():
       showOwnedBy = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user'])
     elif myarg in {'cimember', 'enterprisemember', 'ciowner'}:
       emailAddress = convertUIDtoEmailAddress(getEmailAddress(), emailTypes=['user', 'group'])
-      query = f"member_key_id == '{emailAddress}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels"
+      memberQuery = f"member_key_id == '{emailAddress}' && 'cloudidentity.googleapis.com/groups.discussion_forum' in labels"
       entitySelection = None
       if myarg == 'ciowner':
         showOwnedBy = emailAddress
+    elif myarg == 'query':
+      query = getString(Cmd.OB_QUERY)
+      entitySelection = None
     elif getGroupMatchPatterns(myarg, matchPatterns, True):
       pass
     elif myarg == 'select':
@@ -30402,13 +30406,13 @@ def doPrintCIGroups():
     csvPF.SetJSONTitles(PRINT_CIGROUPS_JSON_TITLES)
     if rolesSet:
       csvPF.AddJSONTitle('JSON-members')
-  if query:
-    printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP, query)
+  if memberQuery:
+    printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP, memberQuery)
     try:
       result = callGAPIpages(ci.groups().memberships(), 'searchTransitiveGroups', 'memberships',
                              pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute=['groupKey', 'id'],
                              throwReasons=GAPI.CIGROUP_LIST_USERKEY_THROW_REASONS,
-                             parent='groups/-', query=query,
+                             parent='groups/-', query=memberQuery,
                              fields='nextPageToken,memberships(group,groupKey(id),relationType)', pageSize=pageSize)
       entitySelection = [{'email': entity['groupKey']['id'], 'name': entity['group']} for entity in result if entity['relationType'] == 'DIRECT']
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
@@ -30425,13 +30429,20 @@ def doPrintCIGroups():
     else:
       getFullFieldsList = list(CIGROUP_FULL_FIELDS)
     getFullFields = ','.join(getFullFieldsList)
-    printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP)
+    if query:
+      method = 'search'
+      if 'parent' not in query:
+        query += f" && parent == '{parent}'"
+      kwargs = {'query': query}
+    else:
+      method = 'list'
+      kwargs = {'parent': parent}
+    printGettingAllAccountEntities(Ent.CLOUD_IDENTITY_GROUP, query)
     try:
-      entityList = callGAPIpages(ci.groups(), 'list', 'groups',
+      entityList = callGAPIpages(ci.groups(), method, 'groups',
                                  pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute=['groupKey', 'id'],
                                  throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS,
-                                 parent=f'customers/{GC.Values[GC.CUSTOMER_ID]}', view='FULL',
-                                 fields=fieldsnp, pageSize=pageSize)
+                                 view='FULL', fields=fieldsnp, pageSize=pageSize, **kwargs)
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis,
             GAPI.forbidden, GAPI.badRequest, GAPI.invalid,
             GAPI.systemError, GAPI.permissionDenied) as e:
