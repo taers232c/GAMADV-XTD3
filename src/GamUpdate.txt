@@ -1,3 +1,7 @@
+6.30.01
+
+Fixed bug in `gam create group <EmailAddress> name <String>` where the group name was set to `<EmailAddress>` rather than `<String>`.
+
 6.30.00
 
 Added option `returnidonly` to `gam <UserTypeEntity> show fileinfo <DriveFileEntity>`

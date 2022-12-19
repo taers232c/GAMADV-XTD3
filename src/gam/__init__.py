@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.00'
+__version__ = '6.30.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -26767,7 +26767,7 @@ def doCreateGroup(ciGroupsAPI=False):
         body[v] = gs_body.pop(k)
     body.setdefault('displayName', groupEmail)
   if gs_body:
-    gs_body.setdefault('name', groupEmail)
+    gs_body.setdefault('name', body.get('displayName', groupEmail))
     gs = buildGAPIObject(API.GROUPSSETTINGS)
     gs_body = getSettingsFromGroup(cd, groupEmail, gs, gs_body)
     if not gs_body or not checkReplyToCustom(groupEmail, gs_body):
