@@ -263,6 +263,15 @@ USER_MAX_RESULTS = 'user_max_results'
 # User service account access only, no client access
 USER_SERVICE_ACCOUNT_ACCESS_ONLY = 'user_service_account_access_only'
 
+CSV_INPUT_ROW_FILTER_ITEMS = {CSV_INPUT_ROW_FILTER, CSV_INPUT_ROW_FILTER_MODE,
+                              CSV_INPUT_ROW_DROP_FILTER, CSV_INPUT_ROW_DROP_FILTER_MODE,
+                              CSV_INPUT_ROW_LIMIT}
+
+CSV_OUTPUT_ROW_FILTER_ITEMS = {CSV_OUTPUT_HEADER_FILTER, CSV_OUTPUT_HEADER_DROP_FILTER,
+                               CSV_OUTPUT_ROW_FILTER, CSV_OUTPUT_ROW_FILTER_MODE,
+                               CSV_OUTPUT_ROW_DROP_FILTER, CSV_OUTPUT_ROW_DROP_FILTER_MODE,
+                               CSV_OUTPUT_ROW_LIMIT}
+
 Defaults = {
   ACTIVITY_MAX_RESULTS: '100',
   ADMIN_EMAIL: '',

@@ -3470,11 +3470,18 @@ def SetGlobalVariables():
     except IOError as e:
       stderrErrorMsg(fileErrorMessage(fileName, e, Ent.CONFIG_FILE))
 
-  def _verifyValues(sectionName):
+  def _verifyValues(sectionName, inputFilterSectionName, outputFilterSectionName):
     printKeyValueList([Ent.Singular(Ent.SECTION), sectionName]) # Do not use printEntity
     Ind.Increment()
     for itemName in sorted(GC.VAR_INFO):
-      cfgValue = GM.Globals[GM.PARSER].get(sectionName, itemName)
+      sectName = sectionName
+      if itemName in GC.CSV_INPUT_ROW_FILTER_ITEMS:
+        if inputFilterSectionName:
+          sectName = inputFilterSectionName
+      elif itemName in GC.CSV_OUTPUT_ROW_FILTER_ITEMS:
+        if outputFilterSectionName:
+          sectName = outputFilterSectionName
+      cfgValue = GM.Globals[GM.PARSER].get(sectName, itemName)
       varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
       if varType == GC.TYPE_CHOICE:
         for choice, value in iter(GC.VAR_INFO[itemName][GC.VAR_CHOICES].items()):
@@ -3484,14 +3491,14 @@ def SetGlobalVariables():
       elif varType not in [GC.TYPE_BOOLEAN, GC.TYPE_INTEGER, GC.TYPE_FLOAT, GC.TYPE_PASSWORD]:
         cfgValue = _quoteStringIfLeadingTrailingBlanks(cfgValue)
       if varType == GC.TYPE_FILE:
-        expdValue = _getCfgFile(sectionName, itemName)
+        expdValue = _getCfgFile(sectName, itemName)
         if cfgValue not in ("''", expdValue):
           cfgValue = f'{cfgValue} ; {expdValue}'
       elif varType == GC.TYPE_DIRECTORY:
-        expdValue = _getCfgDirectory(sectionName, itemName)
+        expdValue = _getCfgDirectory(sectName, itemName)
         if cfgValue not in ("''", expdValue):
           cfgValue = f'{cfgValue} ; {expdValue}'
-      elif (itemName == GC.SECTION) and (sectionName != configparser.DEFAULTSECT):
+      elif (itemName == GC.SECTION) and (sectName != configparser.DEFAULTSECT):
         continue
       printLine(f'{Ind.Spaces()}{itemName} = {cfgValue}')
     Ind.Decrement()
@@ -3662,7 +3669,7 @@ def SetGlobalVariables():
           GM.Globals[GM.PARSER].set(configparser.DEFAULTSECT, GC.SECTION, sectionName)
           _writeGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE], Act.SAVE)
         elif checkArgumentPresent('verify'):
-          _verifyValues(sectionName)
+          _verifyValues(sectionName, inputFilterSectionName, outputFilterSectionName)
         else:
           break
   GM.Globals[GM.GAM_CFG_SECTION_NAME] = sectionName
@@ -3704,7 +3711,7 @@ def SetGlobalVariables():
       if checkArgumentPresent('save'):
         _writeGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE], Act.SAVE)
       elif checkArgumentPresent('verify'):
-        _verifyValues(sectionName)
+        _verifyValues(sectionName, inputFilterSectionName, outputFilterSectionName)
       else:
         itemName = getChoice(GC.VAR_INFO, defaultChoice=None)
         if itemName is None:
@@ -3892,7 +3899,7 @@ def SetGlobalVariables():
       varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
       if varType in {GC.TYPE_HEADERFILTER, GC.TYPE_ROWFILTER}:
         GM.Globals[GM.PARSER].set(sectionName, itemName, '')
-      elif itemName in {GC.CSV_INPUT_ROW_LIMIT, GC.CSV_OUTPUT_ROW_LIMIT}:
+      elif (varType == GC.TYPE_INTEGER) and itemName in {GC.CSV_INPUT_ROW_LIMIT, GC.CSV_OUTPUT_ROW_LIMIT}:
         GM.Globals[GM.PARSER].set(sectionName, itemName, '0')
 # Child process
 # Inherit main process output header/row filters/limit if not locally defined
@@ -57527,6 +57534,9 @@ def _createLicenses(lic, productId, skuId, parameters, jcount, users, i, count, 
         if ("there aren't enough available licenses" in message.lower() or
             "backend error" in message.lower()):
           noAvailableLicenses = True
+          if returnDoneSet:
+            doneSet.remove(origUser)
+            break
       except GAPI.userNotFound as e:
         message = str(e)
         entityUnknownWarning(Ent.USER, user, j, jcount)
@@ -57534,9 +57544,6 @@ def _createLicenses(lic, productId, skuId, parameters, jcount, users, i, count, 
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], message, j, jcount)
     if parameters['csvPF']:
       _writeLicenseAction(productId, skuId, None, parameters, user, Act.ADD, message)
-    if returnDoneSet and noAvailableLicenses:
-      doneSet.remove(origUser)
-      break
   Ind.Decrement()
   if returnDoneSet:
     return doneSet
@@ -57674,17 +57681,17 @@ def syncLicense(users):
         i += 1
         addSet -= _createLicenses(lic, productSku[0], productSku[1], parameters, len(addSet), addSet, i, count, returnDoneSet=True)
       if addSet:
+        productId = productSku[0]
         skuIds = []
         for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
-          productId = productSku[0]
-          skuIds.append(SKU.formatSKUIdDisplayName(productSku[1]))
-        formattedSkuIds = ','.join(skuIds)
+          skuIds.append(productSku[1])
+        skuIdsList = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER].join(skuIds)
         message = Msg.NO_AVAILABLE_LICENSES
         for user in addSet:
           user = normalizeEmailAddressOrUID(user)
-          entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, formattedSkuIds], message)
+          entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, skuIdsList], message)
           if parameters['csvPF']:
-            _writeLicenseAction(productId, formattedSkuIds, None, parameters, user, Act.ADD, message)
+            _writeLicenseAction(productId, skuIdsList, None, parameters, user, Act.ADD, message)
   if parameters['csvPF']:
     parameters['csvPF'].writeCSVfile('Sync Licenses')
 
