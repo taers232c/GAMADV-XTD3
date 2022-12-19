@@ -1,6 +1,6 @@
 6.30.01
 
-Fixed bug in `gam create group <EmailAddress> name <String>` where the group name was set to `<EmailAddress>` rather than `<String>`.
+Fixed bug in `gam create cigroup <EmailAddress> name <String> <GroupAttribute>+` where the group name was set to `<EmailAddress>` rather than `<String>`.
 
 6.30.00
 
