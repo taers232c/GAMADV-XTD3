@@ -28,6 +28,12 @@ jobs:
   fast_finish: true
   include:
     - os: linux
+      name: "Linux 64-bit Focal"
+      dist: focal
+      language: shell
+      env:
+        - DIST_UPGRADE=true
+    - os: linux
       name: "Linux 64-bit Bionic"
       dist: bionic
       language: shell
