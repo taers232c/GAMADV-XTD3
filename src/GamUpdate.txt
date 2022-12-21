@@ -1,3 +1,7 @@
+6.30.02
+
+Fixed error message in `gam print cigroups` when an invalid field was specified.
+
 6.30.01
 
 Fixed bug in `gam create cigroup <EmailAddress> name <String> <GroupAttribute>+` where the group name was set to `<EmailAddress>` rather than `<String>`.

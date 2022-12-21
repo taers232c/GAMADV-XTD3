@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.01'
+__version__ = '6.30.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -30369,7 +30369,7 @@ def doPrintCIGroups():
         if field in CIGROUP_FIELDS_CHOICE_MAP:
           csvPF.AddField(field, CIGROUP_FIELDS_CHOICE_MAP, groupFieldsLists['ci'])
         else:
-          invalidChoiceExit(field, list(GROUP_FIELDS_CHOICE_MAP)+list(GROUP_ATTRIBUTES_SET), True)
+          invalidChoiceExit(field, list(CIGROUP_FIELDS_CHOICE_MAP), True)
     elif getGroupRolesMemberDisplayOptions(myarg, rolesSet, memberDisplayOptions):
       pass
     elif getCIGroupTypes(myarg, typesSet):
