@@ -38,12 +38,12 @@ jobs:
             arch: arm64
             openssl_archs: darwin64-arm64
           - os: windows-2022
-            jid: 4
+            jid: 5
             goal: build
             arch: Win64
             openssl_archs: VC-WIN64A
           - os: windows-2022
-            jid: 5
+            jid: 6
             goal: build
             arch: Win32
             openssl_archs: VC-WIN32
