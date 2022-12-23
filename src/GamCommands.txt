@@ -2971,7 +2971,7 @@ gam show peopleprofile
 gam [<UserTypeEntity>] info drivelabels <DriveLabelNameEntity>
         [[basic|full] [languagecode <LanguageCode>]
         [formatjson] [adminaccess|asadmin]
-gam [<UserTypeEntity>] print drivelabels> [todrive <ToDriveAttribute>*]
+gam [<UserTypeEntity>] print drivelabels [todrive <ToDriveAttribute>*]
         [basic|full] [languagecode <LanguageCode>]
         [publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
         [formatjson [quotechar <Character>]] [adminaccess|asadmin]

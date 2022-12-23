@@ -1,3 +1,10 @@
+6.30.03
+
+Updated `create|update drivefileacl` commands to handle the following error.
+```
+ERROR: 403: fileOrganizerOnFoldersInSharedDriveOnly - FileOrganizer role is only allowed on folders.
+```
+
 6.30.02
 
 Fixed error message in `gam print cigroups` when an invalid field was specified.

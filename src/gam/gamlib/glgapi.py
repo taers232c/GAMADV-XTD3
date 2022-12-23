@@ -71,6 +71,7 @@ FIELD_NOT_WRITABLE = 'fieldNotWritable'
 FILE_NEVER_WRITABLE = 'fileNeverWritable'
 FILE_NOT_FOUND = 'fileNotFound'
 FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE = 'fileOrganizerNotYetEnabledForThisTeamDrive'
+FILE_ORGANIZER_ON_FOLDERS_IN_SHARED_DRIVE_ONLY = 'fileOrganizerOnFoldersInSharedDriveOnly'
 FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED = 'fileOrganizerOnNonTeamDriveNotSupported'
 FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE = 'fileOwnerNotMemberOfTeamDrive'
 FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = 'fileOwnerNotMemberOfWriterDomain'
@@ -198,8 +199,9 @@ DRIVE3_CREATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID, INVALID_SHARING_REQUEST
                                    OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
+                                   FILE_ORGANIZER_ON_FOLDERS_IN_SHARED_DRIVE_ONLY,
+                                   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED, INVALID_LINK_VISIBILITY]
 DRIVE3_GET_ACL_REASONS = DRIVE_USER_THROW_REASONS+[FILE_NOT_FOUND, FORBIDDEN, INTERNAL_ERROR,
                                                    INSUFFICIENT_ADMINISTRATOR_PRIVILEGES, INSUFFICIENT_FILE_PERMISSIONS,
@@ -214,8 +216,9 @@ DRIVE3_UPDATE_ACL_THROW_REASONS = [BAD_REQUEST, INVALID_OWNERSHIP_TRANSFER, CANN
                                    OWNER_ON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
                                    ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    ORGANIZER_ON_NON_TEAMDRIVE_ITEM_NOT_SUPPORTED,
-                                   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE,
+                                   FILE_ORGANIZER_ON_FOLDERS_IN_SHARED_DRIVE_ONLY,
+                                   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED,
                                    CANNOT_UPDATE_PERMISSION,
                                    CANNOT_MODIFY_INHERITED_TEAMDRIVE_PERMISSION,
                                    FIELD_NOT_WRITABLE, PERMISSION_NOT_FOUND]
@@ -415,6 +418,8 @@ class fileNeverWritable(Exception):
 class fileNotFound(Exception):
   pass
 class fileOrganizerNotYetEnabledForThisTeamDrive(Exception):
+  pass
+class fileOrganizerOnFoldersInSharedDriveOnly(Exception):
   pass
 class fileOrganizerOnNonTeamDriveNotSupported(Exception):
   pass
@@ -645,6 +650,7 @@ REASON_EXCEPTION_MAP = {
   FILE_NEVER_WRITABLE: fileNeverWritable,
   FILE_NOT_FOUND: fileNotFound,
   FILE_ORGANIZER_NOT_YET_ENABLED_FOR_THIS_TEAMDRIVE: fileOrganizerNotYetEnabledForThisTeamDrive,
+  FILE_ORGANIZER_ON_FOLDERS_IN_SHARED_DRIVE_ONLY: fileOrganizerOnFoldersInSharedDriveOnly,
   FILE_ORGANIZER_ON_NON_TEAMDRIVE_NOT_SUPPORTED: fileOrganizerOnNonTeamDriveNotSupported,
   FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE: fileOwnerNotMemberOfTeamDrive,
   FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN: fileOwnerNotMemberOfWriterDomain,
