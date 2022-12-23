@@ -4176,7 +4176,8 @@ gam create|add drivefileacl <SharedDriveEntityAdmin>
 gam update drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]]
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
-gam delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles]
+gam delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+        [showtitles]
 gam info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
         [showtitles]
         [formatjson]
@@ -4215,7 +4216,8 @@ gam <UserTypeEntity> update drivefileacl <SharedDriveEntityAdmin> <DriveFilePerm
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]]
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
         adminaccess
-gam <UserTypeEntity> delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> [showtitles] adminaccess
+gam <UserTypeEntity> delete drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
+        [showtitles] adminaccess
 gam <UserTypeEntity> info drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail> adminaccess
         [showtitles]
         [formatjson]
@@ -5435,12 +5437,16 @@ gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
 gam <UserTypeEntity> create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
         anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>) (role <DriveFileACLRole>)
         [withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>]
+        [moveToNewOwnersRoot [<Boolean>]]
         [sendemail] [emailmessage <String>]
+        [updatesheetprotectedranges [<Boolean>]]
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 gam <UserTypeEntity> update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
         (role <DriveFileACLRole>) [expires|expiration <Time>] [removeexpiration [<Boolean>]]
+        [updatesheetprotectedranges [<Boolean>]]
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 gam <UserTypeEntity> delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
+        [updatesheetprotectedranges [<Boolean>]]
         [showtitles]
 gam <UserTypeEntity> info drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail>
         [showtitles]

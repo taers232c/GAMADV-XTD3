@@ -44684,144 +44684,6 @@ def printShowCalendarEvents(users):
   if csvPF:
     csvPF.writeCSVfile('Calendar Events')
 
-"""
-WORKING_LOCATION_CHOICE_MAP = {
-  'custom': 'custom',
-  'home': 'home',
-  'office': 'officeLocation',
-  'nolocation': 'noLocation',
-  'none': 'noLocation',
-  }
-# gam <UserTypeEntity> update workinglocation date <ComponentDate>
-#	location
-#	    nolocation|none|
-#	    home|
-#	    custom <String>|
-#	    office [building <String>] [floor <String>] [floorsection <String>] [desk <String>] [label <String>] endlocation
-def updateWorkingLocation(users):
-  body = {'date': None, 'location': None}
-  datestr = ''
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if myarg == 'date':
-      datestr, body['date'] = getYYYYMMDDComponents()
-    elif myarg == 'location':
-      location = getChoice(WORKING_LOCATION_CHOICE_MAP, mapChoice=True)
-      if location in {'noLocation', 'home'}:
-        body['location'] = {location: {}}
-      elif location == 'custom':
-        body['location'] = {location: getString(Cmd.OB_STRING)}
-      else: #officeLocation
-        body['location'] = {location: {}}
-        entry = body['location'][location]
-        while Cmd.ArgumentsRemaining():
-          argument = getArgument()
-          if argument in {'building', 'buildingid'}:
-            entry['building'] = _getBuildingByNameOrId(None)
-          elif argument == 'buildingname':
-            entry['building'] = getString(Cmd.OB_STRING, minLen=0)
-          elif argument in {'floor', 'floorname'}:
-            entry['floor'] = getString(Cmd.OB_STRING, minLen=0)
-          elif argument in {'section', 'floorsection'}:
-            entry['floorSection'] = getString(Cmd.OB_STRING, minLen=0)
-          elif argument in {'desk', 'deskcode'}:
-            entry['desk'] = getString(Cmd.OB_STRING, minLen=0)
-          elif argument in {'label', 'area'}:
-            entry['label'] = getString(Cmd.OB_STRING, minLen=0)
-          elif argument == 'endlocation':
-            break
-          else:
-            unknownArgumentExit()
-    elif myarg == 'json':
-      body.update(getJSON([]))
-    else:
-      unknownArgumentExit()
-  if not body['date']:
-    missingArgumentExit('date')
-  if not body['location']:
-    missingArgumentExit('location')
-  kvlist = [Ent.USER, '', Ent.DATE, datestr, Ent.LOCATION, f'{location}']
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cua = buildGAPIServiceObject(API.CALENDAR_USER_AVAILABILITY, user, i, count)
-    if not cua:
-      continue
-    kvlist[1] = user
-    try:
-      callGAPI(cua.workinglocations.day(), 'write',
-               throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
-               calendar=f'workinglocations/{user}', body=body)
-      entityActionPerformed(kvlist, i, count)
-    except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-      break
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-      break
-
-# gam <UserTypeEntity> show workinglocation date <ComponentDate>
-#	[formatjson]
-# gam <UserTypeEntity> print workinglocation date <ComponentDate>
-#	[formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
-def printShowWorkingLocation(users):
-  csvPF = CSVPrintFile(['User', 'type'], 'sortall') if Act.csvFormat() else None
-  FJQC = FormatJSONQuoteChar(csvPF)
-  body = {'date': None}
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif myarg == 'date':
-      datestr, body['date'] = getYYYYMMDDComponents()
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if not body['date']:
-    missingArgumentExit('date')
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    if 0:
-      user, cua = buildGAPIServiceObject(API.CALENDAR_USER_AVAILABILITY, user, i, count)
-      if not cua:
-        continue
-    try:
-      if 0:
-        result = callGAPI(cua.workinglocations.day(), 'read',
-                          throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
-                          calendar=f'workinglocations/{user}', body=body)
-      else:
-        result = {'date': {'year': 2022, 'month': 9, 'day': 7}, 'location': {'office': {'building': 'building', 'floor': 'floor', 'floorSection': 'floorSection', 'desk': 'desk', 'label': 'label'}}}
-#        result = {'date': {'year': 2022, 'month': 9, 'day': 7}, 'location': {'custom': 'customloc'}}
-#        result = {'date': {'year': 2022, 'month': 9, 'day': 7}, 'location': {'home': ''}}
-#        result = {'date': {'year': 2022, 'month': 9, 'day': 7}, 'location': {'noLocation': ''}}
-      if not csvPF:
-        if not FJQC.formatJSON:
-          result['formattedDate'] = formatYYYYMMDDComponents(result['date'])
-          printEntity([Ent.USER, user], i, count)
-          Ind.Increment()
-          showJSON(None, result)
-          Ind.Decrement()
-        else:
-          printLine(json.dumps(cleanJSON(result),
-                               ensure_ascii=False, sort_keys=False))
-      else:
-        type = ''.join(result['location'].keys())
-        row = flattenJSON(result, flattened={'User': user, 'type': type})
-        if not FJQC.formatJSON:
-          csvPF.WriteRowTitles(row)
-        elif csvPF.CheckRowTitles(row):
-          csvPF.WriteRowNoFilter({'User': user, 'type': type,
-                                  'JSON': json.dumps(cleanJSON(result), ensure_ascii=False, sort_keys=True)})
-    except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
-      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
-      break
-    except (GAPI.serviceNotAvailable, GAPI.authError):
-      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
-      break
-  if csvPF:
-    csvPF.writeCSVfile('Calendar Working Locations')
-"""
 def _getEntityMimeType(fileEntry):
   if fileEntry['mimeType'] == MIMETYPE_GA_FOLDER:
     return Ent.DRIVE_FOLDER
@@ -45276,7 +45138,7 @@ def _getDriveFileNameFromId(drive, fileId, combineTitleId=True, useDomainAdminAc
         fileName = _getSharedDriveNameFromId(drive, result['driveId'])
       if combineTitleId:
         fileName += '('+fileId+')'
-      return (fileName, _getEntityMimeType(result))
+      return (fileName, _getEntityMimeType(result), result['mimeType'])
   except GAPI.fileNotFound:
     if useDomainAdminAccess:
       try:
@@ -45288,13 +45150,13 @@ def _getDriveFileNameFromId(drive, fileId, combineTitleId=True, useDomainAdminAc
           fileName = result['name']
           if combineTitleId:
             fileName += '('+fileId+')'
-          return (fileName, Ent.DRIVE_FOLDER)
+          return (fileName, Ent.DRIVE_FOLDER, MIMETYPE_GA_FOLDER)
       except GAPI.notFound:
         pass
   except (GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.internalError,
           GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
     pass
-  return (fileId, Ent.DRIVE_FILE_OR_FOLDER_ID)
+  return (fileId, Ent.DRIVE_FILE_OR_FOLDER_ID, None)
 
 def _simpleFileIdEntityList(fileIdEntityList):
   for fileId in fileIdEntityList:
@@ -47179,7 +47041,7 @@ def deleteFileRevisions(users):
       fileName = fileId
       entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
       if showTitles:
-        fileName, entityType = _getDriveFileNameFromId(drive, fileId)
+        fileName, entityType, _ = _getDriveFileNameFromId(drive, fileId)
       revisionIds = _selectRevisionIds(drive, fileId, origUser, user, i, count, j, jcount, revisionsEntity)
       kcount = len(revisionIds)
       if kcount == 0:
@@ -47267,7 +47129,7 @@ def updateFileRevisions(users):
       fileName = fileId
       entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
       if showTitles:
-        fileName, entityType = _getDriveFileNameFromId(drive, fileId)
+        fileName, entityType, _ = _getDriveFileNameFromId(drive, fileId)
       revisionIds = _selectRevisionIds(drive, fileId, origUser, user, i, count, j, jcount, revisionsEntity)
       kcount = len(revisionIds)
       if kcount == 0:
@@ -47489,7 +47351,7 @@ def printShowFileRevisions(users):
       fileName = fileId
       entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
       if showTitles:
-        fileName, entityType = _getDriveFileNameFromId(drive, fileId, not csvPF)
+        fileName, entityType, _ = _getDriveFileNameFromId(drive, fileId, not csvPF)
         if stripCRsFromName:
           fileName = _stripControlCharsFromName(fileName)
       try:
@@ -50573,13 +50435,60 @@ def _copyPermissions(drive, user, i, count, j, jcount,
   Act.Set(action)
   Ind.Decrement()
 
+def _updateSheetProtectedRangesACLchange(sheet, user, i, count, j, jcount, fileId, fileTitle,
+                                         aclAdd, permission):
+  sheetProtectedRanges = []
+  try:
+    result = callGAPI(sheet.spreadsheets(), 'get',
+                      throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+                      spreadsheetId=fileId, fields='sheets(protectedRanges)')
+    for rsheet in result.get('sheets', []):
+      for protectedRange in rsheet.get('protectedRanges', []):
+        if aclAdd:
+          if permission['type'] == 'domain' and permission['domain'] == GC.Values[GC.DOMAIN]:
+            protectedRange['editors']['domainUsersCanEdit'] = permission['role'] not in {'reader', 'commenter'}
+          elif permission['type'] == 'group':
+            if permission['role'] not in {'reader', 'commenter'}:
+              protectedRange['editors'].setdefault('groups', [])
+              protectedRange['editors']['groups'].append(permission['emailAddress'])
+            else:
+              if permission['emailAddress'] in protectedRange['editors'].get('groups', []):
+                protectedRange['editors']['groups'].remove(permission['emailAddress'])
+          elif permission['type'] == 'user':
+            if permission['role'] not in {'reader', 'commenter'}:
+              protectedRange['editors'].setdefault('users', [])
+              protectedRange['editors']['users'].append(permission['emailAddress'])
+            else:
+              if permission['emailAddress'] in protectedRange['editors'].get('users', []):
+                protectedRange['editors']['users'].remove(permission['emailAddress'])
+        else:
+          if permission['type'] == 'domain' and permission['domain'] == GC.Values[GC.DOMAIN]:
+            protectedRange['editors']['domainUsersCanEdit'] = False
+          elif permission['type'] == 'group':
+            if permission['emailAddress'] in protectedRange['editors'].get('groups', []):
+              protectedRange['editors']['groups'].remove(permission['emailAddress'])
+          elif permission['type'] == 'user':
+            if permission['emailAddress'] in protectedRange['editors'].get('users', []):
+              protectedRange['editors']['users'].remove(permission['emailAddress'])
+        sheetProtectedRanges.append({'updateProtectedRange': {'protectedRange': protectedRange, 'fields': 'editors'}})
+    callGAPI(sheet.spreadsheets(), 'batchUpdate',
+             throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+             spreadsheetId=fileId, body={'requests': sheetProtectedRanges})
+  except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
+          GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
+          GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
+    entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileTitle], str(e), j, jcount)
+  except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+    userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+  return sheetProtectedRanges
+
 def _getSheetProtectedRanges(sheet, user, i, count, j, jcount, fileId, fileTitle,
                              statistics, stat):
   sheetProtectedRanges = []
   try:
     result = callGAPI(sheet.spreadsheets(), 'get',
                       throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-                      spreadsheetId=fileId, fields='sheets')
+                      spreadsheetId=fileId, fields='sheets(protectedRanges)')
     for rsheet in result.get('sheets', []):
       for protectedRange in rsheet.get('protectedRanges', []):
         sheetProtectedRanges.append({'updateProtectedRange': {'protectedRange': protectedRange, 'fields': 'editors'}})
@@ -54087,14 +53996,15 @@ def _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess):
     usageErrorExit(Msg.INVALID_FILE_SELECTION_WITH_ADMIN_ACCESS)
 
 # gam [<UserTypeEntity>] create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
-#	anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
-#	(role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
+#	anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)  (role <DriveFileACLRole>)]
+#	[withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>]
 #	[moveToNewOwnersRoot [<Boolean>]]
-#	[expiration <Time>] [sendemail] [emailmessage <String>]
+#	[updatesheetprotectedranges  [<Boolean>]]
+#	[sendemail] [emailmessage <String>]
 #	[showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 def createDriveFileACL(users, useDomainAdminAccess=False):
   moveToNewOwnersRoot = False
-  sendNotificationEmail = showTitles = _transferOwnership = False
+  sendNotificationEmail = showTitles = _transferOwnership = updateSheetProtectedRanges = False
   roleLocation = withLinkLocation = expirationLocation = None
   emailMessage = None
   showDetails = True
@@ -54140,6 +54050,8 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
       emailMessage = getString(Cmd.OB_STRING)
     elif myarg == 'showtitles':
       showTitles = True
+    elif myarg == 'updatesheetprotectedranges':
+      updateSheetProtectedRanges = getBoolean()
     elif myarg == 'nodetails':
       showDetails = False
     elif myarg == 'csv':
@@ -54172,6 +54084,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
                                                   useDomainAdminAccess=useDomainAdminAccess)
     if jcount == 0:
       continue
+    sheet = None
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity['list']:
@@ -54179,8 +54092,13 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
       try:
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
-        if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId, combineTitleId=not csvPF)
+        if showTitles or updateSheetProtectedRanges:
+          fileName, entityType, mimeType = _getDriveFileNameFromId(drive, fileId, combineTitleId=not csvPF)
+          if updateSheetProtectedRanges and mimeType == MIMETYPE_GA_SPREADSHEET:
+            if not sheet:
+              _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
+              if not sheet:
+                break
         permission = callGAPI(drive.permissions(), 'create',
                               bailOnInternalError=True,
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
@@ -54195,6 +54113,8 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
                                 useDomainAdminAccess=useDomainAdminAccess,
                                 fileId=fileId, permissionId=permission['id'], removeExpiration=False,
                                 body=ubody, fields='*', supportsAllDrives=True)
+        if updateSheetProtectedRanges and mimeType == MIMETYPE_GA_SPREADSHEET:
+          _updateSheetProtectedRangesACLchange(sheet, user, i, count, j, jcount, fileId, fileName, True, permission)
         if csvPF:
           baserow = {'Owner': user, 'id': fileId}
           if showTitles:
@@ -54241,11 +54161,12 @@ def doCreateDriveFileACL():
 
 # gam [<UserTypeEntity>] update drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
 #	(role <DriveFileACLRole>) [expiration <Time>] [removeexpiration [<Boolean>]]
+#	[updatesheetprotectedranges  [<Boolean>]]
 #	[showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 def updateDriveFileACLs(users, useDomainAdminAccess=False):
   fileIdEntity = getDriveFileEntity()
   isEmail, permissionId = getPermissionId()
-  removeExpiration = showTitles = False
+  removeExpiration = showTitles = updateSheetProtectedRanges = False
   showDetails = True
   csvPF = None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -54261,6 +54182,8 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
       removeExpiration = getBoolean()
     elif myarg == 'showtitles':
       showTitles = True
+    elif myarg == 'updatesheetprotectedranges':
+      updateSheetProtectedRanges = getBoolean()
     elif myarg == 'nodetails':
       showDetails = False
     elif myarg == 'csv':
@@ -54297,6 +54220,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
       if not permissionId:
         return
       isEmail = False
+    sheet = None
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity['list']:
@@ -54304,14 +54228,21 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
       try:
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
-        if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId, combineTitleId=not csvPF)
+        if showTitles or updateSheetProtectedRanges:
+          fileName, entityType, mimeType = _getDriveFileNameFromId(drive, fileId, combineTitleId=not csvPF)
+          if updateSheetProtectedRanges and mimeType == MIMETYPE_GA_SPREADSHEET:
+            if not sheet:
+              _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
+              if not sheet:
+                break
         permission = callGAPI(drive.permissions(), 'update',
                               bailOnInternalError=True,
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, permissionId=permissionId, removeExpiration=removeExpiration,
                               transferOwnership=body.get('role', '') == 'owner', body=body, fields='*', supportsAllDrives=True)
+        if updateSheetProtectedRanges and mimeType == MIMETYPE_GA_SPREADSHEET:
+          _updateSheetProtectedRangesACLchange(sheet, user, i, count, j, jcount, fileId, fileName, True, permission)
         if csvPF:
           baserow = {'Owner': user, 'id': fileId}
           if showTitles:
@@ -54578,15 +54509,18 @@ def doCreatePermissions():
   createDriveFilePermissions([_getAdminEmail()], True)
 
 # gam [<UserTypeEntity>] delete drivefileacl <DriveFileEntity> <DriveFilePermissionIDorEmail> [adminaccess|asadmin]
+#	[updatesheetprotectedranges  [<Boolean>]]
 #	[showtitles]
 def deleteDriveFileACLs(users, useDomainAdminAccess=False):
   fileIdEntity = getDriveFileEntity()
   isEmail, permissionId = getPermissionId()
-  showTitles = False
+  showTitles = updateSheetProtectedRanges = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'showtitles':
       showTitles = getBoolean()
+    elif myarg == 'updatesheetprotectedranges':
+      updateSheetProtectedRanges = getBoolean()
     elif myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
     else:
@@ -54603,6 +54537,7 @@ def deleteDriveFileACLs(users, useDomainAdminAccess=False):
       if not permissionId:
         return
       isEmail = False
+    sheet = None
     Ind.Increment()
     j = 0
     for fileId in fileIdEntity['list']:
@@ -54610,12 +54545,23 @@ def deleteDriveFileACLs(users, useDomainAdminAccess=False):
       try:
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
-        if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId)
+        if showTitles or updateSheetProtectedRanges:
+          fileName, entityType, mimeType = _getDriveFileNameFromId(drive, fileId)
+          if updateSheetProtectedRanges and mimeType == MIMETYPE_GA_SPREADSHEET:
+            permission = callGAPI(drive.permissions(), 'get',
+                                  throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
+                                  useDomainAdminAccess=useDomainAdminAccess,
+                                  fileId=fileId, permissionId=permissionId, fields='type,emailAddress,domain,role', supportsAllDrives=True)
+            if not sheet:
+              _, sheet = buildGAPIServiceObject(API.SHEETS, user, i, count)
+              if not sheet:
+                break
         callGAPI(drive.permissions(), 'delete',
                  throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_DELETE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
                  useDomainAdminAccess=useDomainAdminAccess, fileId=fileId, permissionId=permissionId, supportsAllDrives=True)
         entityActionPerformed([Ent.USER, user, entityType, fileName, Ent.PERMISSION_ID, permissionId], j, jcount)
+        if updateSheetProtectedRanges and mimeType == MIMETYPE_GA_SPREADSHEET:
+          _updateSheetProtectedRangesACLchange(sheet, user, i, count, j, jcount, fileId, fileName, False, permission)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
               GAPI.fileNeverWritable, GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded) as e:
@@ -54792,7 +54738,7 @@ def infoDriveFileACLs(users, useDomainAdminAccess=False):
         fileName = fileId
         entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
         if showTitles:
-          fileName, entityType = _getDriveFileNameFromId(drive, fileId, not FJQC.formatJSON, useDomainAdminAccess)
+          fileName, entityType, _ = _getDriveFileNameFromId(drive, fileId, not FJQC.formatJSON, useDomainAdminAccess)
         permission = callGAPI(drive.permissions(), 'get',
                               throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.PERMISSION_NOT_FOUND, GAPI.INSUFFICIENT_ADMINISTRATOR_PRIVILEGES],
                               useDomainAdminAccess=useDomainAdminAccess,
@@ -54925,7 +54871,7 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
       fileName = fileId
       entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
       if showTitles:
-        fileName, entityType = _getDriveFileNameFromId(drive, fileId, not (csvPF or FJQC.formatJSON), useDomainAdminAccess)
+        fileName, entityType, _ = _getDriveFileNameFromId(drive, fileId, not (csvPF or FJQC.formatJSON), useDomainAdminAccess)
       elif addTitle:
         fileName = f'{addTitle} ({fileId})'
         entityType = Ent.DRIVE_FILE_OR_FOLDER
@@ -65922,7 +65868,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_USERLIST:		doPrintUserList,
       Cmd.ARG_VACATION:		printShowVacation,
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
-###      Cmd.ARG_WORKINGLOCATION:	printShowWorkingLocation,
      }
     ),
   'process':
@@ -66001,7 +65946,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TOKEN:		printShowTokens,
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
       Cmd.ARG_VACATION:		printShowVacation,
-###      Cmd.ARG_WORKINGLOCATION:	printShowWorkingLocation,
      }
     ),
   'spam':
@@ -66092,7 +66036,6 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TASK:		processTasks,
       Cmd.ARG_TASKLIST:		processTasklists,
       Cmd.ARG_USER:		updateUsers,
-###      Cmd.ARG_WORKINGLOCATION:	updateWorkingLocation,
      }
     ),
   'watch':

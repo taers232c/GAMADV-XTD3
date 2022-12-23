@@ -1,9 +1,12 @@
 6.30.03
 
-Updated `create|update drivefileacl` commands to handle the following error.
+Updated `gam <UserTypeEntity> create|update drivefileacl <DriveFileEntity>` commands to handle the following error.
 ```
 ERROR: 403: fileOrganizerOnFoldersInSharedDriveOnly - FileOrganizer role is only allowed on folders.
 ```
+
+Added option `updatesheetprotectedranges to `gam <UserTypeEntity> create|update|delete drivefileacl <DriveFileEntity>`
+commands that causes GAM to update Sheet Protected Ranges if `<DriveFileEntity>` is a Google Sheet.
 
 6.30.02
 
