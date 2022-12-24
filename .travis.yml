@@ -28,6 +28,12 @@ jobs:
   fast_finish: true
   include:
     - os: linux
+      name: "Linux 64-bit Jammy"
+      dist: jammy
+      language: shell
+      env:
+        - DIST_UPGRADE=true
+    - os: linux
       name: "Linux 64-bit Focal"
       dist: focal
       language: shell
@@ -51,6 +57,14 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
+    - os: linux
+      name: "Linux ARM64 Jammy"
+      dist: jammy
+      arch: arm64
+      language: shell
+      env:
+        - DIST_UPGRADE=false
+      filter_secrets: false
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal
