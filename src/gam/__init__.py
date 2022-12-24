@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.03'
+__version__ = '6.30.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -58065,7 +58065,17 @@ def infoPrintShowSheets(users):
             printKeyValueList(['spreadsheetUrl', result['spreadsheetUrl']])
           for field in ['properties', 'sheets', 'namedRanges', 'developerMetadata']:
             if field in result:
-              showJSON(field, result[field])
+              if field != 'sheets':
+                showJSON(field, result[field])
+              else:
+                jcount = len(result[field])
+                j = 0
+                for sheet in result[field]:
+                  j += 1
+                  printEntity([Ent.SHEET, sheet['properties']['title']], j, jcount)
+                  Ind.Increment()
+                  showJSON(None, sheet)
+                  Ind.Decrement()
           Ind.Decrement()
         else:
           row = flattenJSON(result, flattened={'User': user, 'spreadsheetId': spreadsheetId})
