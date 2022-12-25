@@ -1,3 +1,7 @@
+6.30.05
+
+Cleaned up code for option `updatesheetprotectedranges` in `gam <UserTypeEntity> create|update|delete drivefileacl <DriveFileEntity>`.
+
 6.30.04
 
 Improved output formatting for field `sheets` in  `gam <UserTypeEntity> info sheet <DriveFileEntity>`.

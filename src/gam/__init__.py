@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.04'
+__version__ = '6.30.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -1815,57 +1815,6 @@ def getYYYYMMDD(minLen=1, returnTimeStamp=False, returnDateTime=False, alternate
       return ''
   missingArgumentExit(YYYYMMDD_FORMAT_REQUIRED)
 
-"""
-YYYY_FORMAT = '%Y'
-YYYYMM_FORMAT = '%Y-%m'
-MMDD_FORMAT = '%m-%d'
-YYYYMMDD_COMPONENT_FORMAT_REQUIRED = 'yyyy-mm-dd|yyyy-mm|yyyy|mm-dd'
-
-def getYYYYMMDDComponents():
-  if Cmd.ArgumentsRemaining():
-    argstr = Cmd.Current().strip().upper()
-    if argstr:
-      if argstr in TODAY_NOW or argstr[0] in PLUS_MINUS:
-        argstr = getDeltaDate(argstr).strftime(YYYYMMDD_FORMAT)
-      try:
-        argDate = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
-        Cmd.Advance()
-        return argstr, {'year': argDate.year, 'month': argDate.month, 'day': argDate.day}
-      except ValueError:
-        pass
-      try:
-        argDate = datetime.datetime.strptime(argstr, YYYYMM_FORMAT)
-        Cmd.Advance()
-        return argstr, {'year': argDate.year, 'month': argDate.month, 'day': 0}
-      except ValueError:
-        pass
-      try:
-        argDate = datetime.datetime.strptime(argstr, YYYY_FORMAT)
-        Cmd.Advance()
-        return argstr, {'year': argDate.year, 'month': 0, 'day': 0}
-      except ValueError:
-        pass
-      try:
-        argDate = datetime.datetime.strptime(argstr, MMDD_FORMAT)
-        Cmd.Advance()
-        return argstr, {'year': 0, 'month': argDate.month, 'day': argDate.day}
-      except ValueError:
-        pass
-      invalidArgumentExit(YYYYMMDD_COMPONENT_FORMAT_REQUIRED)
-  missingArgumentExit(YYYYMMDD_COMPONENT_FORMAT_REQUIRED)
-
-def formatYYYYMMDDComponents(dateComponents):
-  year = dateComponents['year']
-  month = dateComponents['month']
-  day = dateComponents['day']
-  if year:
-    if month:
-      if day:
-        return f'{year}-{month:02d}-{day:02d}'
-      return f'{year}-{month:02d}'
-    return f'{year}'
-  return f'{month:02d}-{day:02d}'
-"""
 HHMM_FORMAT = '%H:%M'
 HHMM_FORMAT_REQUIRED = 'hh:mm'
 
@@ -50437,50 +50386,51 @@ def _copyPermissions(drive, user, i, count, j, jcount,
 
 def _updateSheetProtectedRangesACLchange(sheet, user, i, count, j, jcount, fileId, fileTitle,
                                          aclAdd, permission):
-  sheetProtectedRanges = []
+  ptype = permission['type']
+  updList = 'users' if ptype == 'user' else 'groups' if ptype == 'group' else ''
+  if updList:
+    emailAddress = permission['emailAddress']
+  else:
+    updDomain = (ptype == 'domain') and (permission['domain'] == GC.Values[GC.DOMAIN])
+    if not updDomain:
+      return
+  addEditor = aclAdd and (permission['role'] not in {'reader', 'commenter'})
+  updateProtectedRangeRequests = []
   try:
     result = callGAPI(sheet.spreadsheets(), 'get',
                       throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                       spreadsheetId=fileId, fields='sheets(protectedRanges)')
     for rsheet in result.get('sheets', []):
       for protectedRange in rsheet.get('protectedRanges', []):
-        if aclAdd:
-          if permission['type'] == 'domain' and permission['domain'] == GC.Values[GC.DOMAIN]:
-            protectedRange['editors']['domainUsersCanEdit'] = permission['role'] not in {'reader', 'commenter'}
-          elif permission['type'] == 'group':
-            if permission['role'] not in {'reader', 'commenter'}:
-              protectedRange['editors'].setdefault('groups', [])
-              protectedRange['editors']['groups'].append(permission['emailAddress'])
-            else:
-              if permission['emailAddress'] in protectedRange['editors'].get('groups', []):
-                protectedRange['editors']['groups'].remove(permission['emailAddress'])
-          elif permission['type'] == 'user':
-            if permission['role'] not in {'reader', 'commenter'}:
-              protectedRange['editors'].setdefault('users', [])
-              protectedRange['editors']['users'].append(permission['emailAddress'])
-            else:
-              if permission['emailAddress'] in protectedRange['editors'].get('users', []):
-                protectedRange['editors']['users'].remove(permission['emailAddress'])
-        else:
-          if permission['type'] == 'domain' and permission['domain'] == GC.Values[GC.DOMAIN]:
-            protectedRange['editors']['domainUsersCanEdit'] = False
-          elif permission['type'] == 'group':
-            if permission['emailAddress'] in protectedRange['editors'].get('groups', []):
-              protectedRange['editors']['groups'].remove(permission['emailAddress'])
-          elif permission['type'] == 'user':
-            if permission['emailAddress'] in protectedRange['editors'].get('users', []):
-              protectedRange['editors']['users'].remove(permission['emailAddress'])
-        sheetProtectedRanges.append({'updateProtectedRange': {'protectedRange': protectedRange, 'fields': 'editors'}})
-    callGAPI(sheet.spreadsheets(), 'batchUpdate',
-             throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
-             spreadsheetId=fileId, body={'requests': sheetProtectedRanges})
+        editors = protectedRange['editors']
+        updReqd = False
+        if updList:
+          if addEditor:
+            if updList not in editors:
+              editors[updList] = [emailAddress]
+              updReqd = True
+            elif emailAddress not in editors[updList]:
+              editors[updList].append(emailAddress)
+              updReqd = True
+          else:
+            if emailAddress in editors.get(updList, []):
+              editors[updList].remove(emailAddress)
+              updReqd = True
+        elif updDomain:
+          editors['domainUsersCanEdit'] = addEditor
+          updReqd = True
+        if updReqd:
+          updateProtectedRangeRequests.append({'updateProtectedRange': {'protectedRange': protectedRange, 'fields': 'editors'}})
+    if updateProtectedRangeRequests:
+      callGAPI(sheet.spreadsheets(), 'batchUpdate',
+               throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
+               spreadsheetId=fileId, body={'requests': updateProtectedRangeRequests})
   except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
           GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
           GAPI.invalid, GAPI.invalidArgument, GAPI.failedPrecondition) as e:
     entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, fileTitle], str(e), j, jcount)
   except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
-  return sheetProtectedRanges
 
 def _getSheetProtectedRanges(sheet, user, i, count, j, jcount, fileId, fileTitle,
                              statistics, stat):
@@ -58074,7 +58024,7 @@ def infoPrintShowSheets(users):
                   j += 1
                   printEntity([Ent.SHEET, sheet['properties']['title']], j, jcount)
                   Ind.Increment()
-                  showJSON(None, sheet)
+                  showJSON(None, sheet, noIndents=True)
                   Ind.Decrement()
           Ind.Decrement()
         else:
