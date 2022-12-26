@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.05'
+__version__ = '6.30.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -50402,7 +50402,9 @@ def _updateSheetProtectedRangesACLchange(sheet, user, i, count, j, jcount, fileI
                       spreadsheetId=fileId, fields='sheets(protectedRanges)')
     for rsheet in result.get('sheets', []):
       for protectedRange in rsheet.get('protectedRanges', []):
-        editors = protectedRange['editors']
+        editors = protectedRange.get('editors', None)
+        if editors is None:
+          continue
         updReqd = False
         if updList:
           if addEditor:

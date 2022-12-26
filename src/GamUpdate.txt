@@ -1,3 +1,8 @@
+6.30.06
+
+Fixed bug in `gam <UserTypeEntity> create|update|delete drivefileacl <DriveFileEntity> ... updatesheetprotectedranges`
+that caused a trap.
+
 6.30.05
 
 Cleaned up code for option `updatesheetprotectedranges` in `gam <UserTypeEntity> create|update|delete drivefileacl <DriveFileEntity>`.
