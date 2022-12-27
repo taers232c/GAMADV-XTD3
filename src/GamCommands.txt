@@ -6728,6 +6728,21 @@ The following right-hand side characters are part of the meta-syntax: <>()*|
         spreadsheetid|
         spreadsheeturl
 <SpreadsheetFieldList> ::= "<SpreadsheetField>(,<SpreadsheetField>)*"
+<SpreadsheetSheetsField> ::=
+        bandedranges|
+        basicfilter|
+        charts|
+        columngroups|
+        conditionalformats|
+        data|
+        developermetadata|
+        filterviews|
+        merges|
+        properties|
+        protectedranges|
+        rowgroups|
+        slicers
+<SpreadsheetSheetsFieldList> ::= "<SpreadsheetSheetsField>(,<SpreadsheetSheetsField>)*"
 <SpreadsheetRange> ::= <String>
 <SpreadsheetRangeList> ::= "'<SpreadsheetRange>'(,'<SpreadsheetRange>')*"
 <SpreadsheetValue> ::= "<String>"|<Number>|true|false
@@ -6751,12 +6766,12 @@ gam <UserTypeEntity> update sheet <DriveFileEntity>
          (json file <FileName> [charset <Charset>]))
         [formatjson]
 gam <UserTypeEntity> info|show sheet <DriveFileEntity>
-        [fields <SpreadsheetFieldList>]
+        [fields <SpreadsheetFieldList>] [sheetsfields <SpreadsheetSheetsFieldList>]
         (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
         [includegriddata [<Boolean>]]
         [formatjson]
 gam <UserTypeEntity> print sheet <DriveFileEntity> [todrive <ToDriveAttribute>*]
-        [fields <SpreadsheetFieldList>]
+        [fields <SpreadsheetFieldList>] [sheetsfields <SpreadsheetSheetsFieldList>]
         (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
         [includegriddata [<Boolean>]]
         [formatjson [quotechar <Character>]]

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.06'
+__version__ = '6.30.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -57958,6 +57958,22 @@ SPREADSHEET_FIELDS_CHOICE_MAP = {
   'spreadsheeturl': 'spreadsheetUrl',
   }
 
+SPREADSHEET_SHEETS_SUBFIELDS_CHOICE_MAP = {
+  'properties': 'sheets.properties',
+  'data': 'sheets.data',
+  'merges': 'sheets.merges',
+  'conditionalformats': 'sheets.conditionalFormats',
+  'filterviews': 'sheets.filterViews',
+  'protectedranges': 'sheets.protectedRanges',
+  'basicfilter': 'sheets.basicFilter',
+  'charts': 'sheets.charts',
+  'bandedranges': 'sheets.bandedRanges',
+  'developermetadata': 'sheets.developerMetadata',
+  'rowgroups': 'sheets.rowGroups',
+  'columngroups': 'sheets.columnGroups',
+  'slicers': 'sheets.slicers',
+  }
+
 # gam <UserTypeEntity> info|show sheet <DriveFileEntity>
 #	[fields <SpreadsheetFieldList>]
 #	(range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
@@ -57987,8 +58003,16 @@ def infoPrintShowSheets(users):
       includeGridData = getBoolean()
     elif getFieldsList(myarg, SPREADSHEET_FIELDS_CHOICE_MAP, fieldsList, initialField='spreadsheetId'):
       pass
+    elif myarg == 'sheetsfields':
+      for field in _getFieldsList():
+        if field in SPREADSHEET_SHEETS_SUBFIELDS_CHOICE_MAP:
+          fieldsList.append(SPREADSHEET_SHEETS_SUBFIELDS_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(field, SPREADSHEET_SHEETS_SUBFIELDS_CHOICE_MAP, True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if includeGridData and fieldsList:
+    fieldsList.append(SPREADSHEET_SHEETS_SUBFIELDS_CHOICE_MAP['data'])
   fields = getFieldsFromFieldsList(fieldsList)
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -58024,7 +58048,7 @@ def infoPrintShowSheets(users):
                 j = 0
                 for sheet in result[field]:
                   j += 1
-                  printEntity([Ent.SHEET, sheet['properties']['title']], j, jcount)
+                  printEntity([Ent.SHEET, sheet.get('properties', {}).get('title', '')], j, jcount)
                   Ind.Increment()
                   showJSON(None, sheet, noIndents=True)
                   Ind.Decrement()

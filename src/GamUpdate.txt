@@ -1,3 +1,26 @@
+6.30.07
+
+Added option `sheetsfields <SpreadsheetSheetsFieldList>` to `gam <UserTypeEntity> print|show sheet <DriveFileEntity>`
+that lets you specfiy the desired subfields from the `sheets` field of a spreadsheet that should be displayed.
+By default, all `sheets` subfields are displayed.
+```
+<SpreadsheetSheetsField> ::=
+        bandedranges|
+        basicfilter|
+        charts|
+        columngroups|
+        conditionalformats|
+        data|
+        developermetadata|
+        filterviews|
+        merges|
+        properties|
+        protectedranges|
+        rowgroups|
+        slicers
+<SpreadsheetSheetsFieldList> ::= "<SpreadsheetSheetsField>(,<SpreadsheetSheetsField>)*"
+```
+
 6.30.06
 
 Fixed bug in `gam <UserTypeEntity> create|update|delete drivefileacl <DriveFileEntity> ... updatesheetprotectedranges`
