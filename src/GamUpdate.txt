@@ -1,3 +1,11 @@
+6.30.08
+
+Following Jay's lead, added the following License SKUs:
+```
+1010390001 - Assured Controls
+1010400001 - Beyond Corp Enterprise
+```
+
 6.30.07
 
 Added option `sheetsfields <SpreadsheetSheetsFieldList>` to `gam <UserTypeEntity> print|show sheet <DriveFileEntity>`

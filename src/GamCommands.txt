@@ -228,6 +228,8 @@ If an item contains spaces, it should be surrounded by ".
         101035 |
         101036 |
         101037 |
+        101039 |
+        101040 |
         Google-Apps |
         Google-Chrome-Device-Management |
         Google-Drive-storage |
@@ -243,6 +245,8 @@ If an item contains spaces, it should be surrounded by ".
         4tb | drive4tb | googledrivestorage4tb | Google-Drive-storage-4TB |
         8tb | drive8tb | googledrivestorage8tb | Google-Drive-storage-8TB |
         16tb | drive16tb | googledrivestorage16tb | Google-Drive-storage-16TB |
+        assuredcontrols | 1010390001 |
+        bce | beyondcorp | beyondcorpenterprise | 1010400001 |
         cdm | chrome | googlechromedevicemanagement | Google-Chrome-Device-Management |
         cloudidentity | identity | 1010010001 |
         cloudidentitypremium | identitypremium | 1010050001 |
@@ -262,7 +266,7 @@ If an item contains spaces, it should be surrounded by ".
         gwesstaff | workspaceeducationstandardstaff | 1010310006 |
         gwesstudent | workspaceeducationstandardstudent | 1010310007 |
         gwetlu | workspaceeducationupgrade | 1010370001 |
-        meetdialing | googlemeetglobaldialing |
+        meetdialing | googlemeetglobaldialing | 1010360001 |
         postini | gams | gsuitegams | gsuitepostini | gsuitemessagesecurity | Google-Apps-For-Postini |
         standard | free | Google-Apps |
         vault | googlevault | Google-Vault |
@@ -270,16 +274,17 @@ If an item contains spaces, it should be surrounded by ".
         voicepremier | gvpremier | googlevoicepremier | 1010330002 |
         voicestandard | gvstandard | googlevoicestandard | 1010330004 |
         voicestarter | gvstarter | googlevoicestarter | 1010330003 |
-        wsflw | workspacefrontline | workspacefrontlineworker | 1010020030 |
         wsbizplus | workspacebusinessplus | 1010020025 |
         wsbizplusarchived | workspacebusinessplusarchived | 1010340003 |
         wsbizstan | workspacebusinessstandard | 1010020028 |
-        wsbizstart | workspacebusinessstarter | 1010020027 |
+        wsbizstarter | workspacebusinessstarter | wsbizstart | 1010020027 |
         wsentess | workspaceenterpriseessentials | 1010060003 |
         wsentplus | workspaceenterpriseplus | gae | gse | enterprise | gsuiteenterprise | 1010020020 |
         wsentstan | workspaceenterprisestandard | 1010020026 |
         wsentstanarchived | workspaceenterprisestandardarchived | 1010340004 |
-        wsess | workspaceesentials | gsuiteessentials | essentials | d4e | driveenterprise | drive4enterprise | 1010060001
+        wsentstarter | workspaceenterprisestarter | 1010020029 | wes |
+        wsess | workspaceesentials | gsuiteessentials | essentials | d4e | driveenterprise | drive4enterprise | 1010060001 |
+        wsflw | workspacefrontline | workspacefrontlineworker | 1010020030
 
 ## Items built from primitives
 

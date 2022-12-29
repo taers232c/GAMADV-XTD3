@@ -24,13 +24,14 @@
 _PRODUCTS = {
   '101001': 'Cloud Identity Free',
   '101005': 'Cloud Identity Premium',
-  '101006': 'Google Workspace Essentials',
   '101031': 'Google Workspace for Education',
   '101033': 'Google Voice',
   '101034': 'Google Workspace Archived User',
   '101035': 'Cloud Search',
   '101036': 'Google Meet Global Dialing',
   '101037': 'Google Workspace for Education',
+  '101039': 'Assured Controls',
+  '101040': 'Beyond Corp Enterprise',
   'Google-Apps': 'Google Workspace',
   'Google-Chrome-Device-Management': 'Google Chrome Device Management',
   'Google-Drive-storage': 'Google Drive Storage',
@@ -69,6 +70,10 @@ _SKUS = {
     'product': '101036', 'aliases': ['meetdialing','googlemeetglobaldialing'], 'displayName': 'Google Meet Global Dialing'},
   '1010370001': {
     'product': '101037', 'aliases': ['gwetlu', 'workspaceeducationupgrade'], 'displayName': 'Google Workspace for Education: Teaching and Learning Upgrade'},
+  '1010390001': {
+    'product': '101039', 'aliases': ['assuredcontrols'], 'displayName': 'Assured Controls'},
+  '1010400001': {
+    'product': '101040', 'aliases': ['beyondcorp', 'beyondcorpenterprise', 'bce'], 'displayName': 'Beyond Corp Enterprise'},
   'Google-Apps': {
     'product': 'Google-Apps', 'aliases': ['standard', 'free'], 'displayName': 'G Suite Legacy'},
   'Google-Apps-For-Business': {
