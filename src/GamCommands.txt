@@ -903,6 +903,9 @@ Specify a collection of items by directly specifying them; the item type is dete
         my_shortcuts |
         my_3p_shortcuts |
         my_items |
+        my_top_files |
+        my_top_folders |
+        my_top_items |
         others_files |
         others_folders |
         others_forms |

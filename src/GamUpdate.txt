@@ -1,3 +1,12 @@
+6.30.09
+
+Added the following shortcuts to `<DriveFileQueryShortcut>`:
+```
+* my_top_files - "'me' in owners and mimeType != application/vnd.google-apps.folder and 'root' in parents"
+* my_top_folders - "'me' in owners and mimeType = application/vnd.google-apps.folder and 'root' in parents"
+* my_top_items - "'me' in owners and 'root' in parents"
+```
+
 6.30.08
 
 Following Jay's lead, added the following License SKUs:

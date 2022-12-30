@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.08'
+__version__ = '6.30.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -44673,6 +44673,9 @@ QUERY_SHORTCUTS_MAP = {
   'myshortcuts': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_SHORTCUT}'",
   'my3pshortcuts': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_3P_SHORTCUT}'",
   'myitems': ME_IN_OWNERS,
+  'mytopfiles': ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}' and 'root' in parents",
+  'mytopfolders': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FOLDER}' and 'root' in parents",
+  'mytopitems': ME_IN_OWNERS_AND+"'root' in parents",
   'othersfiles': NOT_ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}'",
   'othersfolders': NOT_ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FOLDER}'",
   'othersforms': NOT_ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FORM}'",
