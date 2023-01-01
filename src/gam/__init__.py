@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.09'
+__version__ = '6.30.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -122,6 +122,8 @@ import gdata.apps.contacts
 import gdata.apps.contacts.service
 import gdata.apps.sites
 import gdata.apps.sites.service
+from iso8601 import iso8601
+
 import googleapiclient
 import googleapiclient.discovery
 import googleapiclient.errors
@@ -133,7 +135,6 @@ import google.oauth2.service_account
 import google_auth_oauthlib.flow
 import google_auth_httplib2
 import httplib2
-from iso8601 import iso8601
 from passlib.hash import sha512_crypt
 
 if platform.system() == 'Linux':
@@ -33777,22 +33778,49 @@ def doCalendarsModifySettings(calIds):
 def _showCalendarSettings(calendar, j, jcount):
   printEntity([Ent.CALENDAR, calendar['id']], j, jcount)
   Ind.Increment()
-  printKeyValueList(['Summary', calendar.get('summaryOverride', calendar.get('summary', ''))])
-  printKeyValueWithCRsNLs('Description', calendar.get('description', ''))
-  printKeyValueList(['Location', calendar.get('location', '')])
-  printKeyValueList(['Timezone', calendar.get('timeZone', '')])
-  printKeyValueList(['ConferenceProperties', None])
-  Ind.Increment()
-  printKeyValueList(['AllowedConferenceSolutionTypes', ','.join(calendar.get('conferenceProperties', {}).get('allowedConferenceSolutionTypes', []))])
-  Ind.Decrement()
+  if 'summaryOverride' in calendar or 'summary' in calendar:
+    printKeyValueList(['Summary', calendar.get('summaryOverride', calendar.get('summary', ''))])
+  if 'description' in calendar:
+    printKeyValueWithCRsNLs('Description', calendar.get('description', ''))
+  if 'location' in calendar:
+    printKeyValueList(['Location', calendar.get('location', '')])
+  if 'timeZone' in calendar:
+    printKeyValueList(['Timezone', calendar.get('timeZone', '')])
+  if 'conferenceProperties' in calendar:
+    printKeyValueList(['ConferenceProperties', None])
+    Ind.Increment()
+    printKeyValueList(['AllowedConferenceSolutionTypes', ','.join(calendar.get('conferenceProperties', {}).get('allowedConferenceSolutionTypes', []))])
+    Ind.Decrement()
   Ind.Decrement()
 
-# gam calendars <CalendarEntity> print settings [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>}
-# gam calendars <CalendarEntity> show settings [formatjson]
+CALENDAR_SETTINGS_FIELDS_CHOICE_MAP = {
+  'conferenceproperties': 'conferenceProperties',
+  'description': 'description',
+  'id': 'id',
+  'location': 'location',
+  'summary': 'summary',
+  'timezone': 'timeZone',
+  }
+
+# gam calendars <CalendarEntity> print settings [todrive <ToDriveAttribute>*]
+#	[fields <CalendarSettingsFieldList>]
+#	[formatjson] [quotechar <Character>}
+# gam calendars <CalendarEntity> show settings
+#	[fields <CalendarSettingsFieldList>]
+#	[formatjson]
 def doCalendarsPrintShowSettings(calIds):
   csvPF = CSVPrintFile(['calendarId'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  getTodriveFJQCOnly(csvPF, FJQC, True)
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif getFieldsList(myarg, CALENDAR_SETTINGS_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = getFieldsFromFieldsList(fieldsList)
   count = len(calIds)
   i = 0
   for calId in calIds:
@@ -33803,7 +33831,7 @@ def doCalendarsPrintShowSettings(calIds):
     try:
       calendar = callGAPI(cal.calendars(), 'get',
                           throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                          calendarId=calId)
+                          calendarId=calId, fields=fields)
       if not csvPF:
         if not FJQC.formatJSON:
           _showCalendarSettings(calendar, i, count)
@@ -43649,7 +43677,8 @@ def _showCalendar(calendar, j, jcount, FJQC, acls=None):
     return
   _showCalendarSettings(calendar, j, jcount)
   Ind.Increment()
-  printKeyValueList(['Primary', calendar.get('primary', FALSE)])
+  if 'primary' in calendar:
+    printKeyValueList(['Primary', calendar['primary']])
   if 'accessRole' in calendar:
     printKeyValueList(['Access Level', calendar['accessRole']])
   if 'deleted' in calendar:
@@ -43660,17 +43689,18 @@ def _showCalendar(calendar, j, jcount, FJQC, acls=None):
     printKeyValueList(['Selected', calendar['selected']])
   if 'colorId' in calendar:
     printKeyValueList(['Color ID', calendar['colorId'], 'Background Color', calendar['backgroundColor'], 'Foreground Color', calendar['foregroundColor']])
-  printKeyValueList(['Default Reminders', None])
-  Ind.Increment()
-  for reminder in calendar.get('defaultReminders', []):
-    printKeyValueList(['Method', reminder['method'], 'Minutes', reminder['minutes']])
-  Ind.Decrement()
-  printKeyValueList(['Notifications', None])
-  Ind.Increment()
+  if 'defaultReminders' in calendar:
+    printKeyValueList(['Default Reminders', None])
+    Ind.Increment()
+    for reminder in calendar['defaultReminders']:
+      printKeyValueList(['Method', reminder['method'], 'Minutes', reminder['minutes']])
+    Ind.Decrement()
   if 'notificationSettings' in calendar:
+    printKeyValueList(['Notifications', None])
+    Ind.Increment()
     for notification in calendar['notificationSettings'].get('notifications', []):
       printKeyValueList(['Method', notification['method'], 'Type', notification['type']])
-  Ind.Decrement()
+    Ind.Decrement()
   if acls:
     j = 0
     jcount = len(acls)
@@ -43743,29 +43773,6 @@ def deleteCalendars(users):
   checkForExtraneousArguments()
   _updateDeleteCalendars(users, calendarEntity, 'delete')
 
-# gam <UserTypeEntity> info calendars <UserCalendarEntity> [formatjson]
-def infoCalendars(users):
-  calendarEntity = getUserCalendarEntity()
-  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
-  i, count, users = getEntityArgument(users)
-  for user in users:
-    i += 1
-    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, showAction=not FJQC.formatJSON)
-    if jcount == 0:
-      continue
-    Ind.Increment()
-    j = 0
-    for calId in calIds:
-      j += 1
-      calId = normalizeCalendarId(calId, user)
-      try:
-        result = callGAPI(cal.calendarList(), 'get',
-                          throwReasons=[GAPI.NOT_FOUND],
-                          calendarId=calId)
-        _showCalendar(result, j, jcount, FJQC)
-      except GAPI.notFound as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
-    Ind.Decrement()
 
 # gam <UserTypeEntity> create calendars <CalendarSettings>
 def createCalendar(users):
@@ -43833,6 +43840,79 @@ def removeCalendars(users):
   checkForExtraneousArguments()
   _modifyRemoveCalendars(users, calendarEntity, 'delete')
 
+def _getCalendarPermissions(cal, calendar):
+  if calendar['accessRole'] == 'owner':
+    try:
+      return callGAPIpages(cal.acl(), 'list', 'items',
+                           throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND],
+                           calendarId=calendar['id'], fields='nextPageToken,items(id,role,scope)')
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.notACalendarUser, GAPI.notFound):
+      pass
+  return []
+
+CALENDAR_LIST_FIELDS_CHOICE_MAP = {
+  "accessrole": 'accessRole',
+  "backgroundcolor": 'backgroundColor',
+  "colorid": 'colorId',
+  "conferenceproperties": 'conferenceProperties',
+  "defaultreminders": 'defaultReminders',
+  "deleted": 'deleted',
+  "description": 'description',
+  "foregroundcolor": 'foregroundColor',
+  "hidden": 'hidden',
+  "id": 'id',
+  "location": 'location',
+  "notificationsettings": 'notificationSettings',
+  "primary": 'primary',
+  "selected": 'selected',
+  "summary": ['summary', 'summaryOverride'],
+  "summaryoverride": ['summary', 'summaryOverride'],
+  "timezone": 'timeZone',
+   }
+
+# gam <UserTypeEntity> info calendars <UserCalendarEntity>
+#	[fields <CalendarFieldList>]  [permissions]
+#	[formatjson]
+def infoCalendars(users):
+  calendarEntity = getUserCalendarEntity()
+  FJQC = FormatJSONQuoteChar()
+  fieldsList = []
+  acls = []
+  getCalPermissions = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in [Cmd.ARG_ACLS, Cmd.ARG_CALENDARACLS, Cmd.ARG_PERMISSIONS]:
+      getCalPermissions = True
+    elif getFieldsList(myarg, CALENDAR_LIST_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
+      pass
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if fieldsList:
+    if getCalPermissions:
+      fieldsList.append('accessRole')
+  fields = getFieldsFromFieldsList(fieldsList)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, cal, calIds, jcount = _validateUserGetCalendarIds(user, i, count, calendarEntity, showAction=not FJQC.formatJSON)
+    if jcount == 0:
+      continue
+    Ind.Increment()
+    j = 0
+    for calId in calIds:
+      j += 1
+      calId = normalizeCalendarId(calId, user)
+      try:
+        result = callGAPI(cal.calendarList(), 'get',
+                          throwReasons=[GAPI.NOT_FOUND],
+                          calendarId=calId, fields=fields)
+        if getCalPermissions:
+          acls = _getCalendarPermissions(cal, result)
+        _showCalendar(result, j, jcount, FJQC, acls)
+      except GAPI.notFound as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.CALENDAR, calId], str(e), j, jcount)
+    Ind.Decrement()
+
 CALENDAR_SIMPLE_LISTS = {'allowedConferenceSolutionTypes'}
 CALENDAR_EXCLUDE_OPTIONS = {'noprimary', 'nogroups', 'noresources', 'nosystem', 'nousers'}
 CALENDAR_EXCLUDE_DOMAINS = {
@@ -43843,24 +43923,13 @@ CALENDAR_EXCLUDE_DOMAINS = {
 
 # gam <UserTypeEntity> print calendars <UserCalendarEntity> [todrive <ToDriveAttribute>*]
 #	[primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
-#	[permissions]
+#	[fields <CalendarFieldList>] [permissions]
 #	[formatjson [quotechar <Character>]] [delimiter <Character>]
 # gam <UserTypeEntity> show calendars <UserCalendarEntity>
 #	[primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
-#	[permissions]
+#	[fields <CalendarFieldList>] [permissions]
 #	[formatjson]
 def printShowCalendars(users):
-
-  def _getPermissions(cal, userCalendar):
-    if userCalendar['accessRole'] == 'owner':
-      try:
-        return callGAPIpages(cal.acl(), 'list', 'items',
-                             throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND],
-                             calendarId=userCalendar['id'], fields='nextPageToken,items(id,role,scope)')
-      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.notACalendarUser, GAPI.notFound):
-        pass
-    return []
-
   acls = []
   getCalPermissions = noPrimary = primaryOnly = False
   excludes = set()
@@ -43869,6 +43938,7 @@ def printShowCalendars(users):
   FJQC = FormatJSONQuoteChar(csvPF)
   kwargs = {}
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  fieldsList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -43885,6 +43955,8 @@ def printShowCalendars(users):
       excludes.add(myarg)
     elif myarg == 'delimiter':
       delimiter = getCharacter()
+    elif getFieldsList(myarg, CALENDAR_LIST_FIELDS_CHOICE_MAP, fieldsList, initialField='id'):
+      pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   for exclude in excludes:
@@ -43894,6 +43966,12 @@ def printShowCalendars(users):
       excludeDomains.add(GC.Values[GC.DOMAIN])
     else:
       excludeDomains.add(CALENDAR_EXCLUDE_DOMAINS[exclude])
+  if fieldsList:
+    if getCalPermissions:
+      fieldsList.append('accessRole')
+    if noPrimary or primaryOnly:
+      fieldsList.append('primary')
+  fields = getItemFieldsFromFieldsList('items', fieldsList)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -43905,7 +43983,7 @@ def printShowCalendars(users):
     try:
       calendars = callGAPIpages(cal.calendarList(), 'list', 'items',
                                 throwReasons=GAPI.CALENDAR_THROW_REASONS,
-                                **kwargs)
+                                fields=fields, **kwargs)
     except GAPI.notACalendarUser as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
       continue
@@ -43940,7 +44018,7 @@ def printShowCalendars(users):
       for calendar in calendars:
         j += 1
         if getCalPermissions:
-          acls = _getPermissions(cal, calendar)
+          acls = _getCalendarPermissions(cal, calendar)
         _showCalendar(calendar, j, jcount, FJQC, acls)
       Ind.Decrement()
     else:
@@ -43948,7 +44026,7 @@ def printShowCalendars(users):
         for calendar in calendars:
           row = {'primaryEmail': user, 'calendarId': calendar['id']}
           if getCalPermissions:
-            flattenJSON({'permissions': _getPermissions(cal, calendar)}, flattened=row)
+            flattenJSON({'permissions': _getCalendarPermissions(cal, calendar)}, flattened=row)
           flattenJSON(calendar, flattened=row, simpleLists=CALENDAR_SIMPLE_LISTS, delimiter=delimiter)
           if not FJQC.formatJSON:
             row.pop('id')
@@ -43961,12 +44039,39 @@ def printShowCalendars(users):
   if csvPF:
     csvPF.writeCSVfile('Calendars')
 
-# gam <UserTypeEntity> print calsettings  [todrive <ToDriveAttribute>*] [formatjson] [quotechar <Character>}
-# gam <UserTypeEntity> show calsettings [formatjson]
+USER_CALENDAR_SETTINGS_FIELDS_CHOICE_MAP = {
+  'autoaddhangouts': 'autoAddHangouts',
+  'datefieldorder': 'dateFieldOrder',
+  'defaulteventlength': 'defaultEventLength',
+  'format24hourtime': 'format24HourTime',
+  'hideinvitations': 'hideInvitations',
+  'hideweekends': 'hideWeekends',
+  'locale': 'locale',
+  'remindonrespondedeventsonly': 'remindOnRespondedEventsOnly',
+  'showdeclinedevents': 'showDeclinedEvents',
+  'timezone': 'timezone',
+  'usekeyboardshortcuts': 'useKeyboardShortcuts',
+  'weekstart': 'weekStart'
+  }
+
+# gam <UserTypeEntity> print calsettings  [todrive <ToDriveAttribute>*]
+#	[fields <UserCalendarSettingsFieldList>]
+#	[formatjson] [quotechar <Character>}
+# gam <UserTypeEntity> show calsettings
+#	[formatjson]
 def printShowCalSettings(users):
   csvPF = CSVPrintFile(['User'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  getTodriveFJQCOnly(csvPF, FJQC, True)
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif getFieldsList(myarg, USER_CALENDAR_SETTINGS_FIELDS_CHOICE_MAP, fieldsList):
+      pass
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  fields = set(fieldsList)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -43984,7 +44089,8 @@ def printShowCalSettings(users):
       continue
     settings = {}
     for setting in feed:
-      settings[setting['id']] = setting['value']
+      if not fields or setting['id'] in fields:
+        settings[setting['id']] = setting['value']
     if not csvPF:
       if not FJQC.formatJSON:
         printEntityKVList([Ent.USER, user], [Ent.Plural(Ent.CALENDAR_SETTINGS), None], i, count)

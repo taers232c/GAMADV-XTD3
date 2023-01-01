@@ -1532,14 +1532,26 @@ gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayPr
         [countsonly]
         [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
+<CalendarSettingsField> ::=
+        conferenceproperties|
+        description|
+        id|
+        location|
+        summary|
+        timezone
+<CalendarSettingsFieldList> ::= "<CalendarSettingsField>(,<CalendarSettingsField>)*"
+
 <CalendarSettings> ::=
         (description <String>)|
         (location <String>)|
         (summary <String>)|
         (timezone <TimeZone>)
 
-gam calendar|calendars <CalendarEntity> show settings [formatjson]
+gam calendar|calendars <CalendarEntity> show settings
+        [fields <CalendarSettingsFieldList>]
+        [formatjson]
 gam calendar|calendars <CalendarEntity> print settings [todrive <ToDriveAttribute>*]
+        [fields <CalendarSettingsFieldList>]
         [formatjson [quotechar <Character>]]
 gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 
@@ -4936,16 +4948,62 @@ gam <UserTypeEntity> add calendars <UserCalendarAddEntity> <CalendarAttribute>*
 gam <UserTypeEntity> update calendars <UserCalendarEntity> <CalendarAttribute>+
 gam <UserTypeEntity> delete calendars <UserCalendarEntity>
 
-gam <UserTypeEntity> info calendars <UserCalendarEntity> [formatjson]
-gam <UserTypeEntity> show calendars [permissions]
-        [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
+<CalendarListField> ::=
+        accessrole|
+        backgroundcolor|
+        colorid|
+        conferenceproperties|
+        defaultreminders|
+        deleted|
+        description|
+        foregroundcolor|
+        hidden|
+        id|
+        location|
+        notificationsettings|
+        primary|
+        selected|
+        summary|
+        summaryoverride|
+        timezone
+<CalendarListFieldList> ::= "<CalendarListField>(,<CalendarListField>)*"
+
+Display a users list of calendars
+
+gam <UserTypeEntity> info calendars <UserCalendarEntity>
+        [fields <CalendarListFieldList>] [permissions]
         [formatjson]
-gam <UserTypeEntity> print calendars [todrive <ToDriveAttribute>*] [permissions]
+gam <UserTypeEntity> show calendars
         [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
+        [fields <CalendarListFieldList>] [permissions]
+        [formatjson]
+gam <UserTypeEntity> print calendars [todrive <ToDriveAttribute>*]
+        [primary] <CalendarSelectProperty>* [noprimary] [nogroups] [noresources] [nosystem] [nousers]
+        [fields <CalendarListFieldList>] [permissions]
         [formatjson] [delimiter <Character>] [quotechar <Character>]
 
-gam <UserTypeEntity> show calsettings [formatjson]
+Display a users calendar settings
+
+<UserCalendarSettingsField> ::=
+        autoaddhangouts|
+        datefieldorder|
+        defaulteventlength|
+        format24hourtime|
+        hideinvitations|
+        hideweekends|
+        locale|
+        remindonrespondedeventsonly|
+        showdeclinedevents|
+        timezone|
+        usekeyboardshortcuts|
+        weekstart
+<UserCalendarSettingsFieldList> ::= "<UserCalendarSettingsField>(,<UserCalendarSettingsField>)*"
+
+gam <UserTypeEntity> show calsettings
+        [fields <UserCalendarSettingsFieldList>]
+        [formatjson]
 gam <UserTypeEntity> print calsettings [todrive <ToDriveAttribute>*]
+        [fields <UserCalendarSettingsFieldList>]
         [formatjson [quotechar <Character>]]
 
 Create, modify and remove calendars for a user

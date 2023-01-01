@@ -1,3 +1,10 @@
+6.30.10
+
+Added the ability to specify fields when displaying calendars.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Calendars
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Calendars
+
 6.30.09
 
 Added the following shortcuts to `<DriveFileQueryShortcut>`:
