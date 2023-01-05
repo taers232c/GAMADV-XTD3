@@ -1,3 +1,8 @@
+6.30.11
+
+Added option `emailmatchpattern [not] <RegularExpression>` to `gam <UserTypeEntity> delete group|groups`
+that allows deleting a user from all groups of which they are a member based on (not) matching the group email address.
+
 6.30.10
 
 Added the ability to specify fields when displaying calendars.

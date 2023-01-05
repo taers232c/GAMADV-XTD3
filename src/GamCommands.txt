@@ -6358,7 +6358,8 @@ gam <UserTypeEntity> print language [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> add group|groups
         ([<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)+
 gam <UserTypeEntity> delete group|groups
-        [(domain <DomainName>)|(customerid <CustomerID>)|<GroupEntity>]
+        [(domain <DomainName>)|(customerid <CustomerID>)|
+         (emailmatchpattern [not] <RegularExpression>)|<GroupEntity>]
 gam <UserTypeEntity> update group|groups
         [(domain <DomainName>)|(customerid <CustomerID>)]) [<GroupRole>] [[delivery] <DeliverySetting>]
         ([<GroupRole>] [[delivery] <DeliverySetting>] [<GroupEntity>])*

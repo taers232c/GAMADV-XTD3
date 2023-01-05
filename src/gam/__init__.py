@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.10'
+__version__ = '6.30.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -56827,19 +56827,33 @@ def _setUserGroupArgs(user, kwargs):
   else:
     kwargs['userKey'] = user
 
+def checkUserGroupMatchPattern(groupEmail, matchPattern):
+  if not matchPattern['not']:
+    if not matchPattern['pattern'].match(groupEmail):
+      return False
+  else:
+    if matchPattern['pattern'].match(groupEmail):
+      return False
+  return True
+
 # gam <UserTypeEntity> delete group|groups
-#	[(domain <DomainName>)|(customerid <CustomerID>)|<GroupEntity>]
+#	[(domain <DomainName>)|(customerid <CustomerID>)|
+#	 (emailmatchpattern [not] <RegularExpression>)|<GroupEntity>]
 def deleteUserFromGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
   groupKeys = None
+  matchPattern = {}
   kwargs = _getUserGroupOptionalDomainCustomerId()
   if not kwargs:
     deleteGroups = {}
     if Cmd.ArgumentsRemaining():
-      groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
-      userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
-      for group in groupKeys:
-        deleteGroups[normalizeEmailAddressOrUID(group)] = {'role': Ent.MEMBER}
+      if not checkArgumentPresent('emailmatchpattern'):
+        groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
+        userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
+        for group in groupKeys:
+          deleteGroups[normalizeEmailAddressOrUID(group)] = {'role': Ent.MEMBER}
+      else:
+        matchPattern = {'not': checkArgumentPresent('not'), 'pattern': getREPattern(re.IGNORECASE)}
       checkForExtraneousArguments()
   else:
     checkForExtraneousArguments()
@@ -56862,7 +56876,8 @@ def deleteUserFromGroups(users):
         accessErrorExit(cd)
       deleteGroups = {}
       for group in result:
-        deleteGroups[group['email']] = {'role': role}
+        if not matchPattern or checkUserGroupMatchPattern(group['email'], matchPattern):
+          deleteGroups[group['email']] = {'role': role}
     elif userGroupLists:
       userGroupKeys = userGroupLists[origUser]
       deleteGroups = {}
