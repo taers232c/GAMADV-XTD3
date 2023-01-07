@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.11'
+__version__ = '6.30.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -27081,7 +27081,8 @@ def doUpdateGroups():
     Ind.Decrement()
 
   _UPDATE_MEMBER_REASON_TO_MESSAGE_MAP = {GAPI.MEMBER_NOT_FOUND: f'{Msg.NOT_A} {Ent.Singular(Ent.MEMBER)}',
-                                          GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST}
+                                          GAPI.INVALID_MEMBER: Msg.DOES_NOT_EXIST,
+                                          GAPI.RESOURCE_NOT_FOUND: Msg.DOES_NOT_EXIST}
 
   def _getUpdateBody(role, delivery_settings):
     body = {}
@@ -27100,7 +27101,7 @@ def doUpdateGroups():
     body, role = _getUpdateBody(role, delivery_settings)
     try:
       callGAPI(cd.members(), 'patch',
-               throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER],
+               throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND, GAPI.INVALID_MEMBER, GAPI.RESOURCE_NOT_FOUND],
                retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                groupKey=group, memberKey=member, body=body, fields='')
       _showSuccess(group, member, role, delivery_settings, j, jcount)
@@ -27113,7 +27114,7 @@ def doUpdateGroups():
         Act.Set(Act.UPDATE)
       else:
         _showFailure(group, member, role, str(e), j, jcount)
-    except GAPI.invalidMember as e:
+    except (GAPI.invalidMember, GAPI.resourceNotFound) as e:
       _showFailure(group, member, role, str(e), j, jcount)
 
   def _callbackUpdateGroupMembers(request_id, response, exception):

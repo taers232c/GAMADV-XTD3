@@ -1,3 +1,12 @@
+6.30.12
+
+Updated `gam update group <GroupEntity> update [<GroupRole>] [[delivery] <DeliverySetting>] <UserTypeEntity>`
+to handle the following error when `<UserTypeEntity>` is an external member.
+```
+ERROR: 404: resourceNotFound - Does not exist
+```
+This is a Google bug where some external members can't be updated by email address.
+
 6.30.11
 
 Added option `emailmatchpattern [not] <RegularExpression>` to `gam <UserTypeEntity> delete group|groups`
