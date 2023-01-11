@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.12'
+__version__ = '6.30.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -44745,7 +44745,7 @@ def _getEntityMimeType(fileEntry):
     return Ent.DRIVE_FOLDER
   if fileEntry['mimeType'] != MIMETYPE_GA_SHORTCUT:
     return Ent.DRIVE_FILE
-  if 'shortcutDetails' not in fileEntry:
+  if 'shortcutDetails' not in fileEntry or 'targetMimeType' not in fileEntry['shortcutDetails']:
     return Ent.DRIVE_SHORTCUT
   return Ent.DRIVE_FOLDER_SHORTCUT if fileEntry['shortcutDetails']['targetMimeType'] == MIMETYPE_GA_FOLDER else Ent.DRIVE_FILE_SHORTCUT
 

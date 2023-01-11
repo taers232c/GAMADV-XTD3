@@ -1,3 +1,7 @@
+6.30.13
+
+Fixed bug in `gam <UserTypeEntity> show fileinfo <DriveFileEntity> fields shortcutdetails.targetid` that caused a trap.
+
 6.30.12
 
 Updated `gam update group <GroupEntity> update [<GroupRole>] [[delivery] <DeliverySetting>] <UserTypeEntity>`
