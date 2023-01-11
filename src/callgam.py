@@ -16,6 +16,6 @@ if __name__ == '__main__':
 #
   CallGAMCommand(['gam', 'version'])
   # Issue command, output goes to stdout/stderr
-  rc = CallGAMCommand(['gam', 'select', 'Aurora', 'info', 'domain'])
+  rc = CallGAMCommand(['gam', 'info', 'domain'])
   # Issue command, redirect stdout/stderr
   rc = CallGAMCommand(['gam', 'redirect', 'stdout', 'domain.txt', 'redirect', 'stderr', 'stdout', 'info', 'domain'])
