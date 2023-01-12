@@ -64,7 +64,7 @@ jobs:
           path: |
             bin.tar.xz
             src/cpython
-          key: gam-${{ matrix.jid }}-20221102
+          key: gam-${{ matrix.jid }}-20230112
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -311,13 +311,18 @@ jobs:
 
       - name: Windows Install sphinx-build
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        env:
+          arch: ${{ matrix.arch }}
         shell: powershell
         run: |
           pip install --upgrade pip
-          pip install --upgrade lxml
           pip install --upgrade sphinx
           sphinx-build --version
-
+          if [[ "${arch}" == "Win64" ]]; then
+	    "${PYTHON}" -m pip install whls/lxml-4.9.2-cp311-cp311-win_amd64.whl
+	  else
+	    "${PYTHON}" -m pip install whls/lxml-4.9.2-cp311-cp311-win32.whl
+	  fi
       - name: Windows Config/Build Python
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         shell: powershell
