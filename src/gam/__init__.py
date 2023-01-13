@@ -57823,6 +57823,7 @@ def getPhoto(users, profileMode):
   filenamePattern = '#email#.jpg'
   returnURLonly = False
   showPhotoData = True
+  size = ''
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'drivedir':
@@ -57837,6 +57838,8 @@ def getPhoto(users, profileMode):
       showPhotoData = False
     elif profileMode and myarg == 'returnurlonly':
       returnURLonly = True
+    elif profileMode and myarg == 'size':
+      size = f';sz={getInteger(minVal=50)}'
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -57875,6 +57878,8 @@ def getPhoto(users, profileMode):
         if returnURLonly:
           writeStdout(f'{url}\n')
           continue
+        if size:
+          url += size
         try:
           status, photo_data = getHttpObj().request(url, 'GET')
           if status['status'] != '200':

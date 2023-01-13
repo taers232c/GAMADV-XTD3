@@ -318,9 +318,9 @@ jobs:
           pip install --upgrade sphinx
           sphinx-build --version
           if [[ "${arch}" == "Win64" ]]; then
-            pip install whls/lxml-4.9.2-cp311-cp311-win_amd64.whl
+            pip install --only-binary lxml-4.9.2-cp311-cp311-win_amd64.whl
           else
-            pip install whls/lxml-4.9.2-cp311-cp311-win32.whl
+            pip install --only binary lxml-4.9.2-cp311-cp311-win32.whl
           fi
       - name: Windows Config/Build Python
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'

@@ -2,6 +2,8 @@
 
 Fixed bug in `gam <UserTypeEntity> show fileinfo <DriveFileEntity> fields shortcutdetails.targetid` that caused a trap.
 
+Added option `size <Integer>` to `gam <UserTypeEntity> get profilephoto` that specifies the size in pixels of the file to download.
+
 6.30.12
 
 Updated `gam update group <GroupEntity> update [<GroupRole>] [[delivery] <DeliverySetting>] <UserTypeEntity>`
