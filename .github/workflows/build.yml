@@ -257,11 +257,12 @@ jobs:
           cd "${GITHUB_WORKSPACE}/src"
           git clone https://github.com/python/cpython.git
           cd "${PYTHON_SOURCE_PATH}"
-          if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            export LATEST_STABLE_TAG="v3.11.1"
-          else
-            export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
-          fi
+          # if [[ "${RUNNER_OS}" == "Windows" ]]; then
+          #   export LATEST_STABLE_TAG="v3.11.1"
+          # else
+          #   export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
+          # fi
+          export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
           git checkout "${LATEST_STABLE_TAG}"
           export COMPILED_PYTHON_VERSION=${LATEST_STABLE_TAG:1} # Trim the "v" prefix
           echo "COMPILED_PYTHON_VERSION=${COMPILED_PYTHON_VERSION}" >> $GITHUB_ENV
