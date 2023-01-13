@@ -1,3 +1,4 @@
+chardet
 cryptography
 distro; sys_platform == 'linux'
 filelock

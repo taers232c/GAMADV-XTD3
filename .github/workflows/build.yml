@@ -32,12 +32,12 @@ jobs:
             jid: 2
             goal: build
             arch: x86_64
-            openssl_archs: darwin64-x86_64
+            openssl_archs: darwin64-x86_64 darwin64-arm64
           - os: macos-12
             jid: 3
             goal: build
             arch: arm64
-            openssl_archs: darwin64-arm64
+            openssl_archs: darwin64-x86_64 darwin64-arm64
           - os: windows-2022
             jid: 5
             goal: build
@@ -313,15 +313,14 @@ jobs:
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         env:
           arch: ${{ matrix.arch }}
-        shell: powershell
         run: |
           pip install --upgrade pip
           pip install --upgrade sphinx
           sphinx-build --version
           if [[ "${arch}" == "Win64" ]]; then
-            "${PYTHON}" -m pip install whls/lxml-4.9.2-cp311-cp311-win_amd64.whl
+            pip install whls/lxml-4.9.2-cp311-cp311-win_amd64.whl
           else
-            "${PYTHON}" -m pip install whls/lxml-4.9.2-cp311-cp311-win32.whl
+            pip install whls/lxml-4.9.2-cp311-cp311-win32.whl
           fi
       - name: Windows Config/Build Python
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
