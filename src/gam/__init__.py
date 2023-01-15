@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.13'
+__version__ = '6.30.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -19261,12 +19261,11 @@ def _initPersonMetadataParameters():
 
 def _processPersonMetadata(person, parameters):
   metadata = person.get(PEOPLE_METADATA, None)
-  if metadata is None:
-    return
-  if parameters['mapUpdateTime']:
-    sources = person[PEOPLE_METADATA].get('sources', [])
-    if sources and sources[0].get(PEOPLE_UPDATE_TIME, None) is not None:
-      person[PEOPLE_UPDATE_TIME] = formatLocalTime(sources[0][PEOPLE_UPDATE_TIME])
+  if metadata is not None:
+    if parameters['mapUpdateTime']:
+      sources = person[PEOPLE_METADATA].get('sources', [])
+      if sources and sources[0].get(PEOPLE_UPDATE_TIME, None) is not None:
+        person[PEOPLE_UPDATE_TIME] = formatLocalTime(sources[0][PEOPLE_UPDATE_TIME])
   if parameters['strip']:
     person.pop(PEOPLE_METADATA, None)
     for _, v in iter(person.items()):
