@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.14'
+__version__ = '6.30.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -44852,36 +44852,36 @@ def doSharedDriveSearch(drive, user, i, count, query, useDomainAdminAccess):
     userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   return None
 
-def cleanFileIDsList(fileIdEntity, fileIds):
-  def _getFileIdFromURL(fileId):
-    loc = fileId.find('/d/')
+def _getFileIdFromURL(fileId):
+  loc = fileId.find('/d/')
+  if loc > 0:
+    fileId = fileId[loc+3:]
+    loc = fileId.find('/')
+    return fileId[:loc] if loc != -1 else fileId
+  loc = fileId.find('?id=')
+  if loc > 0:
+    fileId = fileId[loc+4:]
+    loc = fileId.find('&')
+    return fileId[:loc] if loc != -1 else fileId
+  loc = fileId.find('/files/')
+  if loc > 0:
+    fileId = fileId[loc+7:]
+    loc = fileId.find('&')
     if loc > 0:
-      fileId = fileId[loc+3:]
-      loc = fileId.find('/')
-      return fileId[:loc] if loc != -1 else fileId
-    loc = fileId.find('?id=')
+      return fileId[:loc]
+    loc = fileId.find('?')
+    return fileId[:loc] if loc != -1 else fileId
+  loc = fileId.find('/folders/')
+  if loc > 0:
+    fileId = fileId[loc+9:]
+    loc = fileId.find('&')
     if loc > 0:
-      fileId = fileId[loc+4:]
-      loc = fileId.find('&')
-      return fileId[:loc] if loc != -1 else fileId
-    loc = fileId.find('/files/')
-    if loc > 0:
-      fileId = fileId[loc+7:]
-      loc = fileId.find('&')
-      if loc > 0:
-        return fileId[:loc]
-      loc = fileId.find('?')
-      return fileId[:loc] if loc != -1 else fileId
-    loc = fileId.find('/folders/')
-    if loc > 0:
-      fileId = fileId[loc+9:]
-      loc = fileId.find('&')
-      if loc > 0:
-        return fileId[:loc]
-      loc = fileId.find('?')
-      return fileId[:loc] if loc != -1 else fileId
-    return None
+      return fileId[:loc]
+    loc = fileId.find('?')
+    return fileId[:loc] if loc != -1 else fileId
+  return None
 
+def cleanFileIDsList(fileIdEntity, fileIds):
   fileIdEntity['list'] = []
   fileIdEntity[ROOT] = []
   i = 0
@@ -57739,16 +57739,19 @@ def syncLicense(users):
   if parameters['csvPF']:
     parameters['csvPF'].writeCSVfile('Sync Licenses')
 
-# gam <UserTypeEntity> update photo [<FileNamePattern>]
-# gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
-#	#  #user# and #email" will be replaced with user email address #username# will be replaced by portion of email address in front of @
+# gam <UserTypeEntity> update photo
+#	([<FileNamePattern>] |
+#	 ([drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]) |
+#	 (gphoto <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>))
+# #user# and #email" will be replaced with user email address #username# will be replaced by portion of email address in front of @
+# in <FileNamePattern> and <DriveFileNameEntity>
 def updatePhoto(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  if Cmd.NumArgumentsRemaining() == 1 and not Cmd.PeekArgumentPresent(['drivedir', 'sourcefolder', 'filename']):
-    sourceFolder = None
+  baseFileIdEntity = drive = owner = None
+  sourceFolder = os.getcwd()
+  if Cmd.NumArgumentsRemaining() == 1:
     filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
   else:
-    sourceFolder = os.getcwd()
     filenamePattern = '#email#.jpg'
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -57760,6 +57763,11 @@ def updatePhoto(users):
           entityDoesNotExistExit(Ent.DIRECTORY, sourceFolder)
       elif myarg == 'filename':
         filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
+      elif myarg == 'gphoto':
+        owner, drive = buildGAPIServiceObject(API.DRIVE3, getEmailAddress())
+        if not drive:
+          return
+        baseFileIdEntity = getDriveFileEntity(queryShortcutsOK=False)
       else:
         unknownArgumentExit()
   p = re.compile('^(ht|f)tps?://.*$')
@@ -57768,7 +57776,30 @@ def updatePhoto(users):
     i += 1
     user, userName, _ = splitEmailAddressOrUID(user)
     filename = _substituteForUser(filenamePattern, user, userName)
-    if p.match(filename):
+    if baseFileIdEntity is not None:
+      fileIdEntity = baseFileIdEntity.copy()
+      if fileIdEntity['query'] is not None:
+        fileIdEntity['query'] = _substituteForUser(fileIdEntity['query'], user, userName)
+      _, _, jcount = _validateUserGetFileIDs(owner, 0, 0, fileIdEntity, drive=drive, entityType=None)
+      if jcount == 0:
+        entityItemValueListActionNotPerformedWarning([Ent.USER, user], [Ent.OWNER, owner],
+                                                     Msg.NO_ENTITIES_FOUND.format(Ent.Singular(Ent.DRIVE_FILE)), i, count)
+        continue
+      if jcount > 1:
+        entityItemValueListActionNotPerformedWarning([Ent.USER, user], [Ent.OWNER, owner],
+                                                     Msg.MULTIPLE_ENTITIES_FOUND.format(Ent.Plural(Ent.DRIVE_FILE), jcount, ','.join(fileIdEntity['list'])), i, count)
+        continue
+      fb = TemporaryFile(mode='wb+')
+      filename = fileIdEntity['list'][0]
+      request = drive.files().get_media(fileId=filename)
+      downloader = googleapiclient.http.MediaIoBaseDownload(fb, request)
+      done = False
+      while not done:
+        _, done = downloader.next_chunk()
+      fb.seek(0)
+      image_data = fb.read()
+      fb.close()
+    elif p.match(filename):
       try:
         status, image_data = getHttpObj().request(filename, 'GET')
         if status['status'] != '200':

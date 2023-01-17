@@ -1,3 +1,10 @@
+6.30.15
+
+Added option `gphoto <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>` to `gam <UserTypeEntity> update photo`
+that specifies an owner and file to be used as the source of the photo.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Photo
+
 6.30.14
 
 Fixed bug in `gam <UserTypeEntity> print|show peopleprofile fields ...` where metadata was being displayed

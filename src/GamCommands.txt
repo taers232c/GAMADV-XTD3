@@ -6662,8 +6662,10 @@ gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
 
 # Users - Photo
 
-gam <UserTypeEntity> update photo [<FileNamePattern>]
-gam <UserTypeEntity> update photo [drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]
+gam <UserTypeEntity> update photo
+        ([<FileNamePattern>] |
+         ([drivedir|(sourcefolder <FilePath>)] [filename <FileNamePattern>]) |
+         (gphoto <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>))
 gam <UserTypeEntity> delete photo
 gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
         [noshow]
