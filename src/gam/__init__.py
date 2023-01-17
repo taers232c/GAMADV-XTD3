@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.15'
+__version__ = '6.30.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -57851,7 +57851,7 @@ def getPhoto(users, profileMode):
   cd = buildGAPIObject(API.DIRECTORY)
   targetFolder = os.getcwd()
   filenamePattern = '#email#.jpg'
-  returnURLonly = False
+  noDefault = returnURLonly = False
   showPhotoData = True
   size = ''
   while Cmd.ArgumentsRemaining():
@@ -57868,6 +57868,8 @@ def getPhoto(users, profileMode):
       showPhotoData = False
     elif profileMode and myarg == 'returnurlonly':
       returnURLonly = True
+    elif myarg == 'nodefault':
+      noDefault = True
     elif profileMode and myarg == 'size':
       size = f';sz={getInteger(minVal=50)}'
     else:
@@ -57897,13 +57899,18 @@ def getPhoto(users, profileMode):
         result = callGAPI(people.people(), 'get',
                           throwReasons=[GAPI.NOT_FOUND],
                           resourceName='people/me', personFields='photos')
+        default = False
         url = None
         for photo in result.get('photos', []):
           if photo['metadata']['source']['type'] == 'PROFILE':
+            default = photo.get('default', False)
             url = photo['url']
             break
         if not url:
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], Msg.PROFILE_PHOTO_NOT_FOUND, i, count)
+          continue
+        if noDefault and default:
+          entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], Msg.PROFILE_PHOTO_IS_DEFAULT, i, count)
           continue
         if returnURLonly:
           writeStdout(f'{url}\n')
@@ -57937,7 +57944,7 @@ def getUserPhoto(users):
   getPhoto(users, False)
 
 # gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-#	[noshow] [returnurlonly]
+#	[noshow] [returnurlonly] [nodefault] [size <Integer>]
 def getProfilePhoto(users):
   getPhoto(users, True)
 

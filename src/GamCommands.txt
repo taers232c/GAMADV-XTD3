@@ -6670,7 +6670,7 @@ gam <UserTypeEntity> delete photo
 gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
         [noshow]
 gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-        [noshow] [returnurlonly] [size <Integer>]
+        [noshow] [returnurlonly] [nodefault] [size <Integer>]
 
 # Users - Profile
 

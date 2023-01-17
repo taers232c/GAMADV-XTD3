@@ -1,3 +1,8 @@
+6.30.16
+
+Added option `nodefault` to `gam <UserTypeEntity> get profilephoto` that causes GAM to display an
+error message and set the return code to 50 if the user has a default profile photo.
+
 6.30.15
 
 Added option `gphoto <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>` to `gam <UserTypeEntity> update photo`
