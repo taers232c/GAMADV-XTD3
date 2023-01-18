@@ -1,3 +1,7 @@
+6.30.17
+
+Updated code for `gam <UserTypeEntity> get profilephoto size <Integer>` to account for API documentation error.
+
 6.30.16
 
 Added option `nodefault` to `gam <UserTypeEntity> get profilephoto` that causes GAM to display an

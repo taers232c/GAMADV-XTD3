@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.16'
+__version__ = '6.30.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -57871,7 +57871,7 @@ def getPhoto(users, profileMode):
     elif myarg == 'nodefault':
       noDefault = True
     elif profileMode and myarg == 'size':
-      size = f';sz={getInteger(minVal=50)}'
+      size = getInteger(minVal=50)
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
@@ -57916,7 +57916,7 @@ def getPhoto(users, profileMode):
           writeStdout(f'{url}\n')
           continue
         if size:
-          url += size
+          url = re.sub("=s\d+$", f"=s{size}", url)
         try:
           status, photo_data = getHttpObj().request(url, 'GET')
           if status['status'] != '200':
