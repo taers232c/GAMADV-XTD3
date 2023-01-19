@@ -1,3 +1,9 @@
+6.31.00
+
+Added `retry_api_service_not_available` variable to `gam.cfg` that is used to have GAM retry
+`Service not applicable` errors on API calls; Google seems to be sending this error when it is very busy.
+This is a rare event, this is an experiment to see if GAM can identify these errors and retry them.
+
 6.30.18
 
 Fixed bug in `gam <UserTypeEntity> move drivefile` where the modified time of files was inappropriately being changed.

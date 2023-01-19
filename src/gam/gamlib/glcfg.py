@@ -194,6 +194,8 @@ QUICK_CROS_MOVE = 'quick_cros_move'
 QUICK_INFO_USER = 'quick_info_user'
 # resellerId from gam.cfg or retrieved from Google
 RESELLER_ID = 'reseller_id'
+# Retry service not available errors on API calls
+RETRY_API_SERVICE_NOT_AVAILABLE = 'retry_api_service_not_available'
 # Default section to use for processing
 SECTION = 'section'
 # Show API calls retry data
@@ -345,6 +347,7 @@ Defaults = {
   QUICK_CROS_MOVE: FALSE,
   QUICK_INFO_USER: FALSE,
   RESELLER_ID: '',
+  RETRY_API_SERVICE_NOT_AVAILABLE: FALSE,
   SECTION: '',
   SHOW_API_CALLS_RETRY_DATA: FALSE,
   SHOW_COMMANDS: FALSE,
@@ -482,6 +485,7 @@ VAR_INFO = {
   QUICK_CROS_MOVE: {VAR_TYPE: TYPE_BOOLEAN},
   QUICK_INFO_USER: {VAR_TYPE: TYPE_BOOLEAN},
   RESELLER_ID: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
+  RETRY_API_SERVICE_NOT_AVAILABLE: {VAR_TYPE: TYPE_BOOLEAN},
   SECTION: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   SHOW_API_CALLS_RETRY_DATA: {VAR_TYPE: TYPE_BOOLEAN},
   SHOW_COMMANDS: {VAR_TYPE: TYPE_BOOLEAN},

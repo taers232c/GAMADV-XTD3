@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.18'
+__version__ = '6.31.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4751,7 +4751,8 @@ def callGAPI(service, function,
         continue
       if http_status == 0:
         return None
-      if (n != retries) and (reason in allRetryReasons):
+      if (n != retries) and ((reason in allRetryReasons) or
+                             (GC.Values[GC.RETRY_API_SERVICE_NOT_AVAILABLE] and (reason == GAPI.SERVICE_NOT_AVAILABLE))):
         if reason in [GAPI.INTERNAL_ERROR, GAPI.BACKEND_ERROR] and bailOnInternalError and n == 2:
           raise GAPI.REASON_EXCEPTION_MAP[reason](message)
         waitOnFailure(n, retries, reason, message)
