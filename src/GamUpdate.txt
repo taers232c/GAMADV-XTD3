@@ -1,3 +1,7 @@
+6.30.18
+
+Fixed bug in `gam <UserTypeEntity> move drivefile` where the modified time of files was inappropriately being changed.
+
 6.30.17
 
 Updated code for `gam <UserTypeEntity> get profilephoto size <Integer>` to account for API documentation error.

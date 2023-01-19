@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.30.17'
+__version__ = '6.30.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51417,7 +51417,10 @@ def moveDriveFile(users):
         return (None, None, False)
 # Update parents on: not retain and MD->MD, SD->MD, SD->SD
     if (not copyMoveOptions['retainSourceFolders'] and (copyMoveOptions['sourceDriveId'] or not copyMoveOptions['destDriveId'])):
-      body = {'name': newFolderName}
+      if newFolderName != folderName:
+        body = {'name': newFolderName}
+      else:
+        body = {}
       removeParents = ','.join([parentId for parentId in source.pop('oldparents', []) if parentId not in source['parents']])
       try:
         callGAPI(drive.files(), 'update',
@@ -51618,7 +51621,10 @@ def moveDriveFile(users):
           if existingTargetFolder and _checkForDuplicateTargetFile(drive, user, k, kcount, child, childName, subTargetChildren, copyMoveOptions, statistics):
             copyMoveOptions['retainSourceFolders'] = True
             continue
-          body = {'name': child['name']}
+          if childName != child['name']:
+            body = {'name': child['name']}
+          else:
+            body = {}
           removeParents = ','.join(childParents)
           _moveFile(drive, user, i, count, k, kcount, Ent.DRIVE_FILE, childId, childName, childName, newFolderId, newFolderName, removeParents, body)
       Ind.Decrement()
@@ -51724,7 +51730,7 @@ def moveDriveFile(users):
                                          'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
         if copyMoveOptions['newFilename']:
           destName = copyMoveOptions['newFilename']
-        elif copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain']:
+        elif (source['mimeType'] == MIMETYPE_GA_FOLDER) and (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain']):
           destName = dest['name']
         else:
           destName = sourceName
@@ -51773,7 +51779,10 @@ def moveDriveFile(users):
           destName = source['name'] # duplicatefiles uniquename may cause rename
           entityType = Ent.DRIVE_FILE
 # Simple move file/folder
-        body = {'name': destName}
+        if destName != sourceName:
+          body = {'name': destName}
+        else:
+          body = {}
 # All parents removed from top level moved item as non-path parents can't be determined
         removeParents = ','.join(sourceParents)
         _moveFile(drive, user, i, count, j, jcount, entityType, fileId, sourceName, destName, newParentId, newParentName, removeParents, body)
