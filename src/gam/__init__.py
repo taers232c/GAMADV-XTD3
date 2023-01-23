@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.31.00'
+__version__ = '6.31.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -57862,7 +57862,7 @@ def getPhoto(users, profileMode):
   targetFolder = os.getcwd()
   filenamePattern = '#email#.jpg'
   noDefault = returnURLonly = False
-  showPhotoData = True
+  writeFileData = showPhotoData = True
   size = ''
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -57874,6 +57874,8 @@ def getPhoto(users, profileMode):
         os.makedirs(targetFolder)
     elif myarg == 'filename':
       filenamePattern = getString(Cmd.OB_PHOTO_FILENAME_PATTERN)
+    elif myarg == 'nofile':
+      writeFileData = False
     elif myarg == 'noshow':
       showPhotoData = False
     elif profileMode and myarg == 'returnurlonly':
@@ -57937,24 +57939,25 @@ def getPhoto(users, profileMode):
         except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
           continue
-      status, e = writeFileReturnError(filename, photo_data, mode='wb')
-      if status:
-        if not showPhotoData:
-          entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
-      else:
-        entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
+      if writeFileData:
+        status, e = writeFileReturnError(filename, photo_data, mode='wb')
+        if status:
+          if not showPhotoData:
+            entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
+        else:
+          entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
     except (GAPI.notFound, GAPI.photoNotFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
       entityUnknownWarning(Ent.USER, user, i, count)
 
 # gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]]
-#	[noshow]
+#	[noshow] [nofile]
 def getUserPhoto(users):
   getPhoto(users, False)
 
 # gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-#	[noshow] [returnurlonly] [nodefault] [size <Integer>]
+#	[noshow] [nofile] [returnurlonly] [nodefault] [size <Integer>]
 def getProfilePhoto(users):
   getPhoto(users, True)
 

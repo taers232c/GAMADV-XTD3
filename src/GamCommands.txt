@@ -6668,9 +6668,9 @@ gam <UserTypeEntity> update photo
          (gphoto <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>))
 gam <UserTypeEntity> delete photo
 gam <UserTypeEntity> get photo [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-        [noshow]
+        [noshow] [nofile]
 gam <UserTypeEntity> get profilephoto [drivedir|(targetfolder <FilePath>)] [filename <FileNamePattern>]
-        [noshow] [returnurlonly] [nodefault] [size <Integer>]
+        [noshow] [nofile] [returnurlonly] [nodefault] [size <Integer>]
 
 # Users - Profile
 

@@ -1,3 +1,9 @@
+6.31.01
+
+Added option `nofile` to `gam <UserTypeEntity> get photo|profilephoto` that causes GAM to suppress
+writing the photo data to a file. This would typicically be used when you are capturing the photo data
+written to stdout.
+
 6.31.00
 
 Added `retry_api_service_not_available` variable to `gam.cfg` that is used to have GAM retry
