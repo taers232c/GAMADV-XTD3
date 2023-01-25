@@ -63175,12 +63175,12 @@ def setVacation(users):
   enable = getBoolean(None)
   body = {'enableAutoReply': enable}
   responseBodyType = 'responseBodyPlainText'
-  message = None
+  message = subject = None
   tagReplacements = _initTagReplacements()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'subject':
-      body['responseSubject'] = getString(Cmd.OB_STRING, minLen=0)
+      subject = getString(Cmd.OB_STRING, minLen=0)
     elif myarg in SORF_MSG_FILE_ARGUMENTS:
       message, _, html = getStringOrFile(myarg)
       if html:
@@ -63208,15 +63208,22 @@ def setVacation(users):
     if tagReplacements['tags'] and not tagReplacements['subs']:
       message = _processTagReplacements(tagReplacements, message)
     body[responseBodyType] = message
+  if subject:
+    if tagReplacements['tags'] and not tagReplacements['subs']:
+      subject = _processTagReplacements(tagReplacements, subject)
+    body['responseSubject'] = subject
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    if message and tagReplacements['subs']:
+    if (message or subject) and tagReplacements['subs']:
       _getTagReplacementFieldValues(user, i, count, tagReplacements)
-      body[responseBodyType] = _processTagReplacements(tagReplacements, message)
+      if message:
+        body[responseBodyType] = _processTagReplacements(tagReplacements, message)
+      if subject:
+        body['responseSubject'] = _processTagReplacements(tagReplacements, subject)
     try:
       oldBody = callGAPI(gmail.users().settings(), 'getVacation',
                          throwReasons=GAPI.GMAIL_THROW_REASONS,

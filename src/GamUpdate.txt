@@ -1,3 +1,7 @@
+6.31.02
+
+Updated `gam <UserTypeEntity> vacation` to process `(replace <Tag> <String>)*` in the subject.
+
 6.31.01
 
 Added option `nofile` to `gam <UserTypeEntity> get photo|profilephoto` that causes GAM to suppress
