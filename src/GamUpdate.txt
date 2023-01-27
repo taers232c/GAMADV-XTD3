@@ -1,3 +1,19 @@
+6.31.03
+
+Added commands to display Chrome Auto Update Expiration counts.
+```
+gam print chromeaues [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [minauedate <Date>] [maxauedate <Date>]
+        [formatjson [quotechar <Character>]]
+gam show chromeaues
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [minauedate <Date>] [maxauedate <Date>]
+        [formatjson]
+```
+
 6.31.02
 
 Updated `gam <UserTypeEntity> vacation` to process `(replace <Tag> <String>)*` in the subject.

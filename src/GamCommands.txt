@@ -1751,6 +1751,19 @@ gam print chromeappdevices [todrive <ToDriveAttribute>*]
         [orderby deviceid|machine]
         [formatjson [quotechar <Character>]]
 
+# Chrome Auto Update Expiration Counts
+
+gam print chromeaues [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [minauedate <Date>] [maxauedate <Date>]
+        [formatjson [quotechar <Character>]]
+gam show chromeaues
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [minauedate <Date>] [maxauedate <Date>]
+        [formatjson]
+
 # Chrome Versions Counts
 
 gam show chromeversions

@@ -84,6 +84,7 @@ class GamEntity():
   CHROME_BROWSER = 'chbr'
   CHROME_BROWSER_ENROLLMENT_TOKEN = 'cbet'
   CHROME_CHANNEL = 'chan'
+  CHROME_MODEL = 'chmo'
   CHROME_PLATFORM = 'cpla'
   CHROME_POLICY = 'cpol'
   CHROME_POLICY_IMAGE = 'cpim'
@@ -390,6 +391,7 @@ class GamEntity():
     CHROME_BROWSER: ['Chrome Browsers', 'Chrome Browser'],
     CHROME_BROWSER_ENROLLMENT_TOKEN: ['Chrome Browser Enrollment Tokens', 'Chrome Browser Enrollment Token'],
     CHROME_CHANNEL: ['Chrome Channels', 'Chrome Channel'],
+    CHROME_MODEL: ['Chrome Models', 'Chrome Model'],
     CHROME_PLATFORM: ['Chrome Platforms', 'Chrome Platform'],
     CHROME_POLICY: ['Chrome Policies', 'Chrome Policy'],
     CHROME_POLICY_IMAGE: ['Chrome Policy Images', 'Chrome Policy Image'],

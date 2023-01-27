@@ -453,6 +453,7 @@ class GamCLArgs():
   ARG_CHATSPACES = 'chatspaces'
   ARG_CHROMEAPPS = 'chromeapps'
   ARG_CHROMEAPPDEVICES = 'chromeappdevices'
+  ARG_CHROMEAUES = 'chromeaues'
   ARG_CHROMEHISTORY = 'chromehistory'
   ARG_CHROMEPOLICYIMAGE = 'chromepolicyimage'
   ARG_CHROMEPOLICY = 'chromepolicy'
