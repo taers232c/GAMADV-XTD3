@@ -25896,6 +25896,14 @@ CHROME_VERSIONS_TITLES = ['channel', 'system', 'deviceOsVersion']
 #	[recentfirst [<Boolean>]]
 #	[formatjson]
 def doPrintShowChromeVersions():
+  def _getVersionKey(v):
+    if 'version' not in v:
+      return (0, 0, 0, 0)
+    k = v['version'].split('.')
+    for i, x in enumerate(k):
+        k[i] = int(x)
+    return tuple(k)
+  
   def _printVersion(version):
     if showOrgUnit:
       version['orgUnitPath'] = orgUnitPath
@@ -25997,12 +26005,12 @@ def doPrintShowChromeVersions():
           entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CHROME_VERSION)
         Ind.Increment()
         j = 0
-        for version in sorted(versions, key=lambda k: k.get('version', UNKNOWN), reverse=reverse):
+        for version in sorted(versions, key=_getVersionKey, reverse=reverse):
           j += 1
           _showVersion(version, j, jcount)
         Ind.Decrement()
       else:
-        for version in sorted(versions, key=lambda k: k.get('version', UNKNOWN), reverse=reverse):
+        for version in sorted(versions, key=_getVersionKey, reverse=reverse):
           _printVersion(version)
   if csvPF:
     csvPF.writeCSVfile('Chrome Versions')
