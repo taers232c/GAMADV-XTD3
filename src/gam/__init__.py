@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.31.03'
+__version__ = '6.31.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -25377,6 +25377,19 @@ def doPrintShowPrinterModels():
   if csvPF:
     csvPF.writeCSVfile('Printer Models')
 
+def _getPrintChromeGetting(subou, pfilter, entityType):
+  orgUnitPath = subou[0]
+  orgUnitId = subou[1]
+  query = pfilter
+  if orgUnitId is not None:
+    if query:
+      query += ' AND '
+    else:
+      query = ''
+    query += f'orgUnitPath={orgUnitPath}'
+  printGettingAllAccountEntities(entityType, query)
+  return (orgUnitPath, orgUnitId)
+
 CHROME_APPS_ORDERBY_CHOICE_MAP = {
   'appname': 'app_name',
   'apptype': 'appType',
@@ -25476,13 +25489,7 @@ def doPrintShowChromeApps():
         return
       ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
     for subou in ouList:
-      orgUnitPath = subou[0]
-      orgUnitId = subou[1]
-      if orgUnitId is not None:
-        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-        printGettingAllEntityItemsForWhom(Ent.CHROME_APP, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-      else:
-        printGettingAllAccountEntities(Ent.CHROME_APP, pfilter)
+      orgUnitPath, orgUnitId = _getPrintChromeGetting(subou, pfilter, Ent.CHROME_APP)
       pageMessage = getPageMessage()
       try:
         apps = callGAPIpages(cm.customers().reports(), 'countInstalledApps', 'installedApps',
@@ -25630,13 +25637,7 @@ def doPrintShowChromeAppDevices():
         return
       ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
     for subou in ouList:
-      orgUnitPath = subou[0]
-      orgUnitId = subou[1]
-      if orgUnitId is not None:
-        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-        printGettingAllEntityItemsForWhom(Ent.CHROME_APP_DEVICE, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-      else:
-        printGettingAllAccountEntities(Ent.CHROME_APP_DEVICE, pfilter)
+      orgUnitPath, orgUnitId = _getPrintChromeGetting(subou, pfilter, Ent.CHROME_APP_DEVICE)
       pageMessage = getPageMessage()
       try:
         devices = callGAPIpages(cm.customers().reports(), 'findInstalledAppDevices', 'devices',
@@ -25707,7 +25708,7 @@ def doPrintShowChromeAues():
   ous = [None]
   directlyInOU = True
   showOrgUnit = False
-  minAueDate = maxAueDate = None
+  minAueDate = maxAueDate = pfilter = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -25724,6 +25725,14 @@ def doPrintShowChromeAues():
       maxAueDate = maxAueDate.strftime(YYYYMMDD_FORMAT)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if minAueDate:
+    pfilter = f'minAueDate={minAueDate}'
+  if maxAueDate:
+    if pfilter:
+      pfilter += ' AND '
+    else:
+      pfilter = ''
+    pfilter += f'maxAueDate>={maxAueDate}'
   if ous[0] is not None:
     showOrgUnit = True
   if csvPF and not FJQC.formatJSON:
@@ -25736,7 +25745,7 @@ def doPrintShowChromeAues():
       _, orgUnitId = getOrgUnitId(cd, ou)
       ouList = [(ou, orgUnitId[3:])]
     else:
-      ouList = [('All', None)]
+      ouList = [('/', None)]
     if not directlyInOU:
       try:
         orgs = callGAPI(cd.orgunits(), 'list',
@@ -25748,13 +25757,7 @@ def doPrintShowChromeAues():
         return
       ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
     for subou in ouList:
-      orgUnitPath = subou[0]
-      orgUnitId = subou[1]
-      if orgUnitId is not None:
-        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-        printGettingAllEntityItemsForWhom(Ent.CHROME_MODEL, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-      else:
-        printGettingAllAccountEntities(Ent.CHROME_MODEL, None)
+      orgUnitPath, orgUnitId = _getPrintChromeGetting(subou, pfilter, Ent.CHROME_MODEL)
       try:
         aues = callGAPI(cm.customers().reports(), 'countChromeDevicesReachingAutoExpirationDate',
                         throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
@@ -25860,13 +25863,7 @@ def doPrintShowChromeNeedsAttn():
     i = 0
     for subou in ouList:
       i += 1
-      orgUnitPath = subou[0]
-      orgUnitId = subou[1]
-      if orgUnitId is not None:
-        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-        printGettingAllEntityItemsForWhom(Ent.CHROME_DEVICE, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-      else:
-        printGettingAllAccountEntities(Ent.CHROME_DEVICE, None)
+      orgUnitPath, orgUnitId = _getPrintChromeGetting(subou, None, Ent.CHROME_DEVICE)
       try:
         result = callGAPI(cm.customers().reports(), 'countChromeDevicesThatNeedAttention',
                           throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
@@ -25983,13 +25980,7 @@ def doPrintShowChromeVersions():
         return
       ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
     for subou in ouList:
-      orgUnitPath = subou[0]
-      orgUnitId = subou[1]
-      if orgUnitId is not None:
-        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-        printGettingAllEntityItemsForWhom(Ent.CHROME_VERSION, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-      else:
-        printGettingAllAccountEntities(Ent.CHROME_VERSION, pfilter)
+      orgUnitPath, orgUnitId = _getPrintChromeGetting(subou, pfilter, Ent.CHROME_VERSION)
       pageMessage = getPageMessage()
       try:
         versions = callGAPIpages(cm.customers().reports(), 'countChromeVersions', 'browserVersions',

@@ -1,6 +1,6 @@
 6.31.04
 
-Added commands to display Chrome Devices Need Attention counts.
+Added commands to display Chrome Devices Needing Attention counts.
 ```
 gam print chromeneedsattn [todrive <ToDriveAttribute>*]
         [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
