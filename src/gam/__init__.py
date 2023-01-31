@@ -25664,6 +25664,226 @@ def doPrintShowChromeAppDevices():
   if csvPF:
     csvPF.writeCSVfile('Chrome Installed Application Devices')
 
+
+CHROME_AUE_TITLES = ['aueMonth', 'aueYear', 'expired']
+
+# gam print chromeaues [todrive <ToDriveAttribute>*]
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[minauedate <Date>] [maxauedate <Date>]
+#	[formatjson [quotechar <Character>]]
+# gam show chromeaues
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[minauedate <Date>] [maxauedate <Date>]
+#	[formatjson]
+def doPrintShowChromeAues():
+  def _printAue(aue):
+    if showOrgUnit:
+      aue['orgUnitPath'] = orgUnitPath
+    row = flattenJSON(aue)
+    if not FJQC.formatJSON:
+      csvPF.WriteRow(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'model': aue['model'], 'count': aue['count'],
+                              'JSON': json.dumps(cleanJSON(aue), ensure_ascii=False, sort_keys=True)})
+
+  def _showAue(aue, i=0, count=0):
+    if showOrgUnit:
+      aue['orgUnitPath'] = orgUnitPath
+    if FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(aue), ensure_ascii=False, sort_keys=True))
+    else:
+      printEntity([Ent.CHROME_MODEL, aue['model']], i, count)
+      Ind.Increment()
+      showJSON(None, aue)
+      Ind.Decrement()
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  cm = buildGAPIObject(API.CHROMEMANAGEMENT)
+  customerId = _getCustomersCustomerIdWithC()
+  csvPF = CSVPrintFile(['model', 'count']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  ous = [None]
+  directlyInOU = True
+  showOrgUnit = False
+  minAueDate = maxAueDate = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in ORGUNIT_ENTITIES_MAP:
+      myarg = ORGUNIT_ENTITIES_MAP[myarg]
+      ous = convertEntityToList(getString(Cmd.OB_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
+      directlyInOU = myarg in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS}
+    elif myarg == 'minauedate':
+      minAueDate, _ = _getFilterDateTime()
+      minAueDate = minAueDate.strftime(YYYYMMDD_FORMAT)
+    elif myarg == 'maxauedate':
+      maxAueDate, _ = _getFilterDateTime()
+      maxAueDate = maxAueDate.strftime(YYYYMMDD_FORMAT)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if ous[0] is not None:
+    showOrgUnit = True
+  if csvPF and not FJQC.formatJSON:
+    csvPF.AddTitles(CHROME_AUE_TITLES)
+    if showOrgUnit:
+      csvPF.AddTitle('orgUnitPath')
+  for ou in ous:
+    if ou is not None:
+      ou = makeOrgUnitPathAbsolute(ou)
+      _, orgUnitId = getOrgUnitId(cd, ou)
+      ouList = [(ou, orgUnitId[3:])]
+    else:
+      ouList = [('All', None)]
+    if not directlyInOU:
+      try:
+        orgs = callGAPI(cd.orgunits(), 'list',
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
+                        type='all', fields='organizationUnits(orgUnitPath,orgUnitId)')
+      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+        return
+      ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
+    for subou in ouList:
+      orgUnitPath = subou[0]
+      orgUnitId = subou[1]
+      if orgUnitId is not None:
+        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+        printGettingAllEntityItemsForWhom(Ent.CHROME_MODEL, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+      else:
+        printGettingAllAccountEntities(Ent.CHROME_MODEL, None)
+      try:
+        aues = callGAPI(cm.customers().reports(), 'countChromeDevicesReachingAutoExpirationDate',
+                        throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                        customer=customerId, orgUnitId=orgUnitId, minAueDate=minAueDate, maxAueDate=maxAueDate).get('deviceAueCountReports', [])
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
+        entityActionFailedWarning([Ent.CHROME_MODEL, None], str(e))
+        return
+      jcount = len(aues)
+      if not csvPF:
+        Ind.Increment()
+        j = 0
+        for aue in sorted(aues, key=lambda k: k.get('model', UNKNOWN)):
+          j += 1
+          _showAue(aue, j, jcount)
+        Ind.Decrement()
+      else:
+        for aue in sorted(aues, key=lambda k: k.get('model', UNKNOWN)):
+          _printAue(aue)
+  if csvPF:
+    csvPF.writeCSVfile('Chrome AUEs')
+
+CHROME_NEEDSATTN_TITLES = ['noRecentPolicySyncCount', 'noRecentUserActivityCount', 'pendingUpdate',
+                          'osVersionNotCompliantCount', 'unsupportedPolicyCount']
+
+# gam print chromeneedsattn [todrive <ToDriveAttribute>*]
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[formatjson [quotechar <Character>]]
+# gam show chromeneedsattn
+#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+#	[formatjson]
+def doPrintShowChromeNeedsAttn():
+  def _printNeedsAttn(needsattn):
+    if showOrgUnit:
+      needsattn['orgUnitPath'] = orgUnitPath
+    row = flattenJSON(needsattn)
+    if not FJQC.formatJSON:
+      csvPF.WriteRow(row)
+    elif csvPF.CheckRowTitles(row):
+      row = {'orgUnitPath': orgUnitPath} if showOrgUnit else {}
+      row['JSON'] = json.dumps(cleanJSON(needsattn), ensure_ascii=False, sort_keys=True)
+      csvPF.WriteRowNoFilter(row)
+
+  def _showNeedsAttn(needsattn, i=0, count=0):
+    if showOrgUnit:
+      needsattn['orgUnitPath'] = orgUnitPath
+    if FJQC.formatJSON:
+      printLine(json.dumps(cleanJSON(needsattn), ensure_ascii=False, sort_keys=True))
+    else:
+      if showOrgUnit:
+        printEntity([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], i, count)
+      Ind.Increment()
+      showJSON(None, needsattn)
+      Ind.Decrement()
+
+  cd = buildGAPIObject(API.DIRECTORY)
+  cm = buildGAPIObject(API.CHROMEMANAGEMENT)
+  customerId = _getCustomersCustomerIdWithC()
+  csvPF = CSVPrintFile([]) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  ous = [None]
+  directlyInOU = True
+  showOrgUnit = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in ORGUNIT_ENTITIES_MAP:
+      myarg = ORGUNIT_ENTITIES_MAP[myarg]
+      ous = convertEntityToList(getString(Cmd.OB_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
+      directlyInOU = myarg in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS}
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if ous[0] is not None:
+    showOrgUnit = True
+  if csvPF:
+    if not FJQC.formatJSON:
+      csvPF.AddTitles(CHROME_NEEDSATTN_TITLES)
+      if showOrgUnit:
+        csvPF.AddTitle('orgUnitPath')
+    elif showOrgUnit:
+      csvPF.SetJSONTitles(['orgUnitPath', 'JSON'])
+  for ou in ous:
+    if ou is not None:
+      ou = makeOrgUnitPathAbsolute(ou)
+      _, orgUnitId = getOrgUnitId(cd, ou)
+      ouList = [(ou, orgUnitId[3:])]
+    else:
+      ouList = [('/', None)]
+    if not directlyInOU:
+      try:
+        orgs = callGAPI(cd.orgunits(), 'list',
+                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
+                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
+                        type='all', fields='organizationUnits(orgUnitPath,orgUnitId)')
+      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
+        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
+        return
+      ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
+    count = len(ouList)
+    i = 0
+    for subou in ouList:
+      i += 1
+      orgUnitPath = subou[0]
+      orgUnitId = subou[1]
+      if orgUnitId is not None:
+        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
+        printGettingAllEntityItemsForWhom(Ent.CHROME_DEVICE, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+      else:
+        printGettingAllAccountEntities(Ent.CHROME_DEVICE, None)
+      try:
+        result = callGAPI(cm.customers().reports(), 'countChromeDevicesThatNeedAttention',
+                          throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                          customer=customerId, orgUnitId=orgUnitId, readMask=','.join(CHROME_NEEDSATTN_TITLES))
+        for field in CHROME_NEEDSATTN_TITLES:
+          result.setdefault(field, 0)
+      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitId], str(e))
+        return
+      if not csvPF:
+        _showNeedsAttn(result, i, count)
+      else:
+        _printNeedsAttn(result)
+  if csvPF:
+    csvPF.writeCSVfile('Chrome Devices Needing Attention')
+
 CHROME_VERSIONS_TITLES = ['channel', 'system', 'deviceOsVersion']
 
 # gam print chromeversions [todrive <ToDriveAttribute>*]
@@ -25795,118 +26015,6 @@ def doPrintShowChromeVersions():
           _printVersion(version)
   if csvPF:
     csvPF.writeCSVfile('Chrome Versions')
-
-CHROME_AUE_TITLES = ['aueMonth', 'aueYear', 'expired']
-
-# gam print chromeaues [todrive <ToDriveAttribute>*]
-#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
-#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
-#	[minauedate <Date>] [maxauedate <Date>]
-#	[formatjson [quotechar <Character>]]
-# gam show chromeaues
-#	[(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
-#	 (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
-#	[minauedate <Date>] [maxauedate <Date>]
-#	[formatjson]
-def doPrintShowChromeAues():
-  def _printAue(aue):
-    if showOrgUnit:
-      aue['orgUnitPath'] = orgUnitPath
-    row = flattenJSON(aue)
-    if not FJQC.formatJSON:
-      csvPF.WriteRow(row)
-    elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'model': aue['model'], 'count': aue['count'],
-                              'JSON': json.dumps(cleanJSON(aue), ensure_ascii=False, sort_keys=True)})
-
-  def _showAue(aue, i=0, count=0):
-    if showOrgUnit:
-      aue['orgUnitPath'] = orgUnitPath
-    if FJQC.formatJSON:
-      printLine(json.dumps(cleanJSON(aue), ensure_ascii=False, sort_keys=True))
-    else:
-      printEntity([Ent.CHROME_MODEL, aue['model']], i, count)
-      Ind.Increment()
-      showJSON(None, aue)
-      Ind.Decrement()
-
-  cd = buildGAPIObject(API.DIRECTORY)
-  cm = buildGAPIObject(API.CHROMEMANAGEMENT)
-  customerId = _getCustomersCustomerIdWithC()
-  csvPF = CSVPrintFile(['model', 'count']) if Act.csvFormat() else None
-  FJQC = FormatJSONQuoteChar(csvPF)
-  ous = [None]
-  directlyInOU = True
-  showOrgUnit = False
-  minAueDate = maxAueDate = None
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    elif myarg in ORGUNIT_ENTITIES_MAP:
-      myarg = ORGUNIT_ENTITIES_MAP[myarg]
-      ous = convertEntityToList(getString(Cmd.OB_ENTITY, minLen=0), shlexSplit=True, nonListEntityType=myarg in [Cmd.ENTITY_OU, Cmd.ENTITY_OU_AND_CHILDREN])
-      directlyInOU = myarg in {Cmd.ENTITY_OU, Cmd.ENTITY_OUS}
-    elif myarg == 'minauedate':
-      minAueDate, _ = _getFilterDateTime()
-      minAueDate = minAueDate.strftime(YYYYMMDD_FORMAT)
-    elif myarg == 'maxauedate':
-      maxAueDate, _ = _getFilterDateTime()
-      maxAueDate = maxAueDate.strftime(YYYYMMDD_FORMAT)
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if ous[0] is not None:
-    showOrgUnit = True
-  if csvPF and not FJQC.formatJSON:
-    csvPF.AddTitles(CHROME_AUE_TITLES)
-    if showOrgUnit:
-      csvPF.AddTitle('orgUnitPath')
-  for ou in ous:
-    if ou is not None:
-      ou = makeOrgUnitPathAbsolute(ou)
-      _, orgUnitId = getOrgUnitId(cd, ou)
-      ouList = [(ou, orgUnitId[3:])]
-    else:
-      ouList = [('/', None)]
-    if not directlyInOU:
-      try:
-        orgs = callGAPI(cd.orgunits(), 'list',
-                        throwReasons=GAPI.ORGUNIT_GET_THROW_REASONS,
-                        customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=makeOrgUnitPathRelative(ou),
-                        type='all', fields='organizationUnits(orgUnitPath,orgUnitId)')
-      except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError, GAPI.badRequest, GAPI.invalidCustomerId, GAPI.loginRequired):
-        checkEntityDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, ou)
-        return
-      ouList.extend([(subou['orgUnitPath'], subou['orgUnitId'][3:]) for subou in sorted(orgs.get('organizationUnits', []), key=lambda k: k['orgUnitPath'])])
-    for subou in ouList:
-      orgUnitPath = subou[0]
-      orgUnitId = subou[1]
-      if orgUnitId is not None:
-        oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
-        printGettingAllEntityItemsForWhom(Ent.CHROME_MODEL, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-      else:
-        printGettingAllAccountEntities(Ent.CHROME_MODEL, None)
-      try:
-        aues = callGAPI(cm.customers().reports(), 'countChromeDevicesReachingAutoExpirationDate',
-                        throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
-                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                        customer=customerId, orgUnitId=orgUnitId, minAueDate=minAueDate, maxAueDate=maxAueDate).get('deviceAueCountReports', [])
-      except (GAPI.invalid, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
-        entityActionFailedWarning([Ent.CHROME_MODEL, None], str(e))
-        return
-      jcount = len(aues)
-      if not csvPF:
-        Ind.Increment()
-        j = 0
-        for aue in sorted(aues, key=lambda k: k.get('model', UNKNOWN)):
-          j += 1
-          _showAue(aue, j, jcount)
-        Ind.Decrement()
-      else:
-        for aue in sorted(aues, key=lambda k: k.get('model', UNKNOWN)):
-          _printAue(aue)
-  if csvPF:
-    csvPF.writeCSVfile('Chrome AUEs')
 
 def getPlatformChannelMap(cv, entityType):
   if cv is None:
@@ -65167,6 +65275,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
       Cmd.ARG_CHROMEAUES:	doPrintShowChromeAues,
       Cmd.ARG_CHROMEHISTORY:	doPrintShowChromeHistory,
+      Cmd.ARG_CHROMENEEDSATTN:	doPrintShowChromeNeedsAttn,
       Cmd.ARG_CHROMEPOLICY:	doPrintShowChromePolicies,
       Cmd.ARG_CHROMESCHEMA:	doPrintShowChromeSchemas,
       Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
@@ -65291,6 +65400,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CHROMEAPPDEVICES:	doPrintShowChromeAppDevices,
       Cmd.ARG_CHROMEAUES:	doPrintShowChromeAues,
       Cmd.ARG_CHROMEHISTORY:	doPrintShowChromeHistory,
+      Cmd.ARG_CHROMENEEDSATTN:	doPrintShowChromeNeedsAttn,
       Cmd.ARG_CHROMEPOLICY:	doPrintShowChromePolicies,
       Cmd.ARG_CHROMESCHEMA:	doPrintShowChromeSchemas,
       Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,

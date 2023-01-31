@@ -455,6 +455,7 @@ class GamCLArgs():
   ARG_CHROMEAPPDEVICES = 'chromeappdevices'
   ARG_CHROMEAUES = 'chromeaues'
   ARG_CHROMEHISTORY = 'chromehistory'
+  ARG_CHROMENEEDSATTN = 'chromeneedsattn'
   ARG_CHROMEPOLICYIMAGE = 'chromepolicyimage'
   ARG_CHROMEPOLICY = 'chromepolicy'
   ARG_CHROMEPOLICIES = 'chromepolicies'

@@ -1,3 +1,17 @@
+6.31.04
+
+Added commands to display Chrome Devices Need Attention counts.
+```
+gam print chromeneedsattn [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [formatjson [quotechar <Character>]]
+gam show chromeneedsattn
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [formatjson]
+```
+
 6.31.03
 
 Added commands to display Chrome Auto Update Expiration counts.

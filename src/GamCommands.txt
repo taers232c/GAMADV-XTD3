@@ -1764,6 +1764,17 @@ gam show chromeaues
         [minauedate <Date>] [maxauedate <Date>]
         [formatjson]
 
+# Chrome Devices Need Attention Counts
+
+gam print chromeneedsattn [todrive <ToDriveAttribute>*]
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [formatjson [quotechar <Character>]]
+gam show chromeneedsattn
+        [(ou <OrgUnitItem>)|(ou_and_children <OrgUnitItem>)|
+         (ous <OrgUnitList>)|(ous_and_children <OrgUnitList>)]
+        [formatjson]
+
 # Chrome Versions Counts
 
 gam show chromeversions
