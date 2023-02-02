@@ -57,6 +57,8 @@ API_CALLS_RATE_LIMIT = 'api_calls_rate_limit'
 # Automatically generate gam batch command if number of users specified in gam users xxx command exceeds this number
 # Default: 0, don't automatically generate gam batch commands
 AUTO_BATCH_MIN = 'auto_batch_min'
+# When bailing on internal errors, how many total tries should be performed
+BAIL_ON_INTERNAL_ERROR_TRIES = 'bail_on_internal_error_tries'
 # When processing items in batches, how many should be processed in each batch
 BATCH_SIZE = 'batch_size'
 # Location of cacerts.pem for API calls
@@ -280,6 +282,7 @@ Defaults = {
   API_CALLS_RATE_CHECK: FALSE,
   API_CALLS_RATE_LIMIT: '100',
   AUTO_BATCH_MIN: '0',
+  BAIL_ON_INTERNAL_ERROR_TRIES: '2',
   BATCH_SIZE: '50',
   CACERTS_PEM: '',
   CACHE_DIR: '',
@@ -418,6 +421,7 @@ VAR_INFO = {
   API_CALLS_RATE_CHECK: {VAR_TYPE: TYPE_BOOLEAN},
   API_CALLS_RATE_LIMIT: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (50, None)},
   AUTO_BATCH_MIN: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: 'GAM_AUTOBATCH', VAR_LIMITS: (0, 100)},
+  BAIL_ON_INTERNAL_ERROR_TRIES: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 10)},
   BATCH_SIZE: {VAR_TYPE: TYPE_INTEGER, VAR_ENVVAR: 'GAM_BATCH_SIZE', VAR_LIMITS: (1, 1000)},
   CACERTS_PEM: {VAR_TYPE: TYPE_FILE, VAR_ENVVAR: 'GAM_CA_FILE', VAR_ACCESS: os.R_OK},
   CACHE_DIR: {VAR_TYPE: TYPE_DIRECTORY, VAR_ENVVAR: 'GAMCACHEDIR'},

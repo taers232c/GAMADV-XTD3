@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.31.04'
+__version__ = '6.31.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4477,7 +4477,8 @@ def callGData(service, function,
     except (gdata.service.RequestError, gdata.apps.service.AppsForYourDomainException) as e:
       error_code, error_message = checkGDataError(e, service)
       if (n != retries) and (error_code in allRetryErrors):
-        if error_code == GDATA.INTERNAL_SERVER_ERROR and bailOnInternalServerError and n == 2:
+        if (error_code == GDATA.INTERNAL_SERVER_ERROR and
+            bailOnInternalServerError and n == GC.Values[GC.BAIL_ON_INTERNAL_ERROR_TRIES]):
           raise GDATA.ERROR_CODE_EXCEPTION_MAP[error_code](error_message)
         waitOnFailure(n, retries, error_code, error_message)
         continue
@@ -4753,7 +4754,8 @@ def callGAPI(service, function,
         return None
       if (n != retries) and ((reason in allRetryReasons) or
                              (GC.Values[GC.RETRY_API_SERVICE_NOT_AVAILABLE] and (reason == GAPI.SERVICE_NOT_AVAILABLE))):
-        if reason in [GAPI.INTERNAL_ERROR, GAPI.BACKEND_ERROR] and bailOnInternalError and n == 2:
+        if (reason in [GAPI.INTERNAL_ERROR, GAPI.BACKEND_ERROR] and
+            bailOnInternalError and n == GC.Values[GC.BAIL_ON_INTERNAL_ERROR_TRIES]):
           raise GAPI.REASON_EXCEPTION_MAP[reason](message)
         waitOnFailure(n, retries, reason, message)
         if reason == GAPI.TRANSIENT_ERROR and bailOnTransientError:

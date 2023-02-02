@@ -1,3 +1,14 @@
+6.31.05
+
+Google can return an error `Internal error` on API calls; by default, GAM retries these API calls an additional 9 times
+for a total of 10 tries. In some cases, determined by experience, the additional retries are unlikely to succeed and
+GAM performs 1 additional retry rather than 9 for a total of 2 tries.
+
+Added `bail_on_internal_error_tries` variable to `gam.cfg` that is used by GAM to control
+the total number of tries for these API calls; Google seems to be sending this error when it is very busy.
+The default value is 2 and values from 1 to 10 are allowed.
+This is a rare event, this is an experiment to see if retrying these errors more times leads to success.
+
 6.31.04
 
 Added commands to display Chrome Devices Needing Attention counts.
