@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.31.05'
+__version__ = '6.31.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -21002,6 +21002,7 @@ CROS_FIELDS_CHOICE_MAP = {
   'autoupdateexpiration': 'autoUpdateExpiration',
   'bootmode': 'bootMode',
   'cpustatusreports': 'cpuStatusReports',
+  'deprovisionreason': 'deprovisionReason',
   'devicefiles': ['deviceFiles.type', 'deviceFiles.createTime'],
   'deviceid': 'deviceId',
   'diskvolumereports': 'diskVolumeReports',
@@ -21009,6 +21010,8 @@ CROS_FIELDS_CHOICE_MAP = {
   'ethernetmacaddress': 'ethernetMacAddress',
   'ethernetmacaddress0': 'ethernetMacAddress0',
   'firmwareversion': 'firmwareVersion',
+  'firstenrollmenttime': 'firstEnrollmentTime',
+  'lastdeprovisiontimestamp': 'lastDeprovisionTimestamp',
   'lastenrollmenttime': 'lastEnrollmentTime',
   'lastknownnetwork': 'lastKnownNetwork',
   'lastsync': 'lastSync',
@@ -21063,7 +21066,10 @@ CROS_SCALAR_PROPERTY_PRINT_ORDER = [
   'ethernetMacAddress0',
   'macAddress',
   'systemRamTotal',
+  'firstEnrollmentTime',
   'lastEnrollmentTime',
+  'deprovisionReason',
+  'lastDeprovisionTimestamp',
   'orderNumber',
   'manufactureDate',
   'supportEndDate',
@@ -21086,7 +21092,15 @@ CROS_LIST_FIELDS_CHOICE_MAP = {
   'users': 'recentUsers',
   }
 
-CROS_TIME_OBJECTS = {'lastSync', 'lastEnrollmentTime', 'supportEndDate', 'createTime', 'reportTime'}
+CROS_TIME_OBJECTS = {
+  'createTime',
+  'firstEnrollmentTime',
+  'lastDeprovisionTimestamp',
+  'lastEnrollmentTime',
+  'lastSync',
+  'reportTime',
+  'supportEndDate',
+  }
 CROS_FIELDS_WITH_CRS_NLS = {'notes'}
 CROS_START_ARGUMENTS = ['start', 'startdate', 'oldestdate']
 CROS_END_ARGUMENTS = ['end', 'enddate']
