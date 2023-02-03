@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.31.06'
+__version__ = '6.31.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3189,6 +3189,16 @@ def SetGlobalVariables():
       _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.INVALID_LIST}: {filters}')
     return headerFilters
 
+  def _getCfgHeaderForce(sectionName, itemName):
+    value = GM.Globals[GM.PARSER].get(sectionName, itemName)
+    headerForce = []
+    if not value:
+      return headerForce
+    splitStatus, headerForce = shlexSplitListStatus(value)
+    if not splitStatus:
+      _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.INVALID_LIST}: {headerForce}')
+    return headerForce
+
   ROW_FILTER_ANY_ALL_PATTERN = re.compile(r'^(any:|all:)(.+)$', re.IGNORECASE)
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count|length)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
   ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange|lengthrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
@@ -3716,6 +3726,8 @@ def SetGlobalVariables():
       GC.Values[itemName] = _getCfgNumber(sectionName, itemName)
     elif varType == GC.TYPE_HEADERFILTER:
       GC.Values[itemName] = _getCfgHeaderFilter(sectionName, itemName)
+    elif varType == GC.TYPE_HEADERFORCE:
+      GC.Values[itemName] = _getCfgHeaderForce(sectionName, itemName)
     elif varType == GC.TYPE_LOCALE:
       GC.Values[itemName] = _getCfgLocale(sectionName, itemName)
     elif varType == GC.TYPE_PASSWORD:
@@ -3739,6 +3751,7 @@ def SetGlobalVariables():
   if outputFilterSectionName:
     GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
     GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
+    GC.Values[GC.CSV_OUTPUT_HEADER_FORCE] = _getCfgHeaderForce(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FORCE)
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE] = _getCfgChoice(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER_MODE)
     GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER)
@@ -3847,7 +3860,7 @@ def SetGlobalVariables():
   if GM.Globals[GM.PID] == 0:
     for itemName in sorted(GC.VAR_INFO):
       varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
-      if varType in {GC.TYPE_HEADERFILTER, GC.TYPE_ROWFILTER}:
+      if varType in {GC.TYPE_HEADERFILTER, GC.TYPE_HEADERFORCE, GC.TYPE_ROWFILTER}:
         GM.Globals[GM.PARSER].set(sectionName, itemName, '')
       elif (varType == GC.TYPE_INTEGER) and itemName in {GC.CSV_INPUT_ROW_LIMIT, GC.CSV_OUTPUT_ROW_LIMIT}:
         GM.Globals[GM.PARSER].set(sectionName, itemName, '0')
@@ -3858,6 +3871,8 @@ def SetGlobalVariables():
       GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER][:]
     if not GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER]:
       GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER][:]
+    if not GC.Values[GC.CSV_OUTPUT_HEADER_FORCE]:
+      GC.Values[GC.CSV_OUTPUT_HEADER_FORCE] = GM.Globals[GM.CSV_OUTPUT_HEADER_FORCE][:]
     if not GC.Values[GC.CSV_OUTPUT_ROW_FILTER]:
       GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = GM.Globals[GM.CSV_OUTPUT_ROW_FILTER][:]
       GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE] = GM.Globals[GM.CSV_OUTPUT_ROW_FILTER_MODE]
@@ -7058,6 +7073,7 @@ class CSVPrintFile():
     self.SetIndexedTitles(indexedTitles if indexedTitles is not None else [])
     self.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
     self.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
+    self.SetHeaderForce(GC.Values[GC.CSV_OUTPUT_HEADER_FORCE])
     self.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE])
     self.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE])
     self.SetRowLimit(GC.Values[GC.CSV_OUTPUT_ROW_LIMIT])
@@ -7624,6 +7640,9 @@ class CSVPrintFile():
   def SetHeaderDropFilter(self, headerDropFilter):
     self.headerDropFilter = headerDropFilter
 
+  def SetHeaderForce(self, headerForce):
+    self.headerForce = headerForce
+
   @staticmethod
   def HeaderFilterMatch(filters, title):
     for filterStr in filters:
@@ -8008,10 +8027,20 @@ class CSVPrintFile():
         self.FixPathsTitles(self.titlesList)
       if self.showPermissionsLast:
         self.MovePermsToEnd()
+      if self.headerForce:
+        self.AddTitles(self.headerForce)
       if self.timestampColumn:
         self.AddTitle(self.timestampColumn)
       titlesList = self.titlesList
     else:
+      if self.headerForce:
+        for i, v in enumerate(self.JSONtitlesList):
+          if v.startswith('JSON'):
+            self.JSONtitlesList = self.JSONtitlesList[:i]+self.headerForce+self.JSONtitlesList[i:]
+            self.JSONtitlesSet.update(self.headerForce)
+            break
+        else:
+          self.AddJSONTitles(self.headerForce)
       if self.timestampColumn:
         for i, v in enumerate(self.JSONtitlesList):
           if v.startswith('JSON'):
@@ -8718,6 +8747,7 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
                            csvColumnDelimiter, csvQuoteChar,
                            csvTimestampColumn,
                            csvHeaderFilter, csvHeaderDropFilter,
+                           csvHeaderForce,
                            csvRowFilter, csvRowFilterMode, csvRowDropFilter, csvRowDropFilterMode,
                            csvRowLimit,
                            args):
@@ -8743,6 +8773,7 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
     GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = csvTimestampColumn
     GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
     GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
+    GM.Globals[GM.CSV_OUTPUT_HEADER_FORCE] = csvHeaderForce[:]
     GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
     GM.Globals[GM.CSV_OUTPUT_ROW_FILTER_MODE] = csvRowFilterMode
     GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER] = csvRowDropFilter[:]
@@ -8912,6 +8943,7 @@ def MultiprocessGAMCommands(items, showCmds):
                         GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
                         GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN],
                         GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
+                        GC.Values[GC.CSV_OUTPUT_HEADER_FORCE],
                         GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE],
                         GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE],
                         GC.Values[GC.CSV_OUTPUT_ROW_LIMIT],
@@ -25917,9 +25949,9 @@ def doPrintShowChromeVersions():
       return (0, 0, 0, 0)
     k = v['version'].split('.')
     for i, x in enumerate(k):
-        k[i] = int(x)
+      k[i] = int(x)
     return tuple(k)
-  
+
   def _printVersion(version):
     if showOrgUnit:
       version['orgUnitPath'] = orgUnitPath

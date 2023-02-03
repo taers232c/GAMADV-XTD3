@@ -64,6 +64,8 @@ CSV_OUTPUT_QUOTE_CHAR = 'coqc'
 CSV_OUTPUT_HEADER_FILTER = 'cohf'
 # Filter for output column headers to drop
 CSV_OUTPUT_HEADER_DROP_FILTER = 'cohd'
+# Force output column headers
+CSV_OUTPUT_HEADER_FORCE = 'cofh'
 # Filter for output column values
 CSV_OUTPUT_ROW_FILTER = 'corf'
 # Mode (and|or) for output column values
@@ -212,6 +214,7 @@ Globals = {
   CSV_OUTPUT_QUOTE_CHAR: None,
   CSV_OUTPUT_HEADER_FILTER: [],
   CSV_OUTPUT_HEADER_DROP_FILTER: [],
+  CSV_OUTPUT_HEADER_FORCE: [],
   CSV_OUTPUT_ROW_FILTER: [],
   CSV_OUTPUT_ROW_FILTER_MODE: True,
   CSV_OUTPUT_ROW_DROP_FILTER: [],

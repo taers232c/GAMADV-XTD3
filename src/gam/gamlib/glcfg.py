@@ -55,7 +55,7 @@ API_CALLS_RATE_CHECK = 'api_calls_rate_check'
 # API calls per 100 seconds limit
 API_CALLS_RATE_LIMIT = 'api_calls_rate_limit'
 # Automatically generate gam batch command if number of users specified in gam users xxx command exceeds this number
-# Default: 0, don't automatically generate gam batch commands
+# Default: 0, do not automatically generate gam batch commands
 AUTO_BATCH_MIN = 'auto_batch_min'
 # When bailing on internal errors, how many total tries should be performed
 BAIL_ON_INTERNAL_ERROR_TRIES = 'bail_on_internal_error_tries'
@@ -113,6 +113,8 @@ CSV_OUTPUT_FIELD_DELIMITER = 'csv_output_field_delimiter'
 CSV_OUTPUT_HEADER_FILTER = 'csv_output_header_filter'
 # Filter for output column headers to drop
 CSV_OUTPUT_HEADER_DROP_FILTER = 'csv_output_header_drop_filter'
+# Force output column headers
+CSV_OUTPUT_HEADER_FORCE = 'csv_output_header_force'
 # Line terminator in CSV output file
 CSV_OUTPUT_LINE_TERMINATOR = 'csv_output_line_terminator'
 # Quote character in CSV output file
@@ -271,7 +273,7 @@ CSV_INPUT_ROW_FILTER_ITEMS = {CSV_INPUT_ROW_FILTER, CSV_INPUT_ROW_FILTER_MODE,
                               CSV_INPUT_ROW_DROP_FILTER, CSV_INPUT_ROW_DROP_FILTER_MODE,
                               CSV_INPUT_ROW_LIMIT}
 
-CSV_OUTPUT_ROW_FILTER_ITEMS = {CSV_OUTPUT_HEADER_FILTER, CSV_OUTPUT_HEADER_DROP_FILTER,
+CSV_OUTPUT_ROW_FILTER_ITEMS = {CSV_OUTPUT_HEADER_FILTER, CSV_OUTPUT_HEADER_DROP_FILTER, CSV_OUTPUT_HEADER_FORCE,
                                CSV_OUTPUT_ROW_FILTER, CSV_OUTPUT_ROW_FILTER_MODE,
                                CSV_OUTPUT_ROW_DROP_FILTER, CSV_OUTPUT_ROW_DROP_FILTER_MODE,
                                CSV_OUTPUT_ROW_LIMIT}
@@ -309,6 +311,7 @@ Defaults = {
   CSV_OUTPUT_FIELD_DELIMITER: "' '",
   CSV_OUTPUT_HEADER_FILTER: '',
   CSV_OUTPUT_HEADER_DROP_FILTER: '',
+  CSV_OUTPUT_HEADER_FORCE: '',
   CSV_OUTPUT_LINE_TERMINATOR: 'lf',
   CSV_OUTPUT_QUOTE_CHAR: '\'"\'',
   CSV_OUTPUT_ROW_FILTER: '',
@@ -399,6 +402,7 @@ TYPE_EMAIL_OPTIONAL = 'emao'
 TYPE_FILE = 'file'
 TYPE_FLOAT = 'floa'
 TYPE_HEADERFILTER = 'heaf'
+TYPE_HEADERFORCE = 'hefo'
 TYPE_INTEGER = 'inte'
 TYPE_LANGUAGE = 'lang'
 TYPE_LOCALE = 'locl'
@@ -448,6 +452,7 @@ VAR_INFO = {
   CSV_OUTPUT_FIELD_DELIMITER: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_HEADER_FILTER: {VAR_TYPE: TYPE_HEADERFILTER},
   CSV_OUTPUT_HEADER_DROP_FILTER: {VAR_TYPE: TYPE_HEADERFILTER},
+  CSV_OUTPUT_HEADER_FORCE: {VAR_TYPE: TYPE_HEADERFORCE},
   CSV_OUTPUT_LINE_TERMINATOR: {VAR_TYPE: TYPE_CHOICE, VAR_CHOICES: {'cr': '\r', 'lf': '\n', 'crlf': '\r\n'}},
   CSV_OUTPUT_QUOTE_CHAR: {VAR_TYPE: TYPE_CHARACTER},
   CSV_OUTPUT_ROW_FILTER: {VAR_TYPE: TYPE_ROWFILTER},
