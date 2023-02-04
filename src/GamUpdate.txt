@@ -1,3 +1,10 @@
+6.31.08
+
+Updated `csv_output_header_force` variable in `gam.cfg` that is a list of `<Strings>`
+to be the exact list of headers to be included in the CSV file written by a gam print command.
+This might be used when the CSV file data is to be uploaded into a database
+and some headers may not be present in the output but must be included for the upload to work.
+
 6.31.07
 
 Added `csv_output_header_force` variable to `gam.cfg` that is a list of `<Strings>`

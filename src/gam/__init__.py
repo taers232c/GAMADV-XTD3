@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.31.07'
+__version__ = '6.31.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3199,6 +3199,15 @@ def SetGlobalVariables():
       _printValueError(sectionName, itemName, f'"{value}"', f'{Msg.INVALID_LIST}: {headerForce}')
     return headerForce
 
+  def _getCfgHeaderFilterFromForce(sectionName, itemName):
+    headerFilters = []
+    for filterStr in GC.Values[itemName]:
+      try:
+        headerFilters.append(re.compile(filterStr))
+      except re.error as e:
+        _printValueError(sectionName, itemName, f'"{filterStr}"', f'{Msg.INVALID_RE}: {e}')
+    return headerFilters
+    
   ROW_FILTER_ANY_ALL_PATTERN = re.compile(r'^(any:|all:)(.+)$', re.IGNORECASE)
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count|length)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
   ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange|lengthrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
@@ -3749,14 +3758,19 @@ def SetGlobalVariables():
     GC.Values[GC.CSV_INPUT_ROW_DROP_FILTER_MODE] = _getCfgChoice(inputFilterSectionName, GC.CSV_INPUT_ROW_DROP_FILTER_MODE)
     GC.Values[GC.CSV_INPUT_ROW_LIMIT] = _getCfgNumber(inputFilterSectionName, GC.CSV_INPUT_ROW_LIMIT)
   if outputFilterSectionName:
-    GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
-    GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
     GC.Values[GC.CSV_OUTPUT_HEADER_FORCE] = _getCfgHeaderForce(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FORCE)
+    if GC.Values[GC.CSV_OUTPUT_HEADER_FORCE]:
+      GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilterFromForce(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FORCE)
+    else:
+      GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_FILTER)
+    GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER] = _getCfgHeaderFilter(outputFilterSectionName, GC.CSV_OUTPUT_HEADER_DROP_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE] = _getCfgChoice(outputFilterSectionName, GC.CSV_OUTPUT_ROW_FILTER_MODE)
     GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER] = _getCfgRowFilter(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER)
     GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE] = _getCfgChoice(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE)
     GC.Values[GC.CSV_OUTPUT_ROW_LIMIT] = _getCfgNumber(outputFilterSectionName, GC.CSV_OUTPUT_ROW_LIMIT)
+  elif GC.Values[GC.CSV_OUTPUT_HEADER_FORCE]:
+    GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilterFromForce(seectionName, GC.CSV_OUTPUT_HEADER_FORCE)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
 # Global values cleanup
@@ -7047,7 +7061,8 @@ class CSVPrintFile():
     self.titlesList = []
     self.JSONtitlesSet = set()
     self.JSONtitlesList = []
-    if titles is not None:
+    self.SetHeaderForce(GC.Values[GC.CSV_OUTPUT_HEADER_FORCE])
+    if not self.headerForce and titles is not None:
       self.SetTitles(titles)
       self.SetJSONTitles(titles)
     if GM.Globals.get(GM.CSV_OUTPUT_COLUMN_DELIMITER) is None:
@@ -7073,7 +7088,6 @@ class CSVPrintFile():
     self.SetIndexedTitles(indexedTitles if indexedTitles is not None else [])
     self.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
     self.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
-    self.SetHeaderForce(GC.Values[GC.CSV_OUTPUT_HEADER_FORCE])
     self.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE])
     self.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE])
     self.SetRowLimit(GC.Values[GC.CSV_OUTPUT_ROW_LIMIT])
@@ -7642,6 +7656,8 @@ class CSVPrintFile():
 
   def SetHeaderForce(self, headerForce):
     self.headerForce = headerForce
+    self.SetTitles(headerForce)
+    self.SetJSONTitles(headerForce)
 
   @staticmethod
   def HeaderFilterMatch(filters, title):
@@ -8021,26 +8037,17 @@ class CSVPrintFile():
     else:
       extrasaction = 'raise'
     if not self.formatJSON:
-      self.SortTitles()
-      self.SortIndexedTitles(self.titlesList)
-      if self.fixPaths:
-        self.FixPathsTitles(self.titlesList)
-      if self.showPermissionsLast:
-        self.MovePermsToEnd()
-      if self.headerForce:
-        self.AddTitles(self.headerForce)
+      if not self.headerForce:
+        self.SortTitles()
+        self.SortIndexedTitles(self.titlesList)
+        if self.fixPaths:
+          self.FixPathsTitles(self.titlesList)
+        if self.showPermissionsLast:
+          self.MovePermsToEnd()
       if self.timestampColumn:
         self.AddTitle(self.timestampColumn)
       titlesList = self.titlesList
     else:
-      if self.headerForce:
-        for i, v in enumerate(self.JSONtitlesList):
-          if v.startswith('JSON'):
-            self.JSONtitlesList = self.JSONtitlesList[:i]+self.headerForce+self.JSONtitlesList[i:]
-            self.JSONtitlesSet.update(self.headerForce)
-            break
-        else:
-          self.AddJSONTitles(self.headerForce)
       if self.timestampColumn:
         for i, v in enumerate(self.JSONtitlesList):
           if v.startswith('JSON'):
