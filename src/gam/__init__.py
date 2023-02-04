@@ -3207,7 +3207,7 @@ def SetGlobalVariables():
       except re.error as e:
         _printValueError(sectionName, itemName, f'"{filterStr}"', f'{Msg.INVALID_RE}: {e}')
     return headerFilters
-    
+
   ROW_FILTER_ANY_ALL_PATTERN = re.compile(r'^(any:|all:)(.+)$', re.IGNORECASE)
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count|length)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
   ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange|lengthrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
@@ -3770,7 +3770,7 @@ def SetGlobalVariables():
     GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE] = _getCfgChoice(outputFilterSectionName, GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE)
     GC.Values[GC.CSV_OUTPUT_ROW_LIMIT] = _getCfgNumber(outputFilterSectionName, GC.CSV_OUTPUT_ROW_LIMIT)
   elif GC.Values[GC.CSV_OUTPUT_HEADER_FORCE]:
-    GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilterFromForce(seectionName, GC.CSV_OUTPUT_HEADER_FORCE)
+    GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = _getCfgHeaderFilterFromForce(sectionName, GC.CSV_OUTPUT_HEADER_FORCE)
   if status['errors']:
     sys.exit(CONFIG_ERROR_RC)
 # Global values cleanup
