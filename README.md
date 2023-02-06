@@ -5,7 +5,7 @@ GAMADV-XTD3 is built with Python 3.
 
 This page provides simple instructions for downloading, installing and starting to use GAMADV-XTD3.
 
-GAMADV-XTD3 requires G Suite for Business, Education, Non Profit, Partner or Government Edition. Google Apps Free Edition has limited API support and not all GAM commands work.
+GAMADV-XTD3 runs on all versions of Google Workspace; Google Apps Free Edition has limited API support and not all GAM commands work.
 
 GAMADV-XTD3 is a rewrite/extension of Jay Lee's [GAM], without his efforts, this version wouldn't exist.
 
