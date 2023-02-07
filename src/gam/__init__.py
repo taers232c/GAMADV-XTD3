@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.31.08'
+__version__ = '6.31.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -973,17 +973,33 @@ LABEL_COLORS = [
   '#f3f3f3', '#f691b3', '#f6c5be', '#f7a7c0', '#fad165', '#fb4c2f', '#fbc8d9', '#fcda83',
   '#fcdee8', '#fce8b3', '#fef1d1', '#ffad47', '#ffbc6b', '#ffd6a2', '#ffe6c7', '#ffffff',
   ]
+LABEL_BACKGROUND_COLORS = [
+  '#16a765', '#2da2bb', '#42d692', '#4986e7', '#98d7e4', '#a2dcc1',
+  '#b3efd3', '#b6cff5', '#b99aff', '#c2c2c2', '#cca6ac', '#e3d7ff',
+  '#e7e7e7', '#ebdbde', '#f2b2a8', '#f691b2', '#fb4c2f', '#fbd3e0',
+  '#fbe983', '#fdedc1', '#ff7537', '#ffad46', '#ffc8af', '#ffdeb5',
+  ]
+LABEL_TEXT_COLORS = [
+  '#04502e', '#094228', '#0b4f30', '#0d3472', '#0d3b44', '#3d188e',
+  '#464646', '#594c05', '#662e37', '#684e07', '#711a36', '#7a2e0b',
+  '#7a4706', '#8a1c0a', '#994a64', '#ffffff',
+  ]
 
-def getLabelColor():
+def getLabelColor(colorType):
   if Cmd.ArgumentsRemaining():
     color = Cmd.Current().strip().lower()
     tg = COLORHEX_PATTERN.match(color)
     if tg:
       color = tg.group(0)
-      if color in LABEL_COLORS:
+      if color in colorType or color in LABEL_COLORS:
         Cmd.Advance()
         return color
-    invalidArgumentExit('|'.join(LABEL_COLORS))
+    elif color.startswith('custom:'):
+      tg = COLORHEX_PATTERN.match(color[7:])
+      if tg:
+        Cmd.Advance()
+        return tg.group(0)
+    invalidArgumentExit('|'.join(colorType))
   missingArgumentExit(Cmd.OB_LABEL_COLOR_HEX)
 
 # Language codes used in Drive Labels
@@ -10447,6 +10463,8 @@ def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printS
     projectId = None
   elif PROJECTID_PATTERN.match(pfilter):
     pfilter = f'id:{pfilter}'
+  elif pfilter.startswith('id:') and PROJECTID_PATTERN.match(pfilter[3:]):
+    pass
   else:
     Cmd.Backup()
     invalidArgumentExit(['', 'all|'][printShowCmd]+PROJECTID_FILTER_REQUIRED)
@@ -59338,10 +59356,10 @@ def getLabelAttributes(myarg, body):
     body['messageListVisibility'] = getChoice(LABEL_MESSAGE_LIST_VISIBILITY_CHOICES)
   elif myarg == 'backgroundcolor':
     body.setdefault('color', {})
-    body['color']['backgroundColor'] = getLabelColor()
+    body['color']['backgroundColor'] = getLabelColor(LABEL_BACKGROUND_COLORS)
   elif myarg == 'textcolor':
     body.setdefault('color', {})
-    body['color']['textColor'] = getLabelColor()
+    body['color']['textColor'] = getLabelColor(LABEL_TEXT_COLORS)
   else:
     unknownArgumentExit()
 

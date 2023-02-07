@@ -114,6 +114,15 @@ If an item contains spaces, it should be surrounded by ".
         #d5ae49|#e07798|#e4d7f5|#e66550|#eaa041|#efa093|#efefef|#f2c960|
         #f3f3f3|#f691b3|#f6c5be|#f7a7c0|#fad165|#fb4c2f|#fbc8d9|#fcda83|
         #fcdee8|#fce8b3|#fef1d1|#ffad47|#ffbc6b|#ffd6a2|#ffe6c7|#ffffff
+<LabelBackgroundColorHex> ::=
+        #16a765|#2da2bb|#42d692|#4986e7|#98d7e4|#a2dcc1|
+        #b3efd3|#b6cff5|#b99aff|#c2c2c2|#cca6ac|#e3d7ff|
+        #e7e7e7|#ebdbde|#f2b2a8|#f691b2|#fb4c2f|#fbd3e0|
+        #fbe983|#fdedc1|#ff7537|#ffad46|#ffc8af|#ffdeb5
+<LabelTextColorHex> ::=
+        #04502e|#094228|#0b4f30|#0d3472|#0d3b44|#3d188e|
+        #464646|#594c05|#662e37|#684e07|#711a36|#7a2e0b|
+        #7a4706|#8a1c0a|#994a64|#ffffff
 <LanguageCode> ::=
         ach|af|ag|ak|am|ar|az|be|bem|bg|bn|br|bs|ca|chr|ckb|co|crs|cs|cy|da|de|
         ee|el|en|en-gb|en-us|eo|es|es-419|et|eu|fa|fi|fil|fo|fr|fr-ca|fy|
@@ -6119,15 +6128,18 @@ gam <UserTypeEntity> print forward|forwards [enabledonly] [todrive <ToDriveAttri
 
 gam <UserTypeEntity> [create|add] label|labels <String>
         [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
-        [backgroundcolor "<LabelColorHex>"] [textcolor "<LabelColorHex>"]
+        [backgroundcolor "<LabelColorHex>|<LabelBackgroundColorHex>|custom:<ColorHex>"]
+        [textcolor "<LabelColorHex>|<LabelTextColorHex>|custom:<ColorHex>"]
         [buildpath [<Boolean>]]
 gam <UserTypeEntity> create labellist <LabelNameEntity>
         [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
-        [backgroundcolor "<LabelColorHex>"] [textcolor "<LabelColorHex>"]
+        [backgroundcolor "<LabelColorHex>|<LabelBackgroundColorHex>|custom:<ColorHex>"]
+        [textcolor "<LabelColorHex>|<LabelTextColorHex>|custom:<ColorHex>"]
         [buildpath [<Boolean>]]
 gam <UserTypeEntity> update labelsettings <LabelName> [name <String>]
         [messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
-        [backgroundcolor "<LabelColorHex>"] [textcolor "<LabelColorHex>"]
+        [backgroundcolor "<LabelColorHex>|<LabelBackgroundColorHex>|custom:<ColorHex>"]
+        [textcolor "<LabelColorHex>|<LabelTextColorHex>|custom:<ColorHex>"]
 gam <UserTypeEntity> update label|labels [search <RegularExpression>] [replace <LabelReplacement>] [merge [keepoldlabel]]
 gam <UserTypeEntity> delete label|labels <LabelName>|regex:<RegularExpression>|--ALL_LABELS--
 gam <UserTypeEntity> delete labellist <LabelNameEntity>

@@ -1,3 +1,32 @@
+6.31.09
+
+Updated `gam gam <UserTypeEntity> create label <String>`, `gam <UserTypeEntity> create labellist <LabelNameEntity>`
+and `gam <UserTypeEntity> update labelsettings <LabelName>` to expand the choices for label colors.
+```
+<ColorHex> ::= "#<Hex><Hex><Hex><Hex><Hex><Hex>"
+<LabelColorHex> ::=
+        #000000|#076239|#0b804b|#149e60|#16a766|#1a764d|#1c4587|#285bac|
+        #2a9c68|#3c78d8|#3dc789|#41236d|#434343|#43d692|#44b984|#4a86e8|
+        #653e9b|#666666|#68dfa9|#6d9eeb|#822111|#83334c|#89d3b2|#8e63ce|
+        #999999|#a0eac9|#a46a21|#a479e2|#a4c2f4|#aa8831|#ac2b16|#b65775|
+        #b694e8|#b9e4d0|#c6f3de|#c9daf8|#cc3a21|#cccccc|#cf8933|#d0bcf1|
+        #d5ae49|#e07798|#e4d7f5|#e66550|#eaa041|#efa093|#efefef|#f2c960|
+        #f3f3f3|#f691b3|#f6c5be|#f7a7c0|#fad165|#fb4c2f|#fbc8d9|#fcda83|
+        #fcdee8|#fce8b3|#fef1d1|#ffad47|#ffbc6b|#ffd6a2|#ffe6c7|#ffffff
+<LabelBackgroundColorHex> ::=
+        #16a765|#2da2bb|#42d692|#4986e7|#98d7e4|#a2dcc1|
+        #b3efd3|#b6cff5|#b99aff|#c2c2c2|#cca6ac|#e3d7ff|
+        #e7e7e7|#ebdbde|#f2b2a8|#f691b2|#fb4c2f|#fbd3e0|
+        #fbe983|#fdedc1|#ff7537|#ffad46|#ffc8af|#ffdeb5
+<LabelTextColorHex> ::=
+        #04502e|#094228|#0b4f30|#0d3472|#0d3b44|#3d188e|
+        #464646|#594c05|#662e37|#684e07|#711a36|#7a2e0b|
+        #7a4706|#8a1c0a|#994a64|#ffffff
+
+backgroundcolor "<LabelColorHex>|<LabelBackgroundColorHex>|custom:<ColorHex>"
+textcolor "<LabelColorHex>|<LabelTextColorHex>|custom:<ColorHex>"
+```
+
 6.31.08
 
 Updated `csv_output_header_force` variable in `gam.cfg` that is a list of `<Strings>`
