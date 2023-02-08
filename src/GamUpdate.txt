@@ -1,3 +1,13 @@
+6.32.00
+
+Added option `oneitemperrow` to `gam <UserTypeEntity> print filelist` to have each of a
+files ACLS displayed on a separate row with all of the other file fields. This produces
+a CSV file that can be used in subsequent commands without further script processing.
+
+Added option `pmfilter` to `gam <UserTypeEntity> print filelist` that is used in conjunction
+with permission matching. By default, permission matching simply selects which files to display,
+all ACLS are displayed. With `pmfilter`, only the ACLs that match are displayed.
+
 6.31.09
 
 Updated `gam gam <UserTypeEntity> create label <String>`, `gam <UserTypeEntity> create labellist <LabelNameEntity>`

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.31.09'
+__version__ = '6.32.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7488,6 +7488,11 @@ class CSVPrintFile():
     self.titlesList.sort()
     for title in restoreTitles[::-1]:
       self.titlesList.insert(0, title)
+
+  def RemoveIndexedTitles(self, titles):
+    for title in titles if isinstance(titles, list) else [titles]:
+      if title in self.indexedTitles:
+        self.indexedTitles.remove(title)
 
   def SetIndexedTitles(self, indexedTitles):
     self.indexedTitles = indexedTitles
@@ -48096,11 +48101,14 @@ class PermissionMatch():
       return permissions
     matchingPermissions = []
     for permission in permissions:
+      requiredMatches = 1 if self.permissionMatchOr else len(self.permissionMatches)
       for permissionMatch in self.permissionMatches:
         if self.CheckPermissionMatch(permission, permissionMatch):
-          if self.permissionMatchKeep:
-            matchingPermissions.append(permission)
-          break
+          requiredMatches -= 1
+          if requiredMatches == 0:
+            if self.permissionMatchKeep:
+              matchingPermissions.append(permission)
+            break
       else:
         if not self.permissionMatchKeep:
           matchingPermissions.append(permission)
@@ -48366,6 +48374,9 @@ class DriveListParameters():
   def CheckFilePermissionMatches(self, fileInfo):
     return self.PM.CheckPermissionMatches(fileInfo.get('permissions', []))
 
+  def GetFileMatchingPermission(self, fileInfo):
+    return self.PM.GetMatchingPermissions(fileInfo.get('permissions', []))
+
 OWNED_BY_ME_FIELDS_TITLES = ['ownedByMe']
 FILELIST_FIELDS_TITLES = ['id', 'name', 'mimeType', 'parents']
 DRIVE_INDEXED_TITLES = ['parents', 'path', 'permissions']
@@ -48390,7 +48401,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[anyowner|(showownedby any|me|others)]
 #	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
-#	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
+#	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>] [pmfilter] [oneitemperrow]
 #	[excludetrashed]
 #	[maxfiles <Integer>] [nodataheaders <String>]
 #	[countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
@@ -48467,6 +48478,8 @@ def printFileList(users):
         pass
     row = {'Owner': user}
     fileInfo = f_file.copy()
+    if not pmselect and 'permissions' in fileInfo:
+      fileInfo['permissions'] = DLP.GetFileMatchingPermission(fileInfo)
     if DFF.showSharedDriveNames and driveId:
       fileInfo['driveName'] = DFF.SharedDriveName(driveId)
     if filepath:
@@ -48486,18 +48499,40 @@ def printFileList(users):
     if showParentsIdsAsList and 'parentsIds' in fileInfo:
       fileInfo['parents'] = len(fileInfo['parentsIds'])
     if not countsOnly:
-      if not FJQC.formatJSON:
-        csvPF.WriteRowTitles(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
-                                         simpleLists=simpleLists, delimiter=delimiter))
+      if not oneItemPerRow or 'permissions' not in fileInfo:
+        if not FJQC.formatJSON:
+          csvPF.WriteRowTitles(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
+                                           simpleLists=simpleLists, delimiter=delimiter))
+        else:
+          if 'id' in fileInfo:
+            row['id'] = fileInfo['id']
+          if fileNameTitle in fileInfo:
+            row[fileNameTitle] = fileInfo[fileNameTitle]
+          if 'owners' in fileInfo:
+            flattenJSON({'owners': fileInfo['owners']}, flattened=row, skipObjects=skipObjects)
+          row['JSON'] = json.dumps(cleanJSON(fileInfo, skipObjects=skipObjects, timeObjects=timeObjects),
+                                   ensure_ascii=False, sort_keys=True)
+          csvPF.WriteRowTitlesJSONNoFilter(row)
       else:
+        baserow = row.copy()
         if 'id' in fileInfo:
-          row['id'] = fileInfo['id']
+          baserow['id'] = fileInfo['id']
         if fileNameTitle in fileInfo:
-          row[fileNameTitle] = fileInfo[fileNameTitle]
+          baserow[fileNameTitle] = fileInfo[fileNameTitle]
         if 'owners' in fileInfo:
-          flattenJSON({'owners': fileInfo['owners']}, flattened=row, skipObjects=skipObjects)
-        row['JSON'] = json.dumps(fileInfo, ensure_ascii=False, sort_keys=False)
-        csvPF.WriteRowTitlesJSONNoFilter(row)
+          flattenJSON({'owners': fileInfo['owners']}, flattened=baserow, skipObjects=skipObjects)
+        permissions = fileInfo.pop('permissions')
+        for permission in permissions:
+          row = baserow.copy()
+          fileInfo['permission'] = permission
+          if not FJQC.formatJSON:
+            csvPF.WriteRowTitles(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
+                                             simpleLists=simpleLists, delimiter=delimiter))
+          else:
+            row = baserow.copy()
+            row['JSON'] = json.dumps(cleanJSON(fileInfo, skipObjects=skipObjects, timeObjects=timeObjects),
+                                     ensure_ascii=False, sort_keys=True)
+            csvPF.WriteRowTitlesJSONNoFilter(row)
     else:
       if showSize:
         sizeTotals['User'] += int(fileInfo.get('size', '0'))
@@ -48582,7 +48617,8 @@ def printFileList(users):
   csvPF = CSVPrintFile('Owner', indexedTitles=DRIVE_INDEXED_TITLES)
   FJQC = FormatJSONQuoteChar(csvPF)
   addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = getPermissionsForSharedDrives = \
-    noRecursion = showParentsIdsAsList = showDepth = showParent = showSize = showSource = stripCRsFromName = False
+    noRecursion = oneItemPerRow = showParentsIdsAsList = showDepth = showParent = showSize = showSource = stripCRsFromName = False
+  pmselect = True
   showLabels = None
   rootFolderId = ROOT
   rootFolderName = MY_DRIVE
@@ -48673,6 +48709,11 @@ def printFileList(users):
     elif myarg == 'showshareddrivepermissions':
       getPermissionsForSharedDrives = True
       permissionsFields = 'nextPageToken,permissions'
+    elif myarg == 'pmfilter':
+      pmselect = False
+    elif myarg == 'oneitemperrow':
+      oneItemPerRow = True
+      csvPF.RemoveIndexedTitles('permissions')
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
   if not filepath and not fullpath:
@@ -48926,7 +48967,7 @@ def printFileList(users):
               titles.extend([f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}' for subField in subFields[:-1].split(',') if subField])
           elif field.find('.') != -1:
             field, subField = field.split('.', 1)
-            if field in DRIVE_LIST_FIELDS:
+            if field in DRIVE_LIST_FIELDS and (field != 'permissions' or pmselect):
               titles.append(f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}0{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}')
             else:
               titles.append(f'{field}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{subField}')
