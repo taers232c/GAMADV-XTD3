@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.32.00'
+__version__ = '6.32.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3228,6 +3228,8 @@ def SetGlobalVariables():
   ROW_FILTER_COMP_PATTERN = re.compile(r'^(date|time|count|length)\s*([<>]=?|=|!=)(.+)$', re.IGNORECASE)
   ROW_FILTER_RANGE_PATTERN = re.compile(r'^(daterange|timerange|countrange|lengthrange)(=|!=)(\S+)/(\S+)$', re.IGNORECASE)
   ROW_FILTER_BOOL_PATTERN = re.compile(r'^(boolean):(.+)$', re.IGNORECASE)
+  ROW_FILTER_TEXT_PATTERN = re.compile(r'^(text)([<>]=?|=|!=)(.*)$', re.IGNORECASE)
+  ROW_FILTER_TEXTRANGE_PATTERN = re.compile(r'^(textrange)(=|!=)(.*)/(.*)$', re.IGNORECASE)
   ROW_FILTER_RE_PATTERN = re.compile(r'^(regex|regexcs|notregex|notregexcs):(.*)$', re.IGNORECASE)
   ROW_FILTER_DATA_PATTERN = re.compile(r'^(data|notdata):(list|file|csvfile) +(.+)$', re.IGNORECASE)
   REGEX_CHARS = '^$*+|$[{('
@@ -3289,11 +3291,21 @@ def SetGlobalVariables():
             rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), filterValue))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: {filterValue}')
-        else: #count|length
+        else: # filterType in {'count', 'length'}:
           if mg.group(3).isdigit():
             rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), int(mg.group(3))))
           else:
             _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: <Number>')
+        continue
+      mg = ROW_FILTER_TEXT_PATTERN.match(filterStr)
+      if mg:
+        filterType = mg.group(1).lower()
+        rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), mg.group(3)))
+        continue
+      mg = ROW_FILTER_TEXTRANGE_PATTERN.match(filterStr)
+      if mg:
+        filterType = mg.group(1).lower()
+        rowFilters.append((columnPat, anyMatch, filterType, mg.group(2), mg.group(3), mg.group(4)))
         continue
       mg = ROW_FILTER_RANGE_PATTERN.match(filterStr)
       if mg:
@@ -3353,7 +3365,7 @@ def SetGlobalVariables():
           rowFilters.append((columnPat, anyMatch, filterType, getEntitiesFromCSVFile(False, returnSet=True)))
         Cmd.RestoreArguments()
         continue
-      _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: date|time|count<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression> or data:<DataSelector>')
+      _printValueError(sectionName, itemName, f'"{column}": "{filterStr}"', f'{Msg.EXPECTED}: date|time|count|text<Operator><Value> or boolean:<Boolean> or regex:<RegularExpression> or data:<DataSelector>')
     return rowFilters
 
   def _getCfgSection(sectionName, itemName):
@@ -6955,6 +6967,50 @@ def RowFilterMatch(row, titlesList, rowFilter, rowFilterModeAll, rowDropFilter, 
         return True
     return False
 
+  def rowTextFilterMatch(op, filterText):
+    def checkMatch(rowText):
+      if not isinstance(rowText, str):
+        rowText = str(rowText)
+      if op == '<':
+        return rowText < filterText
+      if op == '<=':
+        return rowText <= filterText
+      if op == '>':
+        return rowText > filterText
+      if op == '>=':
+        return rowText >= filterText
+      if op == '!=':
+        return rowText != filterText
+      return rowText == filterText
+
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, '')):
+          return True
+      return False
+    for column in columns:
+      if not checkMatch(row.get(column, '')):
+        return False
+    return True
+
+  def rowTextRangeFilterMatch(op, filterTextL, filterTextR):
+    def checkMatch(rowText):
+      if not isinstance(rowText, str):
+        rowText = str(rowText)
+      if op == '!=':
+        return not filterTextL <= rowText <= filterTextR
+      return filterTextL <= rowText <= filterTextR
+
+    if anyMatch:
+      for column in columns:
+        if checkMatch(row.get(column, '')):
+          return True
+      return False
+    for column in columns:
+      if not checkMatch(row.get(column, '')):
+        return False
+    return True
+
   def filterMatch(filterVal):
     if filterVal[2] == 'regex':
       if rowRegexFilterMatch(filterVal[3]):
@@ -6988,6 +7044,12 @@ def RowFilterMatch(row, titlesList, rowFilter, rowFilterModeAll, rowDropFilter, 
         return True
     elif filterVal[2] == 'notdata':
       if rowNotDataFilterMatch(filterVal[3]):
+        return True
+    elif filterVal[2] == 'text':
+      if rowTextFilterMatch(filterVal[3], filterVal[4]):
+        return True
+    elif filterVal[2] == 'textrange':
+      if rowTextRangeFilterMatch(filterVal[3], filterVal[4], filterVal[5]):
         return True
     return False
 
@@ -10281,6 +10343,12 @@ def _getProjects(crm, pfilter, returnNF=False):
     projects = callGAPIpages(crm.projects(), 'search', 'projects',
                              throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
                              query=pfilter)
+    if projects:
+      return projects
+    if pfilter.startswith('id:'):
+      projects = [callGAPI(crm.projects(), 'get',
+                           throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                           name=f'projects/{pfilter[3:]}')]
     if projects or not returnNF:
       return projects
     return [{'projectId': pfilter[3:], 'state': 'NF'}]

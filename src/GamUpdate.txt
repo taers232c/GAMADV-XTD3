@@ -1,7 +1,15 @@
+6.32.01
+
+Extended `csv_input_row_filter`, `csv_input_row_drop_filter`, `csv_output_row_filter` and `csv_output_row_drop_filter`
+to allow specification of filters based on text comparisons.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Input-Filtering
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/CSV-Output-Filtering
+
 6.32.00
 
 Added option `oneitemperrow` to `gam <UserTypeEntity> print filelist` to have each of a
-files ACLS displayed on a separate row with all of the other file fields. This produces
+files permissions displayed on a separate row with all of the other file fields. This produces
 a CSV file that can be used in subsequent commands without further script processing.
 
 Added option `pmfilter` to `gam <UserTypeEntity> print filelist` that is used in conjunction
