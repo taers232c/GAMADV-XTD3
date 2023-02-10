@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.32.01'
+__version__ = '6.32.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -12868,6 +12868,12 @@ TAG_EMAIL_ARGUMENT_TO_FIELD_MAP = {
   'username': 'username',
   }
 
+TAG_GENDER_ARGUMENT_TO_FIELD_MAP = {
+  'addressmeas': 'addressMeAs',
+  'customgender': 'customGender',
+  'type': 'type',
+  }
+
 TAG_KEYWORD_ARGUMENT_TO_FIELD_MAP = {
   'customtype': 'customType',
   'type': 'type',
@@ -12924,6 +12930,7 @@ TAG_FIELD_SUBFIELD_CHOICE_MAP = {
   'address': ('addresses', TAG_ADDRESS_ARGUMENT_TO_FIELD_MAP),
   'addresses': ('addresses', TAG_ADDRESS_ARGUMENT_TO_FIELD_MAP),
   'email': ('primaryEmail', TAG_EMAIL_ARGUMENT_TO_FIELD_MAP),
+  'gender': ('gender', TAG_GENDER_ARGUMENT_TO_FIELD_MAP),
   'keyword': ('keywords', TAG_KEYWORD_ARGUMENT_TO_FIELD_MAP),
   'keywords': ('keywords', TAG_KEYWORD_ARGUMENT_TO_FIELD_MAP),
   'location': ('locations', TAG_LOCATION_ARGUMENT_TO_FIELD_MAP),

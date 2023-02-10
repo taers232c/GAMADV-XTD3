@@ -1,3 +1,18 @@
+6.32.02
+
+Added support for `gender` subfields in `gam <UserTypeEntity> signature` and
+`gam <UserTypeEntity> create|update sendas` option `replace <Tag> <UserReplacement>`.
+```
+<GenderSubfieldName> ::=
+        addressmeas|
+        customgender|
+        type
+<UserReplacementFieldSubfield> ::=
+        ...
+        gender.<GenderSubfieldName>|
+        ...
+```
+
 6.32.01
 
 Extended `csv_input_row_filter`, `csv_input_row_drop_filter`, `csv_output_row_filter` and `csv_output_row_drop_filter`
@@ -921,7 +936,7 @@ gdoc:<FieldName>)+ <UserGoogleDoc>
 ```
 wherever the following are allowed.
 ```
-gsheet <UserGoogleSheet>	
+gsheet <UserGoogleSheet>
 gsheet(:<FieldName>)+ <UserGoogleSheet>
 ```
 

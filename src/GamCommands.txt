@@ -4373,6 +4373,10 @@ gam <UserTypeEntity> show teamdriveacls
         domain|
         primaryemail|
         username
+<GenderSubfieldName> ::=
+        addressmeas|
+        customgender|
+        type
 <KeywordSubfieldName> ::=
         customtype|
         type|
@@ -4416,6 +4420,7 @@ gam <UserTypeEntity> show teamdriveacls
 <UserReplacementFieldSubfield> ::=
         address.<AddressSubfieldName>|
         email.<EmailSubfieldName>|
+        gender.<GenderSubfieldName>|
         keyword.<KeywordSubfieldName>|
         location.<LocationSubfieldName>|
         name.<NameSubfieldName>|
