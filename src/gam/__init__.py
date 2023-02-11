@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.32.02'
+__version__ = '6.32.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10341,19 +10341,21 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
 def _getProjects(crm, pfilter, returnNF=False):
   try:
     projects = callGAPIpages(crm.projects(), 'search', 'projects',
-                             throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                             throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                              query=pfilter)
     if projects:
       return projects
     if pfilter.startswith('id:'):
       projects = [callGAPI(crm.projects(), 'get',
-                           throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT],
+                           throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                            name=f'projects/{pfilter[3:]}')]
     if projects or not returnNF:
       return projects
     return [{'projectId': pfilter[3:], 'state': 'NF'}]
   except (GAPI.badRequest, GAPI.invalidArgument) as e:
     entityActionFailedExit([Ent.PROJECT, pfilter], str(e))
+  except GAPI.permissionDenied:
+    return []
 
 def _checkProjectFound(project, i, count):
   if project.get('state', '') != 'NF':

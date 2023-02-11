@@ -1,3 +1,10 @@
+6.32.03
+
+Following Jay's lead, updated `gam create project` to handle the following error:
+```
+ERROR: 403: Permission 'resourcemanager.projects.get' denied on resource
+```
+
 6.32.02
 
 Added support for `gender` subfields in `gam <UserTypeEntity> signature` and
