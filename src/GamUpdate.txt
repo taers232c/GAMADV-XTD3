@@ -1,3 +1,10 @@
+6.32.05
+
+Fixed bug in `gam show chromepolicies` that caused a trap.
+
+Following Jay's lead, added `sharingfoldersrequiresorganizerpermission` to `<SharedDriveRestrictionsFieldName>` and
+`<SharedDriveRestrictionsSubfieldName>`.
+
 6.32.04
 
 Fixed bug in `gam <UserTypeEntity> move drivefile <DriveFileEntity>` where the following

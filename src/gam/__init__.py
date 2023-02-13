@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.32.04'
+__version__ = '6.32.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -23901,7 +23901,8 @@ def doPrintShowChromePolicies():
   cd = buildGAPIObject(API.DIRECTORY)
   customer = _getCustomersCustomerIdWithC()
   csvPF = CSVPrintFile(CHROME_POLICY_SORT_TITLES, indexedTitles=CHROME_POLICY_INDEXED_TITLES) if Act.csvFormat() else None
-  csvPF.SetEscapeChar(None)
+  if csvPF:
+    csvPF.SetEscapeChar(None)
   FJQC = FormatJSONQuoteChar(csvPF)
   appId = orgUnit = policySchemaFilter = printerId = None
   showPolicies = CHROME_POLICY_SHOW_ALL
@@ -55853,6 +55854,7 @@ SHAREDDRIVE_RESTRICTIONS_MAP = {
   'copyrequireswriterpermission': 'copyRequiresWriterPermission',
   'domainusersonly': 'domainUsersOnly',
   'drivemembersonly': 'driveMembersOnly',
+  'sharingfoldersrequiresorganizerpermission': 'sharingFoldersRequiresOrganizerPermission',
   'teammembersonly': 'driveMembersOnly',
   }
 
