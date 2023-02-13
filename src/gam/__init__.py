@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.32.03'
+__version__ = '6.32.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -15260,7 +15260,7 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quick
       try:
         deviceIds = items[bcount:bcount+kcount]
         callGAPI(cd.chromeosdevices(), 'moveDevicesToOu',
-                 throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                 throwReasons=[GAPI.INVALID_ORGUNIT, GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                  customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=orgUnitPath,
                  body={'deviceIds': deviceIds})
         for deviceId in deviceIds:
@@ -15270,8 +15270,15 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quick
       except GAPI.invalidOrgunit:
         entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.INVALID_ORGUNIT, i, count)
         break
-      except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+      except GAPI.invalidInput as e:
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, None], str(e), i, count)
+        break
+      except GAPI.resourceNotFound as e:
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ','.join(deviceIds)], str(e), i, count)
+        break
+      except (GAPI.badRequest, GAPI.forbidden):
         checkEntityAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath, i, count)
+        bcount += kcount
   Ind.Decrement()
 
 def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
@@ -50837,7 +50844,6 @@ def _copyPermissions(drive, user, i, count, j, jcount,
               GAPI.fileOrganizerOnFoldersInSharedDriveOnly,
               GAPI.fileOrganizerOnNonTeamDriveNotSupported,
               GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
-              GAPI.invalidSharingRequest,
               GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         entityActionFailedWarning(kvList, str(e), k, kcount)
         break
