@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.00'
+__version__ = '6.42.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -60350,11 +60350,16 @@ def _initMessageThreadParameters(entityType, doIt, maxToProcess):
           'maxToKeywords': [MESSAGES_MAX_TO_KEYWORDS[Act.Get()], 'maxtoprocess'],
           'listType': listType, 'fields': f'nextPageToken,{listType}(id)'}
 
+LABEL_QUERY_REPLACEMENT_CHARACTERS = ' &()"|{}/'
+
 def _getMessageSelectParameters(myarg, parameters):
   if myarg == 'query':
     parameters['query'] += f' ({getString(Cmd.OB_QUERY)})'
   elif myarg == 'matchlabel':
-    labelName = getString(Cmd.OB_LABEL_NAME).lower().replace(' ', '-').replace('/', '-')
+    labelTemp = getString(Cmd.OB_LABEL_NAME).lower()
+    labelName = ''
+    for c in labelTemp:
+      labelName += c if c not in LABEL_QUERY_REPLACEMENT_CHARACTERS else '-'
     if not parameters['labelGroupOpen']:
       parameters['query'] += '('
       parameters['labelGroupOpen'] = True
