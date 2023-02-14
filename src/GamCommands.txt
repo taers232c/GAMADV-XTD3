@@ -4131,7 +4131,7 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
         themeid
 <SharedDriveFieldNameList> ::= "<SharedDriveFieldName>(,<SharedDriveFieldName>)*"
 
-<SharedDriveRestrictionsFieldName> ::=
+<SharedDriveRestrictionsSubfieldName> ::=
         adminmanagedrestrictions|
         copyrequireswriterpermission|
         domainusersonly|
@@ -4442,7 +4442,7 @@ gam <UserTypeEntity> show teamdriveacls
         (schema:<SchemaName>.<FieldName>)|
         <String>
 
-# Vault
+# Vault/Takeout
 
 gam create|add vaultmatter|matter [name <String>] [description <string>]
         [collaborator|collaborators <EmailItemList>] [sendemails <Boolean>] [ccme <Boolean>]
@@ -4503,6 +4503,14 @@ gam download vaultexport|export <MatterItem> <ExportItem>
         [targetfolder <FilePath>] [targetname <FileName>] [noverify] [noextract] [ziptostdout]
         [bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
         [downloadattempts <Integer>] [retryinterval <Integer>]
+gam copy vaultexport|export <ExportItem> matter <MatterItem>
+        [targetbucket <String>] [targetprefix <String>]
+        [bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+        [copyattempts <Integer>] [retryinterval <Integer>]
+gam copy vaultexport|export <MatterItem> <ExportItem>
+        [targetbucket <String>] [targetprefix <String>]
+        [bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+        [copyattempts <Integer>] [retryinterval <Integer>]
 
 <VaultExportFieldName> ::=
         cloudstoragesink|
@@ -4579,6 +4587,11 @@ gam show vaultholds|holds [matters <MatterItemList>]
 
 gam <UserTypeEntity> print vaultholds|holds [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show vaultholds|holds
+
+gam download storagebucket <String>
+        [targetfolder <FilePath>]
+gam copy storagebucket sourcebucket <String> targetbucket <String>
+        [sourceprefix <String>] [targetprefix <String>]
 
 # Users
 
@@ -6781,11 +6794,11 @@ gam <UserTypeEntity> print tasklists [todrive <ToDriveAttribute>*]
 # Users - Team Drives
 
 <SharedDriveRestrictionsSubfieldName> ::=
-        restrictions.adminmanagedrestrictions|
-        restrictions.copyrequireswriterpermission|
-        restrictions.domainusersonly|
-        restrictions.sharingfoldersrequiresorganizerpermission|
-        restrictions.teammembersonly
+        adminmanagedrestrictions|
+        copyrequireswriterpermission|
+        domainusersonly|
+        drivemembersonly|teammembersonly|
+        sharingfoldersrequiresorganizerpermission
 
 gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]

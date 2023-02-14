@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.32.05'
+__version__ = '6.42.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -99,7 +99,7 @@ from dateutil.relativedelta import relativedelta
 
 from filelock import FileLock
 
-from pathvalidate import sanitize_filename
+from pathvalidate import sanitize_filename, sanitize_filepath
 
 from gamlib import glaction
 from gamlib import glapi as API
@@ -18425,7 +18425,7 @@ class PeopleManager():
     }
 
   @staticmethod
-  def GetPersonFields(entityType):
+  def GetPersonFields(entityType, allowAddRemove):
     person = {}
     contactGroupsLists = {
       PEOPLE_GROUPS_LIST: [],
@@ -18622,11 +18622,15 @@ class PeopleManager():
           unknownArgumentExit()
         contactGroupsLists[PEOPLE_GROUPS_LIST].append(getString(Cmd.OB_STRING))
       elif fieldName == PEOPLE_ADD_GROUPS:
+        if not allowAddRemove:
+          unknownArgumentExit()
         if entityType != Ent.USER:
           Cmd.Backup()
           unknownArgumentExit()
         contactGroupsLists[PEOPLE_ADD_GROUPS_LIST].append(getString(Cmd.OB_STRING))
       elif fieldName == PEOPLE_REMOVE_GROUPS:
+        if not allowAddRemove:
+          unknownArgumentExit()
         if entityType != Ent.USER:
           Cmd.Backup()
           unknownArgumentExit()
@@ -19011,7 +19015,7 @@ def createUserPeopleContact(users):
   peopleManager = PeopleManager()
   peopleEntityType = Ent.CONTACT
   sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
-  body, personFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
+  body, personFields, contactGroupsLists = peopleManager.GetPersonFields(entityType, False)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -19081,7 +19085,7 @@ def _clearUpdatePeopleContacts(users, updateContacts):
   sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
   entityList, resourceNameLists, contactQuery, queriedContacts = _getPeopleContactEntityList(entityType, 1)
   if updateContacts:
-    body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
+    body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType, True)
   else:
     contactClear = {'emailClearPattern': contactQuery['emailMatchPattern'], 'emailClearType': contactQuery['emailMatchType']}
     deleteClearedContactsWithNoEmails = False
@@ -19851,7 +19855,7 @@ def processUserPeopleOtherContacts(users):
   if action == Act.UPDATE:
     Act.Set(Act.UPDATE_MOVE)
     peopleManager = PeopleManager()
-    body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType)
+    body, updatePersonFields, contactGroupsLists = peopleManager.GetPersonFields(entityType, False)
   else:
     body = {PEOPLE_MEMBERSHIPS: [{'contactGroupMembership': {'contactGroupResourceName': CONTACTGROUPS_MYCONTACTS_ID}}]}
     updatePersonFields = [PEOPLE_MEMBERSHIPS]
@@ -34547,6 +34551,215 @@ def doPrintShowUserSchemas():
   if csvPF:
     csvPF.writeCSVfile('User Schemas')
 
+def _copyStorageObjects(objects, target_bucket, target_prefix):
+  """Copies objects to target_bucket.
+
+  Args:
+    objects: list of object dicts
+      [
+        {
+          bucket: source bucket,
+          name: source object name,
+          (optional) md5Hash: source file hash value
+        },
+        ...
+      ]
+    target_bucket: target bucket id
+    target_prefix: prefix name to prepend to target object
+
+  """
+
+  def process_rewrite(request_id, response, exception):
+    fileIndex = int(request_id)
+    if exception:
+      http_status, reason, message = checkGAPIError(exception)
+      # Poor man's backoff/retry
+      if http_status == 429 or http_status > 499:
+        writeStderr(f'Temporary error: {http_status} - {message}, Backing off: 10 seconds\n')
+        flushStderr()
+        time.sleep(10)
+        next_batch.add(s.objects().rewrite(**files_to_copy[fileIndex]['method']), request_id=request_id)
+        return
+      if reason in GAPI.REASON_EXCEPTION_MAP:
+        raise GAPI.REASON_EXCEPTION_MAP[reason](message)
+      raise exception(message)
+    source_displayname = files_to_copy[fileIndex]['source_displayname']
+    target_displayname = files_to_copy[fileIndex]['target_displayname']
+    if response.get('done'):
+      source_md5 = files_to_copy[fileIndex]['md5Hash']
+      target_md5 = response['resource']['md5Hash']
+      if source_md5 != target_md5:
+        systemErrorExit(GOOGLE_API_ERROR_RC, f'Target file {target_displayname} checksum {target_md5} does not match source {source_md5}. This should not happen')
+      entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, None], f'{1:>7.2%} Complete', fileIndex+1, totalFiles)
+      Ind.Increment()
+      writeStdout(formatKeyValueList(Ind.Spaces(), ['Source', source_displayname], '\n'))
+      writeStdout(formatKeyValueList(Ind.Spaces(), ['Target', target_displayname], '\n'))
+      Ind.Decrement()
+    else:
+      total_bytes = float(response.get('objectSize'))
+      done_bytes = float(response.get('totalBytesRewritten'))
+      entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, None], f'{(done_bytes / total_bytes):>7.2%} Complete', fileIndex+1, totalFiles)
+      Ind.Increment()
+      writeStdout(formatKeyValueList(Ind.Spaces(), ['Source', source_displayname], '\n'))
+      writeStdout(formatKeyValueList(Ind.Spaces(), ['Target', target_displayname], '\n'))
+      Ind.Decrement()
+      files_to_copy[fileIndex]['method']['rewriteToken'] = response.get('rewriteToken')
+      next_batch.add(s.objects().rewrite(**files_to_copy[fileIndex]['method']), request_id=request_id)
+
+  action = Act.Get()
+  Act.Set(Act.COPY)
+  s = buildGAPIObject(API.STORAGEWRITE)
+  sbatch = s.new_batch_http_request(callback=process_rewrite)
+  files_to_copy = []
+  for object_ in objects:
+    files_to_copy.append(
+      {
+        'md5Hash': object_['md5Hash'],
+        'source_displayname': f'{object_["bucket"]}:{object_["name"]}',
+        'target_displayname': f'{target_bucket}:{target_prefix}{object_["name"]}',
+        'method': {
+          'destinationBucket': target_bucket,
+          'destinationObject': f'{target_prefix}{object_["name"]}',
+          'sourceBucket': object_['bucket'],
+          'sourceObject': object_['name'],
+          'maxBytesRewrittenPerCall': 1048576, # uncomment to easily test multiple rewrite API calls per object
+        },
+      })
+  totalFiles = len(files_to_copy)
+  i = 0
+  try:
+    for file in files_to_copy:
+      while len(sbatch._order) == 100:
+        next_batch = s.new_batch_http_request(callback=process_rewrite)
+        sbatch.execute()
+        sbatch = next_batch
+      sbatch.add(s.objects().rewrite(**file['method']), request_id=str(i))
+      i += 1
+    while len(sbatch._order) > 0:
+      next_batch = s.new_batch_http_request(callback=process_rewrite)
+      sbatch.execute()
+      sbatch = next_batch
+  except GAPI.notFound:
+    Act.Set(action)
+    entityDoesNotExistExit(Ent.CLOUD_STORAGE_BUCKET, target_bucket)
+  except Exception:
+    ClientAPIAccessDeniedExit()
+  Act.Set(action)
+
+def _getCloudStorageObject(s, bucket, s_object, local_file=None, expectedMd5=None, zipToStdout=False, j=0, jcount=0):
+  if not zipToStdout:
+    if not local_file:
+      local_file = s_object
+    local_file = sanitize_filepath(local_file, platform='auto')
+    entityValueList = [Ent.DRIVE_FILE, local_file]
+    if os.path.exists(local_file):
+      printEntityMessage(entityValueList, Msg.EXISTS)
+      if not expectedMd5:
+        return # nothing to verify, just assume we're good.
+      if md5MatchesFile(local_file, expectedMd5):
+        return
+      printEntityMessage(entityValueList, Msg.DOWNLOADING_AGAIN_AND_OVER_WRITING)
+    entityPerformAction(entityValueList)
+    file_path = os.path.dirname(local_file)
+    if not os.path.exists(file_path):
+      os.makedirs(file_path)
+    f = openFile(local_file, 'wb')
+  else:
+    f = openFile('-', 'wb')
+  try:
+    request = s.objects().get_media(bucket=bucket, object=s_object)
+    downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
+    done = False
+    while not done:
+      status, done = downloader.next_chunk()
+      if not zipToStdout and status.progress() < 1.0:
+        entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], f'{status.progress():>7.2%}', j, jcount)
+    if not zipToStdout:
+      entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, local_file, j, jcount)
+      closeFile(f, True)
+    if expectedMd5 and not md5MatchesFile(local_file, expectedMd5):
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(local_file, Msg.CORRUPT_FILE))
+  except httplib2.HttpLib2Error as e:
+    entityModifierNewValueActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, local_file, str(e), j, jcount)
+
+TAKEOUT_EXPORT_PATTERN = re.compile(r'(takeout-export-[a-f,0-9,-]*)')
+
+# gam copy storagebucket sourcebucket <String> targetbucket <String>
+#	[sourceprefix <String>] [targetprefix <String>]
+def doCopyCloudStorageBucket():
+  s = buildGAPIObject(API.STORAGE)
+  source_bucket = None
+  target_bucket = None
+  source_prefix = None
+  target_prefix = ''
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'sourcebucket':
+      source_bucket = getString(Cmd.OB_URL)
+    elif myarg == 'targetbucket':
+      target_bucket = getString(Cmd.OB_URL)
+    elif myarg == 'sourceprefix':
+      source_prefix = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == 'targetprefix':
+      target_prefix = getString(Cmd.OB_STRING, minLen=0)
+    else:
+      unknownArgumentExit()
+  if not target_bucket:
+    missingArgumentExit('targetbucket')
+  if not source_bucket:
+    missingArgumentExit('sourcebucket')
+  printGettingAllAccountEntities(Ent.FILE)
+  pageMessage = getPageMessage()
+  try:
+    objects = callGAPIpages(s.objects(), 'list', 'items',
+                            pageMessage=pageMessage,
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                            bucket=source_bucket, prefix=source_prefix,
+                            fields='nextPageToken,items(name,bucket,md5Hash)')
+  except GAPI.notFound:
+    entityDoesNotExistExit(Ent.CLOUD_STORAGE_BUCKET, source_bucket)
+  except GAPI.forbidden as e:
+    entityActionFailedExit([Ent.CLOUD_STORAGE_BUCKET, source_bucket], str(e))
+  _copyStorageObjects(objects, target_bucket, target_prefix)
+
+# gam download storagebucket <String>
+#	[targetfolder <FilePath>]
+def doDownloadCloudStorageBucket():
+  bucket_url = getString(Cmd.OB_STRING)
+  targetFolder = GC.Values[GC.DRIVE_DIR]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'targetfolder':
+      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+      if not os.path.isdir(targetFolder):
+        os.makedirs(targetFolder)
+    else:
+      unknownArgumentExit()
+  bucket_match = re.search(TAKEOUT_EXPORT_PATTERN, bucket_url)
+  if not bucket_match:
+    systemErrorExit(ACTION_NOT_PERFORMED_RC, f'Could not find a takeout-export-* bucket in {bucket_url}')
+  bucket = bucket_match.group(1)
+  s = buildGAPIObject(API.STORAGE)
+  printGettingAllAccountEntities(Ent.FILE)
+  pageMessage = getPageMessage()
+  try:
+    objects = callGAPIpages(s.objects(), 'list', 'items',
+                            pageMessage=pageMessage,
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                            bucket=bucket, projection='noAcl', fields='nextPageToken,items(name,id,md5Hash)')
+  except GAPI.notFound:
+    entityDoesNotExistExit(Ent.CLOUD_STORAGE_BUCKET, bucket)
+  except GAPI.forbidden as e:
+    entityActionFailedExit([Ent.CLOUD_STORAGE_BUCKET, bucket], str(e))
+  count = len(objects)
+  i = 0
+  for s_object in objects:
+    i += 1
+    printGettingEntityItem(Ent.FILE, s_object['name'], i, count)
+    expectedMd5 = base64.b64decode(s_object['md5Hash']).hex()
+    _getCloudStorageObject(s, bucket, s_object['name'], 
+                           local_file=os.path.join(targetFolder, s_object['name']), expectedMd5=expectedMd5)
+
 def formatVaultNameId(vaultName, vaultId):
   return f'{vaultName}({vaultId})'
 
@@ -35041,6 +35254,73 @@ def md5MatchesFile(filename, expected_md5, j=0, jcount=0):
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, fileErrorMessage(filename, e))
 
+# gam copy vaultexport|export <ExportItem> matter <MatterItem>
+#	[targetbucket <String>] [targetprefix <String>]
+#	[bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+#	[copyattempts <Integer>] [retryinterval <Integer>]
+# gam copy vaultexport|export <MatterItem> <ExportItem>
+#	[targetbucket <String>] [targetprefix <String>]
+#	[bucketmatchpattern <RegularExpression>] [objectmatchpattern <RegularExpression>]
+#	[copyattempts <Integer>] [retryinterval <Integer>]
+def doCopyVaultExport():
+  v = buildGAPIObject(API.VAULT)
+  if not Cmd.ArgumentIsAhead('matter'):
+    matterId, matterNameId = getMatterItem(v)
+    exportId, exportName, exportNameId = convertExportNameToID(v, getString(Cmd.OB_EXPORT_ITEM), matterId, matterNameId)
+  else:
+    exportName = getString(Cmd.OB_EXPORT_ITEM)
+  target_bucket = None
+  target_prefix = ''
+  bucketMatchPattern = objectMatchPattern = None
+  copyAttempts = 1
+  retryInterval = 30
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'matter':
+      matterId, matterNameId = getMatterItem(v)
+      exportId, exportName, exportNameId = convertExportNameToID(v, exportName, matterId, matterNameId)
+    elif myarg == 'targetbucket':
+      target_bucket = getString(Cmd.OB_URL)
+    elif myarg == 'targetprefix':
+      target_prefix = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == 'bucketmatchpattern':
+      bucketMatchPattern = getREPattern(re.IGNORECASE)
+    elif myarg == 'objectmatchpattern':
+      objectMatchPattern = getREPattern(re.IGNORECASE)
+    elif myarg == 'copyattempts':
+      copyAttempts = getInteger(minVal=1)
+    elif myarg == 'retryinterval':
+      retryInterval = getInteger(minVal=10)
+    else:
+      unknownArgumentExit()
+  if not target_bucket:
+    missingArgumentExit('targetbucket')
+  attempts = 0
+  while True:
+    try:
+      export = callGAPI(v.matters().exports(), 'get',
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                        matterId=matterId, exportId=exportId)
+    except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+      entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
+      return
+    if export['status'] == 'COMPLETED':
+      break
+    attempts += 1
+    entityActionNotPerformedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], Msg.EXPORT_NOT_COMPLETE.format(export['status']), attempts, copyAttempts)
+    if attempts >= copyAttempts:
+      return
+    time.sleep(retryInterval)
+  objects = []
+  for s_file in export['cloudStorageSink']['files']:
+    if ((bucketMatchPattern and not bucketMatchPattern.match(s_file['bucketName'])) or
+        (objectMatchPattern and not objectMatchPattern.match(s_file['objectName']))):
+      continue
+    # Convert to md5Hash format Storage API uses because OF COURSE they differ
+    md5Hash = base64.b64encode(bytes.fromhex(s_file['md5Hash'])).decode()
+    objects.append({'bucket': s_file['bucketName'], 'name': s_file['objectName'], 'md5Hash': md5Hash})
+  _copyStorageObjects(objects, target_bucket, target_prefix)
+
 ZIP_EXTENSION_PATTERN = re.compile(r'^.*\.zip$', re.IGNORECASE)
 
 # gam download vaultexport|export <ExportItem> matter <MatterItem>
@@ -35170,82 +35450,15 @@ def doDownloadVaultExport():
     if not zipToStdout:
       performAction(Ent.CLOUD_STORAGE_FILE, s_object, j, jcount)
     Ind.Increment()
-    try:
-      request = s.objects().get_media(bucket=bucket, object=s_object)
-      f = openFile(filename if not zipToStdout else '-', 'wb')
-      downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
-      done = False
-      while not done:
-        status, done = downloader.next_chunk()
-        if not zipToStdout and status.progress() < 1.0:
-          entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], f'{status.progress():>7.2%}', j, jcount)
-      if not zipToStdout:
-        entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, j, jcount)
-      if not zipToStdout:
-        closeFile(f, True)
-      if verifyFiles:
-        if not md5MatchesFile(filename, s_file['md5Hash'], j, jcount):
-          Ind.Decrement()
-          break
-      if extractFiles and ZIP_EXTENSION_PATTERN.match(filename):
-        Act.Set(Act.EXTRACT)
-        extract_nested_zip(filename)
-        Act.Set(Act.DOWNLOAD)
-    except httplib2.HttpLib2Error as e:
-      entityModifierNewValueActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename, str(e), j, jcount)
+    _getCloudStorageObject(s, bucket, s_object, local_file=filename,
+                           expectedMd5=s_file['md5Hash'] if verifyFiles else None,
+                           zipToStdout=zipToStdout, j=j, jcount=jcount)
+    if extractFiles and ZIP_EXTENSION_PATTERN.match(filename):
+      Act.Set(Act.EXTRACT)
+      extract_nested_zip(filename)
+      Act.Set(Act.DOWNLOAD)
     Ind.Decrement()
   Ind.Decrement()
-
-def _getCloudStorageObject(s, bucket, s_object, local_file=None, expectedMd5=None):
-  if not local_file:
-    local_file = s_object
-  entityValueList = [Ent.DRIVE_FILE, local_file]
-  if os.path.exists(local_file):
-    printEntityMessage(entityValueList, Msg.EXISTS)
-    if not expectedMd5:
-      return # nothing to verify, just assume we're good.
-    if md5MatchesFile(local_file, expectedMd5):
-      return
-    printEntityMessage(entityValueList, Msg.DOWNLOADING_AGAIN_AND_OVER_WRITING)
-  entityPerformAction(entityValueList)
-  request = s.objects().get_media(bucket=bucket, object=s_object)
-  file_path = os.path.dirname(local_file)
-  if not os.path.exists(file_path):
-    os.makedirs(file_path)
-  f = openFile(local_file, 'wb')
-  downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
-  done = False
-  while not done:
-    status, done = downloader.next_chunk()
-    if status.progress() < 1.0:
-      entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], f'{status.progress():>7.2%}')
-  entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, local_file)
-  closeFile(f, True)
-  if expectedMd5 and not md5MatchesFile(local_file, expectedMd5):
-    systemErrorExit(FILE_ERROR_RC, fileErrorMessage(local_file, Msg.CORRUPT_FILE))
-
-TAKEOUT_EXPORT_PATTERN = re.compile(r'(takeout-export-[a-f,0-9,-]*)')
-
-# gam download storagebucket <URL>
-def doDownloadCloudStorageBucket():
-  bucket_url = getString(Cmd.OB_URL)
-  checkForExtraneousArguments()
-  bucket_match = re.search(TAKEOUT_EXPORT_PATTERN, bucket_url)
-  if not bucket_match:
-    systemErrorExit(ACTION_NOT_PERFORMED_RC, f'Could not find a takeout-export-* bucket in {bucket_url}')
-  bucket = bucket_match.group(1)
-  s = buildGAPIObject(API.STORAGE)
-  printGettingAllAccountEntities(Ent.FILE)
-  pageMessage = getPageMessage()
-  objects = callGAPIpages(s.objects(), 'list', 'items',
-                          pageMessage=pageMessage, bucket=bucket, projection='noAcl', fields='nextPageToken,items(name,id,md5Hash)')
-  count = len(objects)
-  i = 0
-  for s_object in objects:
-    i += 1
-    printGettingEntityItem(Ent.FILE, s_object['name'], i, count)
-    expectedMd5 = base64.b64decode(s_object['md5Hash']).hex()
-    _getCloudStorageObject(s, bucket, s_object['name'], expectedMd5=expectedMd5)
 
 def _getHoldEmailAddressesOrgUnitName(hold, cd):
   if 'accounts' in hold:
@@ -52860,7 +53073,7 @@ def transferDrive(users):
 
   def _buildTargetFile(folderName, folderParentId):
     try:
-      op = 'Find Target Folder"'
+      op = 'Find Target Folder'
       result = callGAPIpages(targetDrive.files(), 'list', 'files',
                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.BAD_REQUEST],
                              retryReasons=[GAPI.UNKNOWN_ERROR],
@@ -65300,6 +65513,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'copy':
     (Act.COPY,
      {Cmd.ARG_SHAREDDRIVEACLS:	doCopySyncSharedDriveACLs,
+      Cmd.ARG_STORAGEBUCKET:	doCopyCloudStorageBucket,
+      Cmd.ARG_VAULTEXPORT:	doCopyVaultExport,
      }
     ),
   'create':
@@ -65752,6 +65967,8 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_APIPROJECT:		Cmd.ARG_PROJECT,
   Cmd.ARG_BROWSERS:		Cmd.ARG_BROWSER,
   Cmd.ARG_BROWSERTOKENS:	Cmd.ARG_BROWSERTOKEN,
+  Cmd.ARG_BUCKET:		Cmd.ARG_STORAGEBUCKET,
+  Cmd.ARG_BUCKETS:		Cmd.ARG_STORAGEBUCKET,
   Cmd.ARG_BUILDINGS:		Cmd.ARG_BUILDING,
   Cmd.ARG_CAALEVELS:		Cmd.ARG_CAALEVEL,
   Cmd.ARG_CHATMEMBERS:		Cmd.ARG_CHATMEMBER,
@@ -65835,6 +66052,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_SHAREDDRIVES:		Cmd.ARG_SHAREDDRIVE,
   Cmd.ARG_SITEACLS:		Cmd.ARG_SITEACL,
   Cmd.ARG_SITES:		Cmd.ARG_SITE,
+  Cmd.ARG_STORAGEBUCKETS:	Cmd.ARG_STORAGEBUCKET,
   Cmd.ARG_SVCACCTS:		Cmd.ARG_SVCACCT,
   Cmd.ARG_TEAMDRIVE:		Cmd.ARG_SHAREDDRIVE,
   Cmd.ARG_TEAMDRIVES:		Cmd.ARG_SHAREDDRIVE,

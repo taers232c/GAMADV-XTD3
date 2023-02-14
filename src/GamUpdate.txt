@@ -1,9 +1,27 @@
+6.42.00
+
+Following Jay's lead, added commands commands to copy Google Vault and Organization Takeout data to your own GCS bucket.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Vault-Takeout#copy-vault-exports
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Vault-Takeout#copy-a-takeout-bucket
+
+Updated `gam <UserTypeEntity> create contact` to treat the following options as errors;
+previously, they were silently ignored.
+```
+addcontactgroup <ContactGroupItem>
+removecontactgroup <ContactGroupItem>
+```
+
+Updated version number to align with Standard GAM.
+
 6.32.05
 
 Fixed bug in `gam show chromepolicies` that caused a trap.
 
 Following Jay's lead, added `sharingfoldersrequiresorganizerpermission` to `<SharedDriveRestrictionsFieldName>` and
 `<SharedDriveRestrictionsSubfieldName>`.
+
+* See: https://workspaceupdates.googleblog.com/
 
 6.32.04
 

@@ -78,6 +78,7 @@ SHEETSTD = 'sheetstd'
 SITES = 'sites'
 SITEVERIFICATION = 'siteVerification'
 STORAGE = 'storage'
+STORAGEWRITE = 'storagewrite'
 TASKS = 'tasks'
 VAULT = 'vault'
 #
@@ -172,7 +173,7 @@ _INFO = {
   CHAT: {'name': 'Chat API', 'version': 'v1', 'v2discovery': True},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
   CHROMEMANAGEMENT: {'name': 'Chrome Management API', 'version': 'v1', 'v2discovery': True},
-  CHROMEMANAGEMENT_TELEMETRY: {'name': 'Chrome Management API - Telemetry', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'chromemanagement'},
+  CHROMEMANAGEMENT_TELEMETRY: {'name': 'Chrome Management API - Telemetry', 'version': 'v1', 'v2discovery': True, 'mappedAPI': CHROMEMANAGEMENT},
   CHROMEPOLICY: {'name': 'Chrome Policy API', 'version': 'v1', 'v2discovery': True},
   CHROMEVERSIONHISTORY: {'name': 'Chrome Version History API', 'version': 'v1', 'v2discovery': True},
   CLOUDCHANNEL: {'name': 'Channel Channel API', 'version': 'v1', 'v2discovery': True},
@@ -207,8 +208,8 @@ _INFO = {
   LICENSING: {'name': 'License Manager API', 'version': 'v1', 'v2discovery': True},
   OAUTH2: {'name': 'OAuth2 API', 'version': 'v2', 'v2discovery': False},
   PEOPLE: {'name': 'People API', 'version': 'v1', 'v2discovery': True},
-  PEOPLE_DIRECTORY: {'name': 'People Directory API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'people'},
-  PEOPLE_OTHERCONTACTS: {'name': 'People  API - Other Contacts', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'people'},
+  PEOPLE_DIRECTORY: {'name': 'People Directory API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': PEOPLE},
+  PEOPLE_OTHERCONTACTS: {'name': 'People  API - Other Contacts', 'version': 'v1', 'v2discovery': True, 'mappedAPI': PEOPLE},
   PRINTERS: {'name': 'Directory API Printers', 'version': 'directory_v1', 'v2discovery': True, 'mappedAPI': 'admin'},
   PUBSUB: {'name': 'Pub / Sub API', 'version': 'v1', 'v2discovery': True},
   REPORTS: {'name': 'Reports API', 'version': 'reports_v1', 'v2discovery': True, 'mappedAPI': 'admin'},
@@ -216,10 +217,11 @@ _INFO = {
   SERVICEMANAGEMENT: {'name': 'Service Management API', 'version': 'v1', 'v2discovery': True},
   SERVICEUSAGE: {'name': 'Service Usage API', 'version': 'v1', 'v2discovery': True},
   SHEETS: {'name': 'Sheets API', 'version': 'v4', 'v2discovery': True},
-  SHEETSTD: {'name': 'Sheets API - todrive', 'version': 'v4', 'v2discovery': True, 'mappedAPI': 'sheets'},
+  SHEETSTD: {'name': 'Sheets API - todrive', 'version': 'v4', 'v2discovery': True, 'mappedAPI': SHEETS},
   SITES: {'name': 'Sites API', 'version': 'v1', 'v2discovery': False},
   SITEVERIFICATION: {'name': 'Site Verification API', 'version': 'v1', 'v2discovery': True},
-  STORAGE: {'name': 'Cloud Storage API', 'version': 'v1', 'v2discovery': True},
+  STORAGE: {'name': 'Cloud Storage API - Read', 'version': 'v1', 'v2discovery': True},
+  STORAGEWRITE: {'name': 'Cloud Storage API - Write', 'version': 'v1', 'v2discovery': True, 'mappedAPI': STORAGE},
   TASKS: {'name': 'Tasks API', 'version': 'v1', 'v2discovery': True},
   VAULT: {'name': 'Vault API', 'version': 'v1', 'v2discovery': True},
   }
@@ -312,10 +314,15 @@ _CLIENT_SCOPES = [
    'api': CLOUDIDENTITY_USERINVITATIONS,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/cloud-identity.userinvitations'},
-  {'name': 'Cloud Storage (Vault Export - read only)',
+  {'name': 'Cloud Storage (Vault/Takeout Download)',
    'api': STORAGE,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/devstorage.read_only'},
+  {'name': 'Cloud Storage (Vault/Takeout Copy)',
+   'api': STORAGEWRITE,
+   'subscopes': [],
+   'offByDefault': True,
+   'scope': 'https://www.googleapis.com/auth/devstorage.read_write'},
   {'name': 'Contacts API - Domain Shared Contacts and GAL',
    'api': CONTACTS,
    'subscopes': [],

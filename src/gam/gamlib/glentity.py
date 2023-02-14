@@ -101,6 +101,7 @@ class GamEntity():
   CLIENT_ID = 'clid'
   CLIENT_SECRETS_JSON_FILE = 'csjf'
   CLOUD_IDENTITY_GROUP = 'cidg'
+  CLOUD_STORAGE_BUCKET = 'clsb'
   CLOUD_STORAGE_FILE = 'clsf'
   COLLABORATOR = 'cola'
   COMMAND_ID = 'cmdi'
@@ -409,6 +410,7 @@ class GamEntity():
     CLIENT_ID: ['Client IDs', 'Client ID'],
     CLIENT_SECRETS_JSON_FILE: ['Client Secrets File', 'Client Secrets File'],
     CLOUD_IDENTITY_GROUP: ['Cloud Identity Groups', 'Cloud Identity Group'],
+    CLOUD_STORAGE_BUCKET: ['Cloud Storage Buckets', 'Cloud Storage Bucket'],
     CLOUD_STORAGE_FILE: ['Cloud Storage Files', 'Cloud Storage File'],
     COLLABORATOR: ['Collaborators', 'Collaborator'],
     COMMAND_ID: ['Command IDs', 'Command ID'],
