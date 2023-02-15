@@ -5613,8 +5613,10 @@ gam <UserTypeEntity> process filedrivelabels <DriveFileEntity>
         (deletelabelfield <DriveLabelID> <DriveLabelFieldID>)*
         [nodetails]
 
-gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
+gam show ownership <DriveFileID>|(drivefilename <DriveFileName>)
+        [formatjson]
 gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*]
+        (addcsvdata <FieldName> <String>)*
         [formatjson [quotechar <Character>]]
 
 <RevisionsFieldName> ::=
@@ -5684,17 +5686,29 @@ gam <UserTypeEntity> collect orphans
         [preview [todrive <ToDriveAttribute>*]]
 
 <DriveCapabilitiesSubfieldName> ::=
+        canacceptownership|
         canaddchildren|
+        canaddfolderfromanotherdrive|
         canaddmydriveparent|
         canchangecopyrequireswriterpermission|
+        canchangedomainusersonlyrestriction|
+        canchangedrivebackground|
+        canchangedrivemembersonlyrestriction|
+        canchangesecurityupdateenabled|
+        canchangesharingfoldersrequiresorganizerpermissionrestriction|
         canchangeviewerscancopycontent|
         cancomment|
         cancopy|
         candelete|
+        candeletechildren|
+        candeletedrive|
         candownload|
         canedit|
         canlistchildren|
+        canmanagemembers|
         canmodifycontent|
+        canmodifycontentrestriction|
+        canmodifylabels|
         canmovechildrenoutofdrive|
         canmovechildrenoutofteamdrive|
         canmovechildrenwithindrive|
@@ -5706,11 +5720,14 @@ gam <UserTypeEntity> collect orphans
         canmoveitemwithinteamdrive|
         canmoveteamdriveitem|
         canreaddrive|
+        canreadlabels|
         canreadrevisions|
         canreadteamdrive|
         canremovechildren|
         canremovemydriveparent|
         canrename|
+        canrenamedrive|
+        canresetdriverestrictions|
         canshare|
         cantrash|
         cantrashchildren|
@@ -5867,6 +5884,8 @@ gam <UserTypeEntity> collect orphans
         <DriveSharingUserSubfieldName>|
         shortcutdetails|
         <DriveShortcutDetailsSubfieldName>|
+        sha1Checksum|
+	sha256Checksum|
         size|
         spaces|
         starred|
@@ -6000,6 +6019,7 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [showparentsidsaslist] [showpermissionslast]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
         [stripcrsfromname]
+        (addcsvdata <FieldName> <String>)*
         [formatjson [quotechar <Character>]]
 
 <DriveActivityAction> ::=

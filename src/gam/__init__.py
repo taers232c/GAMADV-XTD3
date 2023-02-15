@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.01'
+__version__ = '6.42.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -47079,6 +47079,8 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'sharedwithmetime': 'sharedWithMeTime',
   'sharinguser': 'sharingUser',
   'shortcutdetails': 'shortcutDetails',
+  'sha1checksum': 'sha1Checksum',
+  'sha256checksum': 'sha256Checksum',
   'size': 'size',
   'spaces': 'spaces',
   'teamdriveid': 'driveId',
@@ -47106,15 +47108,21 @@ DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP = {
   'canaddfolderfromanotherdrive': 'canAddFolderFromAnotherDrive',
   'canaddmydriveparent': 'canAddMyDriveParent',
   'canchangecopyrequireswriterpermission': 'canChangeCopyRequiresWriterPermission',
+  'canchangedomainusersonlyrestriction': 'canChangeDomainUsersOnlyRestriction',
+  'canchangedrivebackground': 'canChangeDriveBackground',
+  'canchangedrivemembersonlyrestriction': 'canChangeDriveMembersOnlyRestriction',
   'canchangesecurityupdateenabled': 'canChangeSecurityUpdateEnabled',
+  'canchangesharingfoldersrequiresorganizerpermissionrestriction': 'canChangeSharingFoldersRequiresOrganizerPermissionRestriction',
   'canchangeviewerscancopycontent': 'canChangeViewersCanCopyContent',
   'cancomment': 'canComment',
   'cancopy': 'canCopy',
   'candelete': 'canDelete',
   'candeletechildren': 'canDeleteChildren',
+  'candeletedrive': 'canDeleteDrive',
   'candownload': 'canDownload',
   'canedit': 'canEdit',
   'canlistchildren': 'canListChildren',
+  'canmanagemembers': 'canManageMembers',
   'canmodifycontent': 'canModifyContent',
   'canmodifycontentrestriction': 'canModifyContentRestriction',
   'canmodifylabels': 'canModifyLabels',
@@ -47135,6 +47143,8 @@ DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP = {
   'canremovechildren': 'canRemoveChildren',
   'canremovemydriveparent': 'canRemoveMyDriveParent',
   'canrename': 'canRename',
+  'canrenamedrive': 'canRenameDrive',
+  'canresetdriverestrictions': 'canResetDriveRestrictions',
   'canshare': 'canShare',
   'cantrash': 'canTrash',
   'cantrashchildren': 'canTrashChildren',
@@ -48710,6 +48720,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[showparentsidsaslist] [showpermissionslast]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])* [delimiter <Character>]
 #	[stripcrsfromname]
+#	(addcsvdata <FieldName> <String>)*
 #	[formatjson [quotechar <Character>]]
 def printFileList(users):
   def _setSelectionFields():
@@ -48796,6 +48807,8 @@ def printFileList(users):
         _mapDrivePermissionNames(permission)
     if showParentsIdsAsList and 'parentsIds' in fileInfo:
       fileInfo['parents'] = len(fileInfo['parentsIds'])
+    if addCSVData:
+      fileInfo.update(addCSVData)
     if not countsOnly:
       if not oneItemPerRow or 'permissions' not in fileInfo:
         if not FJQC.formatJSON:
@@ -48932,6 +48945,7 @@ def printFileList(users):
   summary = FILECOUNT_SUMMARY_NONE
   summaryUser = FILECOUNT_SUMMARY_USER
   summaryMimeTypeCounts = {}
+  addCSVData = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -49012,6 +49026,9 @@ def printFileList(users):
     elif myarg == 'oneitemperrow':
       oneItemPerRow = True
       csvPF.RemoveIndexedTitles('permissions')
+    elif myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
   if not filepath and not fullpath:
@@ -49088,6 +49105,8 @@ def printFileList(users):
     for queryTimeName, queryTimeValue in iter(DLP.queryTimes.items()):
       selectSubQuery = selectSubQuery.replace(f'#{queryTimeName}#', queryTimeValue)
     selectSubQuery = _mapDrive2QueryToDrive3(selectSubQuery)
+  if addCSVData:
+    csvPF.AddTitles(sorted(addCSVData.keys()))
   i, count, users = getEntityArgument(users)
   sizeTotals = {'User': 0, 'Summary': 0}
   for user in users:
@@ -55927,8 +55946,11 @@ def processFileDriveLabels(users):
         break
     Ind.Decrement()
 
-# gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
-# gam show ownership <DriveFileID>|(drivefilename <DriveFileName>) [formatjson]
+# gam print ownership <DriveFileID>|(drivefilename <DriveFileName>) [todrive <ToDriveAttribute>*]
+#	(addcsvdata <FieldName> <String>)*
+#	[formatjson [quotechar <Character>]]
+# gam show ownership <DriveFileID>|(drivefilename <DriveFileName>)
+#	[formatjson]
 def doPrintShowOwnership():
   rep = buildGAPIObject(API.REPORTS)
   customerId = GC.Values[GC.CUSTOMER_ID]
@@ -55937,6 +55959,7 @@ def doPrintShowOwnership():
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   csvPF = CSVPrintFile('Owner') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  addCSVData = {}
   showComplete = False
   entityType = Ent.DRIVE_FILE_OR_FOLDER_ID
   myarg = getString(Cmd.OB_DRIVE_FILE_ID, checkBlank=True)
@@ -55972,10 +55995,15 @@ def doPrintShowOwnership():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif csvPF and myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if csvPF and not FJQC.formatJSON:
     csvPF.AddTitles(['id', fileNameTitle, 'type', 'ownerIsSharedDrive', 'driveId', 'event'])
+    if addCSVData:
+      csvPF.AddTitles(sorted(addCSVData.keys()))
     csvPF.SetSortAllTitles()
   foundIds = {}
   try:
@@ -56025,6 +56053,8 @@ def doPrintShowOwnership():
             else:
               printLine(json.dumps(cleanJSON(fileInfo), ensure_ascii=False, sort_keys=True))
           else:
+            if addCSVData:
+              fileInfo.update(addCSVData)
             row = flattenJSON(fileInfo)
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)

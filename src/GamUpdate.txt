@@ -1,3 +1,27 @@
+6.42.02
+
+Added `sha1checksum` and `sha256checksum` to `<DriveFieldName>`.
+```
+The SHA1/SHA256 checksum associated with a file, if available.
+This field is only populated for files with content stored in Google Drive;
+it isn't populated for Docs Editors or shortcut files.
+```
+
+Added option `addcsvdata <FieldName> <String>` to `gam <UserTypeEntity> print filelist` and
+`gam print ownership`. This adds additional columns of data to the CSV file output.
+```
+Get a list of a user's shortcuts
+gam redirect csv ./TSShortcuts.csv user user@domain.com print filelist fields id,name,parents,shortcutdetails showmimetype gshortcut
+Headers
+Owner,id,name,parents,parents.0.id,parents.0.isRoot,shortcutDetails.targetId,shortcutDetails.targetMimeType
+
+For each shortcut, get the target file information; add the shortcut id, name and parent to the output
+gam redirect csv ./TSShortcutFiles.csv multiprocess csv ./TSShortcuts.csv gam user user@domain.com print filelist select "~shortcutDetails.targetId" norecursion showownedby any
+    fields id,name,mimetype,parents,owners.emailaddress addcsvdata shortcut.id "~id" addcsvdata shortcut.name "~name" addcsvdata shortcut.parents "~parents.0.id"
+Headers
+Owner,id,name,mimeType,owners,owners.0.emailAddress,parents,parents.0.id,parents.0.isRoot,shortcut.id,shortcut.name,shortcut.parents
+```
+
 6.42.01
 
 Updated processing of option `matchlabel <LabelName>` to replace the following characters with a `-`
