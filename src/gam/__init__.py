@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.02'
+__version__ = '6.42.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -70,7 +70,7 @@ from secrets import SystemRandom
 import shlex
 import signal
 import smtplib
-from socket import gethostbyname
+import socket
 import ssl
 import string
 import struct
@@ -8493,9 +8493,9 @@ def doCheckConnection():
   success_count = 0
   for host in hosts:
     try_count += 1
-    ip = gethostbyname(host)
+    ip = socket.getaddrinfo(host, None)[0][-1][0] # works with ipv6
     check_line = f'Checking {host} ({ip}) ({try_count}/{host_count})...'
-    writeStdout(f'{check_line:<80}')
+    writeStdout(f'{check_line:<100}')
     flushStdout()
     gen_firewall = 'You probably have security software or a firewall on your machine or network that is preventing GAM from making Internet connections. Check your network configuration or try running GAM on a hotspot or home network to see if the problem exists only on your organization\'s network.'
     try:
@@ -9634,7 +9634,7 @@ def _localhost_to_ip():
   # find a way to support IPv6 here and get preferred IP
   # note that IPv6 may be broken on some systems also :-(
   # for now IPv4 should do.
-  local_ip = gethostbyname('localhost')
+  local_ip = socket.gethostbyname('localhost')
   local_ipaddress = ipaddress.ip_address(local_ip)
   ip4_local_range = ipaddress.ip_network('127.0.0.0/8')
   ip6_local_range = ipaddress.ip_network('::1/128')
@@ -52623,6 +52623,7 @@ def getDriveFile(users):
   exportFormatName = 'openoffice'
   exportFormatChoices = [exportFormatName]
   exportFormats = OPENOFFICE_FORMATS_LIST
+  defaultFormats = True
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   targetNamePattern = None
   acknowledgeAbuse = overwrite = showProgress = suppressStdoutMsgs = targetStdout = False
@@ -52640,6 +52641,7 @@ def getDriveFile(users):
           exportFormats.extend(DOCUMENT_FORMATS_MAP[exportFormat])
         else:
           invalidChoiceExit(exportFormat, DOCUMENT_FORMATS_MAP, True)
+      defaultFormats = False
     elif myarg == 'targetfolder':
       targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
     elif myarg == 'targetname':
@@ -52667,7 +52669,10 @@ def getDriveFile(users):
     exportFormatChoices = [exportFormatName]
     exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
   elif sheetEntity:
-    exportFormatName = 'csv'
+    if defaultFormats:
+      exportFormatName = 'csv'
+    else:
+      exportFormatName = exportFormats[0]['ext'][1:]
     exportFormatChoices = [exportFormatName]
     exportFormats = DOCUMENT_FORMATS_MAP[exportFormatName]
   i, count, users = getEntityArgument(users)
@@ -52758,7 +52763,8 @@ def getDriveFile(users):
                 spreadsheet = callGAPI(sheet.spreadsheets(), 'get',
                                        throwReasons=GAPI.SHEETS_ACCESS_THROW_REASONS,
                                        spreadsheetId=fileId, fields='spreadsheetUrl,sheets(properties(sheetId,title))')
-                spreadsheetUrl = f'{re.sub("/edit.*$", "/export", spreadsheet["spreadsheetUrl"])}?exportFormat={exportFormatName}&format={exportFormatName}&id={fileId}'
+#                spreadsheetUrl = f'{re.sub("/edit.*$", "/export", spreadsheet["spreadsheetUrl"])}?exportFormat={exportFormatName}&format={exportFormatName}&id={fileId}'
+                spreadsheetUrl = f'{re.sub("/edit.*$", "/export", spreadsheet["spreadsheetUrl"])}?format={exportFormatName}&id={fileId}'
                 if sheetEntity:
                   entityValueList.extend([sheetEntity['sheetType'], sheetEntity['sheetValue']])
                   sheetId = getSheetIdFromSheetEntity(spreadsheet, sheetEntity)

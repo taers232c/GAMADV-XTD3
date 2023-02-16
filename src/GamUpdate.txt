@@ -1,3 +1,9 @@
+6.42.03
+
+Updated `gam <UserTypeEntity> get drivefile <DriveFileEntity> ... csvsheet <SheetEntity>` to allow
+selection of the output format with `format <FileFormat>`. Previously, `csv` was always selected and
+it is still the default. Valid formats are: `csv,tsv,ods,pdf,xlsx`.
+
 6.42.02
 
 Added `sha1checksum` and `sha256checksum` to `<DriveFieldName>`.

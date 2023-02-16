@@ -428,6 +428,7 @@ _CLIENT_SCOPES = [
   {'name': 'Sites API',
    'api': SITES,
    'subscopes': [],
+   'offByDefault': True,
    'scope': 'https://sites.google.com/feeds'},
   {'name': 'Vault API',
    'api': VAULT,
