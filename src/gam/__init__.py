@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.03'
+__version__ = '6.42.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -34757,7 +34757,7 @@ def doDownloadCloudStorageBucket():
     i += 1
     printGettingEntityItem(Ent.FILE, s_object['name'], i, count)
     expectedMd5 = base64.b64decode(s_object['md5Hash']).hex()
-    _getCloudStorageObject(s, bucket, s_object['name'], 
+    _getCloudStorageObject(s, bucket, s_object['name'],
                            local_file=os.path.join(targetFolder, s_object['name']), expectedMd5=expectedMd5)
 
 def formatVaultNameId(vaultName, vaultId):
@@ -45917,7 +45917,7 @@ def _driveFileParentSpecified(parameters):
           parameters[DFA_SHAREDDRIVE_PARENT] or parameters[DFA_SHAREDDRIVE_PARENTID] or
           parameters[DFA_SHAREDDRIVE_PARENTQUERY])
 
-def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryOK=False, defaultToRoot=True):
+def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryOK=False, defaultToRoot=True, entityType=Ent.DRIVE_FILE):
   body.pop('parents', None)
   if parameters[DFA_PARENTID]:
     body.setdefault('parents', [])
@@ -45926,12 +45926,12 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
                         fileId=parameters[DFA_PARENTID], fields='id,name,mimeType', supportsAllDrives=True)
       if result['mimeType'] != MIMETYPE_GA_FOLDER:
-        entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+        entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                         f'parentid: {parameters[DFA_PARENTID]}, {Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))}', i, count)
         return False
       body['parents'].append(result['id'])
     except GAPI.fileNotFound as e:
-      entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+      entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                       f'parentid: {parameters[DFA_PARENTID]}, {str(e)}', i, count)
       return False
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -45953,11 +45953,11 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
                           throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
                           fileId=parameters[DFA_SHAREDDRIVE_PARENTID], fields='id,mimeType,driveId', supportsAllDrives=True)
         if result['mimeType'] != MIMETYPE_GA_FOLDER:
-          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+          entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                           f'shareddriveparentid: {parameters[DFA_SHAREDDRIVE_PARENTID]}, {Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.DRIVE_FOLDER))}', i, count)
           return False
         if not result.get('driveId'):
-          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+          entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                           f'shareddriveparentid: {parameters[DFA_SHAREDDRIVE_PARENTID]}, {Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.SHAREDDRIVE_FOLDER))}', i, count)
           return False
         body['parents'].append(result['id'])
@@ -45972,7 +45972,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
         parameters[DFA_SEARCHARGS] = {'driveId': result['id'], 'corpora': 'drive',
                                       'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
     except (GAPI.fileNotFound, GAPI.notFound) as e:
-      entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+      entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                       f'shareddriveparentid: {parameters[DFA_SHAREDDRIVE_PARENTID]}, {str(e)}', i, count)
       return False
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -46003,7 +46003,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
     body['parents'] = [ROOT]
   numParents = len(body.get('parents', []))
   if numParents > 1:
-    entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None],
+    entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                     Msg.MULTIPLE_PARENTS_SPECIFIED.format(numParents), i, count)
     return False
   return True
@@ -50078,6 +50078,110 @@ def createDriveFile(users):
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
   if csvPF:
     csvPF.writeCSVfile('Files')
+
+# gam <UserTypeEntity> create|add drivefolderpath
+#	(path <DriveFolderPath)|(list <DriveFolderNameList>)
+#	[<DriveFileParentAttribute>]
+#	[(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) |
+#	 returnidonly]
+def createDriveFolderPath(users):
+  csvPF = None
+  addCSVData = {}
+  returnIdOnly = False
+  parentBody = {}
+  parentParms = initDriveFileAttributes()
+  driveFolderNameList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'list':
+      driveFolderNameList = getEntityList(Cmd.OB_DRIVE_FOLDER_NAME_LIST, True)
+    elif myarg == 'path':
+      driveFolderNameList = getString(Cmd.OB_DRIVE_FOLDER_PATH).strip(' /').split('/')
+    elif getDriveFileParentAttribute(myarg, parentParms):
+      pass
+    elif myarg == 'returnidonly':
+      returnIdOnly = True
+    elif myarg == 'csv':
+      csvPF = CSVPrintFile(['User', 'name', 'id', 'status', 'pathIndex', 'pathLength'], 'sortall')
+    elif csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif csvPF and myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
+    else:
+      unknownArgumentExit()
+  if not driveFolderNameList:
+    missingArgumentExit('path|list')
+  if csvPF:
+    if addCSVData:
+      csvPF.AddTitles(sorted(addCSVData.keys()))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
+    if not drive:
+      continue
+    if not _getDriveFileParentInfo(drive, user, i, count, parentBody, parentParms,
+                                   defaultToRoot=True, entityType=Ent.DRIVE_FOLDER):
+      continue
+    parentId = parentBody['parents'][0]
+    errors = False
+    createOnly = False
+    entityPerformAction([Ent.USER, user, Ent.DRIVE_FOLDER_PATH, ''], i, count)
+    jcount = len(driveFolderNameList)
+    Ind.Increment()
+    j = 0
+    for folderName in driveFolderNameList:
+      j += 1
+      try:
+        folderFound = False
+        if not createOnly:
+          op = 'Find Folder'
+          result = callGAPIpages(drive.files(), 'list', 'files',
+                                 throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.BAD_REQUEST],
+                                 retryReasons=[GAPI.UNKNOWN_ERROR],
+                                 q=MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), parentId),
+                                 fields='nextPageToken,files(id,name)')
+          if result:
+            if len(result) > 1:
+              entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folderName], f'{op}: {len(result)} Folders with same name')
+              continue
+            parentId = result[0]['id']
+            parentName = result[0]['name']
+            folderFound = True
+            Act.Set(Act.EXISTS)
+        if not folderFound:
+          op = 'Create Folder'
+          result = callGAPI(drive.files(), 'create',
+                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
+                                                                        GAPI.UNKNOWN_ERROR, GAPI.BAD_REQUEST, GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
+                            body={'parents': [parentId], 'name': folderName, 'mimeType': MIMETYPE_GA_FOLDER}, fields='id,name')
+          parentId = result['id']
+          parentName = result['name']
+          createOnly = True
+          Act.Set(Act.CREATE)
+      except (GAPI.forbidden, GAPI.insufficientPermissions, GAPI.unknownError, GAPI.badRequest, GAPI.teamDriveHierarchyTooDeep) as e:
+        entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folderName], f'{op}: {str(e)}', j, jcount)
+        errors = True
+        break
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        errors = True
+        break
+      if not returnIdOnly:
+        if not csvPF:
+          entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER_NAME, f'{parentName}({parentId})'],
+                                j, jcount)
+        else:
+          row = {'User': user, 'name': parentName, 'id': parentId, 'status': Act.Performed(), 'pathIndex': j, 'pathLength': jcount}
+          if addCSVData:
+            row.update(addCSVData)
+          csvPF.WriteRow(row)
+    if returnIdOnly and not errors:
+      writeStdout(f'{parentId}\n')
+    Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('Folders')
 
 # gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
 #	[<DriveFileParentAttribute>|convertparents]
@@ -66440,6 +66544,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_DRIVEFILE:		createDriveFile,
   Cmd.ARG_DRIVEFILEACL:		createDriveFileACL,
   Cmd.ARG_DRIVEFILESHORTCUT:	createDriveFileShortcut,
+  Cmd.ARG_DRIVEFOLDERPATH:	createDriveFolderPath,
   Cmd.ARG_EVENT:		createCalendarEvent,
   Cmd.ARG_FILTER:		createFilter,
   Cmd.ARG_FORM:			createForm,

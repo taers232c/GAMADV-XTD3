@@ -54,6 +54,7 @@ class GamAction():
   DRAFT = 'draf'
   EMPTY = 'empt'
   ENABLE = 'enbl'
+  EXISTS = 'exis'
   EXPORT = 'expo'
   EXTRACT = 'extr'
   GET_COMMAND_RESULT = 'gtcr'
@@ -166,6 +167,7 @@ class GamAction():
     DRAFT: ['Drafted', 'Draft'],
     EMPTY: ['Emptied', 'Empty'],
     ENABLE: ['Enabled', 'Enable'],
+    EXISTS: ['Exists', 'Exists'],
     EXPORT: ['Exported', 'Export'],
     EXTRACT: ['Extracted', 'Extract'],
     FORWARD: ['Forwarded', 'Forward'],

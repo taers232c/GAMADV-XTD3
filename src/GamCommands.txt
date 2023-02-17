@@ -415,9 +415,10 @@ If an item contains spaces, it should be surrounded by ".
         https://docs.google.com>/presentation/d/<DriveFileID>/<String>
         https://docs.google.com>/spreadsheets/d/<DriveFileID>/<String>
 <DriveFileItem> ::= <DriveFileID>|<DriveFileURL>
-<DriveFileName> ::= <String>
 <DriveFolderID> ::= <String>
+<DriveFileName> ::= <String>
 <DriveFolderName> ::= <String>
+<DriveFolderPath> ::= <String>(/<String>)*
 <DriveFilePermission> ::=
         anyone;<DriveFileACLRole>|
         anyonewithlink;<DriveFileACLRole>|
@@ -622,6 +623,7 @@ If an item contains spaces, it should be surrounded by ".
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 <DriveFileRevisionIDList> ::= "<DriveFileRevisionID>(,<DriveFileRevisionID>)*"
 <DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
+<DriveFolderNameList> ::= "<DriveFolderName>(,<DriveFolderName>)*"
 <DriveLabelIDList> ::= "<DriveLabelID>(,<DriveLabelID)*"
 <DriveLabelNameList> ::= "<DriveLabelName>(,<DriveLabelName)*"
 <DriveLabelFieldIDList> ::= "<DriveLabelFieldID>(,<DriveLabelFieldID)*"
@@ -5502,6 +5504,12 @@ gam <UserTypeEntity> info drivefile <DriveFileEntity>
         [showparentsidsaslist]
         [stripcrsfromname]
         [formatjson]
+
+gam <UserTypeEntity> create|add drivefolderpath
+        (path <DriveFolderPath)|(list <DriveFolderNameList>)
+        [<DriveFileParentAttribute>]
+        [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) |
+         returnidonly]
 
 gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
         [<DriveFileParentAttribute>|convertparents]

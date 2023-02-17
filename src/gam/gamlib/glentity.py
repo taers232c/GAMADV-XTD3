@@ -170,6 +170,7 @@ class GamEntity():
   DRIVE_FOLDER = 'fold'
   DRIVE_FOLDER_ID = 'foli'
   DRIVE_FOLDER_NAME = 'foln'
+  DRIVE_FOLDER_PATH = 'folp'
   DRIVE_FOLDER_RENAMED = 'forn'
   DRIVE_FOLDER_SHORTCUT = 'fols'
   DRIVE_LABEL = 'dlab'
@@ -479,6 +480,7 @@ class GamEntity():
     DRIVE_FOLDER: ['Drive Folders', 'Drive Folder'],
     DRIVE_FOLDER_ID: ['Drive Folder IDs', 'Drive Folder ID'],
     DRIVE_FOLDER_NAME: ['Drive Folder Names', 'Drive Folder Name'],
+    DRIVE_FOLDER_PATH: ['Drive Folder Paths', 'Drive Folder Path'],
     DRIVE_FOLDER_RENAMED: ['Drive Folders Renamed', 'Drive Folder Renamed'],
     DRIVE_FOLDER_SHORTCUT: ['Drive Folder Shortcuts', 'Drive Folder Shortcut'],
     DRIVE_LABEL: ['Drive Labels', 'Drive Label'],
