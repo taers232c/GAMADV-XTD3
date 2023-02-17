@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.04'
+__version__ = '6.42.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -50141,7 +50141,7 @@ def createDriveFolderPath(users):
                                  throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.BAD_REQUEST],
                                  retryReasons=[GAPI.UNKNOWN_ERROR],
                                  q=MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), parentId),
-                                 fields='nextPageToken,files(id,name)')
+                                 fields='nextPageToken,files(id,name)', supportsAllDrives=True)
           if result:
             if len(result) > 1:
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folderName], f'{op}: {len(result)} Folders with same name')
@@ -50155,7 +50155,7 @@ def createDriveFolderPath(users):
           result = callGAPI(drive.files(), 'create',
                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS,
                                                                         GAPI.UNKNOWN_ERROR, GAPI.BAD_REQUEST, GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP],
-                            body={'parents': [parentId], 'name': folderName, 'mimeType': MIMETYPE_GA_FOLDER}, fields='id,name')
+                            body={'parents': [parentId], 'name': folderName, 'mimeType': MIMETYPE_GA_FOLDER}, fields='id,name', supportsAllDrives=True)
           parentId = result['id']
           parentName = result['name']
           createOnly = True
