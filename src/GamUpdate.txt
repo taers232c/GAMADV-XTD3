@@ -1,3 +1,8 @@
+6.42.06
+
+Fixed another bug in `gam <UserTypeEntity> create|add drivefolderpath` that failed when
+trying to build a folder hierarchy on a Shared Drive.
+
 6.42.05
 
 Fixed bug in `gam <UserTypeEntity> create|add drivefolderpath` that failed when

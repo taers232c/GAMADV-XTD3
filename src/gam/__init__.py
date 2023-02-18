@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.05'
+__version__ = '6.42.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -276,6 +276,7 @@ ANY_NON_TRASHED_WITH_PARENTS = "trashed = false and '{0}' in parents"
 ANY_NON_TRASHED_FOLDER_NAME = "mimeType = '"+MIMETYPE_GA_FOLDER+"' and name = '{0}' and trashed = false"
 MY_NON_TRASHED_FOLDER_NAME = ME_IN_OWNERS_AND+ANY_NON_TRASHED_FOLDER_NAME
 MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = ME_IN_OWNERS_AND+"mimeType = '"+MIMETYPE_GA_FOLDER+"' and name = '{0}' and trashed = false and '{1}' in parents"
+ANY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS = "mimeType = '"+MIMETYPE_GA_FOLDER+"' and name = '{0}' and trashed = false and '{1}' in parents"
 WITH_ANY_FILE_NAME = "name = '{0}'"
 WITH_MY_FILE_NAME = ME_IN_OWNERS_AND+WITH_ANY_FILE_NAME
 WITH_OTHER_FILE_NAME = NOT_ME_IN_OWNERS_AND+WITH_ANY_FILE_NAME
@@ -50125,6 +50126,10 @@ def createDriveFolderPath(users):
                                    defaultToRoot=True, entityType=Ent.DRIVE_FOLDER):
       continue
     parentId = parentBody['parents'][0]
+    if parentParms.get('searchargs', {}).get('corpora', ''):
+      query = ANY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS
+    else:
+      query = MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS
     errors = False
     createOnly = False
     entityPerformAction([Ent.USER, user, Ent.DRIVE_FOLDER_PATH, ''], i, count)
@@ -50140,12 +50145,14 @@ def createDriveFolderPath(users):
           result = callGAPIpages(drive.files(), 'list', 'files',
                                  throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.BAD_REQUEST],
                                  retryReasons=[GAPI.UNKNOWN_ERROR],
-                                 q=MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS.format(escapeDriveFileName(folderName), parentId),
-                                 fields='nextPageToken,files(id,name)', supportsAllDrives=True)
+                                 q=query.format(escapeDriveFileName(folderName), parentId),
+                                 supportsAllDrives=True, includeItemsFromAllDrives=True,
+                                 fields='nextPageToken,files(id,name)')
           if result:
             if len(result) > 1:
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, folderName], f'{op}: {len(result)} Folders with same name')
-              continue
+              errors = True
+              break
             parentId = result[0]['id']
             parentName = result[0]['name']
             folderFound = True
