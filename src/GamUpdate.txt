@@ -1,3 +1,8 @@
+6.42.07
+
+Improved `gam <UserTypeEntity> create|add drivefolderpath` to allow specifying paths
+as returned by `gam <UserTypeEntity> print filepath`.
+
 6.42.06
 
 Fixed another bug in `gam <UserTypeEntity> create|add drivefolderpath` that failed when

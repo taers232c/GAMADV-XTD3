@@ -5506,8 +5506,9 @@ gam <UserTypeEntity> info drivefile <DriveFileEntity>
         [formatjson]
 
 gam <UserTypeEntity> create|add drivefolderpath
-        (path <DriveFolderPath)|(list <DriveFolderNameList>)
-        [<DriveFileParentAttribute>]
+        ((fullpath <DriveFolderPath) |
+         (path <DriveFolderPath [<DriveFileParentAttribute>]) |
+         (list <DriveFolderNameList> [<DriveFileParentAttribute>]))
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) |
          returnidonly]
 

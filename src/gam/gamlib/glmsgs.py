@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2022 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2023 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -118,6 +118,7 @@ ACTION_IN_PROGRESS = 'Action {0} in progress'
 ACTION_MAY_BE_DELAYED = 'Action may be delayed'
 ADMIN_STATUS_CHANGED_TO = 'Admin Status Changed to'
 ALL = 'All'
+ALL_FOLDER_NAMES_MUST_BE_NON_BLANK = 'All folder names must be non-blank: {0}'
 ALL_SKU_PRODUCTIDS_MUST_MATCH = 'All SKU productIds must match, {0} != {1}'
 ALREADY_WAS_OWNER = 'Already was owner'
 ALREADY_EXISTS = 'Already exists'
@@ -209,6 +210,7 @@ FORBIDDEN = 'Forbidden'
 FORMAT_NOT_AVAILABLE = 'Format ({0}) not available'
 FORMAT_NOT_DOWNLOADABLE = 'Format not downloadable'
 FROM = 'From'
+FULL_PATH_MUST_START_WITH_DRIVE = 'fullpath must start with {0} or {1}'
 GAM_LATEST_VERSION_NOT_AVAILABLE = 'GAM Latest Version information not available'
 GAM_OUT_OF_MEMORY = 'GAM has run out of memory. If this is a large Google Workspace instance, you should use a 64-bit version of GAM on Windows or a 64-bit version of Python on other systems.'
 GENERATING_NEW_PRIVATE_KEY = 'Generating new private key'

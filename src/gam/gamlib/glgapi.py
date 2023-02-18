@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2022 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2023 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -83,6 +83,7 @@ ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = 'illegalAccessRoleForDefault'
 INSUFFICIENT_ADMINISTRATOR_PRIVILEGES = 'insufficientAdministratorPrivileges'
 INSUFFICIENT_ARCHIVED_USER_LICENSES = 'insufficientArchivedUserLicenses'
 INSUFFICIENT_FILE_PERMISSIONS = 'insufficientFilePermissions'
+INSUFFICIENT_PARENT_PERMISSIONS = 'insufficientParentPermissions'
 INSUFFICIENT_PERMISSIONS = 'insufficientPermissions'
 INTERNAL_ERROR = 'internalError'
 INVALID = 'invalid'
@@ -441,6 +442,8 @@ class insufficientArchivedUserLicenses(Exception):
   pass
 class insufficientFilePermissions(Exception):
   pass
+class insufficientParentPermissions(Exception):
+  pass
 class insufficientPermissions(Exception):
   pass
 class internalError(Exception):
@@ -661,6 +664,7 @@ REASON_EXCEPTION_MAP = {
   INSUFFICIENT_ADMINISTRATOR_PRIVILEGES: insufficientAdministratorPrivileges,
   INSUFFICIENT_ARCHIVED_USER_LICENSES: insufficientArchivedUserLicenses,
   INSUFFICIENT_FILE_PERMISSIONS: insufficientFilePermissions,
+  INSUFFICIENT_PARENT_PERMISSIONS: insufficientParentPermissions,
   INSUFFICIENT_PERMISSIONS: insufficientPermissions,
   INTERNAL_ERROR: internalError,
   INVALID: invalid,
