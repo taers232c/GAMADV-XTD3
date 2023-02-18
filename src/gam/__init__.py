@@ -45919,18 +45919,23 @@ def _driveFileParentSpecified(parameters):
           parameters[DFA_SHAREDDRIVE_PARENTQUERY])
 
 def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryOK=False, defaultToRoot=True, entityType=Ent.DRIVE_FILE):
+  def _setSearchArgs(driveId):
+    parameters[DFA_SEARCHARGS] = {'driveId': driveId, 'corpora': 'drive',
+                                  'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
   body.pop('parents', None)
   if parameters[DFA_PARENTID]:
     body.setdefault('parents', [])
     try:
       result = callGAPI(drive.files(), 'get',
                         throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
-                        fileId=parameters[DFA_PARENTID], fields='id,name,mimeType', supportsAllDrives=True)
+                        fileId=parameters[DFA_PARENTID], fields='id,name,mimeType,driveId', supportsAllDrives=True)
       if result['mimeType'] != MIMETYPE_GA_FOLDER:
         entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                         f'parentid: {parameters[DFA_PARENTID]}, {Msg.NOT_AN_ENTITY.format((Ent.Singular(Ent.DRIVE_FOLDER)))}', i, count)
         return False
       body['parents'].append(result['id'])
+      if result.get('driveId'):
+        _setSearchArgs(result['driveId'])
     except GAPI.fileNotFound as e:
       entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                       f'parentid: {parameters[DFA_PARENTID]}, {str(e)}', i, count)
@@ -45962,16 +45967,14 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
                                           f'shareddriveparentid: {parameters[DFA_SHAREDDRIVE_PARENTID]}, {Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.SHAREDDRIVE_FOLDER))}', i, count)
           return False
         body['parents'].append(result['id'])
-        parameters[DFA_SEARCHARGS] = {'driveId': result['driveId'], 'corpora': 'drive',
-                                      'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
+        _setSearchArgs(result['driveId'])
       else:
         result = callGAPI(drive.drives(), 'get',
                           throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                           driveId=parameters[DFA_SHAREDDRIVE_PARENTID], fields='id')
         parameters[DFA_KWARGS]['corpora'] = 'drive'
         parameters[DFA_KWARGS]['driveId'] = result['id']
-        parameters[DFA_SEARCHARGS] = {'driveId': result['id'], 'corpora': 'drive',
-                                      'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
+        _setSearchArgs(result['id'])
     except (GAPI.fileNotFound, GAPI.notFound) as e:
       entityActionNotPerformedWarning([Ent.USER, user, entityType, None],
                                       f'shareddriveparentid: {parameters[DFA_SHAREDDRIVE_PARENTID]}, {str(e)}', i, count)
@@ -45989,8 +45992,7 @@ def _getDriveFileParentInfo(drive, user, i, count, body, parameters, emptyQueryO
     else:
       parameters[DFA_KWARGS]['corpora'] = 'drive'
       parameters[DFA_KWARGS]['driveId'] = tempIdEntity['shareddrive']['driveId']
-    parameters[DFA_SEARCHARGS] = {'driveId': tempIdEntity['shareddrive']['driveId'], 'corpora': 'drive',
-                                  'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
+    _setSearchArgs(tempIdEntity['shareddrive']['driveId'])
   if parameters[DFA_SHAREDDRIVE_PARENTQUERY]:
     parents = doDriveSearch(drive, user, i, count, query=parameters[DFA_SHAREDDRIVE_PARENTQUERY], parentQuery=True, emptyQueryOK=emptyQueryOK,
                             sharedDriveOnly=True, **parameters[DFA_KWARGS])
