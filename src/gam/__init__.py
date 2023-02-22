@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.07'
+__version__ = '6.42.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9638,6 +9638,7 @@ def _localhost_to_ip():
   # for now IPv4 should do.
   local_ip = socket.gethostbyname('localhost')
   local_ipaddress = ipaddress.ip_address(local_ip)
+#  local_ip_address = socket.getaddrinfo(host, None)[0][-1][0] # works with ipv6
   ip4_local_range = ipaddress.ip_network('127.0.0.0/8')
   ip6_local_range = ipaddress.ip_network('::1/128')
   if local_ipaddress not in ip4_local_range and local_ipaddress not in ip6_local_range:
@@ -22237,8 +22238,10 @@ def doPrintCrOSEntity(entityList):
     doPrintCrOSActivity(entityList)
 
 CROS_TELEMETRY_FIELDS_CHOICE_MAP = {
+  'audiostatusreport': 'audioiStatusReport',
   'batteryinfo': 'batteryInfo',
   'batterystatusreport': 'batteryStatusReport',
+  'bootperformancereport': 'bootPerformanceReport',
   'cpuinfo': 'cpuInfo',
   'cpustatusreport': 'cpuStatusReport',
   'customer': 'customer',
@@ -22248,19 +22251,23 @@ CROS_TELEMETRY_FIELDS_CHOICE_MAP = {
   'memoryinfo': 'memoryInfo',
   'memorystatusreport': 'memoryStatusReport',
   'name': 'name',
+  'networkinfo': 'networkInfo',
+  'networkdiagnosticsreport': 'networkDiagnosticsReport',
   'networkstatusreport': 'networkStatusReport',
   'orgunitid': 'orgUnitId',
   'osupdatestatus': 'osUpdateStatus',
+  'peripheralsreport': 'peripheralsReport',
   'serialnumber': 'serialNumber',
   'storageinfo': 'storageInfo',
   'storagestatusreport': 'storageStatusReport',
+  'thunderboltinfo': 'thunderboltInfo',
   }
 CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP = {
   'batterystatusreport': 'batteryStatusReport',
   'cpustatusreport': 'cpuStatusReport',
   'graphicsstatusreport': 'graphicsStatusReport',
-  'memorystatusreport': 'memoryStatusReport',
-  'networkstatusreport': 'networkStatusReport',
+  'networkdevices': 'networkDevices',
+  'peripheralsreport': 'peripheralsReport',
   'storagestatusreport': 'storageStatusReport',
   }
 

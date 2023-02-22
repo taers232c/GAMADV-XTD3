@@ -1,3 +1,16 @@
+6.42.08
+
+Added additional fields to `<CrOSTelemetryFieldName>`:
+```
+audiostatusreport|
+bootperformancereport|
+networkinfo|
+networkdiagnosticsreport|
+peripheralsreport|
+thunderboltinfo|
+networkdevices|
+```
+
 6.42.07
 
 Improved `gam <UserTypeEntity> create|add drivefolderpath` to allow specifying paths

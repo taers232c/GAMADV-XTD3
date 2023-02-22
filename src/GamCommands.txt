@@ -2104,8 +2104,10 @@ gam <CrOSTypeEntity> get devicefile [select <DeviceFileEntity>] [targetfolder <F
 Print telemetry data for specified CrOS devices.
 
 <CrOSTelemetryFieldName> ::=
+        audiostatusreport|
         batteryinfo|
         batterystatusreport|
+        bootPerformancereport|
         cpuinfo|
         cpustatusreport|
         customer|
@@ -2115,21 +2117,25 @@ Print telemetry data for specified CrOS devices.
         memoryinfo|
         memorystatusreport|
         name|
+        networkdiagnosticsreport|
+        networkinfo|
         networkstatusreport|
         orgunitid|
         osupdatestatus|
+        peripheralsreport|
         serialnumber|
         storageinfo|
-        storagestatusreport
+        storagestatusreport|
+        thunderboltInfo
 <CrOSTelemetryFieldNameList> ::= "<CrOSTelemetryFieldName>(,<CrOSTelemetryFieldName>)*"
 
 CrOSTelemetryListFieldName> ::=
         batterystatusreport|
         cpustatusreport|
         graphicsstatusreport|
-        memorystatusreport|
-        networkstatusreport|
-        storagestatusreport
+        networkdevices|
+        storagestatusreport|
+        peripheralsreport
 <CrOSTelemetryListFieldNameList> ::= "<CrOSTelemetryListFieldName>(,<CrOSTelemetryLIstFieldName>)*"
 
 gam info crostelemetry <SerialNumber>
@@ -5894,7 +5900,7 @@ gam <UserTypeEntity> collect orphans
         shortcutdetails|
         <DriveShortcutDetailsSubfieldName>|
         sha1Checksum|
-	sha256Checksum|
+        sha256Checksum|
         size|
         spaces|
         starred|
