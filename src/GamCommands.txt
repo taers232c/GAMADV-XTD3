@@ -2130,12 +2130,20 @@ Print telemetry data for specified CrOS devices.
 <CrOSTelemetryFieldNameList> ::= "<CrOSTelemetryFieldName>(,<CrOSTelemetryFieldName>)*"
 
 <CrOSTelemetryListFieldName> ::=
+        audiostatusreport|
+        batteryinfo|
         batterystatusreport|
+        bootperformancereport|
+        cpuinfo|
         cpustatusreport|
         graphicsstatusreport|
-        networkdevices|
+        memorystatusreport|
+        networkdiagnosticsreport|
+        networkstatusreport|
+        osupdatestatus|
+        peripheralsreport|
         storagestatusreport|
-        peripheralsreport
+        thunderboltinfo
 <CrOSTelemetryListFieldNameList> ::= "<CrOSTelemetryListFieldName>(,<CrOSTelemetryLIstFieldName>)*"
 
 gam info crostelemetry <SerialNumber>

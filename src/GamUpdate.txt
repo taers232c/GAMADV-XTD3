@@ -1,3 +1,7 @@
+6.42.09
+
+Cleaned up output in `gam print crostelemetry`; fields that are lists weren't being correctly sorted by index.
+
 6.42.08
 
 Added additional fields to `<CrOSTelemetryFieldName>`:
@@ -3621,7 +3625,7 @@ Fixed bug in `gam <UserTypeEntity> print filelist ... formatjson` that caused a 
 
 6.03.15
 
-Fixed bug in `gam update cigroup` where `dynamic <QueryDynamicGroup>` was makrked as invalid.
+Fixed bug in `gam update cigroup` where `dynamic <QueryDynamicGroup>` was marked as invalid.
 
 6.03.14
 

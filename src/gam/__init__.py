@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.08'
+__version__ = '6.42.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4782,7 +4782,8 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
   return (http_status, reason, message)
 
 def callGAPI(service, function,
-             bailOnInternalError=False, bailOnTransientError=False, softErrors=False, mapNotFound=True,
+             bailOnInternalError=False, bailOnTransientError=False, bailOnInvalidError=False,
+             softErrors=False, mapNotFound=True,
              throwReasons=None, retryReasons=None, retries=10,
              **kwargs):
   if throwReasons is None:
@@ -4814,6 +4815,9 @@ def callGAPI(service, function,
                              (GC.Values[GC.RETRY_API_SERVICE_NOT_AVAILABLE] and (reason == GAPI.SERVICE_NOT_AVAILABLE))):
         if (reason in [GAPI.INTERNAL_ERROR, GAPI.BACKEND_ERROR] and
             bailOnInternalError and n == GC.Values[GC.BAIL_ON_INTERNAL_ERROR_TRIES]):
+          raise GAPI.REASON_EXCEPTION_MAP[reason](message)
+        if (reason in [GAPI.INVALID] and
+            bailOnInvalidError and n == GC.Values[GC.BAIL_ON_INTERNAL_ERROR_TRIES]):
           raise GAPI.REASON_EXCEPTION_MAP[reason](message)
         waitOnFailure(n, retries, reason, message)
         if reason == GAPI.TRANSIENT_ERROR and bailOnTransientError:
@@ -22263,12 +22267,20 @@ CROS_TELEMETRY_FIELDS_CHOICE_MAP = {
   'thunderboltinfo': 'thunderboltInfo',
   }
 CROS_TELEMETRY_LIST_FIELDS_CHOICE_MAP = {
+  'audiostatusreport': 'audioStatusReport',
+  'batteryinfo': 'batteryInfo',
   'batterystatusreport': 'batteryStatusReport',
+  'bootperformancereport': 'bootPerformanceReport',
+  'cpuinfo': 'cpuInfo',
   'cpustatusreport': 'cpuStatusReport',
   'graphicsstatusreport': 'graphicsStatusReport',
-  'networkdevices': 'networkDevices',
+  'memorystatusreport': 'memoryStatusReport',
+  'networkdiagnosticsreport': 'networkDiagnosticsReport',
+  'networkstatusreport': 'networkStatusReport',
+  'osupdatestatus': 'osUpdateStatus',
   'peripheralsreport': 'peripheralsReport',
   'storagestatusreport': 'storageStatusReport',
+  'thunderboltinfo': 'thunderboltInfo',
   }
 
 CROS_TELEMETRY_SCALAR_FIELDS = ['deviceId', 'serialNumber', 'customer', 'name', 'orgUnitId', 'orgUnitPath']
@@ -22360,7 +22372,7 @@ def doInfoPrintShowCrOSTelemetry():
     Act.Set(Act.SHOW)
   else:
     pfilter = None
-  csvPF = CSVPrintFile(['deviceId'], CROS_TELEMETRY_SCALAR_FIELDS) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['deviceId'], CROS_TELEMETRY_SCALAR_FIELDS, CROS_TELEMETRY_LIST_FIELDS) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   diskPercentOnly = showOrgUnitPath = False
   listLimit = 0
@@ -27141,6 +27153,7 @@ def doCreateGroup(ciGroupsAPI=False):
                             groupUniqueId=mapGroupEmailForSettings(groupEmail), fields='*')
         settings.update(gs_body)
       callGAPI(gs.groups(), 'update',
+               bailOnInvalidError='messageModerationLevel' in settings,
                throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS,
                retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND],
                groupUniqueId=mapGroupEmailForSettings(groupEmail), body=settings, fields='')
@@ -27661,6 +27674,7 @@ def doUpdateGroups():
       if gs_body and not GroupIsAbuseOrPostmaster(group):
         try:
           callGAPI(gs.groups(), 'update',
+                   bailOnInvalidError='messageModerationLevel' in settings,
                    throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                    groupUniqueId=mapGroupEmailForSettings(group), body=settings, fields='')
         except GAPI.notFound:
@@ -30020,6 +30034,7 @@ def doUpdateCIGroups():
       if gs_body and not GroupIsAbuseOrPostmaster(group):
         try:
           callGAPI(gs.groups(), 'update',
+                   bailOnInvalidError='messageModerationLevel' in settings,
                    throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS, retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS,
                    groupUniqueId=mapGroupEmailForSettings(group), body=settings, fields='')
         except GAPI.notFound:
