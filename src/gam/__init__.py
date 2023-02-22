@@ -22238,7 +22238,7 @@ def doPrintCrOSEntity(entityList):
     doPrintCrOSActivity(entityList)
 
 CROS_TELEMETRY_FIELDS_CHOICE_MAP = {
-  'audiostatusreport': 'audioiStatusReport',
+  'audiostatusreport': 'audioStatusReport',
   'batteryinfo': 'batteryInfo',
   'batterystatusreport': 'batteryStatusReport',
   'bootperformancereport': 'bootPerformanceReport',

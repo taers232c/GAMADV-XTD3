@@ -2126,10 +2126,10 @@ Print telemetry data for specified CrOS devices.
         serialnumber|
         storageinfo|
         storagestatusreport|
-        thunderboltInfo
+        thunderboltinfo
 <CrOSTelemetryFieldNameList> ::= "<CrOSTelemetryFieldName>(,<CrOSTelemetryFieldName>)*"
 
-CrOSTelemetryListFieldName> ::=
+<CrOSTelemetryListFieldName> ::=
         batterystatusreport|
         cpustatusreport|
         graphicsstatusreport|
