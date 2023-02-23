@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.42.09'
+__version__ = '6.42.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -27077,6 +27077,32 @@ def checkReplyToCustom(group, settings, i=0, count=0):
 GROUP_CIGROUP_ENTITYTYPE_MAP = {False: Ent.GROUP, True: Ent.CLOUD_IDENTITY_GROUP}
 GROUP_CIGROUP_FIELDS_MAP = {'name': 'displayName', 'displayname': 'displayName', 'description': 'description'}
 GROUP_JSON_SKIP_FIELDS = ['email', 'adminCreated', 'directMembersCount', 'members', 'aliases', 'nonEditableAliases']
+GROUP_ACCESS_TYPE_CHOICE_MAP = {
+  'public': {
+    'whoCanJoin': 'ALL_IN_DOMAIN_CAN_JOIN',
+    'whoCanPostMessage': 'ALL_IN_DOMAIN_CAN_POST',
+    'whoCanViewGroup': 'ALL_IN_DOMAIN_CAN_VIEW',
+    'whoCanViewMembership': 'ALL_IN_DOMAIN_CAN_VIEW',
+  },
+  'team': {
+    'whoCanJoin': 'CAN_REQUEST_TO_JOIN',
+    'whoCanPostMessage': 'ALL_IN_DOMAIN_CAN_POST',
+    'whoCanViewGroup': 'ALL_IN_DOMAIN_CAN_VIEW',
+    'whoCanViewMembership': 'ALL_IN_DOMAIN_CAN_VIEW',
+    },
+  'announcementonly': {
+    'whoCanJoin': 'ALL_IN_DOMAIN_CAN_JOIN',
+    'whoCanPostMessage': 'ALL_MANAGERS_CAN_POST',
+    'whoCanViewGroup': 'ALL_IN_DOMAIN_CAN_VIEW',
+    'whoCanViewMembership': 'ALL_MANAGERS_CAN_VIEW',
+    },
+  'restricted': {
+    'whoCanJoin': 'CAN_REQUEST_TO_JOIN',
+    'whoCanPostMessage': 'ALL_MEMBERS_CAN_POST',
+    'whoCanViewGroup': 'ALL_MEMBERS_CAN_VIEW',
+    'whoCanViewMembership': 'ALL_MEMBERS_CAN_VIEW',
+    }
+  }
 
 # gam create group <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
 #	[verifynotinvitable]
@@ -27104,6 +27130,8 @@ def doCreateGroup(ciGroupsAPI=False):
       getBeforeUpdate = True
     elif myarg == 'json':
       gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
+    elif myarg == 'accesstype':
+      gs_body.update(getChoice(GROUP_ACCESS_TYPE_CHOICE_MAP, mapChoice=True))
     elif ciGroupsAPI and myarg in ['alias', 'aliases']:
       body.setdefault('additionalGroupKeys', [])
       for alias in convertEntityToList(getString(Cmd.OB_CIGROUP_ALIAS_LIST), shlexSplit=True):
@@ -27608,6 +27636,8 @@ def doUpdateGroups():
                              'cloudidentity.googleapis.com/groups.security': ''}
       elif myarg == 'json':
         gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
+      elif myarg == 'accesstype':
+        gs_body.update(getChoice(GROUP_ACCESS_TYPE_CHOICE_MAP, mapChoice=True))
       elif myarg == 'verifynotinvitable':
         verifyNotInvitable = True
       else:
@@ -29989,6 +30019,8 @@ def doUpdateCIGroups():
         se_body['memberRestriction'] = {'query': query}
       elif myarg == 'json':
         gs_body.update(getJSON(GROUP_JSON_SKIP_FIELDS))
+      elif myarg == 'accesstype':
+        gs_body.update(getChoice(GROUP_ACCESS_TYPE_CHOICE_MAP, mapChoice=True))
       else:
         getGroupAttrValue(myarg, gs_body)
     if gs_body:

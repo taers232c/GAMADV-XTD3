@@ -2901,7 +2901,6 @@ gam delete contactphotos <ContactEntity>|<ContactSelection>
         billinginfo|
         birthday|
         calendar|
-        contactgroup|
         directoryserver|
         email|
         event|
@@ -3062,6 +3061,7 @@ gam audit monitor list <EmailAddress>
 # Groups
 
 <GroupSettingsAttribute> ::=
+        (accesstype public|team|announcementonly|restricted)|
         (allowexternalmembers <Boolean>)|
         (allowwebposting <Boolean>)|
         (archiveonly <Boolean>)|
