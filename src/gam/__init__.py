@@ -130,6 +130,7 @@ import googleapiclient.errors
 import googleapiclient.http
 import google.oauth2.credentials
 import google.oauth2.id_token
+import google.auth
 from google.auth.jwt import Credentials as JWTCredentials
 import google.oauth2.service_account
 import google_auth_oauthlib.flow
@@ -4334,7 +4335,7 @@ def _getSvcAcctData():
       invalidOauth2serviceJsonExit(Msg.MISSING_FIELDS.format(','.join(missingFields)))
 # Some old oauth2service.json files have: 'https://accounts.google.com/o/oauth2/auth' which no longer works
     if GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['token_uri'] == 'https://accounts.google.com/o/oauth2/auth':
-      GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['token_uri'] = 'https://oauth2.googleapis.com/token'
+      GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['token_uri'] = API.GOOGLE_OAUTH2_TOKEN_ENDPOINT
     if API.OAUTH2SA_SCOPES not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
       GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = False
       GM.Globals[GM.SVCACCT_SCOPES] = defaultSvcAcctScopes()
@@ -4342,7 +4343,72 @@ def _getSvcAcctData():
       GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = True
       GM.Globals[GM.SVCACCT_SCOPES] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].pop(API.OAUTH2SA_SCOPES)
 
-def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False):
+_DEFAULT_TOKEN_LIFETIME_SECS = 3600  # 1 hour in seconds
+
+class signjwtJWTCredentials(google.auth.jwt.Credentials):
+  ''' Class used for DASA '''
+  def _make_jwt(self):
+    now = datetime.datetime.utcnow()
+    lifetime = datetime.timedelta(seconds=self._token_lifetime)
+    expiry = now + lifetime
+    payload = {
+      "iat": google.auth._helpers.datetime_to_secs(now),
+      "exp": google.auth._helpers.datetime_to_secs(expiry),
+      "iss": self._issuer,
+      "sub": self._subject,
+    }
+    if self._audience:
+      payload["aud"] = self._audience
+    payload.update(self._additional_claims)
+    jwt = self._signer.sign(payload)
+    return jwt, expiry
+
+class signjwtCredentials(google.oauth2.service_account.Credentials):
+  ''' Class used for DwD '''
+
+  def _make_authorization_grant_assertion(self):
+    now = datetime.datetime.utcnow()
+    lifetime = datetime.timedelta(seconds=_DEFAULT_TOKEN_LIFETIME_SECS)
+    expiry = now + lifetime
+    payload = {
+        "iat": google.auth._helpers.datetime_to_secs(now),
+        "exp": google.auth._helpers.datetime_to_secs(expiry),
+        "iss": self._service_account_email,
+        "aud": API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
+        "scope": google.auth._helpers.scopes_to_string(self._scopes or ()),
+    }
+    payload.update(self._additional_claims)
+    # The subject can be a user email for domain-wide delegation.
+    if self._subject:
+      payload.setdefault("sub", self._subject)
+    token = self._signer(payload)
+    return token
+
+class signjwtSignJwt(google.auth.crypt.Signer):
+  ''' Signer class for SignJWT '''
+  def __init__(self, service_account_info):
+    self.service_account_email = service_account_info['client_email']
+    self.name = f'projects/-/serviceAccounts/{self.service_account_email}'
+    self._key_id = None
+
+  @property  # type: ignore
+  def key_id(self):
+    return self._key_id
+
+  def sign(self, message):
+    ''' Call IAM Credentials SignJWT API to get our signed JWT '''
+    try:
+      credentials, _ = google.auth.default()
+    except google.auth.exceptions.DefaultCredentialsError as e:
+      systemErrorExit(API_ACCESS_DENIED_RC, str(e))
+    httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
+    iamc = getService(API.IAM_CREDENTIALS, httpObj)
+    response = callGAPI(iamc.projects().serviceAccounts(), 'signJwt',
+                        name=self.name, body={'payload': json.dumps(message)})
+    signed_jwt = response.get('signedJwt')
+    return signed_jwt
+
+def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False, forceOauth=False):
   _getSvcAcctData()
   if isinstance(scopesOrAPI, str):
     GM.Globals[GM.CURRENT_SVCACCT_API] = scopesOrAPI
@@ -4361,18 +4427,31 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False):
   else:
     GM.Globals[GM.CURRENT_SVCACCT_API] = ''
     GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = scopesOrAPI
-  if not GM.Globals[GM.CURRENT_SVCACCT_API] or scopesOrAPI not in API.JWT_APIS:
+  sign_method = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('key_type', 'default')
+  if not GM.Globals[GM.CURRENT_SVCACCT_API] or scopesOrAPI not in API.JWT_APIS or forceOauth:
     try:
-      credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+      if sign_method == 'default':
+        credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+      elif sign_method == 'signjwt':
+        sjsigner = signjwtSignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+        credentials = signjwtCredentials._from_signer_and_info(sjsigner.sign,
+                                                               GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
     except (ValueError, IndexError, KeyError) as e:
       if softErrors:
         return None
       invalidOauth2serviceJsonExit(str(e))
     credentials = credentials.with_scopes(GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES])
   else:
+    audience = f'https://{scopesOrAPI}.googleapis.com/'
     try:
-      credentials = JWTCredentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
-                                                             audience=f'https://{scopesOrAPI}.googleapis.com/')
+      if sign_method == 'default':
+        credentials = JWTCredentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
+                                                               audience=audience)
+      elif sign_method == 'signjwt':
+        sjsigner = signjwtSignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+        credentials = signjwtJWTCredentials._from_signer_and_info(sjsigner,
+                                                                  GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
+                                                                  audience=audience)
       credentials.project_id = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
     except (ValueError, IndexError, KeyError) as e:
       if softErrors:
@@ -5028,8 +5107,9 @@ def readDiscoveryFile(api_version):
   except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
     invalidDiscoveryJsonExit(disc_file, str(e))
 
-def buildGAPIObject(api):
-  credentials = getClientCredentials(api=api, refreshOnly=True)
+def buildGAPIObject(api, credentials=None):
+  if credentials is None:
+    credentials = getClientCredentials(api=api, refreshOnly=True)
   httpObj = transportAuthorizedHttp(credentials, http=getHttpObj(cache=GM.Globals[GM.CACHE_DIR]))
   service = getService(api, httpObj)
   if not GC.Values[GC.ENABLE_DASA]:
@@ -9684,7 +9764,7 @@ def _waitForHttpClient(d):
 
 def _waitForUserInput(d):
   sys.stdin = open(0, DEFAULT_FILE_READ_MODE, encoding=UTF8)
-  d['code'] = input(Msg.ENTER_VERIFICATION_CODE_OR_URL)
+  d['code'] = readStdin(Msg.ENTER_VERIFICATION_CODE_OR_URL)
 
 class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
   def run_dual(self, **kwargs):
@@ -9914,7 +9994,7 @@ class Credentials(google.oauth2.credentials.Credentials):
         'client_secret': client_secret,
         'redirect_uris': ['http://localhost'],
         'auth_uri': 'https://accounts.google.com/o/oauth2/v2/auth',
-        'token_uri': 'https://oauth2.googleapis.com/token',
+        'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
         }
     }
 
@@ -10234,6 +10314,43 @@ def enableGAMProjectAPIs(httpObj, projectId, login_hint, checkEnabled, i=0, coun
       status = failed == 0
   return status
 
+# gam enable apis [auto|manual]
+def doEnableAPIs():
+  automatic = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'auto':
+      automatic = True
+    elif myarg == 'manual':
+      automatic = False
+    else:
+      unknownArgumentExit()
+  try:
+    _, projectId = google.auth.default()
+  except google.auth.exceptions.DefaultCredentialsError:
+    projectId = readStdin(Msg.WHAT_IS_YOUR_PROJECT_ID).strip()
+  while automatic is None:
+    a_or_m = readStdin(Msg.ENABLE_PROJECT_APIS_AUTOMATICALLY_OR_MANUALLY).strip().lower()
+    if a_or_m.startswith('a'):
+      automatic = True
+      break
+    if a_or_m.startswith('m'):
+      automatic = False
+      break
+    writeStdout(Msg.PLEASE_ENTER_A_OR_M)
+  if automatic:
+    login_hint = _getValidateLoginHint(None)
+    httpObj, _ = getCRMService(login_hint)
+    enableGAMProjectAPIs(httpObj, projectId, login_hint, True)
+  else:
+    apis = API.PROJECT_APIS[:]
+    chunk_size = 20
+    writeStdout('Using an account with project access, please use ALL of these URLs to enable 20 APIs at a time:\n\n')
+    for chunk in range(0, len(apis), chunk_size):
+      apiid = ",".join(apis[chunk:chunk+chunk_size])
+      url = f'https://console.cloud.google.com/apis/enableflow?apiid={apiid}&project={projectId}'
+      writeStdout(f'    {url}\n\n')
+
 def _grantRotateRights(iam, projectId, service_account, email, account_type='serviceAccount'):
   printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, email],
                      Msg.HAS_RIGHTS_TO_ROTATE_OWN_PRIVATE_KEY.format(email, service_account))
@@ -10287,7 +10404,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
                  'code': 'ThisIsAnInvalidCodeOnlyBeingUsedToTestIfClientAndSecretAreValid',
 #                 'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob', 'grant_type': 'authorization_code'}
                  'redirect_uri': 'http://127.0.0.1:8080', 'grant_type': 'authorization_code'}
-    _, content = csHttpObj.request('https://oauth2.googleapis.com/token', 'POST', urlencode(post_data),
+    _, content = csHttpObj.request(API.GOOGLE_OAUTH2_TOKEN_ENDPOINT, 'POST', urlencode(post_data),
                                    headers={'Content-type': 'application/x-www-form-urlencoded'})
     try:
       content = json.loads(content)
@@ -10338,7 +10455,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
         "client_secret": "{client_secret}",
         "created_by": "{login_hint}",
         "project_id": "{projectInfo['projectId']}",
-        "token_uri": "https://oauth2.googleapis.com/token"
+        "token_uri": API.GOOGLE_OAUTH2_TOKEN_ENDPOINT
     }}
 }}'''
   writeFile(GC.Values[GC.CLIENT_SECRETS_JSON], cs_data, continueOnError=False)
@@ -10466,7 +10583,7 @@ def _getLoginHintProjectInfo(createCmd):
     if createCmd:
       projectInfo['projectId'] = _generateProjectSvcAcctId('gam-project')
     else:
-      projectInfo['projectId'] = readStdin('\nWhat is your API project ID? ').strip()
+      projectInfo['projectId'] = readStdin(Msg.WHAT_IS_YOUR_PROJECT_ID).strip()
       if not PROJECTID_PATTERN.match(projectInfo['projectId']):
         systemErrorExit(USAGE_ERROR_RC, f'{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]} {Cmd.OB_PROJECT_ID}: {Msg.EXPECTED} <{PROJECTID_FORMAT_REQUIRED}>')
   if not projectInfo['name']:
@@ -11010,7 +11127,7 @@ def checkServiceAccount(users):
     long_url += f'&authuser={_getAdminEmail()}'
     printLine(message.format('', long_url))
 
-  credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None)
+  credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None, forceOauth=True)
   allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], Act.Get() == Act.UPDATE)
   checkScopesSet = set()
   saScopes = {}
@@ -11367,7 +11484,7 @@ def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, priv
     'private_key': private_key,
     'private_key_id': private_key_id,
     'project_id': projectId,
-    'token_uri': 'https://oauth2.googleapis.com/token',
+    'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
     'type': 'service_account',
     }
   return json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], indent=2, sort_keys=True)
@@ -11582,6 +11699,33 @@ def doShowSvcAcctKeys():
   entityPerformActionNumItems([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], count, Ent.SVCACCT_KEY)
   if count > 0:
     _showSAKeys(keys, count, currentPrivateKeyId)
+
+# gam create gcpserviceaccount|signjwtserviceaccount
+def doCreateGCPServiceAccount():
+  checkForExtraneousArguments()
+#  _checkForExistingProjectFiles()
+  sa_info = {
+    'key_type': 'signjwt',
+    'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
+    'type': 'service_account',
+  }
+  try:
+    credentials, sa_info['project_id'] = google.auth.default()
+  except google.auth.exceptions.DefaultCredentialsError as e:
+    systemErrorExit(API_ACCESS_DENIED_RC, str(e))
+  request = transportCreateRequest()
+  credentials.refresh(request)
+  sa_info['client_email'] = credentials.service_account_email
+  oa2 = buildGAPIObjectNoAuthentication(API.OAUTH2)
+  try:
+    token_info = callGAPI(oa2, 'tokeninfo',
+                          throwReasons=[GAPI.INVALID],
+                          access_token=credentials.token)
+  except GAPI.invalid as e:
+    systemErrorExit(API_ACCESS_DENIED_RC, str(e))
+  sa_info['client_id'] = token_info['issued_to']
+  sa_output = json.dumps(sa_info, ensure_ascii=False, sort_keys=True, indent=2)
+  writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], sa_output, continueOnError=False)
 
 # Audit command utilities
 def getAuditParameters(emailAddressRequired=True, requestIdRequired=True, destUserRequired=False):
@@ -65687,6 +65831,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_DOMAINALIAS:		doCreateDomainAlias,
   Cmd.ARG_DRIVEFILEACL:		doCreateDriveFileACL,
   Cmd.ARG_FEATURE:		doCreateFeature,
+  Cmd.ARG_GCPSERVICEACCOUNT:	doCreateGCPServiceAccount,
   Cmd.ARG_GROUP:		doCreateGroup,
   Cmd.ARG_GUARDIAN:		doInviteGuardian,
   Cmd.ARG_GUARDIANINVITATION:	doInviteGuardian,
@@ -65826,6 +65971,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.DOWNLOAD,
      {Cmd.ARG_STORAGEBUCKET:	doDownloadCloudStorageBucket,
       Cmd.ARG_VAULTEXPORT:	doDownloadVaultExport,
+     }
+    ),
+  'enable':
+    (Act.ENABLE,
+     {Cmd.ARG_API:		doEnableAPIs,
      }
     ),
   'get':
@@ -66211,6 +66361,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ALIASDOMAIN:		Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASDOMAINS:		Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASES:		Cmd.ARG_ALIAS,
+  Cmd.ARG_APIS:			Cmd.ARG_API,
   Cmd.ARG_APIPROJECT:		Cmd.ARG_PROJECT,
   Cmd.ARG_BROWSERS:		Cmd.ARG_BROWSER,
   Cmd.ARG_BROWSERTOKENS:	Cmd.ARG_BROWSERTOKEN,
@@ -66297,6 +66448,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_SAKEYS:		Cmd.ARG_SAKEY,
   Cmd.ARG_SCHEMAS:		Cmd.ARG_SCHEMA,
   Cmd.ARG_SHAREDDRIVES:		Cmd.ARG_SHAREDDRIVE,
+  Cmd.ARG_SIGNJWTSERVICEACCOUNT:	Cmd.ARG_GCPSERVICEACCOUNT,
   Cmd.ARG_SITEACLS:		Cmd.ARG_SITEACL,
   Cmd.ARG_SITES:		Cmd.ARG_SITE,
   Cmd.ARG_STORAGEBUCKETS:	Cmd.ARG_STORAGEBUCKET,

@@ -319,7 +319,6 @@ class GamEntity():
   TASKLIST = 'tali'
   TEACHER = 'teac'
   THREAD = 'thre'
-  TOKEN = 'tokn'
   TRANSFER_APPLICATION = 'trap'
   TRANSFER_ID = 'trid'
   TRANSFER_REQUEST = 'trnr'
@@ -629,7 +628,6 @@ class GamEntity():
     TASKLIST: ['Tasklists', 'Tasklist'],
     TEACHER: ['Teachers', 'Teacher'],
     THREAD: ['Threads', 'Thread'],
-    TOKEN: ['Tokens', 'Token'],
     TRANSFER_APPLICATION: ['Transfer Applications', 'Transfer Application'],
     TRANSFER_ID: ['Transfer IDs', 'Transfer ID'],
     TRANSFER_REQUEST: ['Transfer Requests', 'Transfer Request'],
