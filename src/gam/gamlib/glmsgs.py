@@ -81,6 +81,7 @@ SERVICE_ACCOUNT_API_DISABLED = '{0} not enabled. Please run "gam update project"
 SERVICE_ACCOUNT_PRIVATE_KEY_AUTHENTICATION = 'Service Account Private Key Authentication'
 SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE = 'Service Account Private Key age; Google recommends rotating keys on a routine basis'
 SERVICE_ACCOUNT_PRIVATE_KEY_AGE = 'Service Account Private Key age: {0} days'
+SERVICE_ACCOUNT_SKIPPING_KEY_AGE_CHECK = 'Skipping Private Key age check: {0} rotation not necessary'
 UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS = 'Please run "gam update project" to view/manage service account keys'
 DOMAIN_WIDE_DELEGATION_AUTHENTICATION = 'Domain-wide Delegation authentication'
 SCOPE_AUTHORIZATION_PASSED = '''All scopes PASSED!

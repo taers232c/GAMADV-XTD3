@@ -4095,24 +4095,86 @@ def handleOAuthTokenError(e, softErrors):
   stderrErrorMsg(f'Authentication Token Error - {errMsg}')
   APIAccessDeniedExit()
 
+_DEFAULT_TOKEN_LIFETIME_SECS = 3600  # 1 hour in seconds
+
+class signjwtJWTCredentials(google.auth.jwt.Credentials):
+  ''' Class used for DASA '''
+  def _make_jwt(self):
+    now = datetime.datetime.utcnow()
+    lifetime = datetime.timedelta(seconds=self._token_lifetime)
+    expiry = now + lifetime
+    payload = {
+      "iat": google.auth._helpers.datetime_to_secs(now),
+      "exp": google.auth._helpers.datetime_to_secs(expiry),
+      "iss": self._issuer,
+      "sub": self._subject,
+    }
+    if self._audience:
+      payload["aud"] = self._audience
+    payload.update(self._additional_claims)
+    jwt = self._signer.sign(payload)
+    return jwt, expiry
+
+class signjwtCredentials(google.oauth2.service_account.Credentials):
+  ''' Class used for DwD '''
+
+  def _make_authorization_grant_assertion(self):
+    now = datetime.datetime.utcnow()
+    lifetime = datetime.timedelta(seconds=_DEFAULT_TOKEN_LIFETIME_SECS)
+    expiry = now + lifetime
+    payload = {
+        "iat": google.auth._helpers.datetime_to_secs(now),
+        "exp": google.auth._helpers.datetime_to_secs(expiry),
+        "iss": self._service_account_email,
+        "aud": API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
+        "scope": google.auth._helpers.scopes_to_string(self._scopes or ()),
+    }
+    payload.update(self._additional_claims)
+    # The subject can be a user email for domain-wide delegation.
+    if self._subject:
+      payload.setdefault("sub", self._subject)
+    token = self._signer(payload)
+    return token
+
+class signjwtSignJwt(google.auth.crypt.Signer):
+  ''' Signer class for SignJWT '''
+  def __init__(self, service_account_info):
+    self.service_account_email = service_account_info['client_email']
+    self.name = f'projects/-/serviceAccounts/{self.service_account_email}'
+    self._key_id = None
+
+  @property  # type: ignore
+  def key_id(self):
+    return self._key_id
+
+  def sign(self, message):
+    ''' Call IAM Credentials SignJWT API to get our signed JWT '''
+    try:
+      credentials, _ = google.auth.default()
+    except google.auth.exceptions.DefaultCredentialsError as e:
+      systemErrorExit(API_ACCESS_DENIED_RC, str(e))
+    httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
+    iamc = getService(API.IAM_CREDENTIALS, httpObj)
+    response = callGAPI(iamc.projects().serviceAccounts(), 'signJwt',
+                        name=self.name, body={'payload': json.dumps(message)})
+    signed_jwt = response.get('signedJwt')
+    return signed_jwt
+
 def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnly=False, noScopes=False):
   if not noDASA and GC.Values[GC.ENABLE_DASA]:
     jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=False)
-#####
-    print('File', GC.Values[GC.OAUTH2SERVICE_JSON])
-    print('Data', jsonData)
     if jsonData:
       try:
         jsonDict = json.loads(jsonData)
         api, _, _ = API.getVersion(api)
         audience = f'https://{api}.googleapis.com/'
-        sign_method = jsonDict.get('key_type', 'default')
-        if sign_method == 'default':
+        key_type = jsonDict.get('key_type', 'default')
+        if key_type == 'default':
           credentials = JWTCredentials.from_service_account_info(jsonDict, audience=audience)
           return (True, credentials)
-        elif sign_method == 'signjwt':
+        elif key_type == 'signjwt':
           sjsigner = signjwtSignJwt(jsonDict)
-          credentials = signjwtCredentials._from_signer_and_info(sjsigner.sign, jsonDict)
+          credentials = signjwtJWTCredentials._from_signer_and_info(sjsigner, jsonDict, audience=audience)
           return (True, credentials)
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         invalidOauth2serviceJsonExit(str(e))
@@ -4326,9 +4388,6 @@ def defaultSvcAcctScopes():
 def _getSvcAcctData():
   if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
     jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=True)
-#####
-    print('File', GC.Values[GC.OAUTH2SERVICE_JSON])
-    print('Data', jsonData)
     if not jsonData:
       invalidOauth2serviceJsonExit(Msg.NO_DATA)
     try:
@@ -4338,8 +4397,8 @@ def _getSvcAcctData():
     if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
       systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
     requiredFields = ['client_email', 'client_id', 'project_id', 'token_uri']
-    sign_method = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('key_type', 'default')
-    if sign_method == 'default':
+    key_type = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('key_type', 'default')
+    if key_type == 'default':
       requiredFields.extend(['private_key', 'private_key_id'])
     missingFields = []
     for field in requiredFields:
@@ -4356,71 +4415,6 @@ def _getSvcAcctData():
     else:
       GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = True
       GM.Globals[GM.SVCACCT_SCOPES] = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].pop(API.OAUTH2SA_SCOPES)
-
-_DEFAULT_TOKEN_LIFETIME_SECS = 3600  # 1 hour in seconds
-
-class signjwtJWTCredentials(google.auth.jwt.Credentials):
-  ''' Class used for DASA '''
-  def _make_jwt(self):
-    now = datetime.datetime.utcnow()
-    lifetime = datetime.timedelta(seconds=self._token_lifetime)
-    expiry = now + lifetime
-    payload = {
-      "iat": google.auth._helpers.datetime_to_secs(now),
-      "exp": google.auth._helpers.datetime_to_secs(expiry),
-      "iss": self._issuer,
-      "sub": self._subject,
-    }
-    if self._audience:
-      payload["aud"] = self._audience
-    payload.update(self._additional_claims)
-    jwt = self._signer.sign(payload)
-    return jwt, expiry
-
-class signjwtCredentials(google.oauth2.service_account.Credentials):
-  ''' Class used for DwD '''
-
-  def _make_authorization_grant_assertion(self):
-    now = datetime.datetime.utcnow()
-    lifetime = datetime.timedelta(seconds=_DEFAULT_TOKEN_LIFETIME_SECS)
-    expiry = now + lifetime
-    payload = {
-        "iat": google.auth._helpers.datetime_to_secs(now),
-        "exp": google.auth._helpers.datetime_to_secs(expiry),
-        "iss": self._service_account_email,
-        "aud": API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
-        "scope": google.auth._helpers.scopes_to_string(self._scopes or ()),
-    }
-    payload.update(self._additional_claims)
-    # The subject can be a user email for domain-wide delegation.
-    if self._subject:
-      payload.setdefault("sub", self._subject)
-    token = self._signer(payload)
-    return token
-
-class signjwtSignJwt(google.auth.crypt.Signer):
-  ''' Signer class for SignJWT '''
-  def __init__(self, service_account_info):
-    self.service_account_email = service_account_info['client_email']
-    self.name = f'projects/-/serviceAccounts/{self.service_account_email}'
-    self._key_id = None
-
-  @property  # type: ignore
-  def key_id(self):
-    return self._key_id
-
-  def sign(self, message):
-    ''' Call IAM Credentials SignJWT API to get our signed JWT '''
-    try:
-      credentials, _ = google.auth.default()
-    except google.auth.exceptions.DefaultCredentialsError as e:
-      systemErrorExit(API_ACCESS_DENIED_RC, str(e))
-    httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
-    iamc = getService(API.IAM_CREDENTIALS, httpObj)
-    response = callGAPI(iamc.projects().serviceAccounts(), 'signJwt',
-                        name=self.name, body={'payload': json.dumps(message)})
-    signed_jwt = response.get('signedJwt')
-    return signed_jwt
 
 def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False, forceOauth=False):
   _getSvcAcctData()
@@ -4441,12 +4435,12 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False, forceOauth=F
   else:
     GM.Globals[GM.CURRENT_SVCACCT_API] = ''
     GM.Globals[GM.CURRENT_SVCACCT_API_SCOPES] = scopesOrAPI
-  sign_method = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('key_type', 'default')
+  key_type = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('key_type', 'default')
   if not GM.Globals[GM.CURRENT_SVCACCT_API] or scopesOrAPI not in API.JWT_APIS or forceOauth:
     try:
-      if sign_method == 'default':
+      if key_type == 'default':
         credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
-      elif sign_method == 'signjwt':
+      elif key_type == 'signjwt':
         sjsigner = signjwtSignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
         credentials = signjwtCredentials._from_signer_and_info(sjsigner.sign,
                                                                GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
@@ -4458,10 +4452,10 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False, forceOauth=F
   else:
     audience = f'https://{scopesOrAPI}.googleapis.com/'
     try:
-      if sign_method == 'default':
+      if key_type == 'default':
         credentials = JWTCredentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
                                                                audience=audience)
-      elif sign_method == 'signjwt':
+      elif key_type == 'signjwt':
         sjsigner = signjwtSignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
         credentials = signjwtJWTCredentials._from_signer_and_info(sjsigner,
                                                                   GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
@@ -11118,7 +11112,7 @@ def doDeleteSvcAcct():
     Ind.Decrement()
 
 def _getSvcAcctKeyProjectClientFields():
-  return (GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['private_key_id'],
+  return (GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('private_key_id', ''),
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email'],
           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_id'])
@@ -11236,26 +11230,30 @@ def checkServiceAccount(users):
   _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
   if GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and API.IAM not in GM.Globals[GM.SVCACCT_SCOPES]:
     GM.Globals[GM.SVCACCT_SCOPES][API.IAM] = [API.IAM_SCOPE]
-  printMessage(Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE)
-  _, iam = buildGAPIServiceObject(API.IAM, None)
-  currentPrivateKeyId, projectId, _, clientId = _getSvcAcctKeyProjectClientFields()
-  name = f'projects/{projectId}/serviceAccounts/{clientId}/keys/{currentPrivateKeyId}'
-  Ind.Increment()
-  try:
-    key = callGAPI(iam.projects().serviceAccounts().keys(), 'get',
-                   throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
-                   name=name, fields='validAfterTime')
-    key_created, _ = iso8601.parse_date(key['validAfterTime'])
-    key_age = todaysTime()-key_created
-    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), testWarn if key_age.days > 30 else testPass)
-  except GAPI.permissionDenied:
-    printMessage(Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
-    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), testWarn)
-  except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
-    entityActionFailedWarning([Ent.PROJECT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
-                               Ent.SVCACCT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']],
-                              str(e))
-    printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), testWarn)
+  key_type = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('key_type', 'default')
+  if key_type == 'default':
+    printMessage(Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE)
+    _, iam = buildGAPIServiceObject(API.IAM, None)
+    currentPrivateKeyId, projectId, _, clientId = _getSvcAcctKeyProjectClientFields()
+    name = f'projects/{projectId}/serviceAccounts/{clientId}/keys/{currentPrivateKeyId}'
+    Ind.Increment()
+    try:
+      key = callGAPI(iam.projects().serviceAccounts().keys(), 'get',
+                     throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                     name=name, fields='validAfterTime')
+      key_created, _ = iso8601.parse_date(key['validAfterTime'])
+      key_age = todaysTime()-key_created
+      printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format(key_age.days), testWarn if key_age.days > 30 else testPass)
+    except GAPI.permissionDenied:
+      printMessage(Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
+      printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), testWarn)
+    except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
+      entityActionFailedWarning([Ent.PROJECT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id'],
+                                 Ent.SVCACCT, GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['client_email']],
+                                str(e))
+      printPassFail(Msg.SERVICE_ACCOUNT_PRIVATE_KEY_AGE.format('UNKNOWN'), testWarn)
+  else:
+    printPassFail(Msg.SERVICE_ACCOUNT_SKIPPING_KEY_AGE_CHECK.format(key_type), testPass)
   Ind.Decrement()
   i, count, users = getEntityArgument(users)
   for user in users:
