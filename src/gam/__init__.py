@@ -4098,15 +4098,22 @@ def handleOAuthTokenError(e, softErrors):
 def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnly=False, noScopes=False):
   if not noDASA and GC.Values[GC.ENABLE_DASA]:
     jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=False)
+#####
+    print('File', GC.Values[GC.OAUTH2SERVICE_JSON])
+    print('Data', jsonData)
     if jsonData:
       try:
         jsonDict = json.loads(jsonData)
-        if GC.Values[GC.ENABLE_DASA]:
-          if 'private_key_id' in jsonDict:
-            api, _, _ = API.getVersion(api)
-            creds = JWTCredentials.from_service_account_info(jsonDict,
-                                                             audience=f'https://{api}.googleapis.com/')
-            return (True, creds)
+        api, _, _ = API.getVersion(api)
+        audience = f'https://{api}.googleapis.com/'
+        sign_method = jsonDict.get('key_type', 'default')
+        if sign_method == 'default':
+          credentials = JWTCredentials.from_service_account_info(jsonDict, audience=audience)
+          return (True, credentials)
+        elif sign_method == 'signjwt':
+          sjsigner = signjwtSignJwt(jsonDict)
+          credentials = signjwtCredentials._from_signer_and_info(sjsigner.sign, jsonDict)
+          return (True, credentials)
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         invalidOauth2serviceJsonExit(str(e))
     invalidOauth2serviceJsonExit(Msg.NO_DATA)
@@ -4318,17 +4325,24 @@ def defaultSvcAcctScopes():
 
 def _getSvcAcctData():
   if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
-    json_string = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=True)
-    if not json_string:
+    jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=True)
+#####
+    print('File', GC.Values[GC.OAUTH2SERVICE_JSON])
+    print('Data', jsonData)
+    if not jsonData:
       invalidOauth2serviceJsonExit(Msg.NO_DATA)
     try:
-      GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(json_string)
+      GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(jsonData)
     except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
       invalidOauth2serviceJsonExit(str(e))
     if not GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
       systemErrorExit(OAUTH2SERVICE_JSON_REQUIRED_RC, Msg.NO_SVCACCT_ACCESS_ALLOWED)
+    requiredFields = ['client_email', 'client_id', 'project_id', 'token_uri']
+    sign_method = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('key_type', 'default')
+    if sign_method == 'default':
+      requiredFields.extend(['private_key', 'private_key_id'])
     missingFields = []
-    for field in ['client_email', 'client_id', "private_key", 'private_key_id', 'project_id', 'token_uri']:
+    for field in requiredFields:
       if field not in GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]:
         missingFields.append(field)
     if missingFields:
