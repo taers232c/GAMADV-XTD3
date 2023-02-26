@@ -1,8 +1,12 @@
 6.50.00
 
-Following Jay's lead, added commands to enable running GAM on a Google Compute Engine (GCE) securely.
+Following Jay's lead (with many thanks), added commands to enable running GAM on a Google Compute Engine (GCE) securely.
 
 * See: https://github.com/GAM-team/GAM/wiki/Running-GAM-on-Google-Compute-Engine-(GCE)-Securely
+
+Following Jay's lead (with many thanks), added commands to enable using a Yubikey.
+
+* See: https://github.com/GAM-team/GAM/wiki/Use-a-Yubikey
 
 6.42.10
 

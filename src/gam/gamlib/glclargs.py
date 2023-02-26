@@ -672,6 +672,7 @@ class GamCLArgs():
   ARG_RESELLERCUSTOMERS = 'resellercustomers'
   ARG_RESELLERSUBSCRIPTION = 'resellersubscription'
   ARG_RESELLERSUBSCRIPTIONS = 'resellersubscriptions'
+  ARG_RESETPIV = 'resetpiv'
   ARG_RESOLDCUSTOMER = 'resoldcustomer'
   ARG_RESOLDCUSTOMERS = 'resoldcustomers'
   ARG_RESOLDSUBSCRIPTION = 'resoldsubscription'

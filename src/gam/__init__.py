@@ -50,6 +50,7 @@ import hashlib
 from html.entities import name2codepoint
 from html.parser import HTMLParser
 import http.client as http_client
+import importlib
 try:
   from importlib.metadata import version as lib_version
 except ImportError:
@@ -80,6 +81,7 @@ from tempfile import TemporaryFile
 import threading
 import time
 from traceback import print_exc
+import types
 from urllib.parse import quote, quote_plus, unquote, urlencode, urlparse, parse_qs
 import uuid
 import webbrowser
@@ -136,6 +138,7 @@ import google.oauth2.service_account
 import google_auth_oauthlib.flow
 import google_auth_httplib2
 import httplib2
+
 from passlib.hash import sha512_crypt
 
 if platform.system() == 'Linux':
@@ -223,6 +226,7 @@ ALPHANUMERIC_CHARS = LOWERNUMERIC_CHARS+string.ascii_uppercase
 URL_SAFE_CHARS = ALPHANUMERIC_CHARS+'-._~'
 PASSWORD_SAFE_CHARS = ALPHANUMERIC_CHARS+'!#$%&()*-./:;<=>?@[\\]^_{|}~'
 FILENAME_SAFE_CHARS = ALPHANUMERIC_CHARS+'-_.() '
+
 ADMIN_ACCESS_OPTIONS = {'adminaccess', 'asadmin'}
 
 # Python 3 values
@@ -343,6 +347,17 @@ USER_SUSPENDED_ERROR_RC = 76
 NO_CSV_DATA_TO_UPLOAD_RC = 77
 NO_SA_ACCESS_CONTEXT_MANAGER_EDITOR_ROLE_RC = 78
 ACCESS_POLICY_ERROR_RC = 79
+YUBIKEY_CONNECTION_ERROR_RC = 80
+YUBIKEY_INVALID_KEY_TYPE_RC = 81
+YUBIKEY_INVALID_SLOT_RC = 82
+YUBIKEY_INVALID_PIN_RC = 83
+YUBIKEY_APDU_ERROR_RC = 84
+YUBIKEY_VALUE_ERROR_RC = 85
+YUBIKEY_MULTIPLE_CONNECTED_RC = 86
+YUBIKEY_NOT_FOUND_RC = 87
+
+# Multiprocessing lock
+mplock = multiprocessing.Lock()
 
 # stdin/stdout/stderr
 def readStdin(prompt):
@@ -450,6 +465,48 @@ def executeBatch(dbatch):
   dbatch.execute()
   if GC.Values[GC.INTER_BATCH_WAIT] > 0:
     time.sleep(GC.Values[GC.INTER_BATCH_WAIT])
+
+class LazyLoader(types.ModuleType):
+  """Lazily import a module, mainly to avoid pulling in large dependencies.
+
+  `contrib`, and `ffmpeg` are examples of modules that are large and not always
+  needed, and this allows them to only be loaded when they are used.
+  """
+
+  # The lint error here is incorrect.
+  def __init__(self, local_name, parent_module_globals, name):
+    self._local_name = local_name
+    self._parent_module_globals = parent_module_globals
+
+    super().__init__(name)
+
+  def _load(self):
+    # Import the target module and insert it into the parent's namespace
+    module = importlib.import_module(self.__name__)
+    self._parent_module_globals[self._local_name] = module
+
+    # Update this object's dict so that if someone keeps a reference to the
+    #   LazyLoader, lookups are efficient (__getattr__ is only called on lookups
+    #   that fail).
+    self.__dict__.update(module.__dict__)
+
+    return module
+
+  def __getattr__(self, item):
+    module = self._load()
+    return getattr(module, item)
+
+  def __dir__(self):
+    module = self._load()
+    return dir(module)
+
+yubikey = LazyLoader('yubikey', globals(), 'gam.gamlib.yubikey')
+
+# gam yubikey resetpvi
+def doResetYubiKeyPIV():
+  yk = yubikey.YubiKey()
+  yk.serial_number = yk.get_serial_number()
+  yk.reset_piv()
 
 class _DeHTMLParser(HTMLParser): #pylint: disable=abstract-method
   def __init__(self):
@@ -4172,6 +4229,10 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
         if key_type == 'default':
           credentials = JWTCredentials.from_service_account_info(jsonDict, audience=audience)
           return (True, credentials)
+        elif key_type == 'yubikey':
+          yksigner = yubikey.YubiKey(jsonDict)
+          credentials = JWTCredentials._from_signer_and_info(yksigner, jsonDict, audience=audience)
+          return (True, credentials)
         elif key_type == 'signjwt':
           sjsigner = signjwtSignJwt(jsonDict)
           credentials = signjwtJWTCredentials._from_signer_and_info(sjsigner, jsonDict, audience=audience)
@@ -4440,6 +4501,10 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False, forceOauth=F
     try:
       if key_type == 'default':
         credentials = google.oauth2.service_account.Credentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+      elif key_type == 'yubikey':
+        yksigner = yubikey.YubiKey(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+        credentials = google.oauth2.service_account.Credentials._from_signer_and_info(yksigner,
+                                                                                      GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
       elif key_type == 'signjwt':
         sjsigner = signjwtSignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
         credentials = signjwtCredentials._from_signer_and_info(sjsigner.sign,
@@ -4455,6 +4520,11 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False, forceOauth=F
       if key_type == 'default':
         credentials = JWTCredentials.from_service_account_info(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
                                                                audience=audience)
+      elif key_type == 'yubikey':
+        yksigner = yubikey.YubiKey(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+        credentials = JWTCredentials._from_signer_and_info(yksigner,
+                                                           GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
+                                                           audience=audience)
       elif key_type == 'signjwt':
         sjsigner = signjwtSignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
         credentials = signjwtJWTCredentials._from_signer_and_info(sjsigner,
@@ -8678,6 +8748,7 @@ def doVersion(checkForArgs=True):
             'httplib2',
             'passlib',
             'python-dateutil',
+            'yubikey-manager',
             ]
     for lib in libs:
       try:
@@ -8935,7 +9006,7 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
                            csvRowFilter, csvRowFilterMode, csvRowDropFilter, csvRowDropFilterMode,
                            csvRowLimit,
                            args):
-  global mplock
+#  global mplock
 
   with mplock:
     initializeLogging()
@@ -9025,9 +9096,9 @@ def checkChildProcessRC(rc):
     return not low <= rc <= high
   return low <= rc <= high
 
-def initGamWorker(l):
-  global mplock
-  mplock = l
+#def initGamWorker(l):
+#  global mplock
+#  mplock = l
 
 def MultiprocessGAMCommands(items, showCmds):
   def poolErrorCallback(result):
@@ -9054,9 +9125,10 @@ def MultiprocessGAMCommands(items, showCmds):
   else:
     parallelPoolProcesses = min(numItems, GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-  l = multiprocessing.Lock()
+#  l = multiprocessing.Lock()
   try:
-    pool = multiprocessing.Pool(processes=numPoolProcesses, initializer=initGamWorker, initargs=(l,), maxtasksperchild=200)
+#    pool = multiprocessing.Pool(processes=numPoolProcesses, initializer=initGamWorker, initargs=(l,), maxtasksperchild=200)
+    pool = multiprocessing.Pool(processes=numPoolProcesses, maxtasksperchild=200)
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, e)
   except AssertionError as e:
@@ -11484,25 +11556,16 @@ def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size, b64
     publicKeyData = publicKeyData.decode()
   return (private_pem, publicKeyData)
 
-def _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, private_key_id):
-  quotedEmail = quote(clientEmail)
-  GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = {
-    'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
-    'auth_uri': 'https://accounts.google.com/o/oauth2/v2/auth',
-    'client_email': clientEmail,
-    'client_id': clientId,
-    'client_x509_cert_url': f'https://www.googleapis.com/robot/v1/metadata/x509/{quotedEmail}',
-    'key_type': 'default',
-    'private_key': private_key,
-    'private_key_id': private_key_id,
-    'project_id': projectId,
-    'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
-    'type': 'service_account',
-    }
+def _formatOAuth2ServiceData(service_data):
+  quotedEmail = quote(service_data.get('client_email', ''))
+  service_data['auth_provider_x509_cert_url'] = 'https://www.googleapis.com/oauth2/v1/certs'
+  service_data['auth_uri'] = 'https://accounts.google.com/o/oauth2/auth'
+  service_data['client_x509_cert_url'] = f'https://www.googleapis.com/robot/v1/metadata/x509/{quotedEmail}'
+  service_data['token_uri'] = API.GOOGLE_OAUTH2_TOKEN_ENDPOINT
+  service_data['type'] = 'service_account'
+  GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = service_data.copy()
   return json.dumps(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA], indent=2, sort_keys=True)
 
-# gam rotate sakey|sakeys [retain_none|retain_existing|replace_current]
-#	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, clientId=None):
   def waitForCompletion(i):
     sleep_time = i*5
@@ -11514,6 +11577,12 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
   body = {}
   if iam is None:
     _, iam = buildGAPIServiceObject(API.IAM, None)
+    _getSvcAcctData()
+    currentPrivateKeyId, projectId, clientEmail, clientId = _getSvcAcctKeyProjectClientFields()
+    # dict() ensures we have a real copy, not pointer
+    new_data = dict(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+    # assume default key type unless we are told otherwise
+    new_data['key_type'] = 'default'
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'algorithm':
@@ -11521,13 +11590,27 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
         local_key_size = 0
       elif myarg == 'localkeysize':
         local_key_size = int(getChoice(['1024', '2048', '4096']))
+      elif myarg == 'yubikey':
+        new_data['key_type'] = 'yubikey'
+      elif myarg == 'yubikeyslot':
+        new_data['yubikey_slot'] = getString(Cmd.OB_STRING).upper()
+      elif myarg == 'yubikeypin':
+        new_data['yubikey_pin'] = readStdin('Enter your YubiKey PIN: ')
+      elif myarg == 'yubikeyserialnumber':
+        new_data['yubikey_serial_number'] = getInteger()
       elif mode is None and myarg in ['retainnone', 'retainexisting', 'replacecurrent']:
         mode = myarg
       else:
         unknownArgumentExit()
     if mode is None:
       mode = 'retainnone'
-    currentPrivateKeyId, projectId, clientEmail, clientId = _getSvcAcctKeyProjectClientFields()
+  else:
+    new_data = {
+      'client_email': clientEmail,
+      'project_id': projectId,
+      'client_id': clientId,
+      'key_type': 'default'
+    }
   name = f'projects/{projectId}/serviceAccounts/{clientId}'
   if mode != 'retainexisting':
     try:
@@ -11540,9 +11623,26 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     except GAPI.badRequest as e:
       entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
       return False
+  if new_data.get('key_type') == 'yubikey':
+    # Use yubikey private key
+    new_data['yubikey_key_type'] = f'RSA{local_key_size}'
+    new_data.pop('private_key', None)
+    yk = yubikey.YubiKey(new_data)
+    if 'yubikey_serial_number' not in new_data:
+      new_data['yubikey_serial_number'] = yk.get_serial_number()
+      yk = yubikey.YubiKey(new_data)
+    if 'yubikey_slot' not in new_data:
+      new_data['yubikey_slot'] = 'AUTHENTICATION'
+    publicKeyData = yk.get_certificate()
+  elif local_key_size:
+    # Generate private key locally, store in file
+    new_data['private_key'], publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
+    new_data['key_type'] = 'default'
+    for key in list(new_data):
+      if key.startswith('yubikey_'):
+        new_data.pop(key, None)
   if local_key_size:
     Act.Set(Act.UPLOAD)
-    private_key, publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
     maxRetries = 10
     printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPLOADING_NEW_PUBLIC_CERTIFICATE_TO_GOOGLE)
     for retry in range(1, maxRetries+1):
@@ -11564,8 +11664,9 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
       except GAPI.badRequest as e:
         entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
         return False
-    private_key_id = result['name'].rsplit('/', 1)[-1]
-    oauth2service_data = _formatOAuth2ServiceData(projectId, clientEmail, clientId, private_key, private_key_id)
+    newPrivateKeyId = result['name'].rsplit('/', 1)[-1]
+    new_data['private_key_id'] = newPrivateKeyId
+    oauth2service_data = _formatOAuth2ServiceData(new_data)
   else:
     Act.Set(Act.CREATE)
     maxRetries = 10
@@ -11583,9 +11684,9 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
       except GAPI.badRequest as e:
         entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], str(e))
         return False
-    private_key_id = result['name'].rsplit('/', 1)[-1]
+    newPrivateKeyId = result['name'].rsplit('/', 1)[-1]
     oauth2service_data = base64.b64decode(result['privateKeyData']).decode(UTF8)
-  entityActionPerformed([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail, Ent.SVCACCT_KEY, private_key_id])
+  entityActionPerformed([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail, Ent.SVCACCT_KEY, newPrivateKeyId])
   if GM.Globals[GM.SVCACCT_SCOPES_DEFINED]:
     try:
       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA] = json.loads(oauth2service_data)
@@ -11596,7 +11697,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
   writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], oauth2service_data, continueOnError=False)
   Act.Set(Act.UPDATE)
   entityActionPerformed([Ent.OAUTH2SERVICE_JSON_FILE, GC.Values[GC.OAUTH2SERVICE_JSON],
-                         Ent.SVCACCT_KEY, private_key_id])
+                         Ent.SVCACCT_KEY, newPrivateKeyId])
   if mode != 'retainexisting':
     Act.Set(Act.REVOKE)
     count = len(keys) if mode == 'retainnone' else 1
@@ -11605,7 +11706,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     i = 0
     for key in keys:
       keyName = key['name'].rsplit('/', 1)[-1]
-      if mode == 'retainnone' or keyName == currentPrivateKeyId:
+      if mode == 'retainnone' or keyName == currentPrivateKeyId and keyName != newPrivateKeyId:
         i += 1
         maxRetries = 5
         for retry in range(1, maxRetries+1):
@@ -11628,15 +11729,35 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     Ind.Decrement()
   return True
 
-# gam create sakey|sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+# gam create sakey|sakeys
+# gam rotate sakey|sakeys retain_existing
+#	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
+#	(localkeysize 1024|2048|4096)|
+#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+#	 yubikeypin <String> yubikeyserialnumber <String>
+#	 [localkeysize 1024|2048|4096])
+#	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 def doCreateSvcAcctKeys():
   doProcessSvcAcctKeys(mode='retainexisting')
 
-# gam update sakey|sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+# gam update sakey|sakeys
+# gam rotate sakey|sakeys replace_current
+#	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
+#	(localkeysize 1024|2048|4096)|
+#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+#	 yubikeypin <String> yubikeyserialnumber <String>
+#	 [localkeysize 1024|2048|4096])
+#	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 def doUpdateSvcAcctKeys():
   doProcessSvcAcctKeys(mode='replacecurrent')
 
-# gam replace sakey|sakeys [(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
+# gam replace sakey|sakeys
+# gam rotate sakey|sakeys retain_none
+#	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
+#	(localkeysize 1024|2048|4096)|
+#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+#	 yubikeypin <String> yubikeyserialnumber <String>
+#	 [localkeysize 1024|2048|4096])
 def doReplaceSvcAcctKeys():
   doProcessSvcAcctKeys(mode='retainnone')
 
@@ -11715,7 +11836,7 @@ def doShowSvcAcctKeys():
 # gam create gcpserviceaccount|signjwtserviceaccount
 def doCreateGCPServiceAccount():
   checkForExtraneousArguments()
-#  _checkForExistingProjectFiles()
+  _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
   sa_info = {
     'key_type': 'signjwt',
     'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
@@ -66360,6 +66481,11 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     (Act.WIPE,
      {Cmd.ARG_DEVICE:		doWipeCIDevice,
       Cmd.ARG_DEVICEUSER:	doWipeCIDeviceUser,
+     }
+    ),
+  'yubikey':
+    (Act.RESET_YUBIKEY_PIV,
+     {Cmd.RESETPIV:		doResetYubiKeyPIV,
      }
     ),
   }

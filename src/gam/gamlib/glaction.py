@@ -92,6 +92,7 @@ class GamAction():
   REPLACE = 'repl'
   REPLACE_DOMAIN = 'repd'
   REPORT = 'repo'
+  RESET_YUBIKEY_PIV = 'rpiv'
   RESPOND = 'resp'
   RESTORE = 'rest'
   RESUBMIT = 'res'
@@ -204,6 +205,7 @@ class GamAction():
     REPLACE: ['Replaced', 'Replace'],
     REPLACE_DOMAIN: ['Domain Replaced', 'Replace Domain'],
     REPORT: ['Reported', 'Report'],
+    RESET_YUBIKEY_PIV: ['Yubikey PIV Reset', 'Reset Yubikey PIV'],
     RESPOND: ['Responded', 'Respond'],
     RESTORE: ['Restored', 'Restore'],
     RESUBMIT: ['Resubmitted', 'Resubmit'],
