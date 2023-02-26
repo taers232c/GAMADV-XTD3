@@ -357,7 +357,7 @@ YUBIKEY_MULTIPLE_CONNECTED_RC = 86
 YUBIKEY_NOT_FOUND_RC = 87
 
 # Multiprocessing lock
-mplock = multiprocessing.Lock()
+mplock = None
 
 # stdin/stdout/stderr
 def readStdin(prompt):
@@ -9006,7 +9006,7 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
                            csvRowFilter, csvRowFilterMode, csvRowDropFilter, csvRowDropFilterMode,
                            csvRowLimit,
                            args):
-#  global mplock
+  global mplock
 
   with mplock:
     initializeLogging()
@@ -9096,9 +9096,9 @@ def checkChildProcessRC(rc):
     return not low <= rc <= high
   return low <= rc <= high
 
-#def initGamWorker(l):
-#  global mplock
-#  mplock = l
+def initGamWorker(l):
+  global mplock
+  mplock = l
 
 def MultiprocessGAMCommands(items, showCmds):
   def poolErrorCallback(result):
@@ -9125,10 +9125,9 @@ def MultiprocessGAMCommands(items, showCmds):
   else:
     parallelPoolProcesses = min(numItems, GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-#  l = multiprocessing.Lock()
+  l = multiprocessing.Lock()
   try:
-#    pool = multiprocessing.Pool(processes=numPoolProcesses, initializer=initGamWorker, initargs=(l,), maxtasksperchild=200)
-    pool = multiprocessing.Pool(processes=numPoolProcesses, maxtasksperchild=200)
+    pool = multiprocessing.Pool(processes=numPoolProcesses, initializer=initGamWorker, initargs=(l,), maxtasksperchild=200)
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, e)
   except AssertionError as e:
