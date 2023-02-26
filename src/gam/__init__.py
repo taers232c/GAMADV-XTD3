@@ -66485,7 +66485,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   'yubikey':
     (Act.RESET_YUBIKEY_PIV,
-     {Cmd.RESETPIV:		doResetYubiKeyPIV,
+     {Cmd.ARG_RESETPIV:		doResetYubiKeyPIV,
      }
     ),
   }
