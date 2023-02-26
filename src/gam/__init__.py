@@ -115,7 +115,6 @@ from gamlib import glindent
 from gamlib import glmsgs as Msg
 from gamlib import glskus as SKU
 from gamlib import gluprop as UProp
-from gamlib import signjwt
 
 import atom
 import gdata.apps.service
@@ -4131,6 +4130,71 @@ def doGAMCheckForUpdates(forceCheck):
     if forceCheck:
       handleServerError(e)
 
+_DEFAULT_TOKEN_LIFETIME_SECS = 3600  # 1 hour in seconds
+
+class signjwtJWTCredentials(google.auth.jwt.Credentials):
+  ''' Class used for DASA '''
+  def _make_jwt(self):
+    now = datetime.datetime.utcnow()
+    lifetime = datetime.timedelta(seconds=self._token_lifetime)
+    expiry = now + lifetime
+    payload = {
+      "iat": google.auth._helpers.datetime_to_secs(now),
+      "exp": google.auth._helpers.datetime_to_secs(expiry),
+      "iss": self._issuer,
+      "sub": self._subject,
+    }
+    if self._audience:
+      payload["aud"] = self._audience
+    payload.update(self._additional_claims)
+    jwt = self._signer.sign(payload)
+    return jwt, expiry
+
+class signjwtCredentials(google.oauth2.service_account.Credentials):
+  ''' Class used for DwD '''
+
+  def _make_authorization_grant_assertion(self):
+    now = datetime.datetime.utcnow()
+    lifetime = datetime.timedelta(seconds=_DEFAULT_TOKEN_LIFETIME_SECS)
+    expiry = now + lifetime
+    payload = {
+        "iat": google.auth._helpers.datetime_to_secs(now),
+        "exp": google.auth._helpers.datetime_to_secs(expiry),
+        "iss": self._service_account_email,
+        "aud": API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
+        "scope": google.auth._helpers.scopes_to_string(self._scopes or ()),
+    }
+    payload.update(self._additional_claims)
+    # The subject can be a user email for domain-wide delegation.
+    if self._subject:
+      payload.setdefault("sub", self._subject)
+    token = self._signer(payload)
+    return token
+
+class signjwtSignJwt(google.auth.crypt.Signer):
+  ''' Signer class for SignJWT '''
+  def __init__(self, service_account_info):
+    self.service_account_email = service_account_info['client_email']
+    self.name = f'projects/-/serviceAccounts/{self.service_account_email}'
+    self._key_id = None
+
+  @property  # type: ignore
+  def key_id(self):
+    return self._key_id
+
+  def sign(self, message):
+    ''' Call IAM Credentials SignJWT API to get our signed JWT '''
+    try:
+      credentials, _ = google.auth.default()
+    except google.auth.exceptions.DefaultCredentialsError as e:
+      systemErrorExit(API_ACCESS_DENIED_RC, str(e))
+    httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
+    iamc = getService(API.IAM_CREDENTIALS, httpObj)
+    response = callGAPI(iamc.projects().serviceAccounts(), 'signJwt',
+                        name=self.name, body={'payload': json.dumps(message)})
+    signed_jwt = response.get('signedJwt')
+    return signed_jwt
+
 def handleOAuthTokenError(e, softErrors):
   errMsg = str(e).replace('.', '')
   if errMsg in API.OAUTH2_TOKEN_ERRORS or errMsg.startswith('Invalid response'):
@@ -4170,8 +4234,8 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
           credentials = JWTCredentials._from_signer_and_info(yksigner, jsonDict, audience=audience)
           return (True, credentials)
         elif key_type == 'signjwt':
-          sjsigner = signjwt.SignJwt(jsonDict)
-          credentials = signjwt.JWTCredentials._from_signer_and_info(sjsigner, jsonDict, audience=audience)
+          sjsigner = signjwtSignJwt(jsonDict)
+          credentials = signjwtJWTCredentials._from_signer_and_info(sjsigner, jsonDict, audience=audience)
           return (True, credentials)
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         invalidOauth2serviceJsonExit(str(e))
@@ -4442,8 +4506,8 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False, forceOauth=F
         credentials = google.oauth2.service_account.Credentials._from_signer_and_info(yksigner,
                                                                                       GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
       elif key_type == 'signjwt':
-        sjsigner = signjwt.SignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
-        credentials = signjwt.Credentials._from_signer_and_info(sjsigner.sign,
+        sjsigner = signjwtSignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+        credentials = signjwtCredentials._from_signer_and_info(sjsigner.sign,
                                                                GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
     except (ValueError, IndexError, KeyError) as e:
       if softErrors:
@@ -4462,8 +4526,8 @@ def getSvcAcctCredentials(scopesOrAPI, userEmail, softErrors=False, forceOauth=F
                                                            GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
                                                            audience=audience)
       elif key_type == 'signjwt':
-        sjsigner = signjwt.SignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
-        credentials = signjwt.JWTCredentials._from_signer_and_info(sjsigner,
+        sjsigner = signjwtSignJwt(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
+        credentials = signjwtJWTCredentials._from_signer_and_info(sjsigner,
                                                                   GM.Globals[GM.OAUTH2SERVICE_JSON_DATA],
                                                                   audience=audience)
       credentials.project_id = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA]['project_id']
@@ -11668,7 +11732,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
 # gam rotate sakey|sakeys retain_existing
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
 #	(localkeysize 1024|2048|4096)|
-#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
 #	 yubikeypin <String> yubikeyserialnumber <String>
 #	 [localkeysize 1024|2048|4096])
 #	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
@@ -11679,7 +11743,7 @@ def doCreateSvcAcctKeys():
 # gam rotate sakey|sakeys replace_current
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
 #	(localkeysize 1024|2048|4096)|
-#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
 #	 yubikeypin <String> yubikeyserialnumber <String>
 #	 [localkeysize 1024|2048|4096])
 #	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
@@ -11690,7 +11754,7 @@ def doUpdateSvcAcctKeys():
 # gam rotate sakey|sakeys retain_none
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
 #	(localkeysize 1024|2048|4096)|
-#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+#	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
 #	 yubikeypin <String> yubikeyserialnumber <String>
 #	 [localkeysize 1024|2048|4096])
 def doReplaceSvcAcctKeys():

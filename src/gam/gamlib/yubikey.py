@@ -40,14 +40,14 @@ from yubikit.piv import DEFAULT_MANAGEMENT_KEY, \
                         TOUCH_POLICY
 from yubikit.core.smartcard import ApduError, SmartCardConnection
 
-from gam import YUBIKEY_CONNECTION_ERROR_RC
-from gam import YUBIKEY_INVALID_KEY_TYPE_RC
-from gam import YUBIKEY_INVALID_SLOT_RC
-from gam import YUBIKEY_INVALID_PIN_RC
-from gam import YUBIKEY_APDU_ERROR_RC
-from gam import YUBIKEY_VALUE_ERROR_RC
-from gam import YUBIKEY_MULTIPLE_CONNECTED_RC
-from gam import YUBIKEY_NOT_FOUND_RC
+YUBIKEY_CONNECTION_ERROR_RC = 80
+YUBIKEY_INVALID_KEY_TYPE_RC = 81
+YUBIKEY_INVALID_SLOT_RC = 82
+YUBIKEY_INVALID_PIN_RC = 83
+YUBIKEY_APDU_ERROR_RC = 84
+YUBIKEY_VALUE_ERROR_RC = 85
+YUBIKEY_MULTIPLE_CONNECTED_RC = 86
+YUBIKEY_NOT_FOUND_RC = 87
 
 from gam import mplock
 
