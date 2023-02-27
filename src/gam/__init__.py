@@ -502,9 +502,16 @@ class LazyLoader(types.ModuleType):
 
 yubikey = LazyLoader('yubikey', globals(), 'gam.gamlib.yubikey')
 
-# gam yubikey resetpvi
+# gam yubikey resetpvi [yubikeyserialnumber <String>]
 def doResetYubiKeyPIV():
-  yk = yubikey.YubiKey()
+  new_data = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'yubikeyserialnumber':
+      new_data['yubikey_serial_number'] =  getInteger()
+    else:
+      unknownArgumentExit()
+  yk = yubikey.YubiKey(new_data)
   yk.serial_number = yk.get_serial_number()
   yk.reset_piv()
 

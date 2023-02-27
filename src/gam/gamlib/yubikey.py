@@ -116,6 +116,8 @@ class YubiKey():
   def get_serial_number(self):
     try:
       devices = list_all_devices()
+      if not devices:
+        systemErrorExit(YUBIKEY_NOT_FOUND_RC, Msg.COULD_NOT_FIND_ANY_YUBIKEY)
       if self.serial_number:
         for (device, info) in devices:
           if info.serial == self.serial_number:
@@ -168,7 +170,8 @@ class YubiKey():
       systemErrorExit(YUBIKEY_VALUE_ERROR_RC, f'YubiKey - {err}')
 
   def sign(self, message):
-    mplock.acquire()
+    if mplock is not None:
+      mplock.acquire()
     try:
       conn = self._connect()
       with conn:
@@ -188,5 +191,6 @@ class YubiKey():
           systemErrorExit(YUBIKEY_APDU_ERROR_RC, f'YubiKey - {err}')
     except ValueError as err:
       systemErrorExit(YUBIKEY_VALUE_ERROR_RC, f'YubiKey - {err}')
-    mplock.release()
+    if mplock is not None:
+      mplock.release()
     return signed
