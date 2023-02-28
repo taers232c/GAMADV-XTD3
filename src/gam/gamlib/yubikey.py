@@ -55,7 +55,7 @@ from gam import systemErrorExit
 from gam import readStdin
 from gam import writeStdout
 
-from gamlib import glmsgs as Msg
+from gam.gamlib import glmsgs as Msg
 
 PIN_PUK_CHARS = string.ascii_letters+string.digits+string.punctuation
 
@@ -89,7 +89,7 @@ class YubiKey():
         if info.serial == self.serial_number:
           return device.open_connection(SmartCardConnection)
     except CardConnectionException as err:
-        systemErrorExit(YUBIKEY_CONNECTION_ERROR_RC, f'YubiKey - {err}')
+      systemErrorExit(YUBIKEY_CONNECTION_ERROR_RC, f'YubiKey - {err}')
 
   def get_certificate(self):
     try:
@@ -119,7 +119,7 @@ class YubiKey():
       if not devices:
         systemErrorExit(YUBIKEY_NOT_FOUND_RC, Msg.COULD_NOT_FIND_ANY_YUBIKEY)
       if self.serial_number:
-        for (device, info) in devices:
+        for (_, info) in devices:
           if info.serial == self.serial_number:
             return info.serial
         systemErrorExit(YUBIKEY_NOT_FOUND_RC, Msg.COULD_NOT_FIND_YUBIKEY_WITH_SERIAL.format(self.serial_number))
@@ -134,7 +134,7 @@ class YubiKey():
     '''Resets YubiKey PIV app and generates new key for GAM to use.'''
     reply = str(readStdin(Msg.CONFIRM_WIPE_YUBIKEY_PIV).lower().strip())
     if reply != 'y':
-        sys.exit(1)
+      sys.exit(1)
     try:
       conn = self._connect()
       with conn:
