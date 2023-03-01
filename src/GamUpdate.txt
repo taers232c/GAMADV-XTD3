@@ -9,6 +9,9 @@ Following Jay's lead (with many thanks), added commands to enable using a Yubike
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Using-GAMADV-XTD3-with-a-YubiKey
 
+Hopefully fixed a bug in `gam <UserTypeEntity> forward messages` that caused a trap when the subject
+contained Latin-1 characters.
+
 6.42.10
 
 Added option `accesstype public|team|announcementonly|restricted` to `gam create|update group`.

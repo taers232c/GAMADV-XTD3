@@ -39,6 +39,7 @@ import datetime
 from email.charset import add_charset, QP
 from email.generator import Generator
 from email.header import decode_header, Header
+from email import message_from_string
 from email.mime.application import MIMEApplication
 from email.mime.audio import MIMEAudio
 from email.mime.base import MIMEBase
@@ -46,6 +47,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
+from email.policy import SMTP as policySMTP
 import hashlib
 from html.entities import name2codepoint
 from html.parser import HTMLParser
@@ -49469,12 +49471,12 @@ def printFileList(users):
           rootFolderId = fileIdEntity['shareddrive']['driveId']
           if not fileIdEntity['shareddrivename']:
             fileIdEntity['shareddrivename'] = callGAPI(drive.drives(), 'get',
-                                                     throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FILE_NOT_FOUND],
+                                                     throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FILE_NOT_FOUND],
                                                      driveId=rootFolderId, fields='name')['name']
           rootFolderName = fileIdEntity['shareddrivename']
         if not showParentsIdsAsList and DFF.parentsSubFields['isRoot']:
           DFF.parentsSubFields['rootFolderId'] = rootFolderId
-      except GAPI.fileNotFound as e:
+      except (GAPI.notFound, GAPI.fileNotFound) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, fileIdEntity['shareddrive']['driveId']], str(e), i, count)
         continue
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
@@ -61197,6 +61199,20 @@ def processMessages(users):
 def processThreads(users):
   _processMessagesThreads(users, Ent.THREAD)
 
+HEADER_ENCODE_PATTERN = re.compile(r'=\?([^?]*?)\?[qQbB]\?(.*?)\?=', re.VERBOSE | re.MULTILINE)
+
+def _decodeHeader(header):
+  header = header.encode(UTF8, 'replace').decode(UTF8)
+  while True:
+    mg = HEADER_ENCODE_PATTERN.search(header)
+    if not mg:
+      return header
+    try:
+      header = header[:mg.start()]+decode_header(mg.group())[0][0].decode(mg.group(1))+header[mg.end():]
+    except LookupError:
+      stderrWarningMsg(Msg.INVALID_CHARSET.format(mg.group(1)))
+      return header
+
 # gam <UserTypeEntity> forward message|messages recipient|to <RecipientEntity>
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_forward <Number>])|(ids <MessageIDEntity>)
 #	[subject <String>]
@@ -61287,21 +61303,24 @@ def forwardMessagesThreads(users, entityType):
       for messageId in messageIds:
         k += 1
         try:
-          message = callGAPI(gmail.users().messages(), 'get',
-                             throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
-                             userId='me', id=messageId, format='raw')
-          message = base64.urlsafe_b64decode(str(message['raw'])).decode(UTF8)
-          message = re.sub(r'(?sm)\nTo:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', f'\nTo: {msgTo}', message, 1)
-          message = re.sub(r'(?sm)\nCc:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', '', message, 1)
+          result = callGAPI(gmail.users().messages(), 'get',
+                            throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                            userId='me', id=messageId, format='raw')
+          message = message_from_string(base64.urlsafe_b64decode(str(result['raw'])).decode(UTF8), policy=policySMTP)
           if not subject:
-            message = re.sub(r'\nSubject: ', r'\nSubject: Fwd: ', message, 1)
+            msgSubject = f"Fwd: {_decodeHeader(message['Subject'])}"   
           else:
-            message = re.sub(r'(?sm)\nSubject:.+?(?=[\r\n]+[a-zA-Z0-9-]+:)', f'\nSubject: {subject}', message, 1)
+            msgSubject = f"Subject: {subject}"
+          for header in ['To', 'Cc', 'Subject']:
+            if header in message:
+              del message[header]
+          message['To'] = msgTo
+          message['Subject'] = msgSubject
           try:
             result = callGAPI(gmail.users().messages(), 'send',
                               throwReasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.AUTH_ERROR, GAPI.DOMAIN_POLICY,
                                             GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
-                              userId='me', body={'raw': base64.urlsafe_b64encode(bytes(message, UTF8)).decode(UTF8)}, fields='id')
+                              userId='me', body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode(UTF8)}, fields='id')
             entityActionPerformedMessage([Ent.RECIPIENT, msgTo], f"{result['id']}", k, kcount)
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
                   GAPI.invalid, GAPI.invalidArgument, GAPI.forbidden) as e:
@@ -61657,20 +61676,6 @@ def insertMessage(users):
   _draftImportInsertMessage(users, 'insert')
 
 def printShowMessagesThreads(users, entityType):
-
-  HEADER_ENCODE_PATTERN = re.compile(r'=\?([^?]*?)\?[qQbB]\?(.*?)\?=', re.VERBOSE | re.MULTILINE)
-
-  def _decodeHeader(header):
-    header = header.encode(UTF8, 'replace').decode(UTF8)
-    while True:
-      mg = HEADER_ENCODE_PATTERN.search(header)
-      if not mg:
-        return header
-      try:
-        header = header[:mg.start()]+decode_header(mg.group())[0][0].decode(mg.group(1))+header[mg.end():]
-      except LookupError:
-        stderrWarningMsg(Msg.INVALID_CHARSET.format(mg.group(1)))
-        return header
 
   def _getBodyData(payload, getOrigMsg):
     data = headers = ''
