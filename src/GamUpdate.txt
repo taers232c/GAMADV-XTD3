@@ -1,6 +1,6 @@
 6.50.00
 
-Following Jay's lead (with many thanks), added commands to enable running GAM on a Google Compute Engine (GCE) securely.
+Following Jay's lead (with many thanks), added commands to enable running GAM securely on a Google Compute Engine.
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Running-GAMADV-XTD3-securely-on-a-Google-Compute-Engine
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Using-GAMADV-XTD3-with-a-delegated-admin-service-account
@@ -8,6 +8,8 @@ Following Jay's lead (with many thanks), added commands to enable running GAM on
 Following Jay's lead (with many thanks), added commands to enable using a Yubikey.
 
 * See: https://github.com/taers232c/GAMADV-XTD3/wiki/Using-GAMADV-XTD3-with-a-YubiKey
+
+These Wiki pages are a work in progress, contact me if you need help.
 
 Hopefully fixed a bug in `gam <UserTypeEntity> forward messages` that caused a trap when the subject
 contained Latin-1 characters.
