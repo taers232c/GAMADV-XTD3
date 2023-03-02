@@ -1,3 +1,7 @@
+6.50.01
+
+Fixed YubiKey issue that caused a trap.
+
 6.50.00
 
 Following Jay's lead (with many thanks), added commands to enable running GAM securely on a Google Compute Engine.
