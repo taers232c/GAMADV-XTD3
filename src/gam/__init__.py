@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.01'
+__version__ = '6.50.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -504,7 +504,7 @@ class LazyLoader(types.ModuleType):
 
 yubikey = LazyLoader('yubikey', globals(), 'gam.gamlib.yubikey')
 
-# gam yubikey resetpvi [yubikeyserialnumber <String>]
+# gam yubikey resetpvi [yubikey_serialnumber <String>]
 def doResetYubiKeyPIV():
   new_data = {}
   while Cmd.ArgumentsRemaining():
@@ -10543,7 +10543,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
         "client_secret": "{client_secret}",
         "created_by": "{login_hint}",
         "project_id": "{projectInfo['projectId']}",
-        "token_uri": API.GOOGLE_OAUTH2_TOKEN_ENDPOINT
+        "token_uri": "{API.GOOGLE_OAUTH2_TOKEN_ENDPOINT}"
     }}
 }}'''
   writeFile(GC.Values[GC.CLIENT_SECRETS_JSON], cs_data, continueOnError=False)
@@ -11742,7 +11742,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
 #	(localkeysize 1024|2048|4096)|
 #	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
-#	 yubikeypin <String> yubikeyserialnumber <String>
+#	 yubikey_serialnumber <String>
 #	 [localkeysize 1024|2048|4096])
 #	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 def doCreateSvcAcctKeys():
@@ -11753,7 +11753,7 @@ def doCreateSvcAcctKeys():
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
 #	(localkeysize 1024|2048|4096)|
 #	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
-#	 yubikeypin <String> yubikeyserialnumber <String>
+#	 yubikey_serialnumber <String>
 #	 [localkeysize 1024|2048|4096])
 #	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|(localkeysize 1024|2048|4096)]
 def doUpdateSvcAcctKeys():
@@ -11764,7 +11764,7 @@ def doUpdateSvcAcctKeys():
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
 #	(localkeysize 1024|2048|4096)|
 #	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
-#	 yubikeypin <String> yubikeyserialnumber <String>
+#	 yubikey_serialnumber <String>
 #	 [localkeysize 1024|2048|4096])
 def doReplaceSvcAcctKeys():
   doProcessSvcAcctKeys(mode='retainnone')

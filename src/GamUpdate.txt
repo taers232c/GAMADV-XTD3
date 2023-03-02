@@ -1,3 +1,7 @@
+6.50.02
+
+Fixed bug in `gam create project` where invalid data was written to client_secrets.json.
+
 6.50.01
 
 Fixed YubiKey issue that caused a trap.
