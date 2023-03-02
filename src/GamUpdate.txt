@@ -11,6 +11,18 @@ Following Jay's lead (with many thanks), added commands to enable using a Yubike
 
 These Wiki pages are a work in progress, contact me if you need help.
 
+Updated handling of `seats` option in `gam create|update resoldsubscription` to properly assign
+the API fields `numberOfSeats` and `maximumNumberOfSeats`.
+Previously, this is how the option was processed:
+  * Plan name `ANNUAL_MONTHLY_PAY` or `ANNUAL_YEARLY_PAY`
+    * `seats <NumberOfSeats>` - `<NumberOfSeats>` was properly passed to the API
+    * `seats <NumberOfSeats> <MaximumNumberOfSeats>` - `<NumberOfSeats>` was properly passed to the API; `<MaximumNumberOfSeats>` was passed to the API which ignored it
+  * Plan name `FLEXIBLE` or `TRIAL`
+    * `seats <NumberOfSeats>` - `<NumberOfSeats>` was improperly passed to the API; an API error was generated
+    * `seats <NumberOfSeats> <MaximumNumberOfSeats>` - `<MaximumNumberOfSeats>` was properly passed to the API; `<NumberOfSeats>` was passed to the API which ignored it
+
+Now, you can still use the above option which has been corrected or you can specify `seats <Number>` which will be properly passed in the correct form to the API based on plan name.
+
 Hopefully fixed a bug in `gam <UserTypeEntity> forward messages` that caused a trap when the subject
 contained Latin-1 characters.
 

@@ -13812,13 +13812,13 @@ def getCustomerSubscription(res):
   try:
     subscriptions = callGAPIpages(res.subscriptions(), 'list', 'subscriptions',
                                   throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                                  customerId=customerId, fields='nextPageToken,subscriptions(skuId,subscriptionId)')
+                                  customerId=customerId, fields='nextPageToken,subscriptions(skuId,subscriptionId,plan(planName))')
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.SUBSCRIPTION, None], str(e))
     sys.exit(GM.Globals[GM.SYSEXITRC])
   for subscription in subscriptions:
     if skuId == subscription['skuId']:
-      return (customerId, skuId, subscription['subscriptionId'])
+      return (customerId, skuId, subscription['subscriptionId'], subscription['plan']['planName'])
   Cmd.Backup()
   usageErrorExit(f'{Ent.FormatEntityValueList([Ent.CUSTOMER_ID, customerId, Ent.SKU, skuId])}, {Msg.SUBSCRIPTION_NOT_FOUND}')
 
@@ -13836,6 +13836,7 @@ def _getResoldSubscriptionAttr(customerId):
           'skuId': None,
          }
   customerAuthToken = None
+  seats1 = seats2 = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'deal', 'dealcode'}:
@@ -13845,8 +13846,9 @@ def _getResoldSubscriptionAttr(customerId):
     elif myarg in {'purchaseorderid', 'po'}:
       body['purchaseOrderId'] = getString('purchaseOrderId')
     elif myarg == 'seats':
-      body['seats']['numberOfSeats'] = getInteger(minVal=0)
-      body['seats']['maximumNumberOfSeats'] = getInteger(minVal=0)
+      seats1 = getInteger(minVal=0)
+      if Cmd.ArgumentsRemaining() and Cmd.Current().isdigit():
+        seats2 = getInteger(minVal=0)
     elif myarg in {'sku', 'skuid'}:
       productId, body['skuId'] = SKU.getProductAndSKU(getString(Cmd.OB_SKU_ID))
       if not productId:
@@ -13855,9 +13857,15 @@ def _getResoldSubscriptionAttr(customerId):
       customerAuthToken = getString('customer_auth_token')
     else:
       unknownArgumentExit()
-  for field in ['plan', 'seats', 'skuId']:
+  for field in ['plan', 'skuId']:
     if not body[field]:
       missingArgumentExit(field.lower())
+  if seats1 is None:
+    missingArgumentExit('seats')
+  if body['plan']['planName'] in {'ANNUAL_MONTHLY_PAY', 'ANNUAL_YEARLY_PAY'}:
+    body['seats']['numberOfSeats'] = seats1
+  else:
+    body['seats']['maximumNumberOfSeats'] = seats1 if seats2 is None else seats2
   return customerAuthToken, body
 
 SUBSCRIPTION_SKIP_OBJECTS = {'customerId', 'skuId', 'subscriptionId'}
@@ -13873,7 +13881,7 @@ def _showSubscription(subscription, FJQC=None):
   Ind.Decrement()
 
 # gam create resoldsubscription <CustomerID> (sku <SKUID>)
-#	 (plan annual_monthly_pay|annual_yearly_pay|flexible|trial) (seats <NumberOfSeats> <MaximumNumberOfSeats>)
+#	 (plan annual_monthly_pay|annual_yearly_pay|flexible|trial) (seats <Number>)
 #	 [customer_auth_token <String>] [deal <String>] [purchaseorderid <String>]
 def doCreateResoldSubscription():
   res = buildGAPIObject(API.RESELLER)
@@ -13900,12 +13908,23 @@ RENEWAL_TYPE_MAP = {
 # gam update resoldsubscription <CustomerID> <SKUID>
 #	activate|suspend|startpaidservice|
 #	(renewal auto_renew_monthly_pay|auto_renew_yearly_pay|cancel|renew_current_users_monthly_pay|renew_current_users_yearly_pay|switch_to_pay_as_you_go)|
-#	(seats <NumberOfSeats> [<MaximumNumberOfSeats>])|
-#	(plan annual_monthly_pay|annual_yearly_pay|flexible|trial [deal <String>] [purchaseorderid <String>] [seats <NumberOfSeats> [<MaximumNumberOfSeats>]])
+#	(seats <Number>)|
+#	(plan annual_monthly_pay|annual_yearly_pay|flexible|trial [deal <String>] [purchaseorderid <String>] [seats <Number>])
 def doUpdateResoldSubscription():
+  def _getSeats():
+    seats1 = getInteger(minVal=0)
+    if Cmd.ArgumentsRemaining() and Cmd.Current().isdigit():
+      seats2 = getInteger(minVal=0)
+    else:
+      seats2 = None
+    if planName in {'ANNUAL_MONTHLY_PAY', 'ANNUAL_YEARLY_PAY'}:
+      kwargs['body']['seats'] = {'numberOfSeats': seats1}
+    else:
+      kwargs['body']['seats'] = {'maximumNumberOfSeats': seats1 if seats2 is None else seats2}
+
   res = buildGAPIObject(API.RESELLER)
   function = None
-  customerId, skuId, subscriptionId = getCustomerSubscription(res)
+  customerId, skuId, subscriptionId, planName = getCustomerSubscription(res)
   kwargs = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -13920,18 +13939,17 @@ def doUpdateResoldSubscription():
       kwargs['body'] = {'renewalType': getChoice(RENEWAL_TYPE_MAP, mapChoice=True)}
     elif myarg == 'seats':
       function = 'changeSeats'
-      kwargs['body'] = {'numberOfSeats': getInteger(minVal=0)}
-      if Cmd.ArgumentsRemaining() and Cmd.Current().isdigit():
-        kwargs['body']['maximumNumberOfSeats'] = getInteger(minVal=0)
+      kwargs['body'] = {'seats': {}}
+      _getSeats()
     elif myarg == 'plan':
       function = 'changePlan'
-      kwargs['body'] = {'planName': getChoice(PLAN_NAME_MAP, mapChoice=True)}
+      planName = getChoice(PLAN_NAME_MAP, mapChoice=True)
+      kwargs['body'] = {'planName': planName}
       while Cmd.ArgumentsRemaining():
         planarg = getArgument()
         if planarg == 'seats':
-          kwargs['body']['seats'] = {'numberOfSeats': getInteger(minVal=0)}
-          if Cmd.ArgumentsRemaining() and Cmd.Current().isdigit():
-            kwargs['body']['seats']['maximumNumberOfSeats'] = getInteger(minVal=0)
+          kwargs['body']['seats'] = {}
+          _getSeats()
         elif planarg in {'purchaseorderid', 'po'}:
           kwargs['body']['purchaseOrderId'] = getString('purchaseOrderId')
         elif planarg in {'dealcode', 'deal'}:
@@ -13959,7 +13977,7 @@ DELETION_TYPE_MAP = {
 # gam delete resoldsubscription <CustomerID> <SKUID> cancel|downgrade|transfer_to_direct
 def doDeleteResoldSubscription():
   res = buildGAPIObject(API.RESELLER)
-  customerId, skuId, subscriptionId = getCustomerSubscription(res)
+  customerId, skuId, subscriptionId, _ = getCustomerSubscription(res)
   deletionType = getChoice(DELETION_TYPE_MAP, mapChoice=True)
   checkForExtraneousArguments()
   try:
@@ -13973,7 +13991,7 @@ def doDeleteResoldSubscription():
 # gam info resoldsubscription <CustomerID> <SKUID>
 def doInfoResoldSubscription():
   res = buildGAPIObject(API.RESELLER)
-  customerId, skuId, subscriptionId = getCustomerSubscription(res)
+  customerId, skuId, subscriptionId, _ = getCustomerSubscription(res)
   FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
