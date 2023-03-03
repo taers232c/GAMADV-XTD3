@@ -4185,10 +4185,19 @@ gam [<UserTypeEntity>] print siteacls <SiteEntity> [todrive <ToDriveAttribute>*]
 
 <SharedDriveRestrictionsSubfieldName> ::=
         adminmanagedrestrictions|
+        allowcontentmanagerstosharefolders|
         copyrequireswriterpermission|
         domainusersonly|
         drivemembersonly|teammembersonly|
         sharingfoldersrequiresorganizerpermission
+
+Each pair of restrictions below are equivalent:
+
+allowcontentmanagerstosharefolders true
+sharingfoldersrequiresorganizerpermission false
+
+allowcontentmanagerstosharefolders false
+sharingfoldersrequiresorganizerpermission true
 
 In these commands, the Google administrator named in oauth2.txt is used.
 
@@ -6874,10 +6883,19 @@ gam <UserTypeEntity> print tasklists [todrive <ToDriveAttribute>*]
 
 <SharedDriveRestrictionsSubfieldName> ::=
         adminmanagedrestrictions|
+        allowcontentmanagerstosharefolders|
         copyrequireswriterpermission|
         domainusersonly|
         drivemembersonly|teammembersonly|
         sharingfoldersrequiresorganizerpermission
+
+Each pair of restrictions below are equivalent:
+
+allowcontentmanagerstosharefolders true
+sharingfoldersrequiresorganizerpermission false
+
+allowcontentmanagerstosharefolders false
+sharingfoldersrequiresorganizerpermission true
 
 gam <UserTypeEntity> show teamdrivethemes
 gam <UserTypeEntity> create|add teamdrive <Name> [adminaccess|asadmin]

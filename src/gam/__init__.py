@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.03'
+__version__ = '6.50.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9872,15 +9872,22 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
     print(Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(url=d['auth_url']))
     userInputProcess.start()
     userInput = False
-    while True:
+    alive = 2
+    while alive > 0:
       time.sleep(0.1)
       if not httpClientProcess.is_alive():
-        userInputProcess.terminate()
-        break
+        if 'code' in d:
+          userInputProcess.terminate()
+          break
+        alive -= 1
       if not userInputProcess.is_alive():
         userInput = True
-        httpClientProcess.terminate()
-        break
+        if 'code' in d:
+          httpClientProcess.terminate()
+          break
+        alive -= 1
+    if not 'code' in d:
+      systemErrorExit(SYSTEM_ERROR_RC, Msg.AUTHENTICATION_FLOW_FAILED)
     while True:
       code = d['code']
       if code.startswith('http'):
@@ -23981,7 +23988,6 @@ def doUpdateChromePolicy():
       app_id = getString(Cmd.OB_APP_ID)
     else:
       schemaName, schema = simplifyChromeSchema(_getChromePolicySchema(cp, myarg, '*'))
-      schemaNameList.append(schemaName)
       body['requests'].append({'policyValue': {'policySchema': schemaName, 'value': {}},
                                'updateMask': ''})
       while Cmd.ArgumentsRemaining():
@@ -23997,10 +24003,14 @@ def doUpdateChromePolicy():
         # JSON
         if field == 'json':
           jsonData = getJSON(['direct', 'name', 'orgUnitPath', 'parentOrgUnitPath'])
+          schemaNameAppId = schemaName
           if 'additionalTargetKeys' in jsonData:
             body['requests'][-1].setdefault('policyTargetKey', {})
             for atk in jsonData['additionalTargetKeys']:
               body['requests'][-1]['policyTargetKey']['additionalTargetKeys'] = {atk['name']: atk['value']}
+              if atk['name'] == 'app_id':
+                schemaNameAppId += f"({atk['value']})"
+          schemaNameList.append(schemaNameAppId)
           for field in jsonData.get('fields', []):
             casedField = field['name']
             lowerField = casedField.lower()
@@ -24019,7 +24029,7 @@ def doUpdateChromePolicy():
             elif vtype in ['TYPE_ENUM']:
               value = f"{schema['settings'][lowerField]['enum_prefix']}{value}"
             elif vtype in ['TYPE_LIST']:
-              value = value.split(',')
+              value = value.split(',') if value else []
             if myarg == 'chrome.users.chromebrowserupdates' and casedField == 'targetVersionPrefixSetting':
               mg = CHROME_TARGET_VERSION_CHANNEL_MINUS_PATTERN.match(value)
               if mg:
@@ -24039,6 +24049,7 @@ def doUpdateChromePolicy():
             body['requests'][-1]['policyValue']['value'][casedField] = value
             body['requests'][-1]['updateMask'] += f'{casedField},'
           break
+        schemaNameList.append(schemaName)
         # Handle TYPE_MESSAGE fields with durations, values, counts and timeOfDay as special cases
         tmschema = CHROME_SCHEMA_TYPE_MESSAGE.get(schemaName, {}).get(field)
         if tmschema:
@@ -24061,7 +24072,7 @@ def doUpdateChromePolicy():
           missingChoiceExit(schema['settings'])
         casedField = schema['settings'][field]['name']
         vtype = schema['settings'][field]['type']
-        value = getString(Cmd.OB_STRING, minLen=0 if vtype == 'TYPE_STRING' else 1)
+        value = getString(Cmd.OB_STRING, minLen=0 if vtype in {'TYPE_STRING', 'TYPE_LIST'}  else 1)
         if vtype in ['TYPE_INT64', 'TYPE_INT32', 'TYPE_UINT64']:
           if not value.isnumeric():
             Cmd.Backup()
@@ -24086,7 +24097,7 @@ def doUpdateChromePolicy():
           else:
             invalidChoiceExit(value, enum_values, True)
         elif vtype in ['TYPE_LIST']:
-          value = value.split(',')
+          value = value.split(',') if value else []
         if myarg == 'chrome.users.chromebrowserupdates' and casedField == 'targetVersionPrefixSetting':
           mg = CHROME_TARGET_VERSION_CHANNEL_MINUS_PATTERN.match(value)
           if mg:
@@ -56603,6 +56614,7 @@ def _getSharedDriveTheme(myarg, body):
 
 SHAREDDRIVE_RESTRICTIONS_MAP = {
   'adminmanagedrestrictions': 'adminManagedRestrictions',
+  'allowcontentmanagerstosharefolders': 'sharingFoldersRequiresOrganizerPermission',
   'copyrequireswriterpermission': 'copyRequiresWriterPermission',
   'domainusersonly': 'domainUsersOnly',
   'drivemembersonly': 'driveMembersOnly',
@@ -56613,7 +56625,10 @@ SHAREDDRIVE_RESTRICTIONS_MAP = {
 def _getSharedDriveRestrictions(myarg, body):
   def _setRestriction(restriction):
     body.setdefault('restrictions', {})
-    body['restrictions'][SHAREDDRIVE_RESTRICTIONS_MAP[restriction]] = getBoolean()
+    if restriction != 'allowcontentmanagerstosharefolders':
+      body['restrictions'][SHAREDDRIVE_RESTRICTIONS_MAP[restriction]] = getBoolean()
+    else:
+      body['restrictions'][SHAREDDRIVE_RESTRICTIONS_MAP[restriction]] = not getBoolean()
 
   if myarg.startswith('restrictions.'):
     _, subField = myarg.split('.', 1)

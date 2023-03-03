@@ -1,3 +1,21 @@
+6.50.04
+
+Added `allowcontentmanagerstosharefolders` to `<SharedDriveRestrictionsSubfieldName>` that is used in
+`gam create|update teamdrive`. This terminology matches the Admin console setting `Allow Content Managers to share folders`.
+
+Each pair of commands below are equivalent:
+```
+gam update teamdrive <SharedDriveEntity> allowcontentmanagerstosharefolders true
+gam update teamdrive <SharedDriveEntity> sharingfoldersrequiresorganizerpermission false
+
+gam update teamdrive <SharedDriveEntity> allowcontentmanagerstosharefolders false
+gam update teamdrive <SharedDriveEntity> sharingfoldersrequiresorganizerpermission true
+```
+
+Updated status reporting in `gam update chromepolicy` to supply more details.
+
+Fixed bug in `gam update chromepolicy` when processing an schema field with an empty list.
+
 6.50.03
 
 Fixed bug in `gam update resoldsubscription` that caused an error:
