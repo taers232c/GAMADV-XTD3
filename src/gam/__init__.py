@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.02'
+__version__ = '6.50.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13918,9 +13918,8 @@ def doUpdateResoldSubscription():
     else:
       seats2 = None
     if planName in {'ANNUAL_MONTHLY_PAY', 'ANNUAL_YEARLY_PAY'}:
-      kwargs['body']['seats'] = {'numberOfSeats': seats1}
-    else:
-      kwargs['body']['seats'] = {'maximumNumberOfSeats': seats1 if seats2 is None else seats2}
+      return {'numberOfSeats': seats1}
+    return {'maximumNumberOfSeats': seats1 if seats2 is None else seats2}
 
   res = buildGAPIObject(API.RESELLER)
   function = None
@@ -13939,8 +13938,7 @@ def doUpdateResoldSubscription():
       kwargs['body'] = {'renewalType': getChoice(RENEWAL_TYPE_MAP, mapChoice=True)}
     elif myarg == 'seats':
       function = 'changeSeats'
-      kwargs['body'] = {'seats': {}}
-      _getSeats()
+      kwargs['body'] =  _getSeats()
     elif myarg == 'plan':
       function = 'changePlan'
       planName = getChoice(PLAN_NAME_MAP, mapChoice=True)
@@ -13948,8 +13946,7 @@ def doUpdateResoldSubscription():
       while Cmd.ArgumentsRemaining():
         planarg = getArgument()
         if planarg == 'seats':
-          kwargs['body']['seats'] = {}
-          _getSeats()
+          kwargs['body']['seats'] = _getSeats()
         elif planarg in {'purchaseorderid', 'po'}:
           kwargs['body']['purchaseOrderId'] = getString('purchaseOrderId')
         elif planarg in {'dealcode', 'deal'}:
@@ -24110,15 +24107,15 @@ def doUpdateChromePolicy():
         body['requests'][-1]['updateMask'] += f'{casedField},'
   if not orgUnit:
     missingArgumentExit('orgunit')
-  if not body['requests'][-1]['updateMask']:
-    body['requests'].pop()
   count = len(body['requests'])
+  if count > 0 and not body['requests'][-1]['updateMask']:
+    body['requests'].pop()
+  kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_POLICY, ','.join(schemaNameList)]
   if count != 1:
-    entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], count, Ent.CHROME_POLICY)
+    entityPerformActionNumItems(kvList, count, Ent.CHROME_POLICY)
     if count == 0:
       return
   updatePolicyRequests(body, orgUnit, printer_id, app_id)
-  kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_POLICY, ','.join(schemaNameList)]
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchModify',
              throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,

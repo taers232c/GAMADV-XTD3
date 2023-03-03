@@ -1,3 +1,10 @@
+6.50.03
+
+Fixed bug in `gam update resoldsubscription` that caused an error:
+```
+ERROR: 400: invalid - Request contains an invalid argument. 
+```
+
 6.50.02
 
 Fixed bug in `gam create project` where invalid data was written to client_secrets.json.
