@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.05'
+__version__ = '6.50.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -12385,12 +12385,13 @@ def doReportUsage():
           continue
         for entity in usage:
           row = {'date': useDate}
-          if 'userEmail' in entity['entity']:
-            row['user'] = entity['entity']['userEmail']
-            if showOrgUnit:
-              row['orgUnitPath'] = userOrgUnits.get(row['user'], UNKNOWN)
-          else:
-            row['email'] = UNKNOWN
+          if userReports:
+            if 'userEmail' in entity['entity']:
+              row['user'] = entity['entity']['userEmail']
+              if showOrgUnit:
+                row['orgUnitPath'] = userOrgUnits.get(row['user'], UNKNOWN)
+            else:
+              row['user'] = UNKNOWN
           for item in entity.get('parameters', []):
             if 'name' not in item:
               continue

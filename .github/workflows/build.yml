@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.50.05
+  GAMVERSION: 6.50.06
   OPENSSL_CONFIG_OPTS: no-fips
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -429,11 +429,9 @@ jobs:
       - name: Copy extra package files
         if: matrix.goal == 'build'
         run: |
-          cp -v license.rtf $gampath
           cp -v LICENSE $gampath
-          cp -v GamCommands.txt $gampath
-          cp -v GamUpdate.txt $gampath
-          cp -v GamCommands.txt $gampath
+          cp -v license.rtf $gampath
+          cp -v Gam*.txt $gampath
           cp -v cacerts.pem $gampath
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
               cp -v gam-setup.bat $gampath

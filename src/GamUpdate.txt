@@ -1,3 +1,7 @@
+6.50.06
+
+Fixed bug in `gam report usage customer` where an extraneous column `email` was displayed.
+
 6.50.05
 
 Fixed bug in `gam update resoldsubscription` that caused an error:
