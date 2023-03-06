@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.04'
+__version__ = '6.50.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9809,11 +9809,8 @@ def _localhost_to_ip():
   # note that IPv6 may be broken on some systems also :-(
   # for now IPv4 should do.
   local_ip = socket.gethostbyname('localhost')
-  local_ipaddress = ipaddress.ip_address(local_ip)
-#  local_ip_address = socket.getaddrinfo(host, None)[0][-1][0] # works with ipv6
-  ip4_local_range = ipaddress.ip_network('127.0.0.0/8')
-  ip6_local_range = ipaddress.ip_network('::1/128')
-  if local_ipaddress not in ip4_local_range and local_ipaddress not in ip6_local_range:
+#  local_ip = socket.getaddrinfo('localhost', None)[0][-1][0] # works with ipv6, makes wsgiref fail
+  if not ipaddress.ip_address(local_ip).is_loopback:
     local_ip = '127.0.0.1'
   return local_ip
 
@@ -9834,9 +9831,7 @@ def _waitForHttpClient(d):
       break
     except OSError:
       pass
-  redirect_uri_format = (
-      "http://{}:{}/" if d['trailing_slash'] else "http://{}:{}"
-  )
+  redirect_uri_format = "http://{}:{}/" if d['trailing_slash'] else "http://{}:{}"
   # provide redirect_uri to main process so it can formulate auth_url
   d['redirect_uri'] = redirect_uri_format.format(*local_server.server_address)
   # wait until main process provides auth_url
@@ -13869,7 +13864,7 @@ def _getResoldSubscriptionAttr(customerId):
       missingArgumentExit(field.lower())
   if seats1 is None:
     missingArgumentExit('seats')
-  if body['plan']['planName'] in {'ANNUAL_MONTHLY_PAY', 'ANNUAL_YEARLY_PAY'}:
+  if body['plan']['planName'].startswith('ANNUAL'):
     body['seats']['numberOfSeats'] = seats1
   else:
     body['seats']['maximumNumberOfSeats'] = seats1 if seats2 is None else seats2
@@ -13924,7 +13919,7 @@ def doUpdateResoldSubscription():
       seats2 = getInteger(minVal=0)
     else:
       seats2 = None
-    if planName in {'ANNUAL_MONTHLY_PAY', 'ANNUAL_YEARLY_PAY'}:
+    if planName.startswith('ANNUAL'):
       return {'numberOfSeats': seats1}
     return {'maximumNumberOfSeats': seats1 if seats2 is None else seats2}
 

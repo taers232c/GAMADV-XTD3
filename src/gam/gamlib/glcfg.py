@@ -30,9 +30,6 @@ MY_CUSTOMER = 'my_customer'
 NEVER = 'Never'
 TLS_CHOICE_MAP = {
   '': '',
-  'tlsv1': 'TLSv1',
-  'tlsv1_0': 'TLSv1', 'tlsv1.0': 'TLSv1',
-  'tlsv1_1': 'TLSv1_1', 'tlsv1.1': 'TLSv1_1',
   'tlsv1_2': 'TLSv1_2', 'tlsv1.2': 'TLSv1_2',
   'tlsv1_3': 'TLSv1_3', 'tlsv1.3': 'TLSv1_3',
   }
@@ -366,7 +363,7 @@ Defaults = {
   SMTP_HOST: '',
   SMTP_USERNAME: '',
   SMTP_PASSWORD: '',
-  TLS_MIN_VERSION: 'TLSv1_2' if hasattr(ssl.SSLContext(), "minimum_version") else '',
+  TLS_MIN_VERSION: 'TLSv1_3' if hasattr(ssl.SSLContext(), "minimum_version") else '',
   TLS_MAX_VERSION: '',
   TIMEZONE: 'utc',
   TODRIVE_CLEARFILTER: FALSE,

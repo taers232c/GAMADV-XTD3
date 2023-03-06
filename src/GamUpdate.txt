@@ -1,3 +1,10 @@
+6.50.05
+
+Fixed bug in `gam update resoldsubscription` that caused an error:
+```
+ERROR: 400: invalid - The seats provided are not valid
+```
+
 6.50.04
 
 Added `allowcontentmanagerstosharefolders` to `<SharedDriveRestrictionsSubfieldName>` that is used in
