@@ -8,9 +8,10 @@ sys.modules['FixTk'] = None
 
 extra_files = []
 extra_files += copy_metadata('google-api-python-client')
+extra_files += [('admin-directory_v1.1beta1.json', '.')]
 extra_files += [('cbcm-v1.1beta1.json', '.')]
 extra_files += [('contactdelegation-v1.json', '.')]
-extra_files += [('admin-directory_v1.1beta1.json', '.')]
+extra_files += [('datastudio-v1.json', '.')]
 extra_files += [('cacerts.pem', '.')]
 hidden_imports = [
      'gam.gamlib.yubikey',

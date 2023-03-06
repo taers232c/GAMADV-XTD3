@@ -1,3 +1,10 @@
+6.50.07
+
+Fixed build bug that caused the following error:
+```
+ERROR: Discovery File: /usr/local/gamadv-xtd3/datastudio-v1.json, Does not exist or has invalid format, No data
+```
+
 6.50.06
 
 Fixed bug in `gam report usage customer` where an extraneous column `email` was displayed.
