@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.07'
+__version__ = '6.50.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -61241,10 +61241,10 @@ def _decodeHeader(header):
 
 # gam <UserTypeEntity> forward message|messages recipient|to <RecipientEntity>
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_forward <Number>])|(ids <MessageIDEntity>)
-#	[subject <String>]
+#	[subject <String>] [altcharset <String>]
 # gam <UserTypeEntity> forward thread|threads recipient|to <RecipientEntity>
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_forward <Number>])|(ids <ThreadIDEntity>)
-#	[subject <String>]
+#	[subject <String>] [altcharset <String>]
 def forwardMessagesThreads(users, entityType):
   def getRecipients():
     if checkArgumentPresent('select'):
@@ -61257,12 +61257,15 @@ def forwardMessagesThreads(users, entityType):
   parameters = _initMessageThreadParameters(entityType, False, 1)
   includeSpamTrash = False
   subject = ''
+  encodings = [UTF8]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if _getMessageSelectParameters(myarg, parameters):
       pass
     elif myarg == 'subject':
       subject = getString(Cmd.OB_STRING)
+    elif myarg == 'altcharset':
+      encodings.append(getCharSet())
     else:
       unknownArgumentExit()
   _finalizeMessageSelectParameters(parameters, True)
@@ -61332,7 +61335,15 @@ def forwardMessagesThreads(users, entityType):
           result = callGAPI(gmail.users().messages(), 'get',
                             throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
                             userId='me', id=messageId, format='raw')
-          message = message_from_string(base64.urlsafe_b64decode(str(result['raw'])).decode(UTF8), policy=policySMTP)
+          for encoding in encodings:
+            try:
+              message = message_from_string(base64.urlsafe_b64decode(str(result['raw'])).decode(encoding), policy=policySMTP)
+              break
+            except UnicodeDecodeError as e:
+              errMsg = str(e)
+          else:
+            entityActionNotPerformedWarning([Ent.RECIPIENT, msgTo, entityType, messageId], errMsg, k, kcount)
+            continue
           if not subject:
             msgSubject = f"Fwd: {_decodeHeader(message['Subject'])}"   
           else:

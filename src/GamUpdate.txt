@@ -1,3 +1,12 @@
+6.50.08
+
+Added option `altcharset <String>` to `gam <UserTypeEntity> forward messages` to attempt to handle
+errors like the following which occur when the message can not be decoded with character set UTF-8.
+You can specify an alternate character set, e.g. latin1, that is used if the UTF-8 decode fails.
+```
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x92 in position 1643: invalid start byte
+```
+
 6.50.07
 
 Fixed build bug that caused the following error:
