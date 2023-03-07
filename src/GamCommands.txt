@@ -343,8 +343,7 @@ If an item contains spaces, it should be surrounded by ".
 <BuildingID> ::= <String>|id:<String>
 <CAALevelName> ::= <String>
 <CalendarACLScope> ::=
-        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
-        domain:<DomainName>|domain|default
+        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <CalendarItem> ::= <EmailAddress>
 <GIGroupAlias> ::= <EmailAddress>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
@@ -391,7 +390,7 @@ If an item contains spaces, it should be surrounded by ".
         disabled|
         none|nomail
 <DeviceID> ::= devices/<String>
-<DeviceType> ::= android|chrome_os|google_sync|linux|mac_os|windows
+<DeviceType> ::= android|chrome_os|google_sync|ios|linux|mac_os|windows
 <DeviceUserID> ::= devices/<String>/deviceUsers/<String>
 <DomainAlias> ::= <String>
 <DomainName> ::= <String>(.<String>)+
@@ -532,8 +531,7 @@ If an item contains spaces, it should be surrounded by ".
 <ServiceAccountKey> ::= <String>
 <SheetEntity> ::= <String>|id:<Number>
 <SiteACLScope> ::=
-        <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|
-        domain:<DomainName>|domain|default
+        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
 <S/MIMEID> ::= <String>
 <SMTPHostName> ::= <String>
@@ -584,7 +582,7 @@ If an item contains spaces, it should be surrounded by ".
 <URI> ::= <String>
 <URL> ::= <String>
 <UserItem> ::= <EmailAddress>|<UniqueID>|<String>
-<UserName> ::= <<String>
+<UserName> ::= <String>
 ## Lists of basic items
 
 <APIScopeURLList> ::= "<APIScopeURL>(,<APIScopeURL>)*"
@@ -973,6 +971,8 @@ Specify a collection of items by directly specifying them; the item type is dete
 <FilterIDEntity> ::=
         <FilterIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <EventIDEntity> ::=
+        (id|eventid <EventId>) |
+        (event|events <EventIdList> |
         <EventIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <GroupEntity> ::=
         <GroupList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
@@ -1319,12 +1319,14 @@ gam whatis <EmailItem> [noinfo] [noinivitablecheck]
 
 # Calendars
 
-<CalendarEntity> ::= <CalendarList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CalendarEntity> ::=
+        <CalendarList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 <CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer|none
 <CalendarACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
-<CalendarACLScopeEntity> ::= <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<CalendarACLScopeEntity> ::=
+        <CalendarACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 gam calendars <CalendarEntity> create|add acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 gam calendars <CalendarEntity> update acls|calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
@@ -1370,6 +1372,7 @@ gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*]
         (matchfield creatoremail <RegularExpression>)|
         (matchfield creatorname <RegularExpression>)|
         (matchfield description <RegularExpression>)|
+        (matchfield hangoutlink <RegularExpression>)|
         (matchfield location <RegularExpression>)|
         (matchfield organizeremail <RegularExpression>)|
         (matchfield organizername <RegularExpression>)|
@@ -1398,9 +1401,10 @@ gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*]
         (attendee <EmailAddress>)|
         (attendeestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)|
         available|
+        (color <EventColorName>)|
         (colorindex|colorid <EventColorIndex>))|
         (description <String>)|
-        (end (allday <Date>)|<Time>)|
+        (end|endtime (allday <Date>)|<Time>)|
         (guestscaninviteothers <Boolean>)|
         guestscantinviteothers|
         (guestscanmodify <Boolean>)|
@@ -1420,7 +1424,7 @@ gam calendar <CalendarEntity> printacl [todrive <ToDriveAttribute>*]
         (sequence <Integer>)|
         (sharedproperty <PropertyKey> <PropertyValue>)|
         (source <String> <URL>)|
-        (start (allday <Date>)|<Time>)|
+        (start|starttime (allday <Date>)|<Time>)|
         (status confirmed|tentative|cancelled)|
         (summary <String>)|
         tentative|
@@ -1604,7 +1608,8 @@ gam calendar|calendars <CalendarEntity> modify <CalendarSettings>+
 
 # Chrome Browser Cloud Management
 
-<QueryBrowser> ::= <String> See: https://support.google.com/chrome/a/answer/9681204#retrieve_all_chrome_devices_for_an_account
+<QueryBrowser> ::= <String>
+        See: https://support.google.com/chrome/a/answer/9681204#retrieve_all_chrome_devices_for_an_account
 <QueryBrowserList> ::= "<QueryBrowser>(,<QueryBrowser>)*"
 
 <BrowserEntity> ::=
@@ -2483,16 +2488,16 @@ gam <UserTypeEntity> show contactdelegates [shownames] [csv]
 # Classroom - Courses
 
 <CourseAnnouncementState> ::= draft|published|deleted
-<CourseAnnouncementStateList> ::= "<CourseAnnouncementState>(,<CourseAnnouncementState>)*"
+<CourseAnnouncementStateList> ::= all|"<CourseAnnouncementState>(,<CourseAnnouncementState>)*"
 
 <CourseSubmissionState> ::= new|created|turned_in|returned|reclaimed_by_student
-<CourseSubmissionStateList> ::= "<CourseSubmissionState>(,<CourseSubmissionState>)*"
+<CourseSubmissionStateList> ::= all|"<CourseSubmissionState>(,<CourseSubmissionState>)*"
 
 <CourseWorkState> ::= draft|published|deleted
-<CourseWorkStateList> ::= "<CourseWorkState>(,<CourseWorkState>)*"
+<CourseWorkStateList> ::= all|"<CourseWorkState>(,<CourseWorkState>)*"
 
 <CourseMaterialState> ::= draft|published|deleted
-<CourseMaterialStateList> ::= "<CourseMaterialState>(,<CourseMaterialState>)*"
+<CourseMaterialStateList> ::= all|"<CourseMaterialState>(,<CourseMaterialState>)*"
 
 <CourseAttribute> ::=
         (description <String>)|
@@ -4141,9 +4146,11 @@ gam <UserTypeEntity> sendemail from <EmailAddress>
 <SiteACLRole> ::= editor|owner|reader|writer
 <SiteACLRoleList> ::= "<SiteACLRole>(,<SiteACLRole>)*"
 
-<SiteACLScope> ::= <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
+<SiteACLScope> ::=
+        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteACLScopeList> ::= "<SiteACLScope>(,<SiteACLScope>)*"
-<SiteACLScopeEntity> ::= <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<SiteACLScopeEntity> ::=
+        <SiteACLScopeList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 <SiteAttribute> ::=
         (categories <String>)|
@@ -4997,8 +5004,7 @@ gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttrib
 
 # Users - Calendars
 
-<CalendarACLRole> ::=
-        editor|freebusy|freebusyreader|owner|reader|writer
+<CalendarACLRole> ::= editor|freebusy|freebusyreader|owner|reader|writer
 
 <CalendarSelectProperty> ::=
         (minaccessrole <CalendarACLRole>)|
@@ -5030,7 +5036,7 @@ gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttrib
         <CalendarSelectProperty>*
 
 <CalendarACLScope> ::=
-        <EmailAddress>|user:<EmailAdress>|group:<EmailAddress>|domain:<DomainName>|domain|default
+        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <CalendarACLScopeList> ::=
         <CalendarACLScope>(,<CalendarACLScope>)*
 <CalendarACLScopeEntity> ::=
@@ -5154,8 +5160,8 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
 
 <EventSelectProperty> ::=
-        (after|start|starttime|timemin <Time>)|
-        (before|end|endtime|timemax <Time>)|
+        (after|starttime|timemin <Time>)|
+        (before|endtime|timemax <Time>)|
         (query <QueryCalendar>)|
         (privateextendedproperty <String>)|
         (sharedextendedproperty <Syting>)|
@@ -5175,11 +5181,21 @@ gam <UserTypeEntity> transfer seccals <UserItem> [keepuser] [sendnotifications <
         (matchfield location <RegularExpression>)|
         (matchfield organizeremail <RegularExpression>)|
         (matchfield organizername <RegularExpression>)|
-        (matchfield summary <RegularExpression>)
+        (matchfield status <RegularExpression>)|
+        (matchfield summary <RegularExpression>)|
+        (matchfield transparency <RegularExpression>)|
+        (matchfield visibility <RegularExpression>)
+
+<EventIDEntity> ::=
+        (id|eventid <EventId>) |
+        (event|events <EventIdList> |
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)
+
+<EventSelectEntity> ::=
+        (<EventSelectProperty>+ <EventMatchProperty>*)
 
 <EventEntity> ::=
-        (id|eventid <EventId>)|(event|events <EventIdList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)|
-        (<EventSelectProperty>+ <EventMatchProperty>*)
+        <EventIDEntity> | <EventSelectEntity>
 
 <AttendeeAttendance> ::= optional|required
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
@@ -5299,11 +5315,12 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
 
 <DataStudioPermission> ::=
         user:<EmailAddress>|
-        group:<emailAddress>|
+        group:<EmailAddress>|
         domain:<DomainName>|
         serviceAccount:<EmailAddress>
 <DataStudioPermissionList> ::= "<DataStudioPermission>(,<DataStudioPermission>)*"
-<DataStudioPermissionEntity> ::= <DataStudioPermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<DataStudioPermissionEntity> ::=
+        <DataStudioPermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 stam <UserTypeEntity> print datastudioassets [todrive <ToDriveAttribute>*]
         [([assettype report|datasource|all] [title <String>]
@@ -5386,14 +5403,20 @@ gam <UserTypeEntity> show datastudiopermissions
         (othername <DriveFileName>) | (othername:<DriveFileName>) |
         (otherdrivefilename <DriveFileName>) | (otherdrivefilename:<DriveFileName>)
 <DriveFileQueryEntity> ::=
-        (query <QueryDriveFile>) | (query:<QueryDriveFile>)
+        (query <QueryDriveFile>) | (query:<QueryDriveFile>) |
+        (fullquery <QueryDriveFile>)
 <DriveFileEntity> ::=
         <DriveFileIDEntity> |
         <DriveFileNameEntity> |
         <DriveFileQueryEntity> |
         <DriveFileQueryShortcut> |
-        root | mydrive |
-        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector>) | <CSVDataSelector>)
+        mydrive | mydriveid |
+        root | rootid |
+        <SharedDriveIDEntity> [<SharedDriveFileQueryShortcut>] |
+        <SharedDriveNameEntity> [<SharedDriveFileQueryShortcut>] |
+        <SharedDriveFileNameEntity> |
+        <SharedDriveFileQueryEntity> |
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)
 
 <DriveFileAttribute> ::=
         (contentrestrictions readonly false)|
@@ -5584,7 +5607,13 @@ gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
         contributor|editor|writer|
         manager|organizer|owner|
         reader|viewer
-<DriveFilePermission> ::= anyone|anyonewithlink|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domainwithlink:<DomainName>;<DriveFileACLRole>
+<DriveFilePermission> ::=
+        anyone;<DriveFileACLRole>|
+        anyonewithlink;<DriveFileACLRole>|
+        domain:<DomainName>;<DriveFileACLRole>|
+        domainwithlink:<DomainName>;<DriveFileACLRole>|
+        group:<EmailAddress>;<DriveFileACLRole>|
+        user:<EmailAddress>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
 <DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
@@ -5593,23 +5622,17 @@ gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
 <DriveFilePermissionEntity> ::=
         <DriveFilePermissionList> |
         <JSONData>|
-        <FileSelector> |
-        <CSVFileSelector> |
-        <CSVkmdSelector> |
-        <CSVDataSelector>
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)
 <DriveFilePermissionIDEntity> ::=
         <DriveFilePermissionIDList> |
         <JSONData>|
-        <FileSelector> |
-        <CSVFileSelector> |
-        <CSVkmdSelector> |
-        <CSVDataSelector>
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 
 <DrivePermissionsFieldName> ::=
         additionalroles|
         allowfilediscovery|
+        basicpermissions|
         deleted|
-        permissiondetails|
         displayname|
         domain|
         emailaddress|
@@ -5617,9 +5640,12 @@ gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
         expirationtime|
         id|
         name|
+        pendingowner|
+        permissiondetails|
         photolink|
         role|
         type|
+        view|
         withlink
 <DrivePermissionsFieldNameList> ::= "<DrivePermissionsFieldName>(,<DrivePermissionsFieldName>)*"
 
