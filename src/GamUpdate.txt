@@ -1,3 +1,10 @@
+6.50.09
+
+Added command `gam info adminrole <RoleItem> [privileges]` that displays a specific admin role and optionally its privileges.
+
+Added option `privileges` to `gam print|show admins` that displays the privileges for each role
+for the admin.
+
 6.50.08
 
 Added option `altcharset <String>` to `gam <UserTypeEntity> forward messages` to attempt to handle

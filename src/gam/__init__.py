@@ -14928,7 +14928,7 @@ def doCreateUpdateAdminRoles():
   except GAPI.duplicate as e:
     entityActionFailedWarning([Ent.ROLE, f"{body['roleName']}"], str(e))
   except (GAPI.notFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.ROLE, f"{roleId}"], str(e))
+    entityActionFailedWarning([Ent.ROLE, roleId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
@@ -14943,11 +14943,55 @@ def doDeleteAdminRole():
              customer=GC.Values[GC.CUSTOMER_ID], roleId=roleId)
     entityActionPerformed([Ent.ROLE, f"{role}({roleId})"])
   except (GAPI.notFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.ROLE, f"{roleId}"], str(e))
+    entityActionFailedWarning([Ent.ROLE, roleId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
 PRINT_ADMIN_ROLES_FIELDS = ['roleId', 'roleName', 'roleDescription', 'isSuperAdminRole', 'isSystemRole']
+
+def _showAdminRole(role, i=0, count=0):
+  printEntity([Ent.ROLE, role['roleName']], i, count)
+  Ind.Increment()
+  for field in PRINT_ADMIN_ROLES_FIELDS:
+    if field != 'roleName' and field in role:
+      printKeyValueList([field, role[field]])
+  jcount = len(role.get('rolePrivileges', []))
+  if jcount > 0:
+    printKeyValueList(['rolePrivileges', jcount])
+    Ind.Increment()
+    j = 0
+    for rolePrivilege in role['rolePrivileges']:
+      j += 1
+      printKeyValueList(['privilegeName', rolePrivilege['privilegeName']])
+      Ind.Increment()
+      printKeyValueList(['serviceId', rolePrivilege['serviceId']])
+      Ind.Decrement()
+    Ind.Decrement()
+  Ind.Decrement()
+
+# gam info adminrole <RoleItem> [privileges]
+def doInfoAdminRole():
+  cd = buildGAPIObject(API.DIRECTORY)
+  fieldsList = PRINT_ADMIN_ROLES_FIELDS[:]
+  role, roleId = getRoleId()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'privileges':
+      fieldsList.append('rolePrivileges')
+    else:
+      unknownArgumentExit()
+  fields = ','.join(set(fieldsList))
+  try:
+    role = callGAPI(cd.roles(), 'get',
+                    throwReasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN]+[GAPI.NOT_FOUND],
+                    customer=GC.Values[GC.CUSTOMER_ID], roleId=roleId, fields=fields)
+    role.setdefault('isSuperAdminRole', False)
+    role.setdefault('isSystemRole', False)
+    _showAdminRole(role)
+  except (GAPI.notFound, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.ROLE, roleId], str(e))
+  except (GAPI.badRequest, GAPI.customerNotFound):
+    accessErrorExit(cd)
 
 # gam print adminroles|roles [todrive <ToDriveAttribute>*] [privileges]
 # gam show adminroles|roles [privileges]
@@ -14983,24 +15027,7 @@ def doPrintShowAdminRoles():
     i = 0
     for role in roles:
       i += 1
-      printEntity([Ent.ROLE, role['roleName']], i, count)
-      Ind.Increment()
-      for field in PRINT_ADMIN_ROLES_FIELDS:
-        if field != 'roleName' and field in role:
-          printKeyValueList([field, role[field]])
-      jcount = len(role.get('rolePrivileges', []))
-      if jcount > 0:
-        printKeyValueList(['rolePrivileges', jcount])
-        Ind.Increment()
-        j = 0
-        for rolePrivilege in role['rolePrivileges']:
-          j += 1
-          printKeyValueList(['privilegeName', rolePrivilege['privilegeName']])
-          Ind.Increment()
-          printKeyValueList(['serviceId', rolePrivilege['serviceId']])
-          Ind.Decrement()
-        Ind.Decrement()
-      Ind.Decrement()
+      _showAdminRole(role, i, count)
     Ind.Decrement()
   else:
     for role in roles:
@@ -15081,12 +15108,26 @@ def doDeleteAdmin():
 PRINT_ADMIN_FIELDS = ['roleAssignmentId', 'roleId', 'assignedTo', 'scopeType', 'orgUnitId']
 PRINT_ADMIN_TITLES = ['roleAssignmentId', 'roleId', 'role', 'assignedTo', 'assignedToUser', 'scopeType', 'orgUnitId', 'orgUnit']
 
-# gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition]
-# gam show admins [user <UserItem>] [role <RoleItem>] [condition]
+# gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition] [privileges]
+# gam show admins [user <UserItem>] [role <RoleItem>] [condition] [privileges]
 def doPrintShowAdmins():
-  def _setNamesFromIds(admin):
+  def _getPrivileges(admin):
+    if showPrivileges:
+      try:
+        return callGAPI(cd.roles(), 'get',
+                        throwReasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN]+[GAPI.NOT_FOUND],
+                        customer=GC.Values[GC.CUSTOMER_ID], roleId=admin['roleId'], fields='rolePrivileges')
+      except (GAPI.notFound, GAPI.forbidden) as e:
+        entityActionFailedExit([Ent.USER, userKey, Ent.ROLE, admin['roleId']], str(e))
+      except (GAPI.badRequest, GAPI.customerNotFound):
+        accessErrorExit(cd)
+    return None
+
+  def _setNamesFromIds(admin, privileges):
     admin['assignedToUser'] = convertUserIDtoEmail(admin['assignedTo'], cd)
     admin['role'] = role_from_roleid(admin['roleId'])
+    if privileges is not None:
+      admin['rolePrivileges'] = privileges
     if 'orgUnitId' in admin:
       admin['orgUnit'] = convertOrgUnitIDtoPath(cd, f'id:{admin["orgUnitId"]}')
     if 'condition' in admin:
@@ -15098,6 +15139,7 @@ def doPrintShowAdmins():
   cd = buildGAPIObject(API.DIRECTORY)
   roleId = None
   userKey = None
+  showPrivileges = False
   kwargs = {}
   fieldsList = PRINT_ADMIN_FIELDS
   csvPF = CSVPrintFile() if Act.csvFormat() else None
@@ -15113,6 +15155,9 @@ def doPrintShowAdmins():
       fieldsList.append('condition')
       PRINT_ADMIN_TITLES.append('condition')
       cd = buildGAPIObject(API.DIRECTORY_BETA)
+    elif myarg == 'privileges':
+      showPrivileges = True
+      PRINT_ADMIN_TITLES.append('rolePrivileges')
     else:
       unknownArgumentExit()
   if roleId and not kwargs:
@@ -15141,20 +15186,25 @@ def doPrintShowAdmins():
       i += 1
       if roleId and roleId != admin['roleId']:
         continue
-      _setNamesFromIds(admin)
+      _setNamesFromIds(admin, _getPrivileges(admin))
       printEntity([Ent.ROLE_ASSIGNMENT_ID, admin['roleAssignmentId']], i, count)
       Ind.Increment()
       for field in PRINT_ADMIN_TITLES:
-        if field != 'roleAssignmentId' and field in admin:
-          printKeyValueList([field, admin[field]])
+        if field in admin:
+          if field == 'roleAssignmentId':
+            continue
+          if field != 'rolePrivileges':
+            printKeyValueList([field, admin[field]])
+          else:
+            showJSON(None, admin[field])
       Ind.Decrement()
     Ind.Decrement()
   else:
     for admin in admins:
       if roleId and roleId != admin['roleId']:
         continue
-      _setNamesFromIds(admin)
-      csvPF.WriteRow(flattenJSON(admin))
+      _setNamesFromIds(admin, _getPrivileges(admin))
+      csvPF.WriteRowTitles(flattenJSON(admin))
   if csvPF:
     csvPF.writeCSVfile('Admins')
 
@@ -66177,7 +66227,8 @@ MAIN_COMMANDS_WITH_OBJECTS = {
     ),
   'info':
     (Act.INFO,
-     {Cmd.ARG_ALERT:		doInfoAlert,
+     {Cmd.ARG_ADMINROLE:	doInfoAdminRole,
+      Cmd.ARG_ALERT:		doInfoAlert,
       Cmd.ARG_ALIAS:		doInfoAliases,
       Cmd.ARG_BUILDING:		doInfoBuilding,
       Cmd.ARG_BROWSER:		doInfoBrowsers,

@@ -1271,6 +1271,7 @@ gam show privileges
 gam create adminrole <String> privileges all|all_ou|<PrivilegesList> [description <String>]
 gam update adminrole <RoleItem> [name <String>] [privileges all|all_ou|<PrivilegesList>] [description <String>]
 gam delete adminrole <RoleItem>
+gam info adminrole <RoleItem> [privileges]
 gam print adminroles|roles [todrive <ToDriveAttribute>*] [privileges]
 gam show adminroles|roles [privileges]
 
@@ -1278,8 +1279,8 @@ gam create|add admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
         [condition securitygroup|nonsecuritygroup]
 gam delete admin <RoleAssignmentId>
 
-gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition]
-gam show admins [user <UserItem>] [role <RoleItem>]  [condition]
+gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition] [privileges]
+gam show admins [user <UserItem>] [role <RoleItem>] [condition] [privileges]
 
 # Alert Center
 

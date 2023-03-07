@@ -520,6 +520,7 @@ gam get devicefile <CrOSEntity> [select <DeviceFileEntity>] [targetfolder <FileP
 gam getcommand cros <CrOSEntity> commandid <CommandID> [times_to_check_status <Integer>]
 gam help
 gam hide teamdrive <SharedDriveEntity>
+gam info adminrole <RoleItem> [privileges]
 gam info alert <AlertID> [formatjson]
 gam info alias|aliases <EmailAddressEntity>
 gam info browser <DeviceID>
@@ -586,7 +587,7 @@ gam oauth|oauth2 update [<EmailAddress>]
 gam oauth|oauth2 update [admin <EmailAddress>]
 gam print addresses [todrive <ToDriveAttribute>*]
 gam print adminroles|roles [todrive <ToDriveAttribute>*] [privileges]
-gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition]
+gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition] [privileges]
 gam print alertfeedback [todrive <ToDriveAttribute>*] [alert <AlertID>] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
 gam print alerts [todrive <ToDriveAttribute>*] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
 gam print alias|aliases [todrive <ToDriveAttribute>*]
@@ -706,7 +707,7 @@ gam send userinvitation <EmailAddress>
 gam sendemail [recipient|to] <RecipientEntity>
 gam setup chat
 gam show adminroles|roles [privileges]
-gam show admins [user <UserItem>] [role <RoleItem>]  [condition]
+gam show admins [user <UserItem>] [role <RoleItem>] [condition] [privileges]
 gam show alertfeedback [alert <AlertID>] [filter <QueryAlert>] [orderby createtime [ascending|descending]]
 gam show alerts [filter <QueryAlert>] [orderby createtime [ascending|descending]]
 gam show browsers
