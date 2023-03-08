@@ -1,3 +1,9 @@
+6.50.10
+
+Fixed bug in `gam <UserTypeEntity> forward messages altcharset <String>` where `<String>` was marked as an invalid argument.
+
+Updated `gam <UserTypeEntity> copy drivefile <DriveFileEntity>` to allow copying Google Sites.
+
 6.50.09
 
 Added command `gam info adminrole <RoleItem> [privileges]` that displays a specific admin role and optionally its privileges.

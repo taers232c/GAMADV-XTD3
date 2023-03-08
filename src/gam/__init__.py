@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.09'
+__version__ = '6.50.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52179,7 +52179,7 @@ def copyDriveFile(users):
         childNameId = f'{childName}({childId})'
         if childId in copiedTargetFiles: # Don't recopy file/folder copied into a sub-folder
           continue
-        childMimeType = child['mimeType']
+        childMimeType = child.pop('mimeType')
         kvList = [Ent.USER, user, _getEntityMimeType(child), childNameId]
         if not _checkChildCopyAllowed(childMimeType, childName):
           if not suppressNotSelectedMessages:
@@ -52225,7 +52225,7 @@ def copyDriveFile(users):
             child.pop('copyRequiresWriterPermission', None)
             child.pop('writersCanShare', None)
           child.pop('driveId', None)
-          if child['mimeType'] == MIMETYPE_GA_SHORTCUT:
+          if childMimeType == MIMETYPE_GA_SHORTCUT:
             child.pop('folderColorRgb', None)
           try:
             result = callGAPI(drive.files(), 'copy',
@@ -52237,11 +52237,11 @@ def copyDriveFile(users):
                                                          [Ent.DRIVE_FOLDER, newFolderNameId, Ent.DRIVE_FILE, f"{result['name']}({result['id']})"],
                                                          k, kcount)
             else:
-              _writeCSVData(user, child['name'], childId, result['name'], result['id'], child['mimeType'])
+              _writeCSVData(user, childName, childId, result['name'], result['id'], childMimeType)
             _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
             copiedSourceFiles[childId] = result['id']
             copiedTargetFiles.add(result['id']) # Don't recopy file copied into a sub-folder
-            if (child['mimeType'] == MIMETYPE_GA_SPREADSHEET and
+            if (childMimeType == MIMETYPE_GA_SPREADSHEET and
                 (copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] or
                  copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
               protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, k, kcount, childId, childName,
@@ -52467,11 +52467,12 @@ def copyDriveFile(users):
           if _checkForDuplicateTargetFile(drive, user, j, jcount, source, destName, targetChildren, copyMoveOptions, statistics):
             continue
           sourceId = source.pop('id')
+          sourceMimeType = source.pop('mimeType')
           if copyMoveOptions['destDriveId']:
             source.pop('copyRequiresWriterPermission', None)
             source.pop('writersCanShare', None)
           source.pop('driveId', None)
-          if source['mimeType'] == MIMETYPE_GA_SHORTCUT:
+          if sourceMimeType == MIMETYPE_GA_SHORTCUT:
             source.pop('folderColorRgb', None)
           source.update(copyBody)
           result = callGAPI(drive.files(), 'copy',
@@ -52488,9 +52489,9 @@ def copyDriveFile(users):
                                                        [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FILE, f"{result['name']}({result['id']})"],
                                                        j, jcount)
           else:
-            _writeCSVData(user, sourceName, sourceId, result['name'], result['id'], source['mimeType'])
+            _writeCSVData(user, sourceName, sourceId, result['name'], result['id'], sourceMimeType)
           _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
-          if (source['mimeType'] == MIMETYPE_GA_SPREADSHEET and
+          if (sourceMimeType == MIMETYPE_GA_SPREADSHEET and
               (copyMoveOptions['copySheetProtectedRangesInheritedPermissions'] or
                copyMoveOptions['copySheetProtectedRangesNonInheritedPermissions'] != COPY_NONINHERITED_PERMISSIONS_NEVER)):
             protectedSheetRanges = _getSheetProtectedRanges(sheet, user, i, count, j, jcount, sourceId, sourceName,
@@ -61315,7 +61316,7 @@ def forwardMessagesThreads(users, entityType):
     elif myarg == 'subject':
       subject = getString(Cmd.OB_STRING)
     elif myarg == 'altcharset':
-      encodings.append(getCharSet())
+      encodings.append(getString(Cmd.OB_CHAR_SET))
     else:
       unknownArgumentExit()
   _finalizeMessageSelectParameters(parameters, True)
