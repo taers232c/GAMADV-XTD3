@@ -1,3 +1,7 @@
+6.50.11
+
+Handle new trap in `gam <UserTypeEntity> forward messages`.
+
 6.50.10
 
 Fixed bug in `gam <UserTypeEntity> forward messages altcharset <String>` where `<String>` was marked as an invalid argument.

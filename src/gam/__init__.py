@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.10'
+__version__ = '6.50.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -61396,7 +61396,7 @@ def forwardMessagesThreads(users, entityType):
             entityActionNotPerformedWarning([Ent.RECIPIENT, msgTo, entityType, messageId], errMsg, k, kcount)
             continue
           if not subject:
-            msgSubject = f"Fwd: {_decodeHeader(message['Subject'])}"   
+            msgSubject = f"Fwd: {_decodeHeader(message['Subject'])}"
           else:
             msgSubject = f"Subject: {subject}"
           for header in ['To', 'Cc', 'Subject']:
@@ -61408,10 +61408,10 @@ def forwardMessagesThreads(users, entityType):
             result = callGAPI(gmail.users().messages(), 'send',
                               throwReasons=[GAPI.SERVICE_NOT_AVAILABLE, GAPI.AUTH_ERROR, GAPI.DOMAIN_POLICY,
                                             GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
-                              userId='me', body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode(UTF8)}, fields='id')
+                              userId='me', body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode(encoding)}, fields='id')
             entityActionPerformedMessage([Ent.RECIPIENT, msgTo], f"{result['id']}", k, kcount)
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
-                  GAPI.invalid, GAPI.invalidArgument, GAPI.forbidden) as e:
+                  GAPI.invalid, GAPI.invalidArgument, GAPI.forbidden, UnicodeDecodeError) as e:
             entityActionFailedWarning([Ent.RECIPIENT, msgTo], str(e), k, kcount)
         except (GAPI.serviceNotAvailable, GAPI.badRequest):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
