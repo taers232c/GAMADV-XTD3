@@ -408,11 +408,11 @@ If an item contains spaces, it should be surrounded by ".
         https://drive.google.com/drive/folders/<DriveFileID>
         https://drive.google.com/drive/folders/<DriveFileID>?resourcekey=<String>
         https://drive.google.com/file/d/<DriveFileID>/<String>
-        https://docs.google.com>/document/d/<DriveFileID>/<String>
-        https://docs.google.com>/drawings/d/<DriveFileID>/<String>
-        https://docs.google.com>/forms/d/<DriveFileID>/<String>
-        https://docs.google.com>/presentation/d/<DriveFileID>/<String>
-        https://docs.google.com>/spreadsheets/d/<DriveFileID>/<String>
+        https://docs.google.com/document/d/<DriveFileID>/<String>
+        https://docs.google.com/drawings/d/<DriveFileID>/<String>
+        https://docs.google.com/forms/d/<DriveFileID>/<String>
+        https://docs.google.com/presentation/d/<DriveFileID>/<String>
+        https://docs.google.com/spreadsheets/d/<DriveFileID>/<String>
 <DriveFileItem> ::= <DriveFileID>|<DriveFileURL>
 <DriveFolderID> ::= <String>
 <DriveFileName> ::= <String>
@@ -570,9 +570,9 @@ If an item contains spaces, it should be surrounded by ".
         (tdsheet (id:<Number>)|<String>)|
         (tdsheettimestamp [<Boolean>] [tdsheettimeformat <String>])
         (tdsheettitle <String>)|
-        ([tdsheetdaysoffset <Number>] [tdsheethoursoffset <Number])|
+        ([tdsheetdaysoffset <Number>] [tdsheethoursoffset <Number>])|
         (tdtimestamp [<Boolean>] [tdtimeformat <String>]
-            [tddaysoffset <Number>] [tdhoursoffset <Number])|
+            [tddaysoffset <Number>] [tdhoursoffset <Number>])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
         (tdupdatesheet [<Boolean>])|
@@ -617,15 +617,15 @@ If an item contains spaces, it should be surrounded by ".
 <DomainNameList> ::= "<DomainName>(,<DomainName>)*"
 <DriveFileACLRoleList> ::= "<DriveFileACLRole>(,<DriveFileACLRole>)*"
 <DriveFileList> ::= "<DriveFileItem>(,<DriveFileItem>)*"
-<DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
+<DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission>)*"
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 <DriveFileRevisionIDList> ::= "<DriveFileRevisionID>(,<DriveFileRevisionID>)*"
 <DriveFolderIDList> ::= "<DriveFolderID>(,<DriveFolderID>)*"
 <DriveFolderNameList> ::= "<DriveFolderName>(,<DriveFolderName>)*"
-<DriveLabelIDList> ::= "<DriveLabelID>(,<DriveLabelID)*"
-<DriveLabelNameList> ::= "<DriveLabelName>(,<DriveLabelName)*"
-<DriveLabelFieldIDList> ::= "<DriveLabelFieldID>(,<DriveLabelFieldID)*"
-<DriveLabelSelectionIDList> ::= "<DriveLabelSelectionID>(,<DriveLabelSelectionID)*"
+<DriveLabelIDList> ::= "<DriveLabelID>(,<DriveLabelID>)*"
+<DriveLabelNameList> ::= "<DriveLabelName>(,<DriveLabelName>)*"
+<DriveLabelFieldIDList> ::= "<DriveLabelFieldID>(,<DriveLabelFieldID>)*"
+<DriveLabelSelectionIDList> ::= "<DriveLabelSelectionID>(,<DriveLabelSelectionID>)*"
 <EmailAddressList> ::= "<EmailAddress>(,<EmailAddress>)*"
 <EmailItemList> ::= "<EmailItem>(,<EmailItem>)*"
 <EventIDList> ::= "<EventID>(,<EventID>)*"
@@ -633,14 +633,14 @@ If an item contains spaces, it should be surrounded by ".
 <ExportStatusList> ::= "<ExportStatus>(,<ExportStatus>)*"
 <FeatureNameList> ::= "<FeatureName>(,<FeatureName>)*"
 <FieldNameList> ::= "<FieldName>(,<FieldName>)*"
-<FileFormatList> ::= "<FileFormat>(,<FileFormat)*"
+<FileFormatList> ::= "<FileFormat>(,<FileFormat>)*"
 <FilterIDList> ::= "<FilterID>(,<FilterID>)*"
 <GuardianItemList> ::= "<GuardianItem>(,<GuardianItem>)*"
 <GuardianInvitationIDList> ::= "<GuardianInvitationID>(,<GuardianInvitationID>)*"
 <GroupList> ::= "<GroupItem>(,<GroupItem>)*"
 <GroupRoleList> ::= "<GroupRole>(,<GroupRole>)*"
 <GroupTypeList> ::= "<GroupType>(,<GroupType>)*"
-<LabelIDList> ::= "<LabelID>(,<LabelID)*"
+<LabelIDList> ::= "<LabelID>(,<LabelID>)*"
 <LabelNameList> ::= "'<LabelName>'(,'<LabelName>')*"
 <LanguageList> ::= "<Language>(,<Language>)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
@@ -648,12 +648,12 @@ If an item contains spaces, it should be surrounded by ".
 <MessageIDList> ::= "<MessageID>(,<MessageID>)*"
 <MimeTypeList> ::= "<MimeType>(,<MimeType>)*"
 <NamespaceList> ::= "<Namespace>(,<Namespace>)*"
-<NotesNameList> ::= "<NotesName>(,<NotesName)*"
+<NotesNameList> ::= "<NotesName>(,<NotesName>)*"
 <OrgUnitList> ::= "<OrgUnitItem>(,<OrgUnitItem>)*"
 <OtherContactsResourceNameList> ::= "<OtherContactsResourceName>(,<OtherContactsResourceName>)*"
 <PeopleResourceNameList> ::= "<PeopleResourceName>(,<PeopleResourceName>)*"
 <PrinterIDList> ::= "<PrinterID>(,<PrinterID>)*"
-<ProductIDList> ::= "(<ProductID>|SKUID>)(,<ProductID>|SKUID>)*"
+<ProductIDList> ::= "(<ProductID>|<SKUID>)(,<ProductID>|<SKUID>)*"
 <ProjectIDList> ::= "<ProjectID>(,<ProjectID>)*"
 <QueryBrowserList> ::= "<QueryBrowser>(,<QueryBrowser>)*"
 <QueryCrOSList> ::= "<QueryCrOS>(,<QueryCrOS>)*"
@@ -667,7 +667,7 @@ If an item contains spaces, it should be surrounded by ".
 <SiteACLScopeList> ::= "<SiteACLScope>(,<SiteACLScope>)*"
 <SiteList> ::= "<SiteItem>(,<SiteItem>)*"
 <SKUIDList> ="<SKUID>(,<SKUID>)*"
-<SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
+<SMTPHeaderList> ::= "<SMTPDateHeader>|<SMTPHeader>(,<SMTPDateHeader>|<SMTPHeader>)*"
 <SharedDriveACLRoleList> ::= "<SharedDriveACLRole>(,<SharedDriveACLRole>)*"
 <SharedDriveIDList> ::= "<SharedDriveID>(,<SharedDriveID>)*"
 <StringList> ::= "<String>(,<String>)*"
@@ -743,7 +743,7 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
                 (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])+
                 (subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
-                (datafield <FieldName>(:<FieldName)* [delimiter <Character>])*)|
+                (datafield <FieldName>(:<FieldName>)* [delimiter <Character>])*)|
         (croscsvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Users
@@ -808,7 +808,7 @@ Specify a collection of Users by directly specifying them or by specifiying item
                 (subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>]
                         [delimiter <Character>])*
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
-                (datafield <FieldName>(:<FieldName)* [delimiter <Character>])*)|
+                (datafield <FieldName>(:<FieldName>)* [delimiter <Character>])*)|
         (csvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Items
@@ -829,9 +829,9 @@ Specify a collection of items by directly specifying them; the item type is dete
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [datafield <FieldName>(:<FieldName)* [delimiter <Character>]]
+                [datafield <FieldName>(:<FieldName>)* [delimiter <Character>]]
 <CSVSubkeySelector> ::= csvsubkey <FieldName>
-<CSVDataSelector> ::= csvdata <FieldName>(:<FieldName)*
+<CSVDataSelector> ::= csvdata <FieldName>(:<FieldName>)*
 
 ## Named collections
 
@@ -1165,7 +1165,7 @@ gam print addresses [todrive <ToDriveAttribute>*]
 # Authorization
 
 gam create gcpfolder <String>
-gam create gcpfolder [admin <EmailAddress] folder <String>
+gam create gcpfolder [admin <EmailAddress>] folder <String>
 
 gam create|add project [<EmailAddress>] [<ProjectID>]
 gam create project [admin <EmailAddress>] [project <ProjectID>]
@@ -1203,39 +1203,39 @@ gam print svcaccts [[admin] <EmailAddress>] [all|<ProjectIDEntity>]
 gam create sakey
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         (localkeysize 1024|2048|4096)|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 gam rotate sakey|sakeys retain_existing
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         (localkeysize 1024|2048|4096)|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 
 gam update sakey
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         (localkeysize 1024|2048|4096)|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 gam rotate sakey|sakeys replace_current
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         (localkeysize 1024|2048|4096)|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 
 gam replace sakeys
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         (localkeysize 1024|2048|4096)|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 gam rotate sakey|sakeys retain_none
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         (localkeysize 1024|2048|4096)|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION 
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 
@@ -1723,13 +1723,13 @@ gam revoke browsertoken <BrowserTokenPermanentID>
 <BrowserTokenFieldNameList> ::= "<BrowseTokenFieldName>(,<BrowserTokenFieldName>)*"
 
 gam show browsertokens
-        ([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
+        ([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowserToken>)|(queries <QueryBrowserTokenList>)))
         [querytime.* <Time>]
         [orderby <BrowserTokenFieldName> [ascending|descending]]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
         [formatjson]
 gam print browsertokens [todrive <ToDriveAttribute>*]
-        ([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowserToken)|(queries <QueryBrowserTokenList>)))
+        ([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowserToken>)|(queries <QueryBrowserTokenList>)))
         [querytime.* <Time>]
         [orderby <BrowserTokenFieldName> [ascending|descending]]
         [allfields] <BrowserTokenFieldName>* [fields <BrowserTokenFieldNameList>]
@@ -2418,7 +2418,7 @@ gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
 gam show channelcustomerentitlements
         ([resellerid <ResellerID>] [customerid <ChannelCustomerID>])|
-        (name accounts/<AccountID/customers/<ChannelCustomerID>)
+        (name accounts/<AccountID>/customers/<ChannelCustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
         [maxresults <Number>]
         [formatjson]
@@ -2896,7 +2896,7 @@ gam show domainaliases|aliasdomains [formatjson]
         (hobby clear|(<String>))|
         (im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
         (initials <String>)|
-        (jot clear|(work|home|other|keywords|user> <String>))|
+        (jot clear|(work|home|other|keywords|<user> <String>))|
         <JSONData>||
         (language <Language>)|
         (location <String>)|
@@ -4543,7 +4543,7 @@ gam print vaultcounts [todrive <ToDriveAttributes>*]
         matter <MatterItem> corpus mail|groups
         (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
         (shareddrives|teamdrives <SharedDriveIDList>) | (rooms <RoomList>)
-        [scope <all_data|held_data|unprocessed_data>]
+        [scope [all_data|held_data|unprocessed_data]]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
         [excludedrafts <Boolean>]
         [includerooms <Boolean>]
@@ -4555,7 +4555,7 @@ gam print vaultcounts [todrive <ToDriveAttributes>*]
 gam create vaultexport|export matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat|voice
         (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
         (shareddrives|teamdrives <SharedDriveIDList>) | (rooms <RoomList>)
-        [scope <all_data|held_data|unprocessed_data>]
+        [scope [all_data|held_data|unprocessed_data]]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
         [excludedrafts <Boolean>] [format mbox|pst]
         [showconfidentialmodecontent <Boolean>] [usenewexport <Boolean>]
@@ -5589,8 +5589,8 @@ gam <UserTypeEntity> info drivefile <DriveFileEntity>
         [formatjson]
 
 gam <UserTypeEntity> create|add drivefolderpath
-        ((fullpath <DriveFolderPath) |
-         (path <DriveFolderPath [<DriveFileParentAttribute>]) |
+        ((fullpath <DriveFolderPath>) |
+         (path <DriveFolderPath> [<DriveFileParentAttribute>]) |
          (list <DriveFolderNameList> [<DriveFileParentAttribute>]))
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) |
          returnidonly]
@@ -5617,7 +5617,7 @@ gam <UserTypeEntity> check drivefileshortcut <DriveFileEntity>
         user:<EmailAddress>;<DriveFileACLRole>
 <DriveFilePermissionID> ::= anyone|anyonewithlink|id:<String>
 <DriveFilePermissionIDorEmail> ::= <DriveFilePermissionID>|<EmailAddress>
-<DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission)*"
+<DriveFilePermissionList> ::= "<DriveFilePermission>(,<DriveFilePermission>)*"
 <DriveFilePermissionIDList> ::= "<DriveFilePermissionID>(,<DriveFilePermissionID>)*"
 
 <DriveFilePermissionEntity> ::=
@@ -5690,7 +5690,7 @@ gam [<UserTypeEntity>] info drivelabels <DriveLabelNameEntity>
         [[basic|full] [languagecode <DriveLabelLanguageCode>]
         [formatjson] [adminaccess|asadmin]
 
-gam [<UserTypeEntity>] print drivelabels> [todrive <ToDriveAttribute>*]
+gam [<UserTypeEntity>] print <drivelabels> [todrive <ToDriveAttribute>*]
         [basic|full] [languagecode <DriveLabelLanguageCode>]
         [publishedonly [<Boolean>]] [minimumrole applier|editor|organizer|reader]
         [formatjson [quotechar <Character>]] [adminaccess|asadmin]
@@ -6136,7 +6136,7 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
         [(fileid <DriveFileID>) | (folderid <DriveFolderID>) |
          (drivefilename <DriveFileName>) | (drivefoldername <DriveFolderName>) | (query <QueryDriveFile>)]
-        [([start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>])|(range <Date>|<Time> <Date)|<Time>|
+        [([start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>])|(range <Date>|<Time> <Date>)|<Time>|
          yesterday|today|thismonth|(previousmonths <Integer>)]
         [action|actions [not] <DriveActivityActionList>]
         [consolidationstrategy legacy|none]
@@ -6226,11 +6226,11 @@ gam <UserTypeEntity> print filters [labelidsonly] [todrive <ToDriveAttribute>*]
 # Users - Forms
 
 gam <UserTypeEntity> create form
-        title <String> [description <String>] [isquiz [Boolean>]
+        title <String> [description <String>] [isquiz [<Boolean>]
         [drivefilename <DriveFileName>] [<DriveFileParentAttribute>]
         [(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 gam <UserTypeEntity> update form <DriveFileEntity>
-        [title <String>] [description <String>] [isquiz [Boolean>]
+        [title <String>] [description <String>] [isquiz [<Boolean>]
 
 gam <UserTypeEntity> print forms <DriveFileEntity> [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
@@ -6379,7 +6379,7 @@ gam <UserTypeEntity> print labels|label [todrive <ToDriveAttribute>*]
         x400-received|
         x400-recipients|
         x400-trace
-<SMTPHeaderList> ::= "<SMTPDateHeader|SMTPHeader>(,<SMTPDateHeader|SMTPHeader>)*"
+<SMTPHeaderList> ::= "<SMTPDateHeader>|<SMTPHeader>(,<SMTPDateHeader>|<SMTPHeader>)*"
 
 gam <UserTypeEntity> draft message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
@@ -6652,7 +6652,7 @@ gam <UserTypeEntity> sync license <SKUIDList> [product|productid <ProductID>] [a
         (im clear|(work|home|other|<String> aim|gtalk|icq|jabber|msn|net_meeting|qq|skype|yahoo <String> notprimary|primary))|
         (interests clear|<String>)|
         (initials <String>)|
-        (jot clear|(work|home|other|keywords|user> <String>))|
+        (jot clear|(work|home|other|keywords|<user> <String>))|
         <JSONData>||
         (language <Language>)|
         (locale clear|<Language>)|
@@ -6967,7 +6967,7 @@ The following right-hand side characters are part of the meta-syntax: <>()*|
 <SpreadsheetJSONCreateRequest> ::=
         '{"properties": {<SpreadsheetProperties>}, "sheets": [{<Sheet>}(,{<Sheet>})*],
           "namedRanges": [{<NamedRange>}(,{<NamedRange>})*],
-          "developerMetadata": [{<DeveloperMetadata>}(,{DeveloperMetadata>})]}'
+          "developerMetadata": [{<DeveloperMetadata>}(,{<DeveloperMetadata>})]}'
 <SpreadsheetJSONUpdateRequest> ::=
         '{"requests": [{<Request>}(,{<Request>})], "includeSpreadsheetInResponse": true|false,
           "responseRanges": ["<SpreadsheetRange>"(,"<SpreadsheetRange>")],
