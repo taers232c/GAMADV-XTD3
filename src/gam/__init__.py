@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.11'
+__version__ = '6.50.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -61411,7 +61411,7 @@ def forwardMessagesThreads(users, entityType):
                               userId='me', body={'raw': base64.urlsafe_b64encode(message.as_bytes()).decode(encoding)}, fields='id')
             entityActionPerformedMessage([Ent.RECIPIENT, msgTo], f"{result['id']}", k, kcount)
           except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy,
-                  GAPI.invalid, GAPI.invalidArgument, GAPI.forbidden, UnicodeDecodeError) as e:
+                  GAPI.invalid, GAPI.invalidArgument, GAPI.forbidden, UnicodeEncodeError) as e:
             entityActionFailedWarning([Ent.RECIPIENT, msgTo], str(e), k, kcount)
         except (GAPI.serviceNotAvailable, GAPI.badRequest):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
