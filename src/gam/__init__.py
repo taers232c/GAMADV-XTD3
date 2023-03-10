@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.13'
+__version__ = '6.50.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -32548,7 +32548,7 @@ def _getResourceCalendarAttributes(cd, body, updateMode):
       else:
         for feature in shlexSplitList(getString(Cmd.OB_STRING, minLen=0)):
           featureChanges['add'].add(feature)
-    elif updateMode and myarg in {'removefeature', 'removeeatures', 'removefeatureinstances'}:
+    elif updateMode and myarg in {'removefeature', 'removefeatures', 'removefeatureinstances'}:
       for feature in shlexSplitList(getString(Cmd.OB_STRING, minLen=0)):
         featureChanges['remove'].add(feature)
     elif myarg in {'floor', 'floorname'}:
@@ -32574,7 +32574,7 @@ def doCreateResourceCalendar():
   body = _getResourceCalendarAttributes(cd, {'resourceId': getString(Cmd.OB_RESOURCE_ID), 'resourceName': getString(Cmd.OB_NAME)}, False)
   try:
     callGAPI(cd.resources().calendars(), 'insert',
-             throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.SERVICE_NOT_AVAILABLE, 
+             throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.SERVICE_NOT_AVAILABLE,
                            GAPI.REQUIRED, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='')
@@ -52221,9 +52221,9 @@ def copyDriveFile(users):
         childId = child['id']
         childName = child['name']
         childNameId = f'{childName}({childId})'
+        childMimeType = child['mimeType']
         if childId in copiedTargetFiles: # Don't recopy file/folder copied into a sub-folder
           continue
-        childMimeType = child.pop('mimeType')
         kvList = [Ent.USER, user, _getEntityMimeType(child), childNameId]
         if not _checkChildCopyAllowed(childMimeType, childName):
           if not suppressNotSelectedMessages:
@@ -52246,6 +52246,7 @@ def copyDriveFile(users):
           continue
         child.pop('parents', [])
         child['parents'] = [newFolderId]
+        child.pop('mimeType')
         if childMimeType == MIMETYPE_GA_FOLDER:
           _recursiveFolderCopy(drive, user, i, count, k, kcount,
                                child, subTargetChildren, newChildName, newFolderId, newFolderName, child['modifiedTime'],
@@ -52392,6 +52393,7 @@ def copyDriveFile(users):
           source['name'] = _getSharedDriveNameFromId(drive, source['driveId'])
         sourceName = source['name']
         sourceNameId = f"{sourceName}({source['id']})"
+        sourceMimeType = source['mimeType']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
         trashed = source.pop('trashed', False)
         if excludeTrashed and trashed:
@@ -52441,8 +52443,8 @@ def copyDriveFile(users):
           destName = dest['name']
         elif ((newParentsSpecified and newParentId not in sourceParents) or
               ((newParentId in sourceParents and
-                (source['mimeType'] == MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFolders'] != DUPLICATE_FOLDER_MERGE) or
-                (source['mimeType'] != MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])))):
+                (sourceMimeType == MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFolders'] != DUPLICATE_FOLDER_MERGE) or
+                (sourceMimeType != MIMETYPE_GA_FOLDER and copyMoveOptions['duplicateFiles'] not in [DUPLICATE_FILE_OVERWRITE_ALL, DUPLICATE_FILE_OVERWRITE_OLDER])))):
           if copyMoveOptions['replaceFilename']:
             destName = processFilenameReplacements(sourceName, copyMoveOptions['replaceFilename'])
           else:
@@ -52457,7 +52459,7 @@ def copyDriveFile(users):
         if targetChildren is None:
           continue
 # Copy folder
-        if source['mimeType'] == MIMETYPE_GA_FOLDER:
+        if sourceMimeType == MIMETYPE_GA_FOLDER:
           kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId]
           copiedTargetFiles.add(newParentId) # Don't recopy folder copied into a sub-folder
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
@@ -52466,9 +52468,9 @@ def copyDriveFile(users):
               _incrStatistic(statistics, STAT_FOLDER_FAILED)
               continue
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
-            destName = _getUniqueFilename(destName, source['mimeType'], targetChildren)
+            destName = _getUniqueFilename(destName, sourceMimeType, targetChildren)
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
-            targetChild = _targetFilenameExists(destName, source['mimeType'], targetChildren)
+            targetChild = _targetFilenameExists(destName, sourceMimeType, targetChildren)
             if targetChild is not None:
               entityModifierItemValueListActionNotPerformedWarning(kvList, Act.MODIFIER_TO,
                                                                    [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f"{destName}({targetChild['id']})"],
@@ -52597,6 +52599,7 @@ def moveDriveFile(users):
                        statistics, copyMoveOptions, atTop):
     folderId = source.pop('id')
     folderName = source['name']
+    sourceMimeType = source['mimeType']
     folderNameId = f'{folderName}({folderId})'
     kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, folderNameId]
     newParentNameId = f'{newParentName}({newParentId})'
@@ -52625,7 +52628,7 @@ def moveDriveFile(users):
     if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
       newFolderNameLower = newFolderName.lower()
       for target in targetChildren:
-        if not target.get('processed', False) and newFolderNameLower == target['name'].lower() and source['mimeType'] == target['mimeType']:
+        if not target.get('processed', False) and newFolderNameLower == target['name'].lower() and sourceMimeType == target['mimeType']:
           target['processed'] = True
           if target['capabilities']['canAddChildren']:
             newFolderId = target['id']
@@ -52652,9 +52655,9 @@ def moveDriveFile(users):
           copyMoveOptions['retainSourceFolders'] = True
           return (None, None, False)
     elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
-      newFolderName = _getUniqueFilename(newFolderName, source['mimeType'], targetChildren)
+      newFolderName = _getUniqueFilename(newFolderName, sourceMimeType, targetChildren)
     elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
-      targetChild = _targetFilenameExists(newFolderName, source['mimeType'], targetChildren)
+      targetChild = _targetFilenameExists(newFolderName, sourceMimeType, targetChildren)
       if targetChild is not None:
         entityModifierItemValueListActionNotPerformedWarning(kvList, Act.MODIFIER_TO,
                                                              [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f"{newFolderName}({targetChild['id']})"],
@@ -52942,6 +52945,7 @@ def moveDriveFile(users):
                           supportsAllDrives=True)
         sourceName = source['name']
         sourceNameId = f"{sourceName}({source['id']})"
+        sourceMimeType = source['mimeType']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
         if copyMoveOptions['sourceDriveId']:
 # If moving from a Shared Drive, user has to be an organizer
@@ -52981,7 +52985,7 @@ def moveDriveFile(users):
                                          'includeItemsFromAllDrives': True, 'supportsAllDrives': True}
         if copyMoveOptions['newFilename']:
           destName = copyMoveOptions['newFilename']
-        elif (source['mimeType'] == MIMETYPE_GA_FOLDER) and (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain']):
+        elif (sourceMimeType == MIMETYPE_GA_FOLDER) and (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain']):
           destName = dest['name']
         else:
           destName = sourceName
@@ -52994,16 +52998,16 @@ def moveDriveFile(users):
             _incrStatistic(statistics, STAT_USER_NOT_ORGANIZER)
             continue
 # Move folder
-        if source['mimeType'] == MIMETYPE_GA_FOLDER:
+        if sourceMimeType == MIMETYPE_GA_FOLDER:
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):
               entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId], Msg.NOT_MOVABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_FAILED)
               continue
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
-            destName = _getUniqueFilename(destName, source['mimeType'], targetChildren)
+            destName = _getUniqueFilename(destName, sourceMimeType, targetChildren)
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
-            targetChild = _targetFilenameExists(destName, source['mimeType'], targetChildren)
+            targetChild = _targetFilenameExists(destName, sourceMimeType, targetChildren)
             if targetChild is not None:
               entityModifierItemValueListActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId], Act.MODIFIER_TO,
                                                                    [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f"{destName}({targetChild['id']})"],
@@ -53012,7 +53016,7 @@ def moveDriveFile(users):
               continue
           if ((not copyMoveOptions['sourceDriveId'] and copyMoveOptions['destDriveId']) or
               (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain'] or copyMoveOptions['retainSourceFolders']) or
-              (copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destName, source['mimeType'], targetChildren) is not None) or
+              (copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE and _targetFilenameExists(destName, sourceMimeType, targetChildren) is not None) or
               anyFolderPermissionOperations()):
             source['oldparents'] = sourceParents
             _recursiveFolderMove(drive, user, i, count, j, jcount,

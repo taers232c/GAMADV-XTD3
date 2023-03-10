@@ -1,3 +1,9 @@
+6.50.14
+
+Fixed bug in `gam <UserTypeEntity> copy drivefile` that caused a trap.
+
+Fixed bug where `removefeature` but not `removefeatures` was recognized in `gam update resource`.
+
 6.50.13
 
 Added options `addfeatures <FeatureNameList>` and `removefeatures <FeatureNameList>` to `<ResourceAttribute>`.
