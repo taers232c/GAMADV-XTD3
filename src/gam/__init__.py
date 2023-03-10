@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.12'
+__version__ = '6.50.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -32522,7 +32522,8 @@ RESOURCE_CATEGORY_MAP = {
   'unknown': 'CATEGORY_UNKNOWN',
   }
 
-def _getResourceCalendarAttributes(cd, body):
+def _getResourceCalendarAttributes(cd, body, updateMode):
+  featureChanges = {'add': set(), 'remove': set()}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'name', 'resourcename'}:
@@ -32537,10 +32538,19 @@ def _getResourceCalendarAttributes(cd, body):
       body['capacity'] = getInteger(minVal=0)
     elif myarg in {'feature', 'features', 'featureinstances'}:
       body.setdefault('featureInstances', [])
-      features = getString(Cmd.OB_STRING, minLen=0)
-      if features:
-        for feature in features.split(','):
+      for feature in shlexSplitList(getString(Cmd.OB_STRING, minLen=0)):
+        body['featureInstances'].append({'feature': {'name': feature}})
+    elif myarg in {'addfeature', 'addfeatures', 'addfeatureinstances'}:
+      if not updateMode:
+        body.setdefault('featureInstances', [])
+        for feature in shlexSplitList(getString(Cmd.OB_STRING, minLen=0)):
           body['featureInstances'].append({'feature': {'name': feature}})
+      else:
+        for feature in shlexSplitList(getString(Cmd.OB_STRING, minLen=0)):
+          featureChanges['add'].add(feature)
+    elif updateMode and myarg in {'removefeature', 'removeeatures', 'removefeatureinstances'}:
+      for feature in shlexSplitList(getString(Cmd.OB_STRING, minLen=0)):
+        featureChanges['remove'].add(feature)
     elif myarg in {'floor', 'floorname'}:
       body['floorName'] = getString(Cmd.OB_STRING)
     elif myarg == 'floorsection':
@@ -32551,20 +32561,25 @@ def _getResourceCalendarAttributes(cd, body):
       body['userVisibleDescription'] = getString(Cmd.OB_STRING)
     else:
       unknownArgumentExit()
-  if 'featureInstances' in body and not body['featureInstances']:
+  if ('featureInstances' in body and not body['featureInstances'] and
+      not featureChanges['add'] and not featureChanges['remove']):
     body['featureInstances'] = [{}]
-  return body
+  if not updateMode:
+    return body
+  return body, featureChanges
 
 # gam create|add resource <ResourceID> <Name> <ResourceAttribute>*
 def doCreateResourceCalendar():
   cd = buildGAPIObject(API.DIRECTORY)
-  body = _getResourceCalendarAttributes(cd, {'resourceId': getString(Cmd.OB_RESOURCE_ID), 'resourceName': getString(Cmd.OB_NAME)})
+  body = _getResourceCalendarAttributes(cd, {'resourceId': getString(Cmd.OB_RESOURCE_ID), 'resourceName': getString(Cmd.OB_NAME)}, False)
   try:
     callGAPI(cd.resources().calendars(), 'insert',
-             throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.REQUIRED, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+             throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.SERVICE_NOT_AVAILABLE, 
+                           GAPI.REQUIRED, GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='')
     entityActionPerformed([Ent.RESOURCE_CALENDAR, body['resourceId']])
-  except (GAPI.invalid, GAPI.invalidInput) as e:
+  except (GAPI.invalid, GAPI.invalidInput, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning([Ent.RESOURCE_CALENDAR, body['resourceId']], str(e))
   except GAPI.required as e:
     errMsg = str(e)
@@ -32581,17 +32596,43 @@ def doCreateResourceCalendar():
 
 def _doUpdateResourceCalendars(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
-  body = _getResourceCalendarAttributes(cd, {})
+  body, featureChanges = _getResourceCalendarAttributes(cd, {}, True)
   i = 0
   count = len(entityList)
   for resourceId in entityList:
     i += 1
     try:
+      if featureChanges['add'] or featureChanges['remove']:
+        features = callGAPI(cd.resources().calendars(), 'get',
+                            throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE, GAPI.FORBIDDEN],
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                            customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, fields='featureInstances(feature(name))')
+        bodyFeatures = body.pop('featureInstances', [])
+        body['featureInstances'] = []
+        featureSet = set()
+        for feature in bodyFeatures:
+          featureName = feature['feature']['name']
+          if featureName not in featureChanges['remove'] and featureName not in featureSet:
+            body['featureInstances'].append({'feature': {'name': featureName}})
+            featureSet.add(featureName)
+        for feature in features.get('featureInstances', []):
+          featureName = feature['feature']['name']
+          if featureName not in featureChanges['remove'] and featureName not in featureSet:
+            body['featureInstances'].append({'feature': {'name': featureName}})
+            featureSet.add(featureName)
+        for featureName in featureChanges['add']:
+          if featureName not in featureChanges['remove'] and featureName not in featureSet:
+            body['featureInstances'].append({'feature': {'name': featureName}})
+            featureSet.add(featureName)
+        if not body['featureInstances']:
+          body['featureInstances'] = [{}]
       callGAPI(cd.resources().calendars(), 'patch',
-               throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.REQUIRED, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               throwReasons=[GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.SERVICE_NOT_AVAILABLE, GAPI.REQUIRED,
+                             GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId, body=body, fields='')
       entityActionPerformed([Ent.RESOURCE_CALENDAR, resourceId], i, count)
-    except (GAPI.invalid, GAPI.invalidInput, GAPI.required)  as e:
+    except (GAPI.invalid, GAPI.invalidInput, GAPI.serviceNotAvailable, GAPI.required)  as e:
       entityActionFailedWarning([Ent.RESOURCE_CALENDAR, resourceId], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
@@ -32614,8 +32655,11 @@ def _doDeleteResourceCalendars(entityList):
     try:
       callGAPI(cd.resources().calendars(), 'delete',
                throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+               retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                customer=GC.Values[GC.CUSTOMER_ID], calendarResourceId=resourceId)
       entityActionPerformed([Ent.RESOURCE_CALENDAR, resourceId], i, count)
+    except GAPI.serviceNotAvailable  as e:
+      entityActionFailedWarning([Ent.RESOURCE_CALENDAR, resourceId], str(e), i, count)
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       checkEntityAFDNEorAccessErrorExit(cd, Ent.RESOURCE_CALENDAR, resourceId, i, count)
 

@@ -1,3 +1,20 @@
+6.50.13
+
+Added options `addfeatures <FeatureNameList>` and `removefeatures <FeatureNameList>` to `<ResourceAttribute>`.
+These can be used in in the following commands to make incremental changes to resource features.
+```
+gam update resource <ResourceID> <ResourceAttribute>*
+gam update resources <ResourceEntity> <ResourceAttribute>*
+```
+
+Updated processing of `<FeatureNameList>` which is a `<ResourceAttribute>` to properly handle `<FeatureName>s` containing spaces.
+When entering `<FeatureNameList>` with `<FeatureName>s`containing spaces, enclose the list in `"` and the names containing spaces in `'`.
+```
+features "CameraSet"
+features "'Laptop Cart'"
+features "CameraSet,'Laptop Cart'"
+```
+
 6.50.12
 
 Handle new trap in `gam <UserTypeEntity> forward messages`.

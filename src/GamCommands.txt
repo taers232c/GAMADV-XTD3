@@ -631,7 +631,7 @@ If an item contains spaces, it should be surrounded by ".
 <EventIDList> ::= "<EventID>(,<EventID>)*"
 <EventNameList> ::= "<EventName>(,<EventName>)*"
 <ExportStatusList> ::= "<ExportStatus>(,<ExportStatus>)*"
-<FeatureNameList> ::= "<FeatureName>(,<FeatureName>)*"
+<FeatureNameList> ::= "'<FeatureName>'(,'<FeatureName>')*"
 <FieldNameList> ::= "<FieldName>(,<FieldName>)*"
 <FileFormatList> ::= "<FileFormat>(,<FileFormat>)*"
 <FilterIDList> ::= "<FilterID>(,<FilterID>)*"
@@ -3983,6 +3983,7 @@ gam print resoldsubscriptions [todrive <ToDriveAttribute>*]
         (zipcode|postalcode <String>)
 
 <ResourceAttribute> ::=
+        (addfeatures <FeatureNameList>)|
         (buildingid <BuildingID>)|
         (capacity <Number>)|
         (category other|room|conference_room|category_unknown|unknown)|
@@ -3991,6 +3992,7 @@ gam print resoldsubscriptions [todrive <ToDriveAttribute>*]
         (floor <FloorName>)|
         (floorsection <String>)|
         (name <String>)|
+        (removefeatures <FeatureNameList>)|
         (type <String>)|
         (uservisibledescription <String>)
 
