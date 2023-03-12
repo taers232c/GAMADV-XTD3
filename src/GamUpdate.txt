@@ -1,3 +1,32 @@
+6.51.00
+
+Added the ability to read data from Google Cloud Storage bucket objects.
+```
+<StorageBucketName> ::= <String>
+<StorageObjectName> ::= <String>
+<StorageBucketObjectName> ::=
+        https://storage.cloud.google.com/<StorageBucketName>/<StorageObjectName>|
+        gs://<StorageBucketName>/<StorageObjectName>|
+        <StorageBucketName>/<StorageObjectName>
+```
+Anywhere you can enter `gdoc|ghtml <UserGoogleDoc>)` you can enter `gcsdoc|gcshtml <StorageBucketObjectName>`.
+
+Anywhere you can enter `gsheet <UserGoogleSheet>)` you can enter `gcscsv <StorageBucketObjectName>`.
+
+The Type of the Cloud Storage bucket objects must match the option keyword.
+
+* gcsdoc - text/plain
+* gcshtml - text/html
+* gcscsv - text/csv
+
+These options require that scope `Cloud Storage (Read, Vault/Takeout Download)` be enabled in `gam oauth create`.
+
+Added a command to download a Cloud Storage bucket object.
+```
+gam download storagefile <StorageBucketObjectName>
+        [targetfolder <FilePath>]
+```
+
 6.50.14
 
 Fixed bug in `gam <UserTypeEntity> copy drivefile` that caused a trap.

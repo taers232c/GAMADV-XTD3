@@ -710,6 +710,8 @@ class GamCLArgs():
   ARG_SMIMES = 'smimes'
   ARG_STORAGEBUCKET = 'storagebucket'
   ARG_STORAGEBUCKETS = 'storagebuckets'
+  ARG_STORAGEFILE = 'storagefile'
+  ARG_STORAGEFILES = 'storagefiles'
   ARG_SVCACCT = 'svcacct'
   ARG_SVCACCTS = 'svcaccts'
   ARG_TASK = 'task'

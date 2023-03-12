@@ -1,4 +1,4 @@
-This document describes the GAM command line syntax in modified BNF, see https://en.wikipedia.org/wiki/Backus-Naur_Form
+bThis document describes the GAM command line syntax in modified BNF, see https://en.wikipedia.org/wiki/Backus-Naur_Form
 Skip the History section and start reading at Introduction.
 
 Items on the command line are space separated, when an actual space character is required, it will be indicated by <Space>.
@@ -462,9 +462,20 @@ If an item contains spaces, it should be surrounded by ".
 <MatterItem> ::= <UniqueID>|<String>
 <MatterState> ::= open|closed|deleted
 <MaximumNumberOfSeats> ::= <Number>
+<MessageContent> ::=
+        (message|textmessage|htmlmessage <String>)|
+        (file|textfile|htmlfile <FileName> [charset <Charset>])|
+        (gdoc|ghtml <UserGoogleDoc>)|
+        (gcsdoc|gcshtml <StorageBucketObjectName>)|
+        (emlfile <FileName>)
 <MessageID> ::= <String>
 <Namespace> ::= <String>
 <NotesName> ::= notes/<String>
+<NotifyMessageContent> ::=
+        (message|textmessage|htmlmessage <String>)|
+        (file|textfile|htmlfile <FileName> [charset <Charset>])|
+        (gdoc|ghtml <UserGoogleDoc>)|
+        (gcsdoc|gcshtml <StorageBucketObjectName>)
 <NumberOfSeats> ::= <Number>
 <OrgUnitID> ::= id:<String>
 <OrgUnitPath> ::= /|(/<String>)+
@@ -519,6 +530,11 @@ If an item contains spaces, it should be surrounded by ".
 <ResourceID> ::= <String>
 <SchemaName> ::= <String>
 <Section> ::= <String>
+<SendAsContent> ::=
+        (sig|signature|htmlsig <String>)|
+        (file|htmlfile <FileName> [charset <Charset>])|
+        (gdoc|ghtml <UserGoogleDoc>)|
+        (gcsdoc|gcshtml <StorageBucketObjectName>)
 <SerialNumber> ::= <String>
 <ServiceAccountName> ::= <String>
         Must match this Python Regular Expression: [a-z][a-z0-9-]{4,28}[a-z0-9]
@@ -530,16 +546,17 @@ If an item contains spaces, it should be surrounded by ".
 <ServiceAccountUniqueID> ::= <Number>
 <ServiceAccountKey> ::= <String>
 <SheetEntity> ::= <String>|id:<Number>
+<SignatureContent> ::=
+        (<String>)|
+        (file|htmlfile <FileName> [charset <Charset>])|
+        (gdoc|ghtml <UserGoogleDoc>)|
+        (gcsdoc|gcshtml <StorageBucketObjectName>)
 <SiteACLScope> ::=
         <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
 <S/MIMEID> ::= <String>
 <SMTPHostName> ::= <String>
 <StudentItem> ::= <EmailAddress>|<UniqueID>|<String>
-<Tag> ::= <String>
-<TaskID> ::= <String>
-<TaskListID> ::= <String>
-<TasklistIDTaskID> ::= <TasklistID>/<TaskID>
 <SharedDriveACLRole> ::=
         commenter|
         contentmanager|fileorganizer|
@@ -548,6 +565,17 @@ If an item contains spaces, it should be surrounded by ".
         reader|viewer
 <SharedDriveID> ::= <String>
 <SharedDriveName> ::= <String>
+<StorageBucketName> ::= <String>
+<StorageObjectName> ::= <String>
+<StorageBucketObjectName> ::=
+        https://storage.cloud.google.com/<StorageBucketName>/<StorageObjectName>|
+        gs://<StorageBucketName>/<StorageObjectName>|
+        <StorageBucketName>/<StorageObjectName>
+<Tag> ::= <String>
+<TakeoutBucketName> ::= takeout-export-[a-f,0-9,-]*
+<TaskID> ::= <String>
+<TaskListID> ::= <String>
+<TasklistIDTaskID> ::= <TasklistID>/<TaskID>
 <ThreadID> ::= <String>
 <TimeZone> ::= <String>
         See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
@@ -583,6 +611,11 @@ If an item contains spaces, it should be surrounded by ".
 <URL> ::= <String>
 <UserItem> ::= <EmailAddress>|<UniqueID>|<String>
 <UserName> ::= <String>
+<VacationMessageContent> ::=
+        (message|textmessage|htmlmessage <String>)|
+        (file|textfile|htmlfile <FileName> [charset <Charset>])|
+        (gdoc|ghtml <UserGoogleDoc>)|
+        (gcsdoc|gcshtml <StorageBucketObjectName>)
 ## Lists of basic items
 
 <APIScopeURLList> ::= "<APIScopeURL>(,<APIScopeURL>)*"
@@ -720,25 +753,44 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (crosquery <QueryCrOS>)|
         (crosqueries <QueryCrOSList>)|
         (crosfile|crosfile_sn
-                (<FileName>|(gdoc <UserGoogleDoc>)
-                        [charset <Charset>] [delimiter <Character>]))|
+                (((<FileName>|
+                 (gdoc <UserGoogleDoc>)
+                 (gcsdoc <StorageBucketObjectName>))
+               [charset <Charset>] [delimiter <Character>])))|
         (croscsvfile|croscsvfile_sn
-                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
-                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
+                (((<FileName>(:<FieldName>)+)|
+                   (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+                   (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+                   (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+                   (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+                  [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
         (datafile cros|cros_sn|cros_ous|cros_ous_and_children
-                (<FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]))|
+                ((<FileName>|
+                  (gsheet <UserGoogleSheet>)|
+                  (gdoc <UserGoogleDoc>)|
+                  (gcscsv <StorageBucketObjectName>)|
+                  (gcsdoc <StorageBucketObjectName>))
+                 [charset <Charset>] [delimiter <Character>]))|
         (csvdatafile cros|cros_sn|cros_ous|cros_ous_and_children
-                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
-                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
+                (((<FileName>(:<FieldName>)+)|
+                  (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+                  (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+                  (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+                  (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
         (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
-                (<FileName>|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>)
-                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
+                ((<FileName>|
+                  (gsheet <UserGoogleSheet>)|
+                  (gdoc <UserGoogleDoc>)|
+                  (gcscsv <StorageBucketObjectName>)|
+                  (gcsdoc <StorageBucketObjectName>))
+                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                  [fields <FieldNameList>]
                 (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])+
                 (subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])
@@ -777,31 +829,50 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (query <QueryUser>)|
         (queries <QueryUserList>)|
         (file
-                (<FileName>|(gdoc <UserGoogleDoc>)
-                        [charset <Charset>] [delimiter <Character>]))|
+                (((<FileName>|
+                 (gdoc <UserGoogleDoc>)
+                 (gcsdoc <StorageBucketObjectName>))
+               [charset <Charset>] [delimiter <Character>])))|
         (csvfile
-                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
-                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
+                (((<FileName>(:<FieldName>)+)|
+                   (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+                   (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+                   (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+                   (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+                  [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
         (datafile users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
-                (<FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]))|
+                ((<FileName>|
+                  (gsheet <UserGoogleSheet>)|
+                  (gdoc <UserGoogleDoc>)|
+                  (gcscsv <StorageBucketObjectName>)|
+                  (gcsdoc <StorageBucketObjectName>))
+                 [charset <Charset>] [delimiter <Character>]))|
         (csvdatafile users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
-                ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
-                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
+                (((<FileName>(:<FieldName>)+)|
+                  (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+                  (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+                  (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+                  (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>])|
         (csvkmd users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
                 ous_and_children|ous_and_children_ns|ous_and_children_susp|
                 courseparticipants|students|teachers
-                (<FileName>|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>)
-                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
+                ((<FileName>|
+                  (gsheet <UserGoogleSheet>)|
+                  (gdoc <UserGoogleDoc>)|
+                  (gcscsv <StorageBucketObjectName>)|
+                  (gcsdoc <StorageBucketObjectName>))
+                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
                 [fields <FieldNameList>]
                 (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>]
                         [delimiter <Character>])+
@@ -816,16 +887,31 @@ Specify a collection of Users by directly specifying them or by specifiying item
 Specify a collection of items by directly specifying them; the item type is determined by context.
 
 <FileSelector> ::=
-        file <FileName>|(gdoc <UserGoogleDoc>) [charset <Charset>] [delimiter <Character>]
+        file ((<FileName> [charset <Charset>])|
+              (gdoc <UserGoogleDoc>)|
+              (gcsdoc <StorageBucketObjectName>))
+             [delimiter <Character>]
+
+<CSVFileInput> ::=
+        ((<FileName>(:<FieldName>)+ [charset <Charset>] )|
+         (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+         (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+         (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+         (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+        [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
+        [endcsv|(fields <FieldNameList>)]
+
 <CSVFileSelector> ::=
-        csvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
-                        [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-                [fields <FieldNameList>]
+        csvfile <CSVFileInput>
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>]
 <CSVkmdSelector> ::=
-        csvkmd <FileName>|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>)
-                        [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+        csvkmd ((<FileName>|
+                 (gsheet <UserGoogleSheet>)|
+                 (gdoc <UserGoogleDoc>)|
+                 (gcscsv <StorageBucketObjectName>)|
+                 (gcsdoc <StorageBucketObjectName>))
+                 [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>])
                 keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -1132,15 +1218,31 @@ gam help
 
 # Bulk Processing
 
-gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
-gam csv <FileName>|-|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>) [charset <Charset>] [warnifnodata]
+<BatchContent> ::=
+        (<FileName> [charset <Charset>])|
+        (- [charset <Charset>])|
+        (gdoc <UserGoogleDoc>)|
+        (gcsdoc <StorageBucketObjectName>)
+
+gam batch <BatchContent> [showcmds [<Boolean>]]
+gam tbatch <BatchContent> [showcmds [<Boolean>]]
+
+<CSVLoopContent> ::=
+        (((<FileName> [charset <Charset>])|
+          (- [charset <Charset>])|
+          (gsheet <UserGoogleSheet>)|
+          (gdoc <UserGoogleDoc>)|
+          (gcsdoc <StorageBucketObjectName>)|
+          (gcscsv <StorageBucketObjectName>))
+         [charset <Charset>] [delimiter <Character>])
+
+gam csv <CSVLoopContent> [warnifnodata]
         [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
         [maxrows <Integer>]
         gam <GAMArgumentList>
-gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
 
-gam loop <FileName>|-|(gsheet <UserGoogleSheet>)|(gdoc <UserGoogleDoc>) [charset <Charset>] [warnifnodata]
+gam loop <CSVLoopContent> [warnifnodata]
         [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
         (matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
         [maxrows <Integer>]
@@ -3536,8 +3638,8 @@ gam cancelwipe device <DeviceEntity> [doit]
 gam wipe device <DeviceEntity> [removeresetlock] [doit]
 
 gam sync devices
+        <CSVFileSelector>
         [(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
-        csvfile <FileName>
         (devicetype_column <String>)|(static_devicetype <DeviceType>)
         (serialnumber_column <String>)
         [assettag_column <String>]
@@ -3793,14 +3895,8 @@ gam create printer <PrinterAttribute>+
 gam update printer <PrinterID> <PrinterAttribute>+
 gam delete printer
         <PrinterIDList>|
-        file (<FileName>|(gdoc <UserGoogleDoc>)
-              [charset <Charset>] [delimiter <Character>]))|
-        csvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)|(gdoc:<FieldName>)+ <UserGoogleDoc>)
-                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-                [fields <FieldNameList>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [delimiter <Character>])
-
+        <FileSelector>|
+	<CSVFileSelector>
 gam info printer <PrinterID>
         [fields <PrinterFieldNameList>]
         [formatjson]
@@ -4117,9 +4213,8 @@ gam sendemail [recipient|to] <RecipientEntity>
         [from <EmailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
         [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
-        (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+        [<MessageContent>] (replace <Tag> <String>)*
+        [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
@@ -4127,9 +4222,8 @@ gam <UserTypeEntity> sendemail recipient|to <RecipientEntity>
         [replyto <EmailAddress>]
         [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
-        (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+        [<MessageContent>] (replace <Tag> <String>)*
+        [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
@@ -4137,9 +4231,8 @@ gam <UserTypeEntity> sendemail from <EmailAddress>
         [replyto <EmailAddress>]
         [cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
         [subject <String>]
-        (message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-        (replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+        [<MessageContent>] (replace <Tag> <String>)*
+        [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
         [newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
@@ -4659,10 +4752,13 @@ gam show vaultholds|holds [matters <MatterItemList>]
 gam <UserTypeEntity> print vaultholds|holds [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show vaultholds|holds
 
-gam download storagebucket <String>
+gam download storagebucket <TakeoutBucketName>
         [targetfolder <FilePath>]
-gam copy storagebucket sourcebucket <String> targetbucket <String>
+gam copy storagebucket sourcebucket <StorageBucketName> targetbucket <StorageBucketName>
         [sourceprefix <String>] [targetprefix <String>]
+
+gam download storagefile <StorageBucketObjectName>
+        [targetfolder <FilePath>]
 
 # Users
 
@@ -4807,11 +4903,12 @@ gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
         [license <SKUIDList> [product|productid <ProductID>]]
-        [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+        [notify <EmailAddressList>
+            [subject <String>]
+            [notifypassword <String>]
             [from <EmailAaddress>]
-            [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
-             (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
-        (replace <Tag> <UserReplacement>)*
+            [<NotifyMessageContent>]
+            (replace <Tag> <UserReplacement>)*]
         [lograndompassword <FileName>]
         [verifynotinvitable]
 
@@ -4826,12 +4923,13 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
         [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
-        [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+        [notify <EmailAddressList>
+            [subject <String>]
+            [notifypassword <String>]
             [from <EmailAaddress>]
-            [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
-             (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+            [<NotifyMessageContent>]
+            (replace <Tag> <UserReplacement>)*]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
-        (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
         [verifynotinvitable]
 gam delete user <UserItem> [noactionifalias]
@@ -4858,12 +4956,13 @@ gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactio
         [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
-        [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+        [notify <EmailAddressList>
+            [subject <String>]
+            [notifypassword <String>]
             [from <EmailAaddress>]
-            [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
-             (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+            [<NotifyMessageContent>]
+            (replace <Tag> <UserReplacement>)*]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
-        (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
         [verifynotinvitable]
 gam delete users <UserTypeEntity> [noactionifalias]
@@ -4883,19 +4982,18 @@ gam info users <UserTypeEntity>
 
 gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
-        [updateoufromgroup <FileName> [charset <CharSet>]
-            [columndelimiter <Character>] [quotechar <Character>]
-            [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
+        [updateoufromgroup <CSVFileInput> [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
-        [notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
+        [notify <EmailAddressList>
+            [subject <String>]
+            [notifypassword <String>]
             [from <EmailAaddress>]
-            [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
-             (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+            [<NotifyMessageContent>]
+            (replace <Tag> <UserReplacement>)*]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
-        (replace <Tag> <UserReplacement>)*
         [lograndompassword <FileName>]
         [verifynotinvitable]
 gam <UserTypeEntity> delete users [noactionifalias]
@@ -5302,7 +5400,7 @@ gam <UserTypeEntity> print events <UserCalendarEntity> [<EventSelectEntity>] <Ev
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
         [<EventNotificationAttribute>] [splitupdate] [doit]
-        (csv <FileName>|(gsheet <UserGoogleSheet>)(gdoc <UserGoogleDoc>))*
+        (<CSVFileSelector>)
         (delete <EmailAddress>)*
         (deleteentity <EmailAddressEntity>)*
         (add <EmailAddress>)*
@@ -6142,7 +6240,7 @@ gam <UserTypeEntity> print|show driveactivity [todrive <ToDriveAttribute>*]
          yesterday|today|thismonth|(previousmonths <Integer>)]
         [action|actions [not] <DriveActivityActionList>]
         [consolidationstrategy legacy|none]
-        [idmapfile <FileName>|(gsheet <UserGoogleSheet>)(gdoc <UserGoogleDoc>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
+        [idmapfile <CSVFileInput> endcsv]
         [formatjson [quotechar <Character>]]
 
 <DriveSettingsFieldName> ::=
@@ -6385,24 +6483,21 @@ gam <UserTypeEntity> print labels|label [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> draft message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
-        (textmessage|message <String>)|(textfile|file|emlfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-        (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
+        <MessageContent> (replace <Tag> <UserReplacement>)*
+        (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
 gam <UserTypeEntity> import message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
         (addlabel <LabelName>)* [labels <LabelNameList>]
-        (textmessage|message <String>)|(textfile|file|emlfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-        (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
+        <MessageContent> (replace <Tag> <UserReplacement>)*
+        (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
         [deleted [<Boolean>]] [checkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 gam <UserTypeEntity> insert message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
         (addlabel <LabelName>)* [labels <LabelNameList>]
-        (textmessage|message <String>)|(textfile|file|emlfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-        (htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-        (replace <Tag> <UserReplacement>)* (attach <FileName> [charset <CharSet>])*
+        <MessageContent> (replace <Tag> <UserReplacement>)*
+        (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
         [deleted [<Boolean>]]
 
@@ -6463,15 +6558,13 @@ gam <UserTypeEntity> print gmailprofile [todrive <ToDriveAttribute>*]
 # Users - Gmail - Send As/Signature/Vacation
 
 gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
-        [(signature|sig|htmlsig <String>)|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
-            (replace <Tag> <UserReplacement>)*]
+        [<SendAsContent> (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
         [smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
          smtpmsa.username <UserName> smtpmsa.password <Password>
          [smtpmsa.securitymode none|ssl|starttls]]
 gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
-        [(signature|sig|htmlsig <String>)|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
-            (replace <Tag> <UserReplacement>)*]
+        [<SendAsContent> (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 gam <UserTypeEntity> delete sendas <EmailAddressEntity>
 gam <UserTypeEntity> info sendas <EmailAddressEntity> [compact|format|html]
@@ -6481,8 +6574,7 @@ gam <UserTypeEntity> print sendas [compact]
         [primary|default] [verifyonly] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> signature|sig
-        (<String>)|(htmlsig <String>)|(file|htmlfile <FileName> [charset <Charset>])|(gdoc|ghtml <UserGoogleDoc>)
-        (replace <Tag> <UserReplacement>)*
+        <SignatureContent> (replace <Tag> <UserReplacement>)*
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
         [name <String>]
         [primary]
@@ -6503,8 +6595,7 @@ gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*]
         [primary|default|(sendas|sendasemail <EmailAddress>)]
 
 gam <UserTypeEntity> vacation <Boolean> subject <String>
-        [message|htmlmessage <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)]
-        (replace <Tag> <UserReplacement>)*
+        [<VacationMessageContent> (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]]
         [start|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
 gam <UserTypeEntity> show vacation [compact|format|html] [enabledonly]
@@ -6578,14 +6669,19 @@ gam <UserTypeEntity> check isinvitable [todrive <ToDriveAttribute>*]
 
 # Users - Keep Notes
 
-gam <UserTypeEntity> create note [title <String>]
+<NoteContent> ::=
         ((text <String>)|
          (textfile <FileName> [charset <CharSet>])|
          (gdoc <UserGoogleDoc>)|
+         (gcsdoc <StorageBucketObjectName>)|
          <JSONData>)
+
+gam <UserTypeEntity> create note [title <String>]
+        <NoteContent>
         [missingtextvalue <String>]
         [copyacls [copyowneraswriter]]
         [compact|formatjson|nodetails]
+
 gam <UserTypeEntity> delete note <NoteNameEntity>
 
 <NotesField> ::=

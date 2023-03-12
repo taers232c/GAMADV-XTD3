@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.50.14'
+__version__ = '6.51.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -252,6 +252,7 @@ MIMETYPE_GA_SHORTCUT = f'{APPLICATION_VND_GOOGLE_APPS}shortcut'
 MIMETYPE_GA_3P_SHORTCUT = f'{APPLICATION_VND_GOOGLE_APPS}drive-sdk'
 MIMETYPE_GA_SITE = f'{APPLICATION_VND_GOOGLE_APPS}site'
 MIMETYPE_GA_SPREADSHEET = f'{APPLICATION_VND_GOOGLE_APPS}spreadsheet'
+MIMETYPE_TEXT_CSV = 'text/csv'
 MIMETYPE_TEXT_HTML = 'text/html'
 MIMETYPE_TEXT_PLAIN = 'text/plain'
 
@@ -1783,9 +1784,9 @@ def getStringReturnInList(item):
 
 SORF_SIG_ARGUMENTS = {'signature', 'sig', 'textsig', 'htmlsig'}
 SORF_MSG_ARGUMENTS = {'message', 'textmessage', 'htmlmessage'}
-SORF_FILE_ARGUMENTS = {'file', 'textfile', 'htmlfile', 'gdoc', 'ghtml'}
-SORF_HTML_ARGUMENTS = {'htmlsig', 'htmlmessage', 'htmlfile', 'ghtml'}
-SORF_TEXT_ARGUMENTS = {'text', 'textfile', 'gdoc'}
+SORF_FILE_ARGUMENTS = {'file', 'textfile', 'htmlfile', 'gdoc', 'ghtml', 'gcsdoc', 'gcshtml'}
+SORF_HTML_ARGUMENTS = {'htmlsig', 'htmlmessage', 'htmlfile', 'ghtml', 'gcshtml'}
+SORF_TEXT_ARGUMENTS = {'text', 'textfile', 'gdoc', 'gcsdoc'}
 SORF_SIG_FILE_ARGUMENTS = SORF_SIG_ARGUMENTS.union(SORF_FILE_ARGUMENTS)
 SORF_MSG_FILE_ARGUMENTS = SORF_MSG_ARGUMENTS.union(SORF_FILE_ARGUMENTS)
 
@@ -1795,14 +1796,16 @@ def getStringOrFile(myarg, minLen=0, unescapeCRLF=False):
       myarg = Cmd.Previous().strip().lower().replace('_', '')
   html = myarg in SORF_HTML_ARGUMENTS
   if myarg in SORF_FILE_ARGUMENTS:
-    if myarg not in {'gdoc', 'ghtml'}:
+    if myarg in {'file', 'textfile', 'htmlfile'}:
       filename = getString(Cmd.OB_FILE_NAME)
       encoding = getCharSet()
       return (readFile(filename, encoding=encoding), encoding, html)
-    f = getGDocData(MIMETYPE_TEXT_HTML if html else MIMETYPE_TEXT_PLAIN)
-    data = f.read()
-    f.close()
-    return (data, UTF8, html)
+    if myarg in {'gdoc', 'ghtml'}:
+      f = getGDocData(myarg)
+      data = f.read()
+      f.close()
+      return (data, UTF8, html)
+    return (getStorageFileData(myarg), UTF8, html)
   if not unescapeCRLF:
     return (getString(Cmd.OB_STRING, minLen=minLen), UTF8, html)
   return (unescapeCRsNLs(getString(Cmd.OB_STRING, minLen=minLen)), UTF8, html)
@@ -2769,6 +2772,21 @@ def entityModifierNewValueKeyValueActionPerformed(entityValueList, modifier, new
 def cleanFilename(filename):
   return sanitize_filename(filename, '_')
 
+def uniqueFilename(targetFolder, filetitle, overwrite, extension=None):
+  filename = filetitle
+  y = 0
+  while True:
+    if extension is not None and filename.lower()[-len(extension):] != extension.lower():
+      filename += extension
+    filepath = os.path.join(targetFolder, filename)
+    if overwrite or not os.path.isfile(filepath):
+      return (filepath, filename)
+    y += 1
+    filename = f'({y})-{filetitle}'
+
+def cleanFilepath(filepath):
+  return sanitize_filepath(filepath, platform='auto')
+
 def fileErrorMessage(filename, e, entityType=Ent.FILE):
   return f'{Ent.Singular(entityType)}: {filename}, {str(e)}'
 
@@ -2908,8 +2926,15 @@ def getGDocSheetDataFailedExit(entityValueList, errMsg, i=0, count=0):
                                                        Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMsg],
                                                        currentCountNL(i, count)))
 
+GDOC_FORMAT_MIME_TYPES = {
+  'gcsv': MIMETYPE_TEXT_CSV,
+  'gdoc': MIMETYPE_TEXT_PLAIN,
+  'ghtml': MIMETYPE_TEXT_HTML,
+  }
+
 # gdoc <EmailAddress> <DriveFileIDEntity>|<DriveFileNameEntity>
-def getGDocData(mimeType):
+def getGDocData(gformat):
+  mimeType = GDOC_FORMAT_MIME_TYPES[gformat]
   user = getEmailAddress()
   fileIdEntity = getDriveFileEntity(queryShortcutsOK=False)
   user, drive, jcount = _validateUserGetFileIDs(user, 0, 0, fileIdEntity)
@@ -3025,13 +3050,76 @@ def getGSheetData():
     userSvcNotApplicableOrDriveDisabled(user, str(e))
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
-# Open a CSV file, get optional arguments [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [endcsv|(fields <FieldNameList>)]
+
+HTTPS_BUCKET_OBJECT_PATTERN = re.compile(r'https://storage.cloud.google.com/(.+)/(.+)')
+GS_BUCKET_OBJECT_PATTERN = re.compile(r'gs://(.+)/(.+)')
+BUCKET_OBJECT_PATTERN = re.compile(r'(.+)/(.+)')
+
+def getBucketObjectName():
+  uri = getString(Cmd.OB_STRING)
+  mg = re.search(HTTPS_BUCKET_OBJECT_PATTERN, uri)
+  if not mg:
+    mg = re.search(GS_BUCKET_OBJECT_PATTERN, uri)
+    if not mg:
+      mg = re.search(BUCKET_OBJECT_PATTERN, uri)
+      if not mg:
+        systemErrorExit(ACTION_NOT_PERFORMED_RC, f'Invalid <StorageBucketObjectName>: {uri}')
+  return (mg.group(1), mg.group(2), f'{mg.group(1)}/{mg.group(2)}')
+
+GCS_FORMAT_MIME_TYPES = {
+  'gcscsv': MIMETYPE_TEXT_CSV,
+  'gcsdoc': MIMETYPE_TEXT_PLAIN,
+  'gcshtml': MIMETYPE_TEXT_HTML,
+  }
+
+# gcscsv|gcshtml|gcsdoc <StorageBucketObjectName>>
+def getStorageFileData(gcsformat, returnData=True):
+  mimeType = GCS_FORMAT_MIME_TYPES[gcsformat]
+  bucket, s_object, bucketObject = getBucketObjectName()
+  s = buildGAPIObject(API.STORAGEREAD)
+  try:
+    result = callGAPI(s.objects(), 'get',
+                      throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
+                      bucket=bucket, object=s_object, projection='noAcl', fields='contentType')
+  except GAPI.notFound:
+    entityDoesNotExistExit(Ent.CLOUD_STORAGE_FILE, bucketObject)
+  except GAPI.forbidden as e:
+    entityActionFailedExit([Ent.CLOUD_STORAGE_FILE, bucketObject], str(e))
+  if result['contentType'] != mimeType:
+    getGDocSheetDataFailedExit([Ent.CLOUD_STORAGE_FILE, bucketObject],
+                               Msg.INVALID_MIMETYPE.format(result['contentType'], mimeType))
+  fb = TemporaryFile(mode='wb+')
+  try:
+    request = s.objects().get_media(bucket=bucket, object=s_object)
+    downloader = googleapiclient.http.MediaIoBaseDownload(fb, request)
+    done = False
+    while not done:
+      _, done = downloader.next_chunk()
+    fb.seek(0)
+    if returnData:
+      data = fb.read().decode(UTF8)
+      fb.close()
+      return data
+    f = TemporaryFile(mode='w+', encoding=UTF8)
+    f.write(fb.read().decode(UTF8_SIG))
+    fb.close()
+    f.seek(0)
+    return f
+  except googleapiclient.http.HttpError as e:
+    mg = HTTP_ERROR_PATTERN.match(str(e))
+    getGDocSheetDataFailedExit([Ent.CLOUD_STORAGE_FILE, bucketObject], mg.group(1) if mg else str(e))
+
+# <CSVFileInput>
 def openCSVFileReader(filename, fieldnames=None):
-  if filename.lower() == 'gsheet':
+  filenameLower = filename.lower()
+  if filenameLower == 'gsheet':
     f = getGSheetData()
     getCharSet()
-  elif filename.lower() == 'gdoc':
-    f = getGDocData(MIMETYPE_TEXT_PLAIN)
+  elif filenameLower in {'gcsv', 'gdoc'}:
+    f = getGDocData(filenameLower)
+    getCharSet()
+  elif filenameLower in {'gcscsv', 'gcsdoc'}:
+    f = getStorageFileData(filenameLower, False)
     getCharSet()
   else:
     encoding = getCharSet()
@@ -4236,16 +4324,13 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
         audience = f'https://{api}.googleapis.com/'
         key_type = jsonDict.get('key_type', 'default')
         if key_type == 'default':
-          credentials = JWTCredentials.from_service_account_info(jsonDict, audience=audience)
-          return (True, credentials)
-        elif key_type == 'yubikey':
+          return (True, JWTCredentials.from_service_account_info(jsonDict, audience=audience))
+        if key_type == 'yubikey':
           yksigner = yubikey.YubiKey(jsonDict)
-          credentials = JWTCredentials._from_signer_and_info(yksigner, jsonDict, audience=audience)
-          return (True, credentials)
-        elif key_type == 'signjwt':
+          return (True, JWTCredentials._from_signer_and_info(yksigner, jsonDict, audience=audience))
+        if key_type == 'signjwt':
           sjsigner = signjwtSignJwt(jsonDict)
-          credentials = signjwtJWTCredentials._from_signer_and_info(sjsigner, jsonDict, audience=audience)
-          return (True, credentials)
+          return (True, signjwtJWTCredentials._from_signer_and_info(sjsigner, jsonDict, audience=audience))
       except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
         invalidOauth2serviceJsonExit(str(e))
     invalidOauth2serviceJsonExit(Msg.NO_DATA)
@@ -6289,14 +6374,18 @@ def fileDataErrorExit(filename, row, itemName, value, errMessage):
                                         errMessage],
                                        ''))
 
-# <FileName> [charset <String>] [delimiter <Character>]
+# <FileSelector>
 def getEntitiesFromFile(shlexSplit, returnSet=False):
   filename = getString(Cmd.OB_FILE_NAME)
-  if filename.lower() != 'gdoc':
+  filenameLower = filename.lower()
+  if filenameLower not in {'gcsv', 'gdoc', 'gcscsv', 'gcsdoc'}:
     encoding = getCharSet()
     f = openFile(filename, encoding=encoding, stripUTFBOM=True)
-  else:
-    f = getGDocData(MIMETYPE_TEXT_PLAIN)
+  elif filenameLower in {'gcsv', 'gdoc'}:
+    f = getGDocData(filenameLower)
+    getCharSet()
+  else: #filenameLower in {'gcscsv', 'gcsdoc'}:
+    f = getStorageFileData(filenameLower)
     getCharSet()
   dataDelimiter = getDelimiter()
   entitySet = set()
@@ -6318,8 +6407,7 @@ def getEntitiesFromFile(shlexSplit, returnSet=False):
   closeFile(f)
   return entityList if not returnSet else entitySet
 
-# <FileName>(:<FieldName>)+ [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
-#	[endcsv|(fields <FieldNameList>)] (matchfield|skipfield <FieldName> <RegularExpression>)* [delimiter <Character>]
+# <CSVFileSelector>
 def getEntitiesFromCSVFile(shlexSplit, returnSet=False):
   fileFieldName = getString(Cmd.OB_FILE_NAME_FIELD_NAME)
   if platform.system() == 'Windows' and not fileFieldName.startswith('-:'):
@@ -6358,7 +6446,7 @@ def getEntitiesFromCSVFile(shlexSplit, returnSet=False):
   closeFile(f)
   return entityList if not returnSet else entitySet
 
-# <FileName> [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
+# <CSVFileSelector>
 #	keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
 #	subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
 #	(matchfield|skipfield <FieldName> <RegularExpression>)*
@@ -9317,17 +9405,21 @@ def _getMaxRows():
     return getInteger(minVal=0)
   return GC.Values[GC.CSV_INPUT_ROW_LIMIT]
 
-# gam batch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
+# gam batch <BatchContent> [showcmds [<Boolean>]]
 def doBatch(threadBatch=False):
   filename = getString(Cmd.OB_FILE_NAME)
   if (filename == '-') and (GC.Values[GC.DEBUG_LEVEL] > 0):
     Cmd.Backup()
     usageErrorExit(Msg.BATCH_CSV_LOOP_DASH_DEBUG_INCOMPATIBLE.format(Cmd.BATCH_CMD))
-  if filename.lower() != 'gdoc':
+  filenameLower = filename.lower()
+  if filenameLower not in {'gdoc', 'gcsdoc'}:
     encoding = getCharSet()
     f = openFile(filename, encoding=encoding, stripUTFBOM=True)
-  else:
-    f = getGDocData(MIMETYPE_TEXT_PLAIN)
+  elif filenameLower == 'gdoc':
+    f = getGDocData(filenameLower)
+    getCharSet()
+  else: #filenameLower == 'gcsdoc':
+    f = getStorageFileData(filenameLower)
     getCharSet()
   showCmds = _getShowCommands()
   checkForExtraneousArguments()
@@ -9367,7 +9459,7 @@ def doBatch(threadBatch=False):
     writeStderr(Msg.BATCH_NOT_PROCESSED_ERRORS.format(ERROR_PREFIX, filename, errors, ERROR_PLURAL_SINGULAR[errors == 1]))
     setSysExitRC(USAGE_ERROR_RC)
 
-# gam tbatch <FileName>|-|(gdoc <UserGoogleDoc>) [charset <Charset>] [showcmds [<Boolean>]]
+# gam tbatch <BatchContent> [showcmds [<Boolean>]]
 def doThreadBatch():
   adjustRedirectedSTDFilesIfNotMultiprocessing()
   doBatch(True)
@@ -9461,7 +9553,7 @@ def processSubFields(GAM_argv, row, subFields):
     argv[GAM_argvI] += oargv[pos:]
   return argv
 
-# gam csv <FileName>|-|(gsheet <UserGoogleSheet>) [charset <Charset>] [warnifnodata]
+# gam csv <CSVLoopContent> [warnifnodata]
 #	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 #	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
 #	[maxrows <Integer>]
@@ -9511,7 +9603,7 @@ def doCSV(testMode=False):
 def doCSVTest():
   doCSV(testMode=True)
 
-# gam loop <FileName>|-|(gsheet <UserGoogleSheet>) [charset <String>] [warnifnodata]
+# gam loop <CSVLoopContent> [warnifnodata]
 #	[columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
 #	(matchfield|skipfield <FieldName> <RegularExpression>)* [showcmds [<Boolean>]]
 #	[maxrows <Integer>]
@@ -9881,7 +9973,7 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
           httpClientProcess.terminate()
           break
         alive -= 1
-    if not 'code' in d:
+    if 'code' not in d:
       systemErrorExit(SYSTEM_ERROR_RC, Msg.AUTHENTICATION_FLOW_FAILED)
     while True:
       code = d['code']
@@ -13569,27 +13661,24 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
 # gam sendemail [recipient|to] <RecipientEntity> [from <EmailAddress>] [mailbox <EmailAddress>] [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>]
-#	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-#	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+#	[<MessageContent>] (replace <Tag> <String>)*
+#	[html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 # gam <UserTypeEntity> sendemail recipient <RecipientEntity> [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>]
-#	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-#	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+#	[<MessageContent>] (replace <Tag> <String>)*
+#	[html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 # gam <UserTypeEntity> sendemail from <EmailAddress> [replyto <EmailAddress>]
 #	[cc <RecipientEntity>] [bcc <RecipientEntity>] [singlemessage]
 #	[subject <String>]
-#	(message|textmessage <String>)|(file|textfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-#	(replace <Tag> <String>)* [html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
+#	[<MessageContent>] (replace <Tag> <String>)*
+#	[html [<Boolean>]] (attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 #	[newuser <EmailAddress> firstname|givenname <String> lastname|familyname <string> password <Password>]
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
@@ -22965,7 +23054,7 @@ def doMoveBrowsers():
       deviceIds.extend(convertEntityToList(getString(Cmd.OB_DEVICE_ID_LIST, minLen=0)))
     elif myarg == 'file':
       deviceIds.extend(getEntitiesFromFile(False))
-    elif myarg == 'csvfile':
+    elif myarg in {'csv', 'csvfile'}:
       deviceIds.extend(getEntitiesFromCSVFile(False))
     elif myarg in {'query', 'queries'}:
       queries = getQueries(myarg)
@@ -24768,8 +24857,8 @@ DEVICE_MISSING_ACTION_MAP = {
   }
 
 # gam sync devices
+#	<CSVFileSelector>
 #	[(query <QueryDevice>)|(queries <QueryDeviceList>) (querytime.* <Time>)*]
-#	csvfile <FileName>
 #	(devicetype_column <String>)|(static_devicetype <DeviceType>)
 #	(serialnumber_column <String>)
 #	[assettag_column <String>]
@@ -24796,7 +24885,7 @@ def doSyncCIDevices():
       queries = getQueries(myarg)
     elif myarg.startswith('querytime'):
       queryTimes[myarg] = getTimeOrDeltaFromNow()[0:19]
-    elif myarg == 'csvfile':
+    elif myarg in {'csv', 'csvfile'}:
       filename = getString(Cmd.OB_STRING)
     elif myarg == 'serialnumbercolumn':
       serialNumberColumn = getString(Cmd.OB_STRING)
@@ -25694,13 +25783,8 @@ def doUpdatePrinter():
 
 # gam delete printer
 #	<PrinterIDList>|
-#	file (<FileName>|(gdoc <UserGoogleDoc>)
-#	      [charset <Charset>] [delimiter <Character>]))|
-#	croscsvfile ((<FileName>(:<FieldName>)+)|(gsheet(:<FieldName>)+ <UserGoogleSheet>)
-#		      [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-#		[fields <FieldNameList>]
-#		(matchfield|skipfield <FieldName> <RegularExpression>)*
-#		[delimiter <Character>])
+#	<FileSelector>|
+#	<CSVFileSelector>
 def doDeletePrinter():
   parent, printerIds, cd = _getPrinterEntity()
   # max 50 per API call
@@ -35103,24 +35187,22 @@ def _copyStorageObjects(objects, target_bucket, target_prefix):
     ClientAPIAccessDeniedExit()
   Act.Set(action)
 
-def _getCloudStorageObject(s, bucket, s_object, local_file=None, expectedMd5=None, zipToStdout=False, j=0, jcount=0):
+def _getCloudStorageObject(s, bucket, s_object, localFilename, expectedMd5=None, zipToStdout=False, j=0, jcount=0):
   if not zipToStdout:
-    if not local_file:
-      local_file = s_object
-    local_file = sanitize_filepath(local_file, platform='auto')
-    entityValueList = [Ent.DRIVE_FILE, local_file]
-    if os.path.exists(local_file):
+    localFilename = cleanFilepath(localFilename)
+    entityValueList = [Ent.DRIVE_FILE, localFilename]
+    if os.path.exists(localFilename):
       printEntityMessage(entityValueList, Msg.EXISTS)
       if not expectedMd5:
         return # nothing to verify, just assume we're good.
-      if md5MatchesFile(local_file, expectedMd5):
+      if md5MatchesFile(localFilename, expectedMd5):
         return
       printEntityMessage(entityValueList, Msg.DOWNLOADING_AGAIN_AND_OVER_WRITING)
     entityPerformAction(entityValueList)
-    file_path = os.path.dirname(local_file)
+    file_path = os.path.dirname(localFilename)
     if not os.path.exists(file_path):
       os.makedirs(file_path)
-    f = openFile(local_file, 'wb')
+    f = openFile(localFilename, 'wb')
   else:
     f = openFile('-', 'wb')
   try:
@@ -35132,19 +35214,20 @@ def _getCloudStorageObject(s, bucket, s_object, local_file=None, expectedMd5=Non
       if not zipToStdout and status.progress() < 1.0:
         entityActionPerformedMessage([Ent.CLOUD_STORAGE_FILE, s_object], f'{status.progress():>7.2%}', j, jcount)
     if not zipToStdout:
-      entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, local_file, j, jcount)
+      entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, localFilename, j, jcount)
       closeFile(f, True)
-    if expectedMd5 and not md5MatchesFile(local_file, expectedMd5):
-      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(local_file, Msg.CORRUPT_FILE))
-  except httplib2.HttpLib2Error as e:
-    entityModifierNewValueActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, local_file, str(e), j, jcount)
+    if expectedMd5 and not md5MatchesFile(localFilename, expectedMd5):
+      systemErrorExit(FILE_ERROR_RC, fileErrorMessage(localFilename, Msg.CORRUPT_FILE))
+  except googleapiclient.http.HttpError as e:
+    mg = HTTP_ERROR_PATTERN.match(str(e))
+    entityModifierNewValueActionFailedWarning([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, localFilename, mg.group(1) if mg else str(e), j, jcount)
 
 TAKEOUT_EXPORT_PATTERN = re.compile(r'(takeout-export-[a-f,0-9,-]*)')
 
-# gam copy storagebucket sourcebucket <String> targetbucket <String>
+# gam copy storagebucket sourcebucket <StorageBucketName> targetbucket <StorageBucketName>
 #	[sourceprefix <String>] [targetprefix <String>]
 def doCopyCloudStorageBucket():
-  s = buildGAPIObject(API.STORAGE)
+  s = buildGAPIObject(API.STORAGEREAD)
   source_bucket = None
   target_bucket = None
   source_prefix = None
@@ -35179,7 +35262,7 @@ def doCopyCloudStorageBucket():
     entityActionFailedExit([Ent.CLOUD_STORAGE_BUCKET, source_bucket], str(e))
   _copyStorageObjects(objects, target_bucket, target_prefix)
 
-# gam download storagebucket <String>
+# gam download storagebucket <TakeoutBucketName>
 #	[targetfolder <FilePath>]
 def doDownloadCloudStorageBucket():
   bucket_url = getString(Cmd.OB_STRING)
@@ -35196,14 +35279,14 @@ def doDownloadCloudStorageBucket():
   if not bucket_match:
     systemErrorExit(ACTION_NOT_PERFORMED_RC, f'Could not find a takeout-export-* bucket in {bucket_url}')
   bucket = bucket_match.group(1)
-  s = buildGAPIObject(API.STORAGE)
+  s = buildGAPIObject(API.STORAGEREAD)
   printGettingAllAccountEntities(Ent.FILE)
   pageMessage = getPageMessage()
   try:
     objects = callGAPIpages(s.objects(), 'list', 'items',
                             pageMessage=pageMessage,
                             throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
-                            bucket=bucket, projection='noAcl', fields='nextPageToken,items(name,id,md5Hash)')
+                            bucket=bucket, projection='noAcl', fields='nextPageToken,items(name,md5Hash)')
   except GAPI.notFound:
     entityDoesNotExistExit(Ent.CLOUD_STORAGE_BUCKET, bucket)
   except GAPI.forbidden as e:
@@ -35214,8 +35297,40 @@ def doDownloadCloudStorageBucket():
     i += 1
     printGettingEntityItem(Ent.FILE, s_object['name'], i, count)
     expectedMd5 = base64.b64decode(s_object['md5Hash']).hex()
-    _getCloudStorageObject(s, bucket, s_object['name'],
-                           local_file=os.path.join(targetFolder, s_object['name']), expectedMd5=expectedMd5)
+    _getCloudStorageObject(s, bucket, s_object['name'], os.path.join(targetFolder, s_object['name']),
+                           expectedMd5=expectedMd5)
+
+# gam download storagefile <StorageBucketObjectName>
+#	[targetfolder <FilePath>] [overwrite [<Boolean>]]
+def doDownloadCloudStorageFile():
+  bucket, s_object, bucketObject = getBucketObjectName()
+  targetFolder = GC.Values[GC.DRIVE_DIR]
+  overwrite = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'targetfolder':
+      targetFolder = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+      if not os.path.isdir(targetFolder):
+        os.makedirs(targetFolder)
+    elif myarg == 'overwrite':
+      overwrite = getBoolean()
+    else:
+      unknownArgumentExit()
+  filename, _ = uniqueFilename(targetFolder, s_object, overwrite)
+  s = buildGAPIObject(API.STORAGEREAD)
+  printGettingEntityItem(Ent.FILE, s_object)
+  f = openFile(filename, 'wb')
+  try:
+    request = s.objects().get_media(bucket=bucket, object=s_object)
+    downloader = googleapiclient.http.MediaIoBaseDownload(f, request)
+    done = False
+    while not done:
+      _, done = downloader.next_chunk()
+    entityModifierNewValueActionPerformed([Ent.CLOUD_STORAGE_FILE, s_object], Act.MODIFIER_TO, filename)
+    closeFile(f, True)
+  except googleapiclient.http.HttpError as e:
+    mg = HTTP_ERROR_PATTERN.match(str(e))
+    entityActionFailedWarning([Ent.CLOUD_STORAGE_FILE, bucketObject], mg.group(1) if mg else str(e))
 
 def formatVaultNameId(vaultName, vaultId):
   return f'{vaultName}({vaultId})'
@@ -35811,7 +35926,7 @@ def doDownloadVaultExport():
       stderrWarningMsg(e)
 
   v = buildGAPIObject(API.VAULT)
-  s = buildGAPIObject(API.STORAGE)
+  s = buildGAPIObject(API.STORAGEREAD)
   verifyFiles = extractFiles = True
   targetFolder = GC.Values[GC.DRIVE_DIR]
   targetName = None
@@ -35884,7 +35999,7 @@ def doDownloadVaultExport():
     if ((bucketMatchPattern and not bucketMatchPattern.match(bucket)) or
         (objectMatchPattern and not objectMatchPattern.match(s_object))):
       continue
-    filename = os.path.join(targetFolder, sanitize_filename(s_object, '-'))
+    filename = os.path.join(targetFolder, cleanFilename(s_object))
     if zipToStdout and not ZIP_EXTENSION_PATTERN.match(filename):
       continue
     if targetName:
@@ -35902,12 +36017,12 @@ def doDownloadVaultExport():
           filename = f"{targetName}-{extCounts[s_objectExtension]}"
       else:
         filename = targetName.replace('#objectname#', s_object).replace('#filename#', s_objectFilename).replace('#extension#', s_objectExtension)
-      filename = os.path.join(targetFolder, sanitize_filename(filename, '-'))
+      filename = os.path.join(targetFolder, cleanFilename(filename))
     Act.Set(Act.DOWNLOAD)
     if not zipToStdout:
       performAction(Ent.CLOUD_STORAGE_FILE, s_object, j, jcount)
     Ind.Increment()
-    _getCloudStorageObject(s, bucket, s_object, local_file=filename,
+    _getCloudStorageObject(s, bucket, s_object, filename,
                            expectedMd5=s_file['md5Hash'] if verifyFiles else None,
                            zipToStdout=zipToStdout, j=j, jcount=jcount)
     if extractFiles and ZIP_EXTENSION_PATTERN.match(filename):
@@ -37595,8 +37710,7 @@ def printUserSiteActivity(users):
 def doPrintDomainSiteActivity():
   _printSiteActivity([GC.Values[GC.DOMAIN]], Ent.DOMAIN)
 
-# <FileName> [charset <String>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-#	[keyfield <FieldName>] [datafield <FieldName>]
+# <CSVFileInput> [keyfield <FieldName>] [datafield <FieldName>]
 def _getGroupOrgUnitMap():
 
   def getKeyFieldInfo(keyword, defaultField):
@@ -38386,11 +38500,12 @@ def createUserAddAliases(cd, user, aliasList, i, count):
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 #	[alias|aliases <EmailAddressList>]
 #	[license <SKUID> [product|productid <ProductID>]]
-#	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
-#	    [from <EmailAddress>]
-#	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
-#	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
-#	(replace <Tag> <String>)*
+#	[notify <EmailAddressList>
+#	    [subject <String>]
+#	    [notifypassword <String>]
+#	    [from <EmailAaddress>]
+#	    [<NotifyMessageContent>]
+#	    (replace <Tag> <UserReplacement>)*]
 #	[lograndompassword <FileName>] [ignorenullpassword]
 #	[verifynotinvitable]
 def doCreateUser():
@@ -38462,18 +38577,18 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 
 # gam <UserTypeEntity> update user <UserAttribute>* [noactionifalias]
 #	[updateprimaryemail <RegularExpression> <EmailReplacement>]
-#	[updateoufromgroup <FileName> [charset <String>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>]
-#	    [keyfield <FieldName>] [datafield <FieldName>]]
+#	[updateoufromgroup <CSVFileInput> [keyfield <FieldName>] [datafield <FieldName>]]
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 #	[createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 #	[alias|aliases <EmailAddressList>]
-#	[notify <EmailAddressList>] [subject <String>] [notifypassword <String>]
-#	    [from <EmailAddress>]
-#	    [(message|htmlmessage <String>)|(file|htmlfile <FileName> [charset <CharSet>])|
-#	     (gdoc|ghtml <UserGoogleDoc>)] [html [<Boolean>]]
+#	[notify <EmailAddressList>
+#	    [subject <String>]
+#	    [notifypassword <String>]
+#	    [from <EmailAaddress>]
+#	    [<NotifyMessageContent>]
+#	    (replace <Tag> <UserReplacement>)*]
 #	[notifyonupdate [<Boolean>]]
-#	(replace <Tag> <String>)*
 #	[lograndompassword <FileName>] [ignorenullpassword]
 #	[verifynotinvitable]
 def updateUsers(entityList):
@@ -45496,7 +45611,7 @@ def emptyCalendarTrash(users):
 
 # gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
 #	[<EventNotificationAttribute>] [splitupdate] [doit]
-#	(csv <FileName>|(gsheet <UserGoogleSheet>))*
+#	(<CSVFileSelector>)
 #	(delete <EmailAddress>)*
 #	(deleteentity <EmailAddressEntity>)*
 #	(add <EmailAddress>)*
@@ -45522,7 +45637,7 @@ def updateCalendarAttendees(users):
   errors = 0
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'csv':
+    if myarg in {'csv', 'csvfile'}:
       errors = 0
       f, csvFile, _ = openCSVFileReader(getString(Cmd.OB_FILE_NAME), fieldnames=['addr', 'op', 'optional', 'status'])
       for row in csvFile:
@@ -46865,7 +46980,7 @@ CONSOLIDATION_GROUPING_STRATEGY_CHOICE_MAP = {'driveui': 'legacy', 'legacy': 'le
 #	 yesterday|today|thismonth|(previousmonths <Integer>)]
 #	[action|actions [not] <DriveActivityActionList>]
 #	[consolidationstrategy legacy|none]
-#	[idmapfile <FileName>|(gsheet <UserGoogleSheet>) [charset <String>] [columndelimiter <Character>] [quotechar <Character>]]
+#	[idmapfile <CSVFileInput> endcsv]
 #	[formatjson [quotechar <Character>]]
 def printDriveActivity(users):
   def _getUserInfo(userId):
@@ -53346,16 +53461,7 @@ def getDriveFile(users):
           if targetStdout:
             filename = 'stdout'
           else:
-            safe_file_title = targetName or cleanFilename(result['name'])
-            filename = os.path.join(targetFolder, safe_file_title)
-            y = 0
-            while True:
-              if filename.lower()[-len(extension):] != extension.lower():
-                filename += extension
-              if overwrite or not os.path.isfile(filename):
-                break
-              y += 1
-              filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
+            filename, _ = uniqueFilename(targetFolder, targetName or cleanFilename(result['name']), overwrite, extension)
           spreadsheetUrl = None
           f = None
           try:
@@ -53490,14 +53596,7 @@ def getGoogleDocument(users):
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, docName],
                                           Msg.INVALID_MIMETYPE.format(result['mimeType'], MIMETYPE_GA_DOCUMENT), j, jcount)
           continue
-        safe_file_title = targetName or cleanFilename(result['name'])
-        filename = os.path.join(targetFolder, safe_file_title)
-        y = 0
-        while True:
-          if overwrite or not os.path.isfile(filename):
-            break
-          y += 1
-          filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
+        filename, _ = uniqueFilename(targetFolder, targetName or cleanFilename(docName), overwrite)
         result = callGAPI(docs.documents(), 'get',
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
                           documentId=fileId, suggestionsViewMode=suggestionsViewMode)
@@ -61782,9 +61881,8 @@ def _draftImportInsertMessage(users, operation):
 
 # gam <UserTypeEntity> draft message
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
-#	(textmessage|message <String>)|(textfile|file|rawfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-#	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
+#	<MessageContent> (replace <Tag> <UserReplacement>)*
+#	(attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 def draftMessage(users):
   _draftImportInsertMessage(users, 'draft')
@@ -61792,9 +61890,8 @@ def draftMessage(users):
 # gam <UserTypeEntity> import message
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 #	(addlabel <LabelName>)* [labels <LabelNameList>]
-#	(textmessage|message <String>)|(textfile|file|rawfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-#	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
+#	<MessageContent> (replace <Tag> <UserReplacement>)*
+#	(attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 #	[deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 def importMessage(users):
@@ -61803,9 +61900,8 @@ def importMessage(users):
 # gam <UserTypeEntity> insert message
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 #	(addlabel <LabelName>)* [labels <LabelNameList>]
-#	(textmessage|message <String>)|(textfile|file|rawfile <FileName> [charset <CharSet>])|(gdoc <UserGoogleDoc>)
-#	(htmlmessage <String>)|(htmlfile <FileName> [charset <CharSet>])|(ghtml <UserGoogleDoc>)
-#	(replace <Tag> <String>)* (attach <FileName> [charset <CharSet>])*
+#	<MessageContent> (replace <Tag> <UserReplacement>)*
+#	(attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 #	[deleted [<Boolean>]]
 def insertMessage(users):
@@ -61879,14 +61975,7 @@ def printShowMessagesThreads(users, entityType):
                         printKeyValueList(['mimeType', part['mimeType']])
                       Ind.Decrement()
                     if save_attachments:
-                      safe_file_title = cleanFilename(attachmentName)
-                      filename = os.path.join(targetFolder, safe_file_title)
-                      y = 0
-                      while True:
-                        if overwrite or not os.path.isfile(filename):
-                          break
-                        y += 1
-                        filename = os.path.join(targetFolder, f'({y})-{safe_file_title}')
+                      filename, _ = uniqueFilename(targetFolder, cleanFilename(attachmentName), overwrite)
                       action = Act.Get()
                       Act.Set(Act.DOWNLOAD)
                       status, e = writeFileReturnError(filename, base64.urlsafe_b64decode(str(result['data'])), mode='wb')
@@ -63893,15 +63982,13 @@ SMTPMSA_SECURITY_MODES = ['none', 'ssl', 'starttls']
 SMTPMSA_REQUIRED_FIELDS = ['host', 'port', 'username', 'password']
 
 # gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
-#	[signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
-#	    (replace <Tag> <String>)*]
+#	[<SendAsContent> (replace <Tag> <UserReplacement>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 #	[smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
 #	 smtpmsa.username <UserName> smtpmsa.password <Password>
 #	 [smtpmsa.securitymode none|ssl|starttls]]
 # gam <UserTypeEntity> update sendas <EmailAddress> [name <String>]
-#	[signature|sig|htmlsig <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
-#	    (replace <Tag> <String>)*]
+#	[<SendAsContent> (replace <Tag> <UserReplacement>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 def createUpdateSendAs(users):
   updateCmd = Act.Get() == Act.UPDATE
@@ -64372,7 +64459,7 @@ def printShowSmimes(users):
     csvPF.writeCSVfile('S/MIME')
 
 # gam <UserTypeEntity> signature|sig
-#	<String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)
+#	<SignatureContent>
 #	(replace <Tag> <String>)*
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 #	[name <String>]
@@ -64467,8 +64554,7 @@ def _showVacation(user, i, count, result, showDisabled, sigReplyFormat):
   Ind.Decrement()
 
 # gam <UserTypeEntity> vacation <Boolean> subject <String>
-#	[message|htmlmessage <String>|(file|htmlfile <FileName> [charset <CharSet>])|(gdoc|ghtml <UserGoogleDoc>)]
-#	(replace <Tag> <String>)*
+#	[<VacationMessageContent> (replace <Tag> <UserReplacement>)*]
 #	[html [<Boolean>]] [contactsonly [<Boolean>]] [domainonly [<Boolean>]]
 #	[start|startdate <Date>|Started] [end|enddate <Date>|NotSpecified]
 def setVacation(users):
@@ -64723,10 +64809,7 @@ def _showNote(note, j=0, jcount=0, FJQC=None, compact=False):
   Ind.Decrement()
 
 # gam <UserTypeEntity> create note [title <String>]
-#	((text <String>)|
-#        (textfile <FileName> [charset <CharSet>])|
-#	 (gdoc <UserGoogleDoc>)|
-#	 <JSONData)
+#	<NoteContent>
 #       [missingtextvalue <String>]
 #	[copyacls [copyowneraswriter]
 #	[compact|formatjson|nodetails]
@@ -65078,15 +65161,7 @@ def getNoteAttachments(users):
             entityActionNotPerformedWarning(entityValueList, Msg.MIMETYPE_NOT_PRESENT_IN_ATTACHMENT, k, kcount)
             continue
           mimeType = mimeTypes[0]
-          safe_file_title = f"{targetName or cleanFilename(title)}-{k}{MIMETYPE_EXTENSION_MAP.get(mimeType, '')}"
-          filename = safe_file_title
-          y = 0
-          while True:
-            localFilename = os.path.join(targetFolder, filename)
-            if overwrite or not os.path.isfile(localFilename):
-              break
-            y += 1
-            filename = f'({y})-{safe_file_title}'
+          localFilename, filename = uniqueFilename(targetFolder, f"{targetName or cleanFileName(title)}-{k}{MIMETYPE_EXTENSION_MAP.get(mimeType, '')}", overwrite)
           request = keep.media().download(name=attachment['name'], mimeType=mimeType)
           f = openFile(localFilename, 'wb', continueOnError=True)
           if f is None:
@@ -66250,6 +66325,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
   'download':
     (Act.DOWNLOAD,
      {Cmd.ARG_STORAGEBUCKET:	doDownloadCloudStorageBucket,
+      Cmd.ARG_STORAGEFILE:	doDownloadCloudStorageFile,
       Cmd.ARG_VAULTEXPORT:	doDownloadVaultExport,
      }
     ),
@@ -66738,6 +66814,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_SITEACLS:		Cmd.ARG_SITEACL,
   Cmd.ARG_SITES:		Cmd.ARG_SITE,
   Cmd.ARG_STORAGEBUCKETS:	Cmd.ARG_STORAGEBUCKET,
+  Cmd.ARG_STORAGEFILES:		Cmd.ARG_STORAGEFILE,
   Cmd.ARG_SVCACCTS:		Cmd.ARG_SVCACCT,
   Cmd.ARG_TEAMDRIVE:		Cmd.ARG_SHAREDDRIVE,
   Cmd.ARG_TEAMDRIVES:		Cmd.ARG_SHAREDDRIVE,

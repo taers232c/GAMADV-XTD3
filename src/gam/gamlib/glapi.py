@@ -79,6 +79,7 @@ SHEETSTD = 'sheetstd'
 SITES = 'sites'
 SITEVERIFICATION = 'siteVerification'
 STORAGE = 'storage'
+STORAGEREAD = 'storageread'
 STORAGEWRITE = 'storagewrite'
 TASKS = 'tasks'
 VAULT = 'vault'
@@ -223,7 +224,8 @@ _INFO = {
   SHEETSTD: {'name': 'Sheets API - todrive', 'version': 'v4', 'v2discovery': True, 'mappedAPI': SHEETS},
   SITES: {'name': 'Sites API', 'version': 'v1', 'v2discovery': False},
   SITEVERIFICATION: {'name': 'Site Verification API', 'version': 'v1', 'v2discovery': True},
-  STORAGE: {'name': 'Cloud Storage API - Read', 'version': 'v1', 'v2discovery': True},
+  STORAGE: {'name': 'Cloud Storage API', 'version': 'v1', 'v2discovery': True},
+  STORAGEREAD: {'name': 'Cloud Storage API - Read', 'version': 'v1', 'v2discovery': True, 'mappedAPI': STORAGE},
   STORAGEWRITE: {'name': 'Cloud Storage API - Write', 'version': 'v1', 'v2discovery': True, 'mappedAPI': STORAGE},
   TASKS: {'name': 'Tasks API', 'version': 'v1', 'v2discovery': True},
   VAULT: {'name': 'Vault API', 'version': 'v1', 'v2discovery': True},
@@ -317,11 +319,11 @@ _CLIENT_SCOPES = [
    'api': CLOUDIDENTITY_USERINVITATIONS,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/cloud-identity.userinvitations'},
-  {'name': 'Cloud Storage (Vault/Takeout Download)',
-   'api': STORAGE,
+  {'name': 'Cloud Storage (Read, Vault/Takeout Download)',
+   'api': STORAGEREAD,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/devstorage.read_only'},
-  {'name': 'Cloud Storage (Vault/Takeout Copy)',
+  {'name': 'Cloud Storage (Write, Vault/Takeout Copy)',
    'api': STORAGEWRITE,
    'subscopes': [],
    'offByDefault': True,
