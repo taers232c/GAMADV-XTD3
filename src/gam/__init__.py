@@ -3052,9 +3052,9 @@ def getGSheetData():
 
 
 BUCKET_OBJECT_PATTERNS = [
-  {'pattern': re.compile(r'https://storage.(?:googleapis|cloud.google).com/(.+)/(.+)'), 'unquote': True},
-  {'pattern': re.compile(r'gs://(.+)/(.+)'), 'unquote': False},
-  {'pattern': re.compile(r'(.+)/(.+)'), 'unquote': False},
+  {'pattern': re.compile(r'https://storage.(?:googleapis|cloud.google).com/(.+?)/(.+)'), 'unquote': True},
+  {'pattern': re.compile(r'gs://(.+?)/(.+)'), 'unquote': False},
+  {'pattern': re.compile(r'(.+?)/(.+)'), 'unquote': False},
   ]
 
 def getBucketObjectName():
@@ -35318,6 +35318,9 @@ def doDownloadCloudStorageFile():
     else:
       unknownArgumentExit()
   filename, _ = uniqueFilename(targetFolder, s_object, overwrite)
+  filepath = os.path.dirname(filename)
+  if not os.path.exists(filepath):
+    os.makedirs(filepath)
   s = buildGAPIObject(API.STORAGEREAD)
   printGettingEntityItem(Ent.FILE, s_object)
   f = openFile(filename, 'wb')
