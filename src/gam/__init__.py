@@ -3051,20 +3051,21 @@ def getGSheetData():
     sys.exit(GM.Globals[GM.SYSEXITRC])
 
 
-HTTPS_BUCKET_OBJECT_PATTERN = re.compile(r'https://storage.cloud.google.com/(.+)/(.+)')
-GS_BUCKET_OBJECT_PATTERN = re.compile(r'gs://(.+)/(.+)')
-BUCKET_OBJECT_PATTERN = re.compile(r'(.+)/(.+)')
+BUCKET_OBJECT_PATTERNS = [
+  {'pattern': re.compile(r'https://storage.(?:googleapis|cloud.google).com/(.+)/(.+)'), 'unquote': True},
+  {'pattern': re.compile(r'gs://(.+)/(.+)'), 'unquote': False},
+  {'pattern': re.compile(r'(.+)/(.+)'), 'unquote': False},
+  ]
 
 def getBucketObjectName():
   uri = getString(Cmd.OB_STRING)
-  mg = re.search(HTTPS_BUCKET_OBJECT_PATTERN, uri)
-  if not mg:
-    mg = re.search(GS_BUCKET_OBJECT_PATTERN, uri)
-    if not mg:
-      mg = re.search(BUCKET_OBJECT_PATTERN, uri)
-      if not mg:
-        systemErrorExit(ACTION_NOT_PERFORMED_RC, f'Invalid <StorageBucketObjectName>: {uri}')
-  return (mg.group(1), mg.group(2), f'{mg.group(1)}/{mg.group(2)}')
+  for pattern in BUCKET_OBJECT_PATTERNS:
+    mg = re.search(pattern['pattern'], uri)
+    if mg:
+      bucket = mg.group(1)
+      s_object = mg.group(2) if not pattern['unquote'] else unquote(mg.group(2))
+      return (bucket, s_object, f'{bucket}/{s_object}')
+  systemErrorExit(ACTION_NOT_PERFORMED_RC, f'Invalid <StorageBucketObjectName>: {uri}')
 
 GCS_FORMAT_MIME_TYPES = {
   'gcscsv': MIMETYPE_TEXT_CSV,

@@ -6,6 +6,7 @@ Added the ability to read data from Google Cloud Storage bucket objects.
 <StorageObjectName> ::= <String>
 <StorageBucketObjectName> ::=
         https://storage.cloud.google.com/<StorageBucketName>/<StorageObjectName>|
+        https://storage.googleapis.com/<StorageBucketName>/<StorageObjectName>|
         gs://<StorageBucketName>/<StorageObjectName>|
         <StorageBucketName>/<StorageObjectName>
 ```

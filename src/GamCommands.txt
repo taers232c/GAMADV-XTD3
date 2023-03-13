@@ -138,78 +138,78 @@ If an item contains spaces, it should be surrounded by ".
         <String>
 <Locale> ::=
         ''|    #Not defined
-        ar_eg| #Arabic, Egypt
-        az_az| #Azerbaijani, Azerbaijan
-        be_by| #Belarusian, Belarus
-        bg_bg| #Bulgarian, Bulgaria
-        bn_in| #Bengali, India
-        ca_es| #Catalan, Spain
-        cs_cz| #Czech, Czech Republic
-        cy_gb| #Welsh, United Kingdom
-        da_dk| #Danish, Denmark
-        de_ch| #German, Switzerland
-        de_de| #German, Germany
-        el_gr| #Greek, Greece
-        en_au| #English, Australia
-        en_ca| #English, Canada
-        en_gb| #English, United Kingdom
-        en_ie| #English, Ireland
-        en_us| #English, U.S.A.
-        es_ar| #Spanish, Argentina
-        es_bo| #Spanish, Bolivia
-        es_cl| #Spanish, Chile
-        es_co| #Spanish, Colombia
-        es_ec| #Spanish, Ecuador
-        es_es| #Spanish, Spain
-        es_mx| #Spanish, Mexico
-        es_py| #Spanish, Paraguay
-        es_uy| #Spanish, Uruguay
-        es_ve| #Spanish, Venezuela
-        fi_fi| #Finnish, Finland
-        fil_ph| #Filipino, Philippines
-        fr_ca| #French, Canada
-        fr_fr| #French, France
-        gu_in| #Gujarati, India
-        hi_in| #Hindi, India
-        hr_hr| #Croatian, Croatia
-        hu_hu| #Hungarian, Hungary
-        hy_am| #Armenian, Armenia
-        in_id| #Indonesian, Indonesia
-        it_it| #Italian, Italy
-        iw_il| #Hebrew, Israel
-        ja_jp| #Japanese, Japan
-        ka_ge| #Georgian, Georgia
-        kk_kz| #Kazakh, Kazakhstan
-        kn_in| #Kannada, India
-        ko_kr| #Korean, Korea
-        lt_lt| #Lithuanian, Lithuania
-        lv_lv| #Latvian, Latvia
-        ml_in| #Malayalam, India
-        mn_mn| #Mongolian, Mongolia
-        mr_in| #Marathi, India
-        my_mn| #Burmese, Myanmar
-        nl_nl| #Dutch, Netherlands
-        nn_no| #Nynorsk, Norway
-        no_no| #Bokmal, Norway
-        pa_in| #Punjabi, India
-        pl_pl| #Polish, Poland
-        pt_br| #Portuguese, Brazil
-        pt_pt| #Portuguese, Portugal
-        ro_ro| #Romanian, Romania
-        ru_ru| #Russian, Russia
-        sk_sk| #Slovak, Slovakia
-        sl_si| #Slovenian, Slovenia
-        sr_rs| #Serbian, Serbia
-        sv_se| #Swedish, Sweden
-        ta_in| #Tamil, India
-        te_in| #Telugu, India
-        th_th| #Thai, Thailand
-        tr_tr| #Turkish, Turkey
-        uk_ua| #Ukrainian, Ukraine
-        vi_vn| #Vietnamese, Vietnam
-        zh_cn| #Simplified Chinese, China
-        zh_hk| #Traditional Chinese, Hong Kong SAR China
-        zh_tw  #Traditional Chinese, Taiwan
+        ar-eg| #Arabic, Egypt
+        az-az| #Azerbaijani, Azerbaijan
+        be-by| #Belarusian, Belarus
+        bg-bg| #Bulgarian, Bulgaria
+        bn-in| #Bengali, India
+        ca-es| #Catalan, Spain
+        cs-cz| #Czech, Czech Republic
+        cy-gb| #Welsh, United Kingdom
+        da-dk| #Danish, Denmark
+        de-ch| #German, Switzerland
+        de-de| #German, Germany
+        el-gr| #Greek, Greece
+        en-au| #English, Australia
+        en-ca| #English, Canada
+        en-gb| #English, United Kingdom
+        en-ie| #English, Ireland
+        en-us| #English, U.S.A.
+        es-ar| #Spanish, Argentina
+        es-bo| #Spanish, Bolivia
+        es-cl| #Spanish, Chile
+        es-co| #Spanish, Colombia
+        es-ec| #Spanish, Ecuador
+        es-es| #Spanish, Spain
+        es-mx| #Spanish, Mexico
+        es-py| #Spanish, Paraguay
+        es-uy| #Spanish, Uruguay
+        es-ve| #Spanish, Venezuela
+        fi-fi| #Finnish, Finland
+        fil-ph| #Filipino, Philippines
+        fr-ca| #French, Canada
+        fr-fr| #French, France
+        gu-in| #Gujarati, India
+        hi-in| #Hindi, India
+        hr-hr| #Croatian, Croatia
+        hu-hu| #Hungarian, Hungary
+        hy-am| #Armenian, Armenia
+        in-id| #Indonesian, Indonesia
+        it-it| #Italian, Italy
+        iw-il| #Hebrew, Israel
+        ja-jp| #Japanese, Japan
+        ka-ge| #Georgian, Georgia
+        kk-kz| #Kazakh, Kazakhstan
+        kn-in| #Kannada, India
+        ko-kr| #Korean, Korea
+        lt-lt| #Lithuanian, Lithuania
+        lv-lv| #Latvian, Latvia
+        ml-in| #Malayalam, India
+        mn-mn| #Mongolian, Mongolia
+        mr-in| #Marathi, India
+        my-mn| #Burmese, Myanmar
+        nl-nl| #Dutch, Netherlands
+        nn-no| #Nynorsk, Norway
+        no-no| #Bokmal, Norway
+        pa-in| #Punjabi, India
+        pl-pl| #Polish, Poland
+        pt-br| #Portuguese, Brazil
+        pt-pt| #Portuguese, Portugal
+        ro-ro| #Romanian, Romania
+        ru-ru| #Russian, Russia
+        sk-sk| #Slovak, Slovakia
+        sl-si| #Slovenian, Slovenia
+        sr-rs| #Serbian, Serbia
+        sv-se| #Swedish, Sweden
+        ta-in| #Tamil, India
+        te-in| #Telugu, India
+        th-th| #Thai, Thailand
+        tr-tr| #Turkish, Turkey
+        uk-ua| #Ukrainian, Ukraine
+        vi-vn| #Vietnamese, Vietnam
+        zh-cn| #Simplified Chinese, China
+        zh-hk| #Traditional Chinese, Hong Kong SAR China
+        zh-tw  #Traditional Chinese, Taiwan
 <MimeTypeShortcut> ::=
         gdoc|gdocument|
         gdrawing|
@@ -283,6 +283,7 @@ If an item contains spaces, it should be surrounded by ".
         voicepremier | gvpremier | googlevoicepremier | 1010330002 |
         voicestandard | gvstandard | googlevoicestandard | 1010330004 |
         voicestarter | gvstarter | googlevoicestarter | 1010330003 |
+        wsflw | workspacefrontline | workspacefrontlineworker | 1010020030 |
         wsbizplus | workspacebusinessplus | 1010020025 |
         wsbizplusarchived | workspacebusinessplusarchived | 1010340003 |
         wsbizstan | workspacebusinessstandard | 1010020028 |
@@ -343,7 +344,8 @@ If an item contains spaces, it should be surrounded by ".
 <BuildingID> ::= <String>|id:<String>
 <CAALevelName> ::= <String>
 <CalendarACLScope> ::=
-        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domain|default
+        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
+        domain:<DomainName>|domain|default
 <CalendarItem> ::= <EmailAddress>
 <GIGroupAlias> ::= <EmailAddress>
 <GIGroupItem> ::= <EmailAddress>|<UniqueID>|groups/<String>
@@ -461,7 +463,6 @@ If an item contains spaces, it should be surrounded by ".
 <Marker> ::= <String>
 <MatterItem> ::= <UniqueID>|<String>
 <MatterState> ::= open|closed|deleted
-<MaximumNumberOfSeats> ::= <Number>
 <MessageContent> ::=
         (message|textmessage|htmlmessage <String>)|
         (file|textfile|htmlfile <FileName> [charset <Charset>])|
@@ -552,7 +553,8 @@ If an item contains spaces, it should be surrounded by ".
         (gdoc|ghtml <UserGoogleDoc>)|
         (gcsdoc|gcshtml <StorageBucketObjectName>)
 <SiteACLScope> ::=
-        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|domain:<DomainName>|domain|default
+        <EmailAddress>|user:<EmailAddress>|group:<EmailAddress>|
+        domain:<DomainName>|domain|default
 <SiteItem> ::= [<DomainName>/]<SiteName>
 <S/MIMEID> ::= <String>
 <SMTPHostName> ::= <String>
@@ -905,6 +907,7 @@ Specify a collection of items by directly specifying them; the item type is dete
         csvfile <CSVFileInput>
                 (matchfield|skipfield <FieldName> <RegularExpression>)*
                 [delimiter <Character>]
+
 <CSVkmdSelector> ::=
         csvkmd ((<FileName>|
                  (gsheet <UserGoogleSheet>)|
