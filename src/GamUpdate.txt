@@ -1,3 +1,8 @@
+6.51.01
+
+Added option `nogcspath` to `gam download storagefile <StorageBucketObjectName>` that causes GAM
+to store the downloaded file directly into the target folder without any Google Cloud Storage path information.
+
 6.51.00
 
 Added the ability to read data from Google Cloud Storage bucket objects.

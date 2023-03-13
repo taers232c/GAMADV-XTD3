@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.51.00'
+__version__ = '6.51.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -35302,11 +35302,11 @@ def doDownloadCloudStorageBucket():
                            expectedMd5=expectedMd5)
 
 # gam download storagefile <StorageBucketObjectName>
-#	[targetfolder <FilePath>] [overwrite [<Boolean>]]
+#	[targetfolder <FilePath>] [overwrite [<Boolean>]] [nogcspath [Boolean>]]
 def doDownloadCloudStorageFile():
   bucket, s_object, bucketObject = getBucketObjectName()
   targetFolder = GC.Values[GC.DRIVE_DIR]
-  overwrite = False
+  overwrite = nogcspath = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'targetfolder':
@@ -35315,9 +35315,15 @@ def doDownloadCloudStorageFile():
         os.makedirs(targetFolder)
     elif myarg == 'overwrite':
       overwrite = getBoolean()
+    elif myarg == 'nogcspath':
+      nogcspath = getBoolean()
     else:
       unknownArgumentExit()
-  filename, _ = uniqueFilename(targetFolder, s_object, overwrite)
+  s_obpaths = s_object.rsplit('/', 1)
+  s_obfile = s_obpaths[-1]
+  if len(s_obpaths) > 1 and not nogcspath:
+    targetFolder = os.path.join(targetFolder, s_obpaths[0])
+  filename, _ = uniqueFilename(targetFolder, s_obfile, overwrite)
   filepath = os.path.dirname(filename)
   if not os.path.exists(filepath):
     os.makedirs(filepath)
@@ -65165,7 +65171,7 @@ def getNoteAttachments(users):
             entityActionNotPerformedWarning(entityValueList, Msg.MIMETYPE_NOT_PRESENT_IN_ATTACHMENT, k, kcount)
             continue
           mimeType = mimeTypes[0]
-          localFilename, filename = uniqueFilename(targetFolder, f"{targetName or cleanFileName(title)}-{k}{MIMETYPE_EXTENSION_MAP.get(mimeType, '')}", overwrite)
+          localFilename, filename = uniqueFilename(targetFolder, f"{targetName or cleanFilename(title)}-{k}{MIMETYPE_EXTENSION_MAP.get(mimeType, '')}", overwrite)
           request = keep.media().download(name=attachment['name'], mimeType=mimeType)
           f = openFile(localFilename, 'wb', continueOnError=True)
           if f is None:
