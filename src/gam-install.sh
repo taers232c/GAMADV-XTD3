@@ -224,6 +224,11 @@ fi
 $pycmd -V >/dev/null 2>&1
 rc=$?
 if (( $rc != 0 )); then
+  pycmd="/usr/bin/python3"
+fi
+$pycmd -V >/dev/null 2>&1
+rc=$?
+if (( $rc != 0 )); then
   pycmd="python2"
 fi
 $pycmd -V >/dev/null 2>&1
