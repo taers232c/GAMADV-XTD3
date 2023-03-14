@@ -754,50 +754,65 @@ Specify a collection of ChromeOS devices by directly specifying them or by speci
         (cros_ous_and_children_queries <OrgUnitList> <QueryCrOSList>)|
         (crosquery <QueryCrOS>)|
         (crosqueries <QueryCrOSList>)|
-        (crosfile|crosfile_sn
-                (((<FileName>|
-                 (gdoc <UserGoogleDoc>)
-                 (gcsdoc <StorageBucketObjectName>))
-               [charset <Charset>] [delimiter <Character>])))|
-        (croscsvfile|croscsvfile_sn
-                (((<FileName>(:<FieldName>)+)|
-                   (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
-                   (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
-                   (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
-                   (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
-                  [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-                [fields <FieldNameList>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [delimiter <Character>])|
-        (datafile cros|cros_sn|cros_ous|cros_ous_and_children
-                ((<FileName>|
-                  (gsheet <UserGoogleSheet>)|
-                  (gdoc <UserGoogleDoc>)|
-                  (gcscsv <StorageBucketObjectName>)|
-                  (gcsdoc <StorageBucketObjectName>))
-                 [charset <Charset>] [delimiter <Character>]))|
-        (csvdatafile cros|cros_sn|cros_ous|cros_ous_and_children
-                (((<FileName>(:<FieldName>)+)|
-                  (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
-                  (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
-                  (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
-                  (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
-                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-                [fields <FieldNameList>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [delimiter <Character>])|
-        (csvkmd cros|cros_sn|cros_ous|cros_ous_and_children
-                ((<FileName>|
-                  (gsheet <UserGoogleSheet>)|
-                  (gdoc <UserGoogleDoc>)|
-                  (gcscsv <StorageBucketObjectName>)|
-                  (gcsdoc <StorageBucketObjectName>))
-                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-                 [fields <FieldNameList>]
-                (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])+
-                (subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>])
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                (datafield <FieldName>(:<FieldName>)* [delimiter <Character>])*)|
+        (crosfile
+            ((<FileName> [charset <Charset>])|
+             (gdoc <UserGoogleDoc>)|
+             (gcsdoc <StorageBucketObjectName>))
+            [delimiter <Character>])|
+        (crosfile_sn
+            ((<FileName> [charset <Charset>])|
+             (gdoc <UserGoogleDoc>)|
+             (gcsdoc <StorageBucketObjectName>))
+            [delimiter <Character>])|
+        (croscsvfile
+            ((<FileName>(:<FieldName>)+ [charset <Charset>] )|
+             (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+             (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+             (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+             (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+            [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
+            [endcsv|(fields <FieldNameList>)]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [delimiter <Character>])|
+        (croscsvfile_sn
+            ((<FileName>(:<FieldName>)+ [charset <Charset>] )|
+             (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+             (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+             (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+             (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+            [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
+            [endcsv|(fields <FieldNameList>)]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [delimiter <Character>])|
+        (datafile
+            cros|cros_sn|cros_ous|cros_ous_and_children
+            ((<FileName> [charset <Charset>])|
+              (gdoc <UserGoogleDoc>)|
+              (gcsdoc <StorageBucketObjectName>))
+             [delimiter <Character>])|
+        (csvdatafile
+            cros|cros_sn|cros_ous|cros_ous_and_children
+            ((<FileName>(:<FieldName>)+ [charset <Charset>] )|
+              (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+              (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+              (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+              (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+            [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
+            [endcsv|(fields <FieldNameList>)]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [delimiter <Character>])|
+        (csvkmd
+            cros|cros_sn|cros_ous|cros_ous_and_children
+            ((<FileName>|
+              (gsheet <UserGoogleSheet>)|
+              (gdoc <UserGoogleDoc>)|
+              (gcscsv <StorageBucketObjectName>)|
+              (gcsdoc <StorageBucketObjectName>))
+             [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>])
+            keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+            subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [datafield <FieldName>(:<FieldName>)* [delimiter <Character>]])
         (croscsvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Users
@@ -831,57 +846,55 @@ Specify a collection of Users by directly specifying them or by specifiying item
         (query <QueryUser>)|
         (queries <QueryUserList>)|
         (file
-                (((<FileName>|
-                 (gdoc <UserGoogleDoc>)
-                 (gcsdoc <StorageBucketObjectName>))
-               [charset <Charset>] [delimiter <Character>])))|
+            ((<FileName> [charset <Charset>])|
+             (gdoc <UserGoogleDoc>)|
+             (gcsdoc <StorageBucketObjectName>))
+            [delimiter <Character>])|
         (csvfile
-                (((<FileName>(:<FieldName>)+)|
-                   (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
-                   (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
-                   (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
-                   (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
-                  [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-                [fields <FieldNameList>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [delimiter <Character>])|
-        (datafile users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
-                ous_and_children|ous_and_children_ns|ous_and_children_susp|
-                courseparticipants|students|teachers
-                ((<FileName>|
-                  (gsheet <UserGoogleSheet>)|
-                  (gdoc <UserGoogleDoc>)|
-                  (gcscsv <StorageBucketObjectName>)|
-                  (gcsdoc <StorageBucketObjectName>))
-                 [charset <Charset>] [delimiter <Character>]))|
-        (csvdatafile users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
-                ous_and_children|ous_and_children_ns|ous_and_children_susp|
-                courseparticipants|students|teachers
-                (((<FileName>(:<FieldName>)+)|
-                  (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
-                  (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
-                  (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
-                  (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
-                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-                [fields <FieldNameList>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [delimiter <Character>])|
-        (csvkmd users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
-                ous_and_children|ous_and_children_ns|ous_and_children_susp|
-                courseparticipants|students|teachers
-                ((<FileName>|
-                  (gsheet <UserGoogleSheet>)|
-                  (gdoc <UserGoogleDoc>)|
-                  (gcscsv <StorageBucketObjectName>)|
-                  (gcsdoc <StorageBucketObjectName>))
-                 [charset <Charset>] [warnifnodata] [columndelimiter <Character>] [quotechar <Character>])
-                [fields <FieldNameList>]
-                (keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>]
-                        [delimiter <Character>])+
-                (subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>]
-                        [delimiter <Character>])*
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                (datafield <FieldName>(:<FieldName>)* [delimiter <Character>])*)|
+            ((<FileName>(:<FieldName>)+ [charset <Charset>] )|
+             (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+             (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+             (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+             (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+            [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
+            [endcsv|(fields <FieldNameList>)]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [delimiter <Character>])|
+        (datafile
+            users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
+            ous_and_children|ous_and_children_ns|ous_and_children_susp|
+            courseparticipants|students|teachers
+            ((<FileName> [charset <Charset>])|
+              (gdoc <UserGoogleDoc>)|
+              (gcsdoc <StorageBucketObjectName>))
+             [delimiter <Character>])|
+        (csvdatafile
+            users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
+            ous_and_children|ous_and_children_ns|ous_and_children_susp|
+            courseparticipants|students|teachers
+            ((<FileName>(:<FieldName>)+ [charset <Charset>] )|
+              (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+              (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+              (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+              (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+            [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
+            [endcsv|(fields <FieldNameList>)]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [delimiter <Character>])|
+        (csvkmd
+            users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
+            ous_and_children|ous_and_children_ns|ous_and_children_susp|
+            courseparticipants|students|teachers
+            ((<FileName>|
+              (gsheet <UserGoogleSheet>)|
+              (gdoc <UserGoogleDoc>)|
+              (gcscsv <StorageBucketObjectName>)|
+              (gcsdoc <StorageBucketObjectName>))
+             [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>])
+            keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+            subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [datafield <FieldName>(:<FieldName>)* [delimiter <Character>]])
         (csvdata <FieldName>(:<FieldName>*))
 
 ## Collections of Items
@@ -904,27 +917,32 @@ Specify a collection of items by directly specifying them; the item type is dete
              [delimiter <Character>]
 
 <CSVFileSelector> ::=
-        csvfile ((<FileName>(:<FieldName>)+ [charset <Charset>] )|
-                 (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
-                 (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
-                 (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
-                 (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
-                [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
-                [endcsv|(fields <FieldNameList>)]
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [delimiter <Character>]
+        csvfile
+            ((<FileName>(:<FieldName>)+ [charset <Charset>] )|
+             (gsheet(:<FieldName>)+ <UserGoogleSheet>)|
+             (gdoc(:<FieldName>)+ <UserGoogleDoc>)|
+             (gcscsv(:<FieldName>)+ <StorageBucketObjectName>)|
+             (gcsdoc(:<FieldName>)+ <StorageBucketObjectName>))
+            [warnifnodata] [columndelimiter <Character>] [quotechar <Character>]
+            [endcsv|(fields <FieldNameList>)]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [delimiter <Character>]
 
 <CSVkmdSelector> ::=
-        csvkmd ((<FileName>|
-                 (gsheet <UserGoogleSheet>)|
-                 (gdoc <UserGoogleDoc>)|
-                 (gcscsv <StorageBucketObjectName>)|
-                 (gcsdoc <StorageBucketObjectName>))
-                 [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>])
-                keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-                subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
-                (matchfield|skipfield <FieldName> <RegularExpression>)*
-                [datafield <FieldName>(:<FieldName>)* [delimiter <Character>]]
+        csvkmd
+            users|groups|groups_ns|groups_susp|groups_inde|ous|ous_ns|ous_susp|
+            ous_and_children|ous_and_children_ns|ous_and_children_susp|
+            courseparticipants|students|teachers
+            ((<FileName>|
+              (gsheet <UserGoogleSheet>)|
+              (gdoc <UserGoogleDoc>)|
+              (gcscsv <StorageBucketObjectName>)|
+              (gcsdoc <StorageBucketObjectName>))
+             [charset <Charset>] [columndelimiter <Character>] [quotechar <Character>] [fields <FieldNameList>])
+            keyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+            subkeyfield <FieldName> [keypattern <RegularExpression>] [keyvalue <String>] [delimiter <Character>]
+            (matchfield|skipfield <FieldName> <RegularExpression>)*
+            [datafield <FieldName>(:<FieldName>)* [delimiter <Character>]]
 <CSVSubkeySelector> ::= csvsubkey <FieldName>
 <CSVDataSelector> ::= csvdata <FieldName>(:<FieldName>)*
 

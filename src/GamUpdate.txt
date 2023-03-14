@@ -1,4 +1,9 @@
+6.51.03
+
+* Upgraded to OpenSSL 3.1.0 where possible.
+
 6.51.02
+
 Added support for `externalid`, `im`, `posix`, `relation`, `sshkeys` and `website` subfields in `gam <UserTypeEntity> signature` and
 `gam <UserTypeEntity> create|update sendas` option `replace <Tag> <UserReplacement>`.
 
