@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.51.01'
+__version__ = '6.51.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13258,9 +13258,24 @@ TAG_EMAIL_ARGUMENT_TO_FIELD_MAP = {
   'username': 'username',
   }
 
+TAG_EXTERNALID_ARGUMENT_TO_FIELD_MAP = {
+  'customtype': 'customType',
+  'type': 'type',
+  'value': 'value',
+  }
+
 TAG_GENDER_ARGUMENT_TO_FIELD_MAP = {
   'addressmeas': 'addressMeAs',
   'customgender': 'customGender',
+  'type': 'type',
+  }
+
+TAG_IM_ARGUMENT_TO_FIELD_MAP = {
+  'customprotocol': 'customProtocol',
+  'customtype': 'customType',
+  'im': 'im',
+  'protocol': 'protocol',
+  'primary': 'primary',
   'type': 'type',
   }
 
@@ -13316,11 +13331,47 @@ TAG_PHONE_ARGUMENT_TO_FIELD_MAP = {
   'value': 'value',
   }
 
+TAG_POSIXACCOUNT_ARGUMENT_TO_FIELD_MAP = {
+  'accountid': 'accountId',
+  'gecos': 'gecos',
+  'gid': 'gid',
+  'homedirectory': 'homeDirectory',
+  'operatingsystemtype': 'operatingSystemType',
+  'primary': 'primary',
+  'shell': 'shell',
+  'systemid': 'systemId',
+  'uid': 'uid',
+  'username': 'username',
+  }
+
+TAG_RELATION_ARGUMENT_TO_FIELD_MAP = {
+  'customtype': 'customType',
+  'type': 'type',
+  'value': 'value',
+  }
+
+TAG_SSHPUBLICKEY_ARGUMENT_TO_FIELD_MAP = {
+  'expirationtimeusec': 'expirationTimeUsec',
+  'fingerprint': 'fingerprint',
+  'key': 'key',
+  }
+
+TAG_WEBSITE_ARGUMENT_TO_FIELD_MAP = {
+  'customtype': 'customType',
+  'primary': 'primary',
+  'type': 'type',
+  'value': 'value',
+  }
+
 TAG_FIELD_SUBFIELD_CHOICE_MAP = {
   'address': ('addresses', TAG_ADDRESS_ARGUMENT_TO_FIELD_MAP),
   'addresses': ('addresses', TAG_ADDRESS_ARGUMENT_TO_FIELD_MAP),
   'email': ('primaryEmail', TAG_EMAIL_ARGUMENT_TO_FIELD_MAP),
+  'externalid': ('externalIds', TAG_EXTERNALID_ARGUMENT_TO_FIELD_MAP),
+  'externalids': ('externalIds', TAG_EXTERNALID_ARGUMENT_TO_FIELD_MAP),
   'gender': ('gender', TAG_GENDER_ARGUMENT_TO_FIELD_MAP),
+  'im': ('ims', TAG_IM_ARGUMENT_TO_FIELD_MAP),
+  'ims': ('ims', TAG_IM_ARGUMENT_TO_FIELD_MAP),
   'keyword': ('keywords', TAG_KEYWORD_ARGUMENT_TO_FIELD_MAP),
   'keywords': ('keywords', TAG_KEYWORD_ARGUMENT_TO_FIELD_MAP),
   'location': ('locations', TAG_LOCATION_ARGUMENT_TO_FIELD_MAP),
@@ -13332,6 +13383,14 @@ TAG_FIELD_SUBFIELD_CHOICE_MAP = {
   'otheremails': ('emails', TAG_OTHEREMAIL_ARGUMENT_TO_FIELD_MAP),
   'phone': ('phones', TAG_PHONE_ARGUMENT_TO_FIELD_MAP),
   'phones': ('phones', TAG_PHONE_ARGUMENT_TO_FIELD_MAP),
+  'posix': ('posixAccounts', TAG_POSIXACCOUNT_ARGUMENT_TO_FIELD_MAP),
+  'posixaccounts': ('posixAccounts', TAG_POSIXACCOUNT_ARGUMENT_TO_FIELD_MAP),
+  'relation': ('relations', TAG_RELATION_ARGUMENT_TO_FIELD_MAP),
+  'relations': ('relations', TAG_RELATION_ARGUMENT_TO_FIELD_MAP),
+  'sshkeys': ('sshPublicKeys', TAG_SSHPUBLICKEY_ARGUMENT_TO_FIELD_MAP),
+  'sshpublickeys': ('sshPublicKeys', TAG_SSHPUBLICKEY_ARGUMENT_TO_FIELD_MAP),
+  'website': ('websites', TAG_WEBSITE_ARGUMENT_TO_FIELD_MAP),
+  'websites': ('websites', TAG_WEBSITE_ARGUMENT_TO_FIELD_MAP),
   }
 
 def _initTagReplacements():
@@ -13437,7 +13496,7 @@ def _getTagReplacementFieldValues(user, i, count, tagReplacements, results=None)
         else:
           tag['value'] = user
       else:
-        if field in ['addresses', 'emails', 'organizations', 'phones']:
+        if field in ['addresses', 'emails', 'ims', 'organizations', 'phones', 'posixAccounts', 'websites']:
           items = results.get(field, [])
           if not tag['matchfield']:
             for data in items:
@@ -13448,6 +13507,19 @@ def _getTagReplacementFieldValues(user, i, count, tagReplacements, results=None)
                 data = items[0]
               else:
                 data = {}
+          else:
+            for data in items:
+              if data.get(tag['matchfield'], '') == tag['matchvalue']:
+                break
+            else:
+              data = {}
+        elif field in ['externalIds', 'relations', 'sshPublicKeys']:
+          items = results.get(field, [])
+          if not tag['matchfield']:
+            if items:
+              data = items[0]
+            else:
+              data = {}
           else:
             for data in items:
               if data.get(tag['matchfield'], '') == tag['matchvalue']:

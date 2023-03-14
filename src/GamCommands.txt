@@ -4547,10 +4547,18 @@ gam <UserTypeEntity> show teamdriveacls
         domain|
         primaryemail|
         username
+<ExternalIdSubfieldName> ::=
+        customtype|
+        type|
+        value
 <GenderSubfieldName> ::=
         addressmeas|
         customgender|
         type
+<IMSubfieldName> ::=
+        customtype|
+        type|
+        value
 <KeywordSubfieldName> ::=
         customtype|
         type|
@@ -4591,23 +4599,59 @@ gam <UserTypeEntity> show teamdriveacls
         primary|
         type|
         value
+<PosixSubfieldName> ::=
+        accountid|
+        gecos|
+        gid|
+        homedirectory|
+        operatingsystemtype|
+        primary|
+        shell|
+        systemid|
+        uid|
+        username
+<RelationSubfieldName> ::=
+        customtype|
+        type|
+        value
+<SSHkeysSubfieldName> ::=
+        expirationtimeusec|
+        fingerprint|
+        key
+<WebsiteSubfieldName> ::=
+        customtype|
+        primary|
+        type|
+        value
 <UserReplacementFieldSubfield> ::=
         address.<AddressSubfieldName>|
         email.<EmailSubfieldName>|
+        externalid.<ExternalIdSubfieldName>|
         gender.<GenderSubfieldName>|
+        im.<IMSubfieldName>|
         keyword.<KeywordSubfieldName>|
         location.<LocationSubfieldName>|
         name.<NameSubfieldName>|
         organization.<OrganizationSubfieldName>|
         otheremail.<OtherEmailSubfieldName>|
-        phone.<PhoneSubfieldName>
+        phone.<PhoneSubfieldName>|
+        posix.<PosixSubfieldName>|
+        relation.<RelationSubfieldName>|
+        sshkeys.<SSHkeysSubfieldName>|
+        website.<WebsiteSubfieldName>|
 <UserReplacementFieldSubfieldMatchSubfield> ::=
         address.<AddressSubfieldName>.<AddressSubfieldName>.<String>|
+        externalid.<ExternalIdSubfieldName>.<ExternalIdSubfieldName>.<String>|
+        im.<IMSubfieldName>.<IMSubfieldName>.<String>|
         keyword.<KeywordSubfieldName>.<KeywordSubfieldName>.<String>|
         location.<LocationSubfieldName>.<LocationSubfieldName>.<String>|
         organization.<OrganizationSubfieldName>.<OrganizationSubfieldName>.<String>|
         otheremail.<OtherEmailSubfieldName>.<OtherEmailSubfieldName>.<String>|
-        phone.<PhoneSubfieldName>.<PhoneSubfieldName>.<String>
+        phone.<PhoneSubfieldName>.<PhoneSubfieldName>.<String>|
+        posix.<PosixSubfieldName>.<PosixSubfieldName>.<String>|
+        relation.<RelationSubfieldName>.<RelationSubfieldName>.<String>|
+        sshkeys.<SSHkeysSubfieldName>.<SSHkeysSubfieldName>.<String>|
+        website.<WebsiteSubfieldName>.<WebsiteSubfieldName>.<String>
 <Tag> ::= <String>
 <UserReplacement> ::=
         (field:<UserReplacementFieldSubfield>)|
@@ -4767,7 +4811,7 @@ gam copy storagebucket sourcebucket <StorageBucketName> targetbucket <StorageBuc
         [sourceprefix <String>] [targetprefix <String>]
 
 gam download storagefile <StorageBucketObjectName>
-        [targetfolder <FilePath>] [overwrite [<Boolean>]] [nogcspath [Boolean>]]
+        [targetfolder <FilePath>] [overwrite [<Boolean>]] [nogcspath [<Boolean>]]
 
 # Users
 

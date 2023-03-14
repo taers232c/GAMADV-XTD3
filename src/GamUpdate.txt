@@ -1,3 +1,9 @@
+6.51.02
+Added support for `externalid`, `im`, `posix`, `relation`, `sshkeys` and `website` subfields in `gam <UserTypeEntity> signature` and
+`gam <UserTypeEntity> create|update sendas` option `replace <Tag> <UserReplacement>`.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Tag-Replace
+
 6.51.01
 
 Added option `nogcspath` to `gam download storagefile <StorageBucketObjectName>` that causes GAM
