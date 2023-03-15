@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.51.04'
+__version__ = '6.51.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8656,13 +8656,19 @@ def batchRequestID(entityName, i, count, j, jcount, item, role=None, option=None
 TIME_OFFSET_UNITS = [('day', SECONDS_PER_DAY), ('hour', SECONDS_PER_HOUR), ('minute', SECONDS_PER_MINUTE), ('second', 1)]
 
 def getLocalGoogleTimeOffset(testLocation=GOOGLE_TIMECHECK_LOCATION):
-  # Try with http first, if time is close (<MAX_LOCAL_GOOGLE_TIME_OFFSET seconds), retry with https
+  # If local time is well off, it breaks https because the server certificate will be seen as too old or new and thus invalid; http doesn't have that issue.
+  # Try with http first, if time is close (<MAX_LOCAL_GOOGLE_TIME_OFFSET seconds), retry with https as it should be OK
   httpObj = getHttpObj()
-  for prot in ['https', 'http']:
+  for prot in ['http', 'https']:
     try:
-
       googleUTC = datetime.datetime.strptime(httpObj.request(f'{prot}://'+testLocation, 'HEAD')[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
-    except (httplib2.HttpLib2Error, httplib2.socks.HTTPError, RuntimeError, ValueError) as e:
+    except (httplib2.HttpLib2Error, RuntimeError, ValueError) as e:
+      handleServerError(e)
+    except httplib2.socks.HTTPError as e:
+      # If user has specified an HTTPS proxy, the http request will probably fail as httplib2
+      # turns a GET into a CONNECT which is not valid for an http address
+      if prot == 'http':
+        continue
       handleServerError(e)
     offset = remainder = int(abs((datetime.datetime.now(iso8601.UTC)-googleUTC).total_seconds()))
     if offset < MAX_LOCAL_GOOGLE_TIME_OFFSET and prot == 'http':
