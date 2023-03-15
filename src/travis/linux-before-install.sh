@@ -46,8 +46,9 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   sudo chmod a+rwx /tmp/sources.list
   echo "deb-src http://archive.ubuntu.com/ubuntu/ $TRAVIS_DIST main" >> /tmp/sources.list
   sudo cp -v /tmp/sources.list /etc/apt
-  sudo apt-get -qq --yes update > /dev/null
-  sudo apt-get -qq --yes build-dep python3 > /dev/null
+  sudo apt-get -qq --yes update
+  sudo apt-get -qq --yes install swig libpcsclite-dev
+  sudo apt-get -qq --yes build-dep python3
 
   # Compile latest OpenSSL
   ls -l ${mypath}/sslinstalls
