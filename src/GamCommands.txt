@@ -6563,7 +6563,7 @@ gam <UserTypeEntity> import message
         <MessageContent> (replace <Tag> <UserReplacement>)*
         (attach <FileName> [charset <CharSet>])*
         (embedimage <FileName> <String>)*
-        [deleted [<Boolean>]] [checkspam [<Boolean>]] [processforcalendar [<Boolean>]]
+        [deleted [<Boolean>]] [checkspam|nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
 gam <UserTypeEntity> insert message
         (<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
         (addlabel <LabelName>)* [labels <LabelNameList>]

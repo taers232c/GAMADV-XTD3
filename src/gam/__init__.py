@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.51.03'
+__version__ = '6.51.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8658,10 +8658,11 @@ TIME_OFFSET_UNITS = [('day', SECONDS_PER_DAY), ('hour', SECONDS_PER_HOUR), ('min
 def getLocalGoogleTimeOffset(testLocation=GOOGLE_TIMECHECK_LOCATION):
   # Try with http first, if time is close (<MAX_LOCAL_GOOGLE_TIME_OFFSET seconds), retry with https
   httpObj = getHttpObj()
-  for prot in ['http', 'https']:
+  for prot in ['https', 'http']:
     try:
+
       googleUTC = datetime.datetime.strptime(httpObj.request(f'{prot}://'+testLocation, 'HEAD')[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
-    except (httplib2.HttpLib2Error, RuntimeError, ValueError) as e:
+    except (httplib2.HttpLib2Error, httplib2.socks.HTTPError, RuntimeError, ValueError) as e:
       handleServerError(e)
     offset = remainder = int(abs((datetime.datetime.now(iso8601.UTC)-googleUTC).total_seconds()))
     if offset < MAX_LOCAL_GOOGLE_TIME_OFFSET and prot == 'http':

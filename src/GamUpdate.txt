@@ -1,3 +1,7 @@
+6.51.04
+
+Upgraded `gam <UserTypeEntity> check serviceaccount` to avoid a trap when a proxy is being used.
+
 6.51.03
 
 * Upgraded to OpenSSL 3.1.0 where possible.
