@@ -1,3 +1,8 @@
+6.51.06
+
+Following Jay's lead, added option `validityhours <Number>` to `gam create|replace|update sakeys` and `gam rotate sakey`
+that let's you set the length of time a Service Account key is valid.
+
 6.51.05
 
 With input from Jay, further upgraded `gam <UserTypeEntity> check serviceaccount` to avoid a trap when a proxy is being used.

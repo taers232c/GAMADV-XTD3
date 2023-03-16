@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.51.05'
+__version__ = '6.51.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -11495,7 +11495,7 @@ def _getSAKeys(iam, projectId, clientEmail, name, keyTypes):
   try:
     keys = callGAPIitems(iam.projects().serviceAccounts().keys(), 'list', 'keys',
                          throwReasons=[GAPI.BAD_REQUEST, GAPI.PERMISSION_DENIED],
-                         name=name, keyTypes=keyTypes)
+                         name=name, fields='*', keyTypes=keyTypes)
     return (True, keys)
   except GAPI.permissionDenied:
     entityActionFailedWarning([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.UPDATE_PROJECT_TO_VIEW_MANAGE_SAKEYS)
@@ -11617,7 +11617,7 @@ def doPrintShowSvcAccts():
   if csvPF:
     csvPF.writeCSVfile('Service Accounts')
 
-def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size, b64enc_pub=True):
+def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size, b64enc_pub=True, validityHours=0):
   if projectId:
     printEntityMessage([Ent.PROJECT, projectId, Ent.SVCACCT, clientEmail], Msg.GENERATING_NEW_PRIVATE_KEY)
   else:
@@ -11635,16 +11635,17 @@ def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size, b64
   builder = x509.CertificateBuilder()
   builder = builder.subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
   builder = builder.issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
-# 2001/11/22 - From Jay
-#  not_valid_before = datetime.datetime.today() - datetime.timedelta(days=1)
-#  not_valid_after = datetime.datetime.today() + datetime.timedelta(days=365*10-1)
-#  builder = builder.not_valid_before(not_valid_before)
-#  builder = builder.not_valid_after(not_valid_after)
   # Gooogle seems to enforce the not before date strictly. Set the not before
-  # date to be UTC one hour ago should cover any clock skew.
-  builder = builder.not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(hours=1))
-  # Google uses 12/31/9999 date for end time
-  builder = builder.not_valid_after(datetime.datetime(9999, 12, 31, 23, 59))
+  # date to be UTC two minutes ago which should cover any clock skew.
+  now = datetime.datetime.utcnow()
+  builder = builder.not_valid_before(now - datetime.timedelta(minutes=2))
+  # Google defaults to 12/31/9999 date for end time if there's no
+  # policy to restrict key age
+  if validityHours:
+    expires = now + datetime.timedelta(hours=validityHours) - datetime.timedelta(minutes=2)
+    builder = builder.not_valid_after(expires)
+  else:
+    builder = builder.not_valid_after(datetime.datetime(9999, 12, 31, 23, 59))
   builder = builder.serial_number(x509.random_serial_number())
   builder = builder.public_key(public_key)
   builder = builder.add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
@@ -11693,6 +11694,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     new_data = dict(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
     # assume default key type unless we are told otherwise
     new_data['key_type'] = 'default'
+    validityHours = 0
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'algorithm':
@@ -11708,6 +11710,8 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
         new_data['yubikey_pin'] = readStdin('Enter your YubiKey PIN: ')
       elif myarg == 'yubikeyserialnumber':
         new_data['yubikey_serial_number'] = getInteger()
+      elif myarg == 'validityhours':
+        validityHours = getInteger()
       elif mode is None and myarg in ['retainnone', 'retainexisting', 'replacecurrent']:
         mode = myarg
       else:
@@ -11746,7 +11750,8 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     publicKeyData = yk.get_certificate()
   elif local_key_size:
     # Generate private key locally, store in file
-    new_data['private_key'], publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, local_key_size)
+    new_data['private_key'], publicKeyData = _generatePrivateKeyAndPublicCert(projectId, clientEmail, name,
+                                                                              local_key_size, validityHours=validityHours)
     new_data['key_type'] = 'default'
     for key in list(new_data):
       if key.startswith('yubikey_'):
@@ -11842,7 +11847,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
 # gam create sakey|sakeys
 # gam rotate sakey|sakeys retain_existing
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
-#	(localkeysize 1024|2048|4096)|
+#	((localkeysize 1024|2048|4096 [validityhours <Number>])|
 #	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
 #	 yubikey_serialnumber <String>
 #	 [localkeysize 1024|2048|4096])
@@ -11853,7 +11858,7 @@ def doCreateSvcAcctKeys():
 # gam update sakey|sakeys
 # gam rotate sakey|sakeys replace_current
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
-#	(localkeysize 1024|2048|4096)|
+#	((localkeysize 1024|2048|4096 [validityhours <Number>])|
 #	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
 #	 yubikey_serialnumber <String>
 #	 [localkeysize 1024|2048|4096])
@@ -11864,7 +11869,7 @@ def doUpdateSvcAcctKeys():
 # gam replace sakey|sakeys
 # gam rotate sakey|sakeys retain_none
 #	(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
-#	(localkeysize 1024|2048|4096)|
+#	((localkeysize 1024|2048|4096 [validityhours <Number>])|
 #	(yubikey yubikey_pin yubikey_slot AUTHENTICATION
 #	 yubikey_serialnumber <String>
 #	 [localkeysize 1024|2048|4096])
