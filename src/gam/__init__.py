@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.51.06'
+__version__ = '6.51.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -11685,6 +11685,7 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     time.sleep(sleep_time)
 
   local_key_size = 2048
+  validityHours = 0
   body = {}
   if iam is None:
     _, iam = buildGAPIServiceObject(API.IAM, None)
@@ -11694,7 +11695,6 @@ def doProcessSvcAcctKeys(mode=None, iam=None, projectId=None, clientEmail=None, 
     new_data = dict(GM.Globals[GM.OAUTH2SERVICE_JSON_DATA])
     # assume default key type unless we are told otherwise
     new_data['key_type'] = 'default'
-    validityHours = 0
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'algorithm':

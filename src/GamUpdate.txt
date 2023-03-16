@@ -1,3 +1,7 @@
+6.51.07
+
+Fixed bug introduced in 6.51.06 that caused a trap in `gam create project`.
+
 6.51.06
 
 Following Jay's lead, added option `validityhours <Number>` to `gam create|replace|update sakeys` and `gam rotate sakey`
