@@ -1,3 +1,11 @@
+6.51.08
+
+Updated `gam create|update user <EmailAddress> ... <JSONData>` to exclude additional fields
+from the JSON data that can't be copied; the following error was displayed:
+```
+User: user@domain.com, Create Failed: Invalid Input: Bad request for 
+```
+
 6.51.07
 
 Fixed bug introduced in 6.51.06 that caused a trap in `gam create project`.

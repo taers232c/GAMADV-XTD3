@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.51.07'
+__version__ = '6.51.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8976,7 +8976,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
       csvPF.SetRowFilter(GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE])
       csvPF.SetRowDropFilter(GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE])
       csvPF.SetRowLimit(GC.Values[GC.CSV_OUTPUT_ROW_LIMIT])
-    else:
+    else: #GM.REDIRECT_QUEUE_EOF
       break
   csvPF.writeCSVfile(list_type)
   if mpQueueStdout:
@@ -33562,13 +33562,11 @@ def initCalendarEventEntity():
   return {'list': [], 'queries': [], 'kwargs': {}, 'dict': None,
           'matches': [], 'maxinstances': -1, 'countsOnly': False, 'showDayOfWeek': False}
 
-def getCalendarEventEntity(noIds=False):
+def getCalendarEventEntity():
   calendarEventEntity = initCalendarEventEntity()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in {'event', 'events'}:
-      if noIds:
-        unknownArgumentExit()
       entitySelector = getEntitySelector()
       if entitySelector:
         entityList = getEntitySelection(entitySelector, False)
@@ -33579,8 +33577,6 @@ def getCalendarEventEntity(noIds=False):
       else:
         calendarEventEntity['list'].extend(convertEntityToList(getString(Cmd.OB_EVENT_ID)))
     elif myarg in {'id', 'eventid'}:
-      if noIds:
-        unknownArgumentExit()
       calendarEventEntity['list'].append(getString(Cmd.OB_EVENT_ID))
     elif myarg in {'q', 'query', 'eventquery'}:
       calendarEventEntity['queries'].append(getString(Cmd.OB_QUERY))
@@ -34727,14 +34723,14 @@ def _printShowCalendarEvents(origUser, user, origCal, calIds, count, calendarEve
         row['events'] = jcount
         csvPF.WriteRow(row)
 
-# gam calendars <CalendarEntity> print events <EventSelectEntity> <EventDisplayProperties>*
+# gam calendars <CalendarEntity> print events <EventEntity> <EventDisplayProperties>*
 #	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
-# gam calendars <CalendarEntity> show events <EventSelectEntity> <EventDisplayProperties>*
+# gam calendars <CalendarEntity> show events <EventEntity> <EventDisplayProperties>*
 #	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson]
 def doCalendarsPrintShowEvents(calIds):
-  calendarEventEntity = getCalendarEventEntity(noIds=True)
+  calendarEventEntity = getCalendarEventEntity()
   csvPF, FJQC, fieldsList = _getCalendarPrintShowEventOptions(calendarEventEntity, Ent.CALENDAR)
   _printShowCalendarEvents(None, None, None, calIds, len(calIds), calendarEventEntity,
                            csvPF, FJQC, fieldsList)
@@ -38067,7 +38063,8 @@ SCHEMA_VALUE_PROCESS_MAP = {
 
 USER_JSON_SKIP_FIELDS = ['agreedToTerms', 'aliases', 'creationTime', 'customerId', 'deletionTime', 'groups', 'id',
                          'isAdmin', 'isDelegatedAdmin', 'isEnforcedIn2Sv', 'isEnrolledIn2Sv', 'isMailboxSetup',
-                         'lastLoginTime', 'licenses', 'primaryEmail', 'thumbnailPhotoEtag', 'thumbnailPhotoUrl']
+                         'lastLoginTime', 'licenses', 'primaryEmail', 'thumbnailPhotoEtag', 'thumbnailPhotoUrl',
+                         'ipWhiteListed', 'posixAccounts', 'suspensionReason', 'nonEditableAliases']
 
 def getUserAttributes(cd, updateCmd, noUid=False):
   def getKeywordAttribute(keywords, attrdict, **opts):
@@ -45976,15 +45973,15 @@ def infoCalendarEvents(users):
     _infoCalendarEvents(origUser, user, cal, calIds, jcount, calendarEventEntity, FJQC, fieldsList)
     Ind.Decrement()
 
-# gam <UserTypeEntity> print events <UserCalendarEntity> <EventSelectEntity> <EventDisplayProperties>*
+# gam <UserTypeEntity> print events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>*
 #	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
-# gam <UserTypeEntity> show events <UserCalendarEntity> <EventSelectEntity> <EventDisplayProperties>*
+# gam <UserTypeEntity> show events <UserCalendarEntity> <EventEntity> <EventDisplayProperties>*
 #	[fields <EventFieldNameList>] [showdayofweek]
 #	[countsonly] [formatjson]
 def printShowCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
-  calendarEventEntity = getCalendarEventEntity(noIds=True)
+  calendarEventEntity = getCalendarEventEntity()
   csvPF, FJQC, fieldsList = _getCalendarPrintShowEventOptions(calendarEventEntity, Ent.USER)
   i, count, users = getEntityArgument(users)
   for user in users:
