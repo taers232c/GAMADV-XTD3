@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.52.00'
+__version__ = '6.52.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9121,29 +9121,30 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
     initializeLogging()
     if sys.platform.startswith('win'):
       signal.signal(signal.SIGINT, signal.SIG_IGN)
-    GM.Globals[GM.PID] = pid
-    GM.Globals[GM.NUM_BATCH_ITEMS] = numItems
-    GM.Globals[GM.DEBUG_LEVEL] = debugLevel
-    GM.Globals[GM.SYSEXITRC] = 0
+    GM.Globals[GM.API_CALLS_RETRY_DATA] = {}
     GM.Globals[GM.CMDLOG_LOGGER] = None
-    GM.Globals[GM.SAVED_STDOUT] = None
+    GM.Globals[GM.CSVFILE] = {}
     GM.Globals[GM.CSV_DATA_DICT] = {}
     GM.Globals[GM.CSV_KEY_FIELD] = None
     GM.Globals[GM.CSV_SUBKEY_FIELD] = None
     GM.Globals[GM.CSV_DATA_FIELD] = None
-    GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
     GM.Globals[GM.CSV_OUTPUT_COLUMN_DELIMITER] = csvColumnDelimiter
-    GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = csvQuoteChar
-    GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = csvTimestampColumn
-    GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
     GM.Globals[GM.CSV_OUTPUT_HEADER_DROP_FILTER] = csvHeaderDropFilter[:]
+    GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER] = csvHeaderFilter[:]
     GM.Globals[GM.CSV_OUTPUT_HEADER_FORCE] = csvHeaderForce[:]
-    GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
-    GM.Globals[GM.CSV_OUTPUT_ROW_FILTER_MODE] = csvRowFilterMode
+    GM.Globals[GM.CSV_OUTPUT_QUOTE_CHAR] = csvQuoteChar
     GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER] = csvRowDropFilter[:]
     GM.Globals[GM.CSV_OUTPUT_ROW_DROP_FILTER_MODE] = csvRowDropFilterMode
+    GM.Globals[GM.CSV_OUTPUT_ROW_FILTER] = csvRowFilter[:]
+    GM.Globals[GM.CSV_OUTPUT_ROW_FILTER_MODE] = csvRowFilterMode
     GM.Globals[GM.CSV_OUTPUT_ROW_LIMIT] = csvRowLimit
-    GM.Globals[GM.CSVFILE] = {}
+    GM.Globals[GM.CSV_OUTPUT_TIMESTAMP_COLUMN] = csvTimestampColumn
+    GM.Globals[GM.CSV_TODRIVE] = todrive.copy()
+    GM.Globals[GM.DEBUG_LEVEL] = debugLevel
+    GM.Globals[GM.NUM_BATCH_ITEMS] = numItems
+    GM.Globals[GM.PID] = pid
+    GM.Globals[GM.SAVED_STDOUT] = None
+    GM.Globals[GM.SYSEXITRC] = 0
     if mpQueueCSVFile:
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
     if mpQueueStdout:

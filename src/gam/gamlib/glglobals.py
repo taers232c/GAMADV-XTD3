@@ -41,43 +41,46 @@ CONVERT_TO_LOCAL_TIME = 'ctlt'
 # Credentials scopes
 CREDENTIALS_SCOPES = 'crsc'
 # csvfile keyfield <FieldName> [delimiter <Character>] (matchfield <FieldName> <MatchPattern>)* [datafield <FieldName>(:<FieldName>*) [delimiter <String>]]
+CSVFILE = 'csvf'
 # { key: [datafieldvalues]}
 CSV_DATA_DICT = 'csdd'
 CSV_KEY_FIELD = 'cskf'
 CSV_SUBKEY_FIELD = 'cssk'
 CSV_DATA_FIELD = 'csdf'
-# Filter for input column values
-CSV_INPUT_ROW_FILTER = 'cirf'
-# Mode (and|or) for input column values
-CSV_INPUT_ROW_FILTER_MODE = 'cirm'
 # Filter for input column drop values
 CSV_INPUT_ROW_DROP_FILTER = 'cird'
 # Mode (and|or) for input column drop values
 CSV_INPUT_ROW_DROP_FILTER_MODE = 'cidm'
+# Filter for input column values
+CSV_INPUT_ROW_FILTER = 'cirf'
+# Mode (and|or) for input column values
+CSV_INPUT_ROW_FILTER_MODE = 'cirm'
 # Limit number of input rows
 CSV_INPUT_ROW_LIMIT = 'cirl'
 # Column delimiter in CSV output file
 CSV_OUTPUT_COLUMN_DELIMITER = 'codl'
-# Quote character in CSV output file
-CSV_OUTPUT_QUOTE_CHAR = 'coqc'
-# Filter for output column headers
-CSV_OUTPUT_HEADER_FILTER = 'cohf'
 # Filter for output column headers to drop
 CSV_OUTPUT_HEADER_DROP_FILTER = 'cohd'
+# Filter for output column headers
+CSV_OUTPUT_HEADER_FILTER = 'cohf'
 # Force output column headers
 CSV_OUTPUT_HEADER_FORCE = 'cofh'
-# Filter for output column values
-CSV_OUTPUT_ROW_FILTER = 'corf'
-# Mode (and|or) for output column values
-CSV_OUTPUT_ROW_FILTER_MODE = 'corm'
+# Quote character in CSV output file
+CSV_OUTPUT_QUOTE_CHAR = 'coqc'
 # Filter for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER = 'cord'
 # Mode (and|or) for output column drop values
 CSV_OUTPUT_ROW_DROP_FILTER_MODE = 'codm'
+# Filter for output column values
+CSV_OUTPUT_ROW_FILTER = 'corf'
+# Mode (and|or) for output column values
+CSV_OUTPUT_ROW_FILTER_MODE = 'corm'
 # Limit number of output rows
 CSV_OUTPUT_ROW_LIMIT = 'corl'
 # Add timestamp column to CSV output file
 CSV_OUTPUT_TIMESTAMP_COLUMN = 'csv_output_timestamp_column'
+# CSV todrive options
+CSV_TODRIVE = 'todr'
 # Current API services
 CURRENT_API_SERVICES = 'caps'
 # Current Client API
@@ -97,13 +100,13 @@ DEBUG_LEVEL = 'dbgl'
 # Decoded ID token
 DECODED_ID_TOKEN = 'didt'
 # Index of start of <UserTypeEntity> in command line
+ENTITY_CL_DELAY_START = 'ecld'
 ENTITY_CL_START = 'ecls'
-ENTITY_CL_DELAY_START = 'eclD'
 # Extra arguments to pass to GAPI functions
 EXTRA_ARGS_LIST = 'exad'
 # gam.cfg file
-GAM_CFG_PATH = 'gcpa'
 GAM_CFG_FILE = 'gcfi'
+GAM_CFG_PATH = 'gcpa'
 GAM_CFG_SECTION = 'gcse'
 GAM_CFG_SECTION_NAME = 'gcsn'
 # Path to gam
@@ -136,17 +139,13 @@ MULTIPROCESS_EXIT_CONDITION = 'mpec'
 MULTIPROCESS_EXIT_PROCESSING = 'mpep'
 # Number of batch items
 NUM_BATCH_ITEMS = 'nbat'
+# Values retrieved from oauth2service.json
+OAUTH2SERVICE_CLIENT_ID = 'osci'
+OAUTH2SERVICE_JSON_DATA = 'osjd'
 # Values retrieved from oauth2.txt
 OAUTH2_CLIENT_ID = 'oaci'
 # oauth2.txt lock file
 OAUTH2_TXT_LOCK = 'oatl'
-# Values retrieved from oauth2service.json
-OAUTH2SERVICE_CLIENT_ID = 'osci'
-OAUTH2SERVICE_JSON_DATA = 'osjd'
-# Were scopes values retrieved from oauth2service.json
-SVCACCT_SCOPES_DEFINED = 'sasd'
-# Scopes values retrieved from oauth2service.json
-SVCACCT_SCOPES = 'sasc'
 # gam.cfg parser
 PARSER = 'pars'
 # Process ID
@@ -154,11 +153,23 @@ PID = 'pid '
 # Check API calls rate
 RATE_CHECK_COUNT = 'rccn'
 RATE_CHECK_START = 'rcst'
+# Section name from outer gam, passed to inner gams
+SECTION = 'sect'
 # redirected files
-CSVFILE = 'csvf'
-STDOUT = 'stdo'
-STDERR = 'stde'
 SAVED_STDOUT = 'svso'
+STDERR = 'stde'
+STDOUT = 'stdo'
+# Scopes values retrieved from oauth2service.json
+SVCACCT_SCOPES = 'sasc'
+# Were scopes values retrieved from oauth2service.json
+SVCACCT_SCOPES_DEFINED = 'sasd'
+# Most errors print a message and bail out with a return code
+# Some commands want to set a non-zero return code but not bail
+SYSEXITRC = 'sxrc'
+# Encodings
+SYS_ENCODING = 'syen'
+# Shared by threadBatchWorker and threadBatchGAMCommands
+TBATCH_QUEUE = 'batq'
 # redirected file fields: name, mode, encoding, write header, multiproces, queue
 REDIRECT_NAME = 'rdfn'
 REDIRECT_MODE = 'rdmo'
@@ -179,17 +190,6 @@ REDIRECT_QUEUE_VALUES = 'values'
 REDIRECT_QUEUE_START = 'start'
 REDIRECT_QUEUE_END = 'end'
 REDIRECT_QUEUE_EOF = 'eof'
-# Section name from outer gam, passed to inner gams
-SECTION = 'sect'
-# Most errors print a message and bail out with a return code
-# Some commands want to set a non-zero return code but not bail
-SYSEXITRC = 'sxrc'
-# Encodings
-SYS_ENCODING = 'syen'
-# Shared by threadBatchWorker and threadBatchGAMCommands
-TBATCH_QUEUE = 'batq'
-# CSV todrive options
-CSV_TODRIVE = 'todr'
 #
 Globals = {
   ADMIN: None,
@@ -201,26 +201,28 @@ Globals = {
   CMDLOG_LOGGER: None,
   CONVERT_TO_LOCAL_TIME: False,
   CREDENTIALS_SCOPES: set(),
+  CSVFILE: {},
   CSV_DATA_DICT: {},
   CSV_KEY_FIELD: None,
   CSV_SUBKEY_FIELD: None,
   CSV_DATA_FIELD: None,
-  CSV_INPUT_ROW_FILTER: [],
-  CSV_INPUT_ROW_FILTER_MODE: True,
   CSV_INPUT_ROW_DROP_FILTER: [],
   CSV_INPUT_ROW_DROP_FILTER_MODE: False,
+  CSV_INPUT_ROW_FILTER: [],
+  CSV_INPUT_ROW_FILTER_MODE: True,
   CSV_INPUT_ROW_LIMIT: 0,
   CSV_OUTPUT_COLUMN_DELIMITER: None,
-  CSV_OUTPUT_QUOTE_CHAR: None,
-  CSV_OUTPUT_HEADER_FILTER: [],
   CSV_OUTPUT_HEADER_DROP_FILTER: [],
+  CSV_OUTPUT_HEADER_FILTER: [],
   CSV_OUTPUT_HEADER_FORCE: [],
-  CSV_OUTPUT_ROW_FILTER: [],
-  CSV_OUTPUT_ROW_FILTER_MODE: True,
+  CSV_OUTPUT_QUOTE_CHAR: None,
   CSV_OUTPUT_ROW_DROP_FILTER: [],
   CSV_OUTPUT_ROW_DROP_FILTER_MODE: False,
+  CSV_OUTPUT_ROW_FILTER: [],
+  CSV_OUTPUT_ROW_FILTER_MODE: True,
   CSV_OUTPUT_ROW_LIMIT: 0,
   CSV_OUTPUT_TIMESTAMP_COLUMN: None,
+  CSV_TODRIVE: {},
   CURRENT_API_SERVICES: {},
   CURRENT_CLIENT_API: None,
   CURRENT_CLIENT_API_SCOPES: set(),
@@ -230,11 +232,11 @@ Globals = {
   DATETIME_NOW: None,
   DEBUG_LEVEL: 0,
   DECODED_ID_TOKEN: None,
-  ENTITY_CL_START: 1,
   ENTITY_CL_DELAY_START: 1,
+  ENTITY_CL_START: 1,
   EXTRA_ARGS_LIST: [],
-  GAM_CFG_PATH: '',
   GAM_CFG_FILE: '',
+  GAM_CFG_PATH: '',
   GAM_CFG_SECTION: '',
   GAM_CFG_SECTION_NAME: '',
   GAM_PATH: '.',
@@ -242,33 +244,31 @@ Globals = {
   LAST_GOT_MSG_LEN: 0,
   LICENSE_SKUS: [],
   MAKE_BUILDING_ID_NAME_MAP: True,
+  MAKE_ROLE_ID_NAME_MAP: True,
   MAP_BUILDING_ID_TO_NAME: {},
   MAP_BUILDING_NAME_TO_ID: {},
   MAP_ORGUNIT_ID_TO_NAME: {},
-  MAKE_ROLE_ID_NAME_MAP: True,
   MAP_ROLE_ID_TO_NAME: {},
   MAP_ROLE_NAME_TO_ID: {},
   MAP_USER_ID_TO_NAME: {},
   MULTIPROCESS_EXIT_CONDITION: None,
   MULTIPROCESS_EXIT_PROCESSING: False,
   NUM_BATCH_ITEMS: 0,
-  OAUTH2_CLIENT_ID: None,
-  OAUTH2_TXT_LOCK: None,
   OAUTH2SERVICE_CLIENT_ID: None,
   OAUTH2SERVICE_JSON_DATA: {},
-  SVCACCT_SCOPES_DEFINED: False,
-  SVCACCT_SCOPES: {},
+  OAUTH2_CLIENT_ID: None,
+  OAUTH2_TXT_LOCK: None,
   PARSER: None,
   PID: 0,
   RATE_CHECK_COUNT: 0,
   RATE_CHECK_START: 0,
-  CSVFILE: {},
+  SECTION: None,
+  SAVED_STDOUT: None,
   STDERR: {},
   STDOUT: {},
-  SAVED_STDOUT: None,
-  SECTION: None,
+  SVCACCT_SCOPES: {},
+  SVCACCT_SCOPES_DEFINED: False,
   SYSEXITRC: 0,
   SYS_ENCODING: 'utf-8',
-  TBATCH_QUEUE: None,
-  CSV_TODRIVE: {}
+  TBATCH_QUEUE: None
   }

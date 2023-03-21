@@ -1,3 +1,7 @@
+6.52.01
+
+Fixed bug where `API calls retry data` was displaying incorrect values when processing CSV files.
+
 6.52.00
 
 Updated process handling for `gam batch|csv`.
