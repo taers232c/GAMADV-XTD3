@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.51.08'
+__version__ = '6.52.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8988,8 +8988,8 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
   else:
     flushStderr()
 
-def initializeCSVFileQueueHandler(mpQueueStdout, mpQueueStderr):
-  mpQueue = multiprocessing.Manager().Queue()
+def initializeCSVFileQueueHandler(mpManager, mpQueueStdout, mpQueueStderr):
+  mpQueue = mpManager.Queue()
   mpQueueHandler = multiprocessing.Process(target=CSVFileQueueHandler,
                                            args=(mpQueue, mpQueueStdout, mpQueueStderr,
                                                  GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE_CSVPF],
@@ -9048,7 +9048,10 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
   else:
     fd = GM.Globals[stdtype][GM.REDIRECT_FD]
   while True:
-    pid, dataType, dataItem = mpQueue.get()
+    try:
+      pid, dataType, dataItem = mpQueue.get()
+    except (EOFError, ValueError):
+      break
     if dataType == GM.REDIRECT_QUEUE_START:
       pidData[pid] = {'queue': GM.Globals[stdtype][GM.REDIRECT_QUEUE],
                       'start': currentISOformatTimeStamp(),
@@ -9071,16 +9074,24 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
   _writePidData(0, pid0DataItem)
   if fd not in [sys.stdout, sys.stderr]:
     try:
+      fd.flush()
       fd.close()
     except IOError:
       pass
   GM.Globals[stdtype][GM.REDIRECT_FD] = None
 
-def initializeStdQueueHandler(stdtype, gmGlobals, gcValues):
-  mpQueue = multiprocessing.Manager().Queue()
+def initializeStdQueueHandler(mpManager, stdtype, gmGlobals, gcValues):
+  mpQueue = mpManager.Queue()
   mpQueueHandler = multiprocessing.Process(target=StdQueueHandler, args=(mpQueue, stdtype, gmGlobals, gcValues))
   mpQueueHandler.start()
   return (mpQueue, mpQueueHandler)
+
+def batchWriteStderr(data):
+  try:
+    sys.stderr.write(data)
+    sys.stderr.flush()
+  except IOError as e:
+    systemErrorExit(FILE_ERROR_RC, fileErrorMessage('stderr', e))
 
 def writeStdQueueHandler(mpQueue, item):
   while True:
@@ -9094,13 +9105,6 @@ def writeStdQueueHandler(mpQueue, item):
 def terminateStdQueueHandler(mpQueue, mpQueueHandler):
   mpQueue.put((0, GM.REDIRECT_QUEUE_EOF, None))
   mpQueueHandler.join()
-
-def batchWriteStderr(data):
-  try:
-    sys.stderr.write(data)
-    sys.stderr.flush()
-  except IOError as e:
-    systemErrorExit(FILE_ERROR_RC, fileErrorMessage('stderr', e))
 
 def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                            debugLevel, todrive,
@@ -9206,10 +9210,6 @@ def initGamWorker(l):
   mplock = l
 
 def MultiprocessGAMCommands(items, showCmds):
-  def poolErrorCallback(result):
-    poolProcessResults[0] -= 1
-    batchWriteStderr(f'{currentISOformatTimeStamp()},?/{numItems},Error,{str(result)}\n')
-
   def poolCallback(result):
     poolProcessResults[0] -= 1
     if showCmds:
@@ -9230,9 +9230,13 @@ def MultiprocessGAMCommands(items, showCmds):
   else:
     parallelPoolProcesses = min(numItems, GC.Values[GC.MULTIPROCESS_POOL_LIMIT])
   origSigintHandler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-  l = multiprocessing.Lock()
+  mpManager = multiprocessing.Manager()
+  l = mpManager.Lock()
   try:
-    pool = multiprocessing.Pool(processes=numPoolProcesses, initializer=initGamWorker, initargs=(l,), maxtasksperchild=200)
+    if multiprocessing.get_start_method() == 'spawn':
+      pool = mpManager.Pool(processes=numPoolProcesses, initializer=initGamWorker, initargs=(l,), maxtasksperchild=200)
+    else:
+      pool = multiprocessing.Pool(processes=numPoolProcesses, initializer=initGamWorker, initargs=(l,), maxtasksperchild=200)
   except IOError as e:
     systemErrorExit(FILE_ERROR_RC, e)
   except AssertionError as e:
@@ -9241,13 +9245,13 @@ def MultiprocessGAMCommands(items, showCmds):
   if multiprocessing.get_start_method() == 'spawn':
     savedValues = saveNonPickleableValues()
   if GM.Globals[GM.STDOUT][GM.REDIRECT_MULTIPROCESS]:
-    mpQueueStdout, mpQueueHandlerStdout = initializeStdQueueHandler(GM.STDOUT, GM.Globals, GC.Values)
+    mpQueueStdout, mpQueueHandlerStdout = initializeStdQueueHandler(mpManager, GM.STDOUT, GM.Globals, GC.Values)
     mpQueueStdout.put((0, GM.REDIRECT_QUEUE_START, Cmd.AllArguments()))
   else:
     mpQueueStdout = None
   if GM.Globals[GM.STDERR][GM.REDIRECT_MULTIPROCESS]:
     if GM.Globals[GM.STDERR][GM.REDIRECT_NAME] != 'stdout':
-      mpQueueStderr, mpQueueHandlerStderr = initializeStdQueueHandler(GM.STDERR, GM.Globals, GC.Values)
+      mpQueueStderr, mpQueueHandlerStderr = initializeStdQueueHandler(mpManager, GM.STDERR, GM.Globals, GC.Values)
       mpQueueStderr.put((0, GM.REDIRECT_QUEUE_START, Cmd.AllArguments()))
     else:
       mpQueueStderr = mpQueueStdout
@@ -9262,7 +9266,7 @@ def MultiprocessGAMCommands(items, showCmds):
     mpQueueStderr.put((0, GM.REDIRECT_QUEUE_DATA, GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].getvalue()))
     GM.Globals[GM.STDERR][GM.REDIRECT_MULTI_FD].truncate(0)
   if GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]:
-    mpQueueCSVFile, mpQueueHandlerCSVFile = initializeCSVFileQueueHandler(mpQueueStdout, mpQueueStderr)
+    mpQueueCSVFile, mpQueueHandlerCSVFile = initializeCSVFileQueueHandler(mpManager, mpQueueStdout, mpQueueStderr)
   else:
     mpQueueCSVFile = None
   signal.signal(signal.SIGINT, origSigintHandler)
@@ -9281,6 +9285,13 @@ def MultiprocessGAMCommands(items, showCmds):
                                                                   PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
         while poolProcessResults[0] > 0:
           time.sleep(1)
+          completedProcesses = []
+          for p, result in iter(poolProcessResults.items()):
+            if p != 0 and result.ready():
+              poolCallback(result.get())
+              completedProcesses.append(p)
+          for p in completedProcesses:
+            del poolProcessResults[p]
         batchWriteStderr(Msg.COMMIT_BATCH_COMPLETE.format(currentISOformatTimeStamp(), numItems, Msg.PROCESSES))
         if len(item) > 1:
           readStdin(f'{currentISOformatTimeStamp()},0/{numItems},{Cmd.QuotedArgumentList(item[1:])}')
@@ -9289,7 +9300,7 @@ def MultiprocessGAMCommands(items, showCmds):
         batchWriteStderr(Cmd.QuotedArgumentList(item[1:])+'\n')
         continue
       pid += 1
-      if not showCmds and pid % 100 == 0:
+      if not showCmds and ((pid % 100 == 0) or (pid == numItems)):
         batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid, numItems))
       if showCmds or GM.Globals[GM.CMDLOG_LOGGER]:
         logCmd = Cmd.QuotedArgumentList(item)
@@ -9297,22 +9308,47 @@ def MultiprocessGAMCommands(items, showCmds):
           batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Start,0,{logCmd}\n')
       else:
         logCmd = ''
-      pool.apply_async(ProcessGAMCommandMulti,
-                       [pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
-                        GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
-                        GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER], GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
-                        GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN],
-                        GC.Values[GC.CSV_OUTPUT_HEADER_FILTER], GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
-                        GC.Values[GC.CSV_OUTPUT_HEADER_FORCE],
-                        GC.Values[GC.CSV_OUTPUT_ROW_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE],
-                        GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER], GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE],
-                        GC.Values[GC.CSV_OUTPUT_ROW_LIMIT],
-                        item],
-                       callback=poolCallback, error_callback=poolErrorCallback)
+      poolProcessResults[pid] = pool.apply_async(ProcessGAMCommandMulti,
+                                                 [pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
+                                                  GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
+                                                  GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER],
+                                                  GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
+                                                  GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN],
+                                                  GC.Values[GC.CSV_OUTPUT_HEADER_FILTER],
+                                                  GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER],
+                                                  GC.Values[GC.CSV_OUTPUT_HEADER_FORCE],
+                                                  GC.Values[GC.CSV_OUTPUT_ROW_FILTER],
+                                                  GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE],
+                                                  GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER],
+                                                  GC.Values[GC.CSV_OUTPUT_ROW_DROP_FILTER_MODE],
+                                                  GC.Values[GC.CSV_OUTPUT_ROW_LIMIT],
+                                                  item])
       poolProcessResults[0] += 1
       if parallelPoolProcesses > 0:
         while poolProcessResults[0] == parallelPoolProcesses:
+          completedProcesses = []
+          for p, result in iter(poolProcessResults.items()):
+            if p != 0 and result.ready():
+              poolCallback(result.get())
+              completedProcesses.append(p)
+          if completedProcesses:
+            for p in completedProcesses:
+              del poolProcessResults[p]
+            break
           time.sleep(1)
+    while poolProcessResults[0] > 0:
+      batchWriteStderr(Msg.BATCH_CSV_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
+                                                             numItems, poolProcessResults[0],
+                                                             PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
+      completedProcesses = []
+      for p, result in iter(poolProcessResults.items()):
+        if p != 0 and result.ready():
+          poolCallback(result.get())
+          completedProcesses.append(p)
+      for p in completedProcesses:
+        del poolProcessResults[p]
+      if poolProcessResults[0] > 0:
+        time.sleep(5)
   except KeyboardInterrupt:
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     pool.terminate()
