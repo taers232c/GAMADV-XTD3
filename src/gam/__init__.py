@@ -9677,7 +9677,8 @@ def doLoop(loopCmd):
   GAM_argv, subFields = getSubFields([Cmd.GAM_CMD], fieldnames)
   multi = GM.Globals[GM.CSVFILE][GM.REDIRECT_MULTIPROCESS]
   if multi:
-    mpQueue, mpQueueHandler = initializeCSVFileQueueHandler(None, None)
+    mpManager = multiprocessing.Manager()
+    mpQueue, mpQueueHandler = initializeCSVFileQueueHandler(mpManager, None, None)
   else:
     mpQueue = None
   GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueue
