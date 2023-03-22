@@ -30,6 +30,7 @@ _PRODUCTS = {
   '101035': 'Cloud Search',
   '101036': 'Google Meet Global Dialing',
   '101037': 'Google Workspace for Education',
+  '101038': 'AppSheet',
   '101039': 'Assured Controls',
   '101040': 'Beyond Corp Enterprise',
   'Google-Apps': 'Google Workspace',
@@ -70,6 +71,12 @@ _SKUS = {
     'product': '101036', 'aliases': ['meetdialing','googlemeetglobaldialing'], 'displayName': 'Google Meet Global Dialing'},
   '1010370001': {
     'product': '101037', 'aliases': ['gwetlu', 'workspaceeducationupgrade'], 'displayName': 'Google Workspace for Education: Teaching and Learning Upgrade'},
+  '1010380001': {
+    'product': '101038', 'aliases': ['appsheetcore'], 'displayName': 'AppSheet Core'},
+  '1010380002': {
+    'product': '101038', 'aliases': ['appsheetstandard', 'appsheetenterprisestandard'], 'displayName': 'AppSheet Enterprise Standard'},
+  '1010380003': {
+    'product': '101038', 'aliases': ['appsheetplus', 'appsheetenterpriseplus'], 'displayName': 'AppSheet Enterprise Plus'},
   '1010390001': {
     'product': '101039', 'aliases': ['assuredcontrols'], 'displayName': 'Assured Controls'},
   '1010400001': {

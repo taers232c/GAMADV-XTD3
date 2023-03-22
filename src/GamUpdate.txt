@@ -1,3 +1,12 @@
+6.52.02
+
+Following Jay's lead, added the following License SKUs:
+```
+1010380001 - AppSheet Core 
+1010380002 - AppSheet Enterprise Standard
+1010380003 - AppSheet Enterprise Plus
+```
+
 6.52.01
 
 Fixed bug where `API calls retry data` was displaying incorrect values when processing CSV files.

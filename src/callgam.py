@@ -3,15 +3,15 @@
 """ Sample Python script to call GAM"""
 
 import multiprocessing
-import sys
+import platform
 
-from gam import initializeLogging
-from gam import CallGAMCommand
+from gam import initializeLogging, CallGAMCommand
 
 if __name__ == '__main__':
 # One time initialization
-  if sys.platform == 'darwin':
-    multiprocessing.set_start_method('fork')
+  if platform.system() != 'Linux':
+    multiprocessing.freeze_support()
+    multiprocessing.set_start_method('spawn')
   initializeLogging()
 #
   CallGAMCommand(['gam', 'version'])

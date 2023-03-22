@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.52.01'
+__version__ = '6.52.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9302,7 +9302,7 @@ def MultiprocessGAMCommands(items, showCmds):
         continue
       pid += 1
       if not showCmds and ((pid % 100 == 0) or (pid == numItems)):
-        batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid, numItems))
+        batchWriteStderr(Msg.PROCESSING_ITEM_N_OF_M.format(currentISOformatTimeStamp(), pid, numItems))
       if showCmds or GM.Globals[GM.CMDLOG_LOGGER]:
         logCmd = Cmd.QuotedArgumentList(item)
         if showCmds:
@@ -9424,8 +9424,8 @@ def ThreadBatchGAMCommands(items, showCmds):
       batchWriteStderr(f'{currentISOformatTimeStamp()},0/{numItems},{Cmd.QuotedArgumentList(item[1:])}\n')
       continue
     pid += 1
-    if not showCmds and pid % 100 == 0:
-      batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), pid, numItems))
+    if not showCmds and ((pid % 100 == 0) or (pid == numItems)):
+      batchWriteStderr(Msg.PROCESSING_ITEM_N_OF_M.format(currentISOformatTimeStamp(), pid, numItems))
     if showCmds:
       logCmd = Cmd.QuotedArgumentList(item)
       batchWriteStderr(f'{currentISOformatTimeStamp()},{pid}/{numItems},Start,{Cmd.QuotedArgumentList(item)}\n')
@@ -9698,12 +9698,14 @@ def doLoop(loopCmd):
       if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
         item = processSubFields(GAM_argv, row, subFields)
         logCmd = Cmd.QuotedArgumentList(item)
+        i += 1 
+        if i % 100 == 0:
+          batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), i))
         sysRC = ProcessGAMCommand(item, processGamCfg=processGamCfg, inLoop=True)
         if (GM.Globals[GM.PID] > 0) and LoopGlobals[GM.CMDLOG_LOGGER]:
           writeGAMCommandLog(LoopGlobals, logCmd, sysRC)
         if (sysRC > 0) and (GM.Globals[GM.SYSEXITRC] <= HARD_ERROR_RC):
           break
-        i += 1
         if maxRows and i >= maxRows:
           break
     closeFile(f)
