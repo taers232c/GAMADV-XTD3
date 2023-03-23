@@ -9698,7 +9698,7 @@ def doLoop(loopCmd):
       if checkMatchSkipFields(row, fieldnames, matchFields, skipFields):
         item = processSubFields(GAM_argv, row, subFields)
         logCmd = Cmd.QuotedArgumentList(item)
-        i += 1 
+        i += 1
         if i % 100 == 0:
           batchWriteStderr(Msg.PROCESSING_ITEM_N.format(currentISOformatTimeStamp(), i))
         sysRC = ProcessGAMCommand(item, processGamCfg=processGamCfg, inLoop=True)
@@ -14013,6 +14013,9 @@ def doInfoResoldCustomer():
       if 'customerDomainVerified' in customerInfo:
         printKeyValueList(['Customer Domain Verified', customerInfo['customerDomainVerified']])
       _showCustomerAddressPhoneNumber(customerInfo)
+      primaryEmail = customerInfo.get('primaryAdmin', {}).get('primaryEmail')
+      if primaryEmail:
+        printKeyValueList(['Customer Primary Email', primaryEmail])
       if 'alternateEmail' in customerInfo:
         printKeyValueList(['Customer Alternate Email', customerInfo['alternateEmail']])
       printKeyValueList(['Customer Admin Console URL', customerInfo['resourceUiUrl']])
@@ -35544,6 +35547,30 @@ def convertMatterNameToID(v, nameOrId, state=None):
   else:
     entityIsNotUniqueExit(Ent.VAULT_MATTER, nameOrId, Ent.VAULT_MATTER_ID, ids)
 
+def convertQueryNameToID(v, nameOrId, matterId, matterNameId):
+  cg = UID_PATTERN.match(nameOrId)
+  if cg:
+    try:
+      query = callGAPI(v.matters().savedQueries(), 'get',
+                       throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                       matterId=matterId, savedQueryId=cg.group(1))
+      return (query['savedQueryId'], query['displayName'], formatVaultNameId(query['savedQueryId'], query['displayName']))
+    except (GAPI.notFound, GAPI.badRequest):
+      entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, nameOrId])
+    except GAPI.forbidden:
+      ClientAPIAccessDeniedExit()
+  nameOrIdlower = nameOrId.lower()
+  try:
+    queries = callGAPIpages(v.matters().savedQueries(), 'list', 'savedQueries',
+                            throwReasons=[GAPI.FORBIDDEN],
+                            matterId=matterId, fields='savedQueries(savedQueryId,displayName),nextPageToken')
+  except GAPI.forbidden:
+    ClientAPIAccessDeniedExit()
+  for query in queries:
+    if query['displayName'].lower() == nameOrIdlower:
+      return (query['savedQueryId'], query['displayName'], formatVaultNameId(query['savedQueryId'], query['displayName']))
+  entityDoesNotHaveItemExit([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, nameOrId])
+
 def getMatterItem(v, state=None):
   matterId, _, matterNameId, _ = convertMatterNameToID(v, getString(Cmd.OB_MATTER_ITEM), state=state)
   return (matterId, matterNameId)
@@ -35829,7 +35856,7 @@ PRINT_VAULT_EXPORTS_TITLES = ['matterId', 'matterName', 'id', 'name']
 
 # gam print vaultexports|exports [todrive <ToDriveAttribute>*]
 #	[matters <MatterItemList>] [exportstatus <ExportStatusList>]
-#	[fields <ValutExportFieldNameList>] [shownames]
+#	[fields <VaultExportFieldNameList>] [shownames]
 #	[oneitemperrow]
 # gam show vaultexports|exports
 #	[matters <MatterItemList>] [exportstatus <ExportStatusList>]
@@ -36172,9 +36199,14 @@ def _getHoldEmailAddressesOrgUnitName(hold, cd):
 
 VAULT_HOLD_TIME_OBJECTS = {'holdTime', 'updateTime', 'startTime', 'endTime'}
 
+def _cleanVaultHold(hold):
+  if 'driveQuery' in hold['query']:
+    hold['query']['driveQuery'].pop('includeTeamDriveFiles', None)
+
 def _showVaultHold(hold, cd):
   if cd is not None:
     _getHoldEmailAddressesOrgUnitName(hold, cd)
+  _cleanVaultHold(hold)
   Ind.Increment()
   showJSON(None, hold, timeObjects=VAULT_HOLD_TIME_OBJECTS)
   Ind.Decrement()
@@ -36562,6 +36594,7 @@ def doPrintShowVaultHolds():
       for hold in holds:
         if cd is not None:
           _getHoldEmailAddressesOrgUnitName(hold, cd)
+          _cleanVaultHold(hold)
         csvPF.WriteRowTitles(flattenJSON(hold, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_HOLD_TIME_OBJECTS))
   if csvPF:
     csvPF.writeCSVfile('Vault Holds')
@@ -36648,6 +36681,173 @@ def printShowUserVaultHolds(entityList):
     csvPF.writeCSVfile('User Vault Holds')
   else:
     printKeyValueList(['Total Holds', totalHolds])
+
+def _getQueryOrgUnitName(query, cd):
+  if 'orgUnitInfo' in query['query']:
+    query['query']['orgUnitInfo']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, query['query']['orgUnitInfo']['orgUnitId'])
+
+def _getQuerySharedDriveNames(query, drive):
+  if 'sharedDriveInfo' in query['query']:
+    query['query']['sharedDriveInfo']['sharedDriveNames'] = []
+    for sharedDriveId in query['query']['sharedDriveInfo']['sharedDriveIds']:
+      query['query']['sharedDriveInfo']['sharedDriveNames'].append(_getSharedDriveNameFromId(drive, sharedDriveId, useDomainAdminAccess=True))
+
+VAULT_QUERY_TIME_OBJECTS = {'createTime', 'endTime', 'startTime', 'versionDate'}
+
+def _cleanVaultQuery(query):
+  query['query'].pop('searchMethod', None)
+  query['query'].pop('teamDriveInfo', None)
+
+def _showVaultQuery(query, cd, drive):
+  if cd is not None:
+    _getQueryOrgUnitName(query, cd)
+  if drive is not None:
+    _getQuerySharedDriveNames(query, drive)
+  _cleanVaultQuery(query)
+  Ind.Increment()
+  showJSON(None, query, timeObjects=VAULT_QUERY_TIME_OBJECTS)
+  Ind.Decrement()
+
+VAULT_QUERY_FIELDS_CHOICE_MAP = {
+  'createtime': 'createTime',
+  'displayname': 'displayName',
+  'matterid': 'matterId',
+  'name': 'displayName',
+  'query': 'query',
+  'queryid': 'savedQueryId',
+  'savedqueryid': 'savedQueryId',
+  }
+
+# gam info vaultquery <QueryItem> matter <MatterItem>
+#	[fields <VaultQueryFieldNameList>] [shownames]
+# gam info vaultquery <MatterItem> <QueryItem>
+#	[fields <VaultQueryFieldNameList>] [shownames]
+def doInfoVaultQuery():
+  v = buildGAPIObject(API.VAULT)
+  if not Cmd.ArgumentIsAhead('matter'):
+    matterId, matterNameId = getMatterItem(v)
+    queryId, queryName, queryNameId = convertQueryNameToID(v, getString(Cmd.OB_QUERY_ITEM), matterId, matterNameId)
+  else:
+    queryName = getString(Cmd.OB_QUERY_ITEM)
+  cd = drive = None
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'matter':
+      matterId, matterNameId = getMatterItem(v)
+      queryId, queryName, queryNameId = convertQueryNameToID(v, queryName, matterId, matterNameId)
+    elif myarg == 'shownames':
+      cd = buildGAPIObject(API.DIRECTORY)
+      _, drive = buildGAPIServiceObject(API.DRIVE3, _getAdminEmail())
+      if drive is None:
+        return
+    elif getFieldsList(myarg, VAULT_QUERY_FIELDS_CHOICE_MAP, fieldsList, initialField=['savedQueryId', 'disoplayName']):
+      pass
+    else:
+      unknownArgumentExit()
+  fields = getFieldsFromFieldsList(fieldsList)
+  try:
+    query = callGAPI(v.matters().savedQueries(), 'get',
+                    throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
+                    matterId=matterId, savedQueryId=queryId, fields=fields)
+    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, formatVaultNameId(query['displayName'], query['savedQueryId'])])
+    _showVaultQuery(query, cd, drive)
+  except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
+    entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, queryNameId], str(e))
+
+PRINT_VAULT_QUERYS_TITLES = ['matterId', 'matterName', 'savedQueryId', 'displayName']
+
+# gam print vaultqueries [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
+#	[fields <VaultQueryFieldNameList>] [shownames]
+# gam show vaultqueries [matters <MatterItemList>]
+#	[fields <VaultQueryFieldNameList>] [shownames]
+def doPrintShowVaultQueries():
+  v = buildGAPIObject(API.VAULT)
+  csvPF = CSVPrintFile(PRINT_VAULT_QUERYS_TITLES, 'sortall') if Act.csvFormat() else None
+  matters = []
+  cd = drive = None
+  fieldsList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in {'matter', 'matters'}:
+      matters = shlexSplitList(getString(Cmd.OB_MATTER_ITEM_LIST))
+    elif myarg == 'shownames':
+      cd = buildGAPIObject(API.DIRECTORY)
+      _, drive = buildGAPIServiceObject(API.DRIVE3, _getAdminEmail())
+      if drive is None:
+        return
+    elif getFieldsList(myarg, VAULT_QUERY_FIELDS_CHOICE_MAP, fieldsList, initialField=['savedQueryId', 'displayName']):
+      pass
+    else:
+      unknownArgumentExit()
+  fields = getItemFieldsFromFieldsList('savedQueries', fieldsList)
+  if not matters:
+    printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=' (OPEN)')
+    try:
+      results = callGAPIpages(v.matters(), 'list', 'matters',
+                              pageMessage=getPageMessage(),
+                              throwReasons=[GAPI.FORBIDDEN],
+                              view='BASIC', state='OPEN', fields='matters(matterId,name,state),nextPageToken')
+    except GAPI.forbidden as e:
+      entityActionFailedWarning([Ent.VAULT_QUERY, None], str(e))
+      return
+  else:
+    results = []
+    for matter in matters:
+      matterId, matterName, _, state = convertMatterNameToID(v, matter)
+      results.append({'matterId': matterId, 'name': matterName, 'state': state})
+  jcount = len(results)
+  if not csvPF:
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+  j = 0
+  for matter in results:
+    j += 1
+    matterId = matter['matterId']
+    matterName = matter['name']
+    matterNameId = formatVaultNameId(matterName, matterId)
+    if csvPF:
+      printGettingAllEntityItemsForWhom(Ent.VAULT_QUERY, f'{Ent.Singular(Ent.VAULT_MATTER)}: {matterNameId}', j, jcount)
+      pageMessage = getPageMessageForWhom()
+    else:
+      pageMessage = None
+    if matter['state'] == 'OPEN':
+      try:
+        queries = callGAPIpages(v.matters().savedQueries(), 'list', 'savedQueries',
+                                pageMessage=pageMessage,
+                                throwReasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
+                                matterId=matterId, fields=fields)
+      except GAPI.failedPrecondition:
+        warnMatterNotOpen(matter, matterNameId, j, jcount)
+        continue
+      except GAPI.forbidden as e:
+        entityActionFailedWarning([Ent.VAULT_QUERY, None], str(e))
+        break
+    else:
+      warnMatterNotOpen(matter, matterNameId, j, jcount)
+      continue
+    kcount = len(queries)
+    if not csvPF:
+      entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId], kcount, Ent.VAULT_QUERY, j, jcount)
+      Ind.Increment()
+      k = 0
+      for query in queries:
+        k += 1
+        printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, formatVaultNameId(query['displayName'], query['savedQueryId'])], k, kcount)
+        _showVaultQuery(query, cd, drive)
+      Ind.Decrement()
+    else:
+      for query in queries:
+        if cd is not None:
+          _getQueryOrgUnitName(query, cd)
+        if drive is not None:
+          _getQuerySharedDriveNames(query, drive)
+        _cleanVaultQuery(query)
+        csvPF.WriteRowTitles(flattenJSON(query, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_QUERY_TIME_OBJECTS))
+  if csvPF:
+    csvPF.writeCSVfile('Vault Saved Queries')
 
 def validateCollaborators(cd):
   collaborators = []
@@ -46476,13 +46676,18 @@ def _convertSharedDriveNameToId(drive, user, i, count, fileIdEntity, useDomainAd
                                                                  ','.join([td['id'] for td in tdlist])), i, count)
   return False
 
-def _getSharedDriveNameFromId(drive, sharedDriveId):
-  try:
-    return callGAPI(drive.drives(), 'get',
-                    throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
-                    driveId=sharedDriveId, fields='name')['name']
-  except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
-    return TEAM_DRIVE
+def _getSharedDriveNameFromId(drive, sharedDriveId, useDomainAdminAccess=False):
+  sharedDriveName = GM.Globals[GM.MAP_SHAREDDRIVE_ID_TO_NAME].get(sharedDriveId)
+  if not sharedDriveName:
+    try:
+      sharedDriveName = callGAPI(drive.drives(), 'get',
+                                 throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
+                                 useDomainAdminAccess=useDomainAdminAccess,
+                                 driveId=sharedDriveId, fields='name')['name']
+    except (GAPI.notFound, GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
+      sharedDriveName = TEAM_DRIVE
+    GM.Globals[GM.MAP_SHAREDDRIVE_ID_TO_NAME][sharedDriveId] = sharedDriveName
+  return sharedDriveName
 
 def _getDriveFileNameFromId(drive, fileId, combineTitleId=True, useDomainAdminAccess=False):
   try:
@@ -66537,6 +66742,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTEXPORT:	doInfoVaultExport,
       Cmd.ARG_VAULTHOLD:	doInfoVaultHold,
       Cmd.ARG_VAULTMATTER:	doInfoVaultMatter,
+      Cmd.ARG_VAULTQUERY:	doInfoVaultQuery,
       Cmd.ARG_VERIFY:		doInfoSiteVerification,
      }
     ),
@@ -66640,6 +66846,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTEXPORT:	doPrintShowVaultExports,
       Cmd.ARG_VAULTHOLD:	doPrintShowVaultHolds,
       Cmd.ARG_VAULTMATTER:	doPrintShowVaultMatters,
+      Cmd.ARG_VAULTQUERY:	doPrintShowVaultQueries,
      }
     ),
   'remove':
@@ -66747,6 +66954,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_VAULTEXPORT:	doPrintShowVaultExports,
       Cmd.ARG_VAULTHOLD:	doPrintShowVaultHolds,
       Cmd.ARG_VAULTMATTER:	doPrintShowVaultMatters,
+      Cmd.ARG_VAULTQUERY:	doPrintShowVaultQueries,
      }
     ),
   'suspend':
@@ -66959,6 +67167,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_VAULTCOUNTS:		Cmd.ARG_VAULTCOUNT,
   Cmd.ARG_VAULTEXPORTS:		Cmd.ARG_VAULTEXPORT,
   Cmd.ARG_VAULTHOLDS:		Cmd.ARG_VAULTHOLD,
+  Cmd.ARG_VAULTQUERIES:		Cmd.ARG_VAULTQUERY,
   Cmd.ARG_VAULTMATTERS:		Cmd.ARG_VAULTMATTER,
   Cmd.ARG_VERIFICATION:		Cmd.ARG_VERIFY,
   }

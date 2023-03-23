@@ -1,3 +1,30 @@
+6.52.03
+
+Added commands to display Vault Matter saved queries.
+```
+gam info vaultquery <QueryItem> matter <MatterItem>
+        [fields <VaultQueryFieldNameList>] [shownames]
+gam info vaultquery <MatterItem> <QueryItem>
+        [fields <VaultQueryFieldNameList>] [shownames]
+gam print vaultqueries [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
+        [fields <VaultQueryFieldNameList>] [shownames]
+gam show vaultqueries [matters <MatterItemList>]
+        [fields <VaultQueryFieldNameList>] [shownames]
+```
+
+Updated `gam info resoldcustomer <CustomerID>` to display the customer primary email.
+
+Following Jay's lead, the following scopes will be off by default as changes to Google Cloud session control
+may require frequent use of `gam aouth create`.
+
+* See: https://workspaceupdates.googleblog.com/2023/03/google-cloud-session-length-default-update.html
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Authorization#introduction
+
+```
+[ ] 21)  Cloud Storage API (Read, Vault/Takeout Download)
+[ ] 22)  Cloud Storage API (Write, Vault/Takeout Copy)
+```
+
 6.52.02
 
 Following Jay's lead, added the following License SKUs:

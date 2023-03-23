@@ -4695,7 +4695,7 @@ gam reopen vaultmatter|matter <MatterItem>
 gam delete vaultmatter|matter <MatterItem>
 gam undelete vaultmatter|matter <MatterItem>
 
-<ValutMatterFieldName> ::=
+<VaultMatterFieldName> ::=
         description|
         matterid|
         matterpermissions|
@@ -4827,6 +4827,25 @@ gam show vaultholds|holds [matters <MatterItemList>]
 
 gam <UserTypeEntity> print vaultholds|holds [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show vaultholds|holds
+
+<VaultQueryFieldName> ::=
+        createtime |
+        displayname |
+        matterid |
+        name |
+        query |
+        queryid |
+        savedqueryid
+<VaultQueryFieldNameList> ::= "<VaultQueryFieldName>(,<VaultQueryFieldName>)*"
+
+gam info vaultquery <QueryItem> matter <MatterItem>
+        [fields <VaultQueryFieldNameList>] [shownames]
+gam info vaultquery <MatterItem> <QueryItem>
+        [fields <VaultQueryFieldNameList>] [shownames]
+gam print vaultqueries [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
+        [fields <VaultQueryFieldNameList>] [shownames]
+gam show vaultqueries [matters <MatterItemList>]
+        [fields <VaultQueryFieldNameList>] [shownames]
 
 gam download storagebucket <TakeoutBucketName>
         [targetfolder <FilePath>]

@@ -344,6 +344,7 @@ class GamEntity():
   VAULT_MATTER_ARTIFACT = 'vlma'
   VAULT_MATTER_ID = 'vlmi'
   VAULT_OPERATION = 'vlto'
+  VAULT_QUERY = 'vltq'
   WEBCLIPS_ENABLED = 'webc'
   # _NAMES[0] is plural, _NAMES[1] is singular unless the item name is explicitly plural (Calendar Settings)
   # For items with Boolean values, both entries are singular (Forward, POP)
@@ -653,6 +654,7 @@ class GamEntity():
     VAULT_MATTER_ARTIFACT: ['Vault Matter Artifacts', 'Vault Matter Artifact'],
     VAULT_MATTER_ID: ['Vault Matter IDs', 'Vault Matter ID'],
     VAULT_OPERATION: ['Vault Operations', 'Vault Operation'],
+    VAULT_QUERY: ['Vault Queries', 'Vault Query'],
     WEBCLIPS_ENABLED: ['Web Clips Enabled', 'Web Clips Enabled'],
     ROLE_MANAGER: ['Managers', 'Manager'],
     ROLE_MEMBER: ['Members', 'Member'],

@@ -125,6 +125,8 @@ MAP_BUILDING_ID_TO_NAME = 'bi2n'
 MAP_BUILDING_NAME_TO_ID = 'bn2i'
 # Dictionary mapping OrgUnit ID to Name
 MAP_ORGUNIT_ID_TO_NAME = 'oi2n'
+# Dictionary mapping Shared Drive ID to Name
+MAP_SHAREDDRIVE_ID_TO_NAME = 'si2n'
 # Make Role ID/Name map
 MAKE_ROLE_ID_NAME_MAP = 'mkrm'
 # Dictionary mapping Role ID to Name
@@ -248,6 +250,7 @@ Globals = {
   MAP_BUILDING_ID_TO_NAME: {},
   MAP_BUILDING_NAME_TO_ID: {},
   MAP_ORGUNIT_ID_TO_NAME: {},
+  MAP_SHAREDDRIVE_ID_TO_NAME: {},
   MAP_ROLE_ID_TO_NAME: {},
   MAP_ROLE_NAME_TO_ID: {},
   MAP_USER_ID_TO_NAME: {},

@@ -322,6 +322,7 @@ _CLIENT_SCOPES = [
   {'name': 'Cloud Storage API (Read, Vault/Takeout Download)',
    'api': STORAGEREAD,
    'subscopes': [],
+   'offByDefault': True,
    'scope': 'https://www.googleapis.com/auth/devstorage.read_only'},
   {'name': 'Cloud Storage API (Write, Vault/Takeout Copy)',
    'api': STORAGEWRITE,
