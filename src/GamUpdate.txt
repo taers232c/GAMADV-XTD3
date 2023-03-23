@@ -1,3 +1,8 @@
+6.52.04
+
+Fixed bug in `gam info vaultquery` and `gam print|show vaultqueries` that caused a trap
+when the `query` field was omitted from the `fields <VaultQueryFieldNameList>`.
+
 6.52.03
 
 Added commands to display Vault Matter saved queries.

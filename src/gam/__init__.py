@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.52.03'
+__version__ = '6.52.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -36693,16 +36693,17 @@ def _getQuerySharedDriveNames(query, drive):
 
 VAULT_QUERY_TIME_OBJECTS = {'createTime', 'endTime', 'startTime', 'versionDate'}
 
-def _cleanVaultQuery(query):
-  query['query'].pop('searchMethod', None)
-  query['query'].pop('teamDriveInfo', None)
+def _cleanVaultQuery(query, cd, drive):
+  if 'query' in query:
+    if cd is not None:
+      _getQueryOrgUnitName(query, cd)
+    if drive is not None:
+      _getQuerySharedDriveNames(query, drive)
+    query['query'].pop('searchMethod', None)
+    query['query'].pop('teamDriveInfo', None)
 
 def _showVaultQuery(query, cd, drive):
-  if cd is not None:
-    _getQueryOrgUnitName(query, cd)
-  if drive is not None:
-    _getQuerySharedDriveNames(query, drive)
-  _cleanVaultQuery(query)
+  _cleanVaultQuery(query, cd, drive)
   Ind.Increment()
   showJSON(None, query, timeObjects=VAULT_QUERY_TIME_OBJECTS)
   Ind.Decrement()
@@ -36740,7 +36741,7 @@ def doInfoVaultQuery():
       _, drive = buildGAPIServiceObject(API.DRIVE3, _getAdminEmail())
       if drive is None:
         return
-    elif getFieldsList(myarg, VAULT_QUERY_FIELDS_CHOICE_MAP, fieldsList, initialField=['savedQueryId', 'disoplayName']):
+    elif getFieldsList(myarg, VAULT_QUERY_FIELDS_CHOICE_MAP, fieldsList, initialField=['savedQueryId', 'displayName']):
       pass
     else:
       unknownArgumentExit()
@@ -36839,11 +36840,7 @@ def doPrintShowVaultQueries():
       Ind.Decrement()
     else:
       for query in queries:
-        if cd is not None:
-          _getQueryOrgUnitName(query, cd)
-        if drive is not None:
-          _getQuerySharedDriveNames(query, drive)
-        _cleanVaultQuery(query)
+        _cleanVaultQuery(query, cd, drive)
         csvPF.WriteRowTitles(flattenJSON(query, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_QUERY_TIME_OBJECTS))
   if csvPF:
     csvPF.writeCSVfile('Vault Saved Queries')
