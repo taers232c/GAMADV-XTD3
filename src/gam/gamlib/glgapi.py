@@ -156,6 +156,7 @@ TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED = 'teamDrivesFolderMoveInNotSupported'
 TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED = 'teamDrivesFolderSharingNotSupported'
 TEAMDRIVES_PARENT_LIMIT = 'teamDrivesParentLimit'
 TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED = 'teamDrivesSharingRestrictionNotAllowed'
+TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED = 'teamDrivesShortcutFileNotSupported'
 TIME_RANGE_EMPTY = 'timeRangeEmpty'
 TRANSIENT_ERROR = 'transientError'
 UNKNOWN_ERROR = 'unknownError'
@@ -588,6 +589,8 @@ class teamDrivesParentLimit(Exception):
   pass
 class teamDrivesSharingRestrictionNotAllowed(Exception):
   pass
+class teamDrivesShortcutFileNotSupported(Exception):
+  pass
 class timeRangeEmpty(Exception):
   pass
 class transientError(Exception):
@@ -737,6 +740,7 @@ REASON_EXCEPTION_MAP = {
   TEAMDRIVES_FOLDER_SHARING_NOT_SUPPORTED: teamDrivesFolderSharingNotSupported,
   TEAMDRIVES_PARENT_LIMIT: teamDrivesParentLimit,
   TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED: teamDrivesSharingRestrictionNotAllowed,
+  TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED: teamDrivesShortcutFileNotSupported,
   TIME_RANGE_EMPTY: timeRangeEmpty,
   TRANSIENT_ERROR: transientError,
   UNKNOWN_ERROR: unknownError,

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.52.04'
+__version__ = '6.52.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -35579,17 +35579,22 @@ def warnMatterNotOpen(matter, matterNameId, j, jcount):
                                                                 Ent.FormatEntityValueList([Ent.VAULT_MATTER, matterNameId])+[Msg.MATTER_NOT_OPEN.format(matter['state'])],
                                                                 currentCount(j, jcount)))
 
-def _getExportOrgUnitName(export, cd):
+def _cleanVaultExport(export, cd):
   query = export.get('query')
   if query:
-    if 'orgUnitInfo' in query:
-      query['orgUnitInfo']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, query['orgUnitInfo']['orgUnitId'])
+    if cd is not None:
+      if 'orgUnitInfo' in query:
+        query['orgUnitInfo']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, query['orgUnitInfo']['orgUnitId'])
 
 VAULT_EXPORT_TIME_OBJECTS = {'versionDate', 'createTime', 'startTime', 'endTime'}
 
-def _showVaultExport(export, cd):
-  if cd is not None:
-    _getExportOrgUnitName(export, cd)
+def _showVaultExport(matterNameId, export, cd, FJQC, k=0, kcount=0):
+  _cleanVaultExport(export, cd)
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(export, timeObjects=VAULT_EXPORT_TIME_OBJECTS), ensure_ascii=False, sort_keys=False))
+    return
+  if matterNameId is not None:
+    printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export['name'], export['id'])], k, kcount)
   Ind.Increment()
   showJSON(None, export, timeObjects=VAULT_EXPORT_TIME_OBJECTS)
   Ind.Decrement()
@@ -35769,7 +35774,7 @@ def doCreateVaultExport():
                       matterId=matterId, body=body)
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export['name'], export['id'])])
     if showDetails:
-      _showVaultExport(export, None)
+      _showVaultExport(None, export, None, None)
   except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.invalidArgument,
           GAPI.failedPrecondition, GAPI.forbidden, GAPI.quotaExceeded) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, body.get('name')], str(e))
@@ -35818,8 +35823,10 @@ VAULT_EXPORT_FIELDS_CHOICE_MAP = {
 
 # gam info vaultexport|export <ExportItem> matter <MatterItem>
 #	[fields <VaultExportFieldNameList>] [shownames]
+#	[formatjson]
 # gam info vaultexport|export <MatterItem> <ExportItem>
 #	[fields <VaultExportFieldNameList>] [shownames]
+#	[formatjson]
 def doInfoVaultExport():
   v = buildGAPIObject(API.VAULT)
   if not Cmd.ArgumentIsAhead('matter'):
@@ -35829,6 +35836,7 @@ def doInfoVaultExport():
     exportName = getString(Cmd.OB_EXPORT_ITEM)
   cd = None
   fieldsList = []
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'matter':
@@ -35839,14 +35847,13 @@ def doInfoVaultExport():
     elif getFieldsList(myarg, VAULT_EXPORT_FIELDS_CHOICE_MAP, fieldsList, initialField=['id', 'name']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSON(myarg)
   fields = getFieldsFromFieldsList(fieldsList)
   try:
     export = callGAPI(v.matters().exports(), 'get',
                       throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                       matterId=matterId, exportId=exportId, fields=fields)
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export['name'], export['id'])])
-    _showVaultExport(export, cd)
+    _showVaultExport(matterNameId, export, cd, FJQC)
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, exportNameId], str(e))
 
@@ -35856,13 +35863,25 @@ PRINT_VAULT_EXPORTS_TITLES = ['matterId', 'matterName', 'id', 'name']
 # gam print vaultexports|exports [todrive <ToDriveAttribute>*]
 #	[matters <MatterItemList>] [exportstatus <ExportStatusList>]
 #	[fields <VaultExportFieldNameList>] [shownames]
+#	[formatjson [quotechar <Character>]]
 #	[oneitemperrow]
 # gam show vaultexports|exports
 #	[matters <MatterItemList>] [exportstatus <ExportStatusList>]
 #	[fields <VaultExportFieldNameList>] [shownames]
+#	[formatjson]
 def doPrintShowVaultExports():
+  def _printVaultExport(export):
+    row = flattenJSON(export, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      csvPF.WriteRowNoFilter({'matterId': matterId, 'matterName': matterName,
+                              'id': export['id'], 'name': export['name'],
+                              'JSON': json.dumps(cleanJSON(export, timeObjects=VAULT_EXPORT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
+
   v = buildGAPIObject(API.VAULT)
   csvPF = CSVPrintFile(PRINT_VAULT_EXPORTS_TITLES, 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar()
   matters = []
   exportStatusList = []
   cd = None
@@ -35887,8 +35906,10 @@ def doPrintShowVaultExports():
     elif csvPF and myarg == 'oneitemperrow':
       oneItemPerRow = True
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
   fields = getItemFieldsFromFieldsList('exports', fieldsList)
+  if csvPF and FJQC.formatJSON:
+    csvPF.SetJSONTitles(PRINT_VAULT_EXPORTS_TITLES+['JSON'])
   exportStatuses = set(exportStatusList)
   exportQualifier = f' ({",".join(exportStatusList)})' if exportStatusList else ''
   if not matters:
@@ -35939,26 +35960,25 @@ def doPrintShowVaultExports():
       continue
     kcount = len(exports)
     if not csvPF:
-      entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId], kcount, Ent.VAULT_EXPORT, j, jcount)
+      if not FJQC.formatJSON:
+        entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId], kcount, Ent.VAULT_EXPORT, j, jcount)
       Ind.Increment()
       k = 0
       for export in exports:
         k += 1
         if not exportStatuses or export['status'] in exportStatuses:
-          printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_EXPORT, formatVaultNameId(export['name'], export['id'])], k, kcount)
-          _showVaultExport(export, cd)
+          _showVaultExport(matterNameId, export, cd, FJQC, k, kcount)
       Ind.Decrement()
     else:
       for export in exports:
         if not exportStatuses or export['status'] in exportStatuses:
-          if cd is not None:
-            _getExportOrgUnitName(export, cd)
+          _cleanVaultExport(export, cd)
           if not oneItemPerRow or not export.get('cloudStorageSink', {}).get('files'):
-            csvPF.WriteRowTitles(flattenJSON(export, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS))
+            _printVaultExport(export)
           else:
             for file in export['cloudStorageSink'].pop('files'):
               export['cloudStorageSink']['files'] = file
-              csvPF.WriteRowTitles(flattenJSON(export, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_EXPORT_TIME_OBJECTS))
+              _printVaultExport(export)
   if csvPF:
     csvPF.writeCSVfile('Vault Exports')
 
@@ -36188,24 +36208,28 @@ def doDownloadVaultExport():
     Ind.Decrement()
   Ind.Decrement()
 
-def _getHoldEmailAddressesOrgUnitName(hold, cd):
-  if 'accounts' in hold:
-    accountType = 'group' if hold['corpus'] == 'GROUPS' else 'user'
-    for i in range(0, len(hold['accounts'])):
-      hold['accounts'][i]['email'] = convertUIDtoEmailAddress(f'uid:{hold["accounts"][i]["accountId"]}', cd, accountType)
-  if 'orgUnit' in hold:
-    hold['orgUnit']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, hold['orgUnit']['orgUnitId'])
+def _cleanVaultHold(hold, cd):
+  if cd is not None:
+    if 'accounts' in hold:
+      accountType = 'group' if hold['corpus'] == 'GROUPS' else 'user'
+      for i in range(0, len(hold['accounts'])):
+        hold['accounts'][i]['email'] = convertUIDtoEmailAddress(f'uid:{hold["accounts"][i]["accountId"]}', cd, accountType)
+    if 'orgUnit' in hold:
+      hold['orgUnit']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, hold['orgUnit']['orgUnitId'])
+  query = hold.get('query')
+  if query:
+    if 'driveQuery' in hold['query']:
+      hold['query']['driveQuery'].pop('includeTeamDriveFiles', None)
 
 VAULT_HOLD_TIME_OBJECTS = {'holdTime', 'updateTime', 'startTime', 'endTime'}
 
-def _cleanVaultHold(hold):
-  if 'driveQuery' in hold['query']:
-    hold['query']['driveQuery'].pop('includeTeamDriveFiles', None)
-
-def _showVaultHold(hold, cd):
-  if cd is not None:
-    _getHoldEmailAddressesOrgUnitName(hold, cd)
-  _cleanVaultHold(hold)
+def _showVaultHold(matterNameId, hold, cd, FJQC, k=0, kcount=0):
+  _cleanVaultHold(hold, cd)
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(hold, timeObjects=VAULT_HOLD_TIME_OBJECTS), ensure_ascii=False, sort_keys=False))
+    return
+  if matterNameId is not None:
+    printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(hold['name'], hold['holdId'])], k, kcount)
   Ind.Increment()
   showJSON(None, hold, timeObjects=VAULT_HOLD_TIME_OBJECTS)
   Ind.Decrement()
@@ -36311,7 +36335,7 @@ def doCreateVaultHold():
                     matterId=matterId, body=body)
     entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(hold['name'], hold['holdId'])])
     if showDetails:
-      _showVaultHold(hold, None)
+      _showVaultHold(None, hold, None, None)
   except (GAPI.alreadyExists, GAPI.badRequest, GAPI.backendError, GAPI.failedPrecondition, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, body.get('name')], str(e))
 
@@ -36432,7 +36456,7 @@ def doUpdateVaultHold():
         return
     Ind.Decrement()
   if showDetails:
-    _showVaultHold(hold, cd)
+    _showVaultHold(None, hold, cd, None)
 
 # gam delete vaulthold|hold <HoldItem> matter <MatterItem>
 # gam delete vaulthold|hold <MatterItem> <HoldItem>
@@ -36477,8 +36501,10 @@ VAULT_HOLD_FIELDS_CHOICE_MAP = {
 
 # gam info vaulthold|hold <HoldItem> matter <MatterItem>
 #	[fields <VaultHoldFieldNameList>] [shownames]
+#	[formatjson]
 # gam info vaulthold|hold <MatterItem> <HoldItem>
 #	[fields <VaultHoldFieldNameList>] [shownames]
+#	[formatjson]
 def doInfoVaultHold():
   v = buildGAPIObject(API.VAULT)
   if not Cmd.ArgumentIsAhead('matter'):
@@ -36488,6 +36514,7 @@ def doInfoVaultHold():
     holdName = getString(Cmd.OB_HOLD_ITEM)
   cd = None
   fieldsList = []
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'matter':
@@ -36498,14 +36525,13 @@ def doInfoVaultHold():
     elif getFieldsList(myarg, VAULT_HOLD_FIELDS_CHOICE_MAP, fieldsList, initialField=['holdId', 'name']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSON(myarg)
   fields = getFieldsFromFieldsList(fieldsList)
   try:
     hold = callGAPI(v.matters().holds(), 'get',
                     throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                     matterId=matterId, holdId=holdId, fields=fields)
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(hold['name'], hold['holdId'])])
-    _showVaultHold(hold, cd)
+    _showVaultHold(matterNameId, hold, cd, FJQC)
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, holdNameId], str(e))
 
@@ -36513,11 +36539,14 @@ PRINT_VAULT_HOLDS_TITLES = ['matterId', 'matterName', 'holdId', 'name']
 
 # gam print vaultholds|holds [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
 #	[fields <VaultHoldFieldNameList>] [shownames]
+#	[formatjson [quotechar <Character>]]
 # gam show vaultholds|holds [matters <MatterItemList>]
 #	[fields <VaultHoldFieldNameList>] [shownames]
+#	[formatjson]
 def doPrintShowVaultHolds():
   v = buildGAPIObject(API.VAULT)
   csvPF = CSVPrintFile(PRINT_VAULT_HOLDS_TITLES, 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar()
   matters = []
   cd = None
   fieldsList = []
@@ -36532,8 +36561,10 @@ def doPrintShowVaultHolds():
     elif getFieldsList(myarg, VAULT_HOLD_FIELDS_CHOICE_MAP, fieldsList, initialField=['holdId', 'name']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
   fields = getItemFieldsFromFieldsList('holds', fieldsList)
+  if csvPF and FJQC.formatJSON:
+    csvPF.SetJSONTitles(PRINT_VAULT_HOLDS_TITLES+['JSON'])
   if not matters:
     printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=' (OPEN)')
     try:
@@ -36581,20 +36612,24 @@ def doPrintShowVaultHolds():
       continue
     kcount = len(holds)
     if not csvPF:
-      entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId], kcount, Ent.VAULT_HOLD, j, jcount)
+      if not FJQC.formatJSON:
+        entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId], kcount, Ent.VAULT_HOLD, j, jcount)
       Ind.Increment()
       k = 0
       for hold in holds:
         k += 1
-        printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, formatVaultNameId(hold['name'], hold['holdId'])], k, kcount)
-        _showVaultHold(hold, cd)
+        _showVaultHold(matterNameId, hold, cd, FJQC, k, kcount)
       Ind.Decrement()
     else:
       for hold in holds:
-        if cd is not None:
-          _getHoldEmailAddressesOrgUnitName(hold, cd)
-          _cleanVaultHold(hold)
-        csvPF.WriteRowTitles(flattenJSON(hold, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_HOLD_TIME_OBJECTS))
+        _cleanVaultHold(hold, cd)
+        row = flattenJSON(hold, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_HOLD_TIME_OBJECTS)
+        if not FJQC.formatJSON:
+          csvPF.WriteRowTitles(row)
+        elif csvPF.CheckRowTitles(row):
+          csvPF.WriteRowNoFilter({'matterId': matterId, 'matterName': matterName,
+                                  'holdId': hold['holdId'], 'name': hold['name'],
+                                  'JSON': json.dumps(cleanJSON(hold, timeObjects=VAULT_HOLD_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
   if csvPF:
     csvPF.writeCSVfile('Vault Holds')
 
@@ -36681,29 +36716,27 @@ def printShowUserVaultHolds(entityList):
   else:
     printKeyValueList(['Total Holds', totalHolds])
 
-def _getQueryOrgUnitName(query, cd):
-  if 'orgUnitInfo' in query['query']:
-    query['query']['orgUnitInfo']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, query['query']['orgUnitInfo']['orgUnitId'])
-
-def _getQuerySharedDriveNames(query, drive):
-  if 'sharedDriveInfo' in query['query']:
-    query['query']['sharedDriveInfo']['sharedDriveNames'] = []
-    for sharedDriveId in query['query']['sharedDriveInfo']['sharedDriveIds']:
-      query['query']['sharedDriveInfo']['sharedDriveNames'].append(_getSharedDriveNameFromId(drive, sharedDriveId, useDomainAdminAccess=True))
-
-VAULT_QUERY_TIME_OBJECTS = {'createTime', 'endTime', 'startTime', 'versionDate'}
-
 def _cleanVaultQuery(query, cd, drive):
   if 'query' in query:
     if cd is not None:
-      _getQueryOrgUnitName(query, cd)
+      if 'orgUnitInfo' in query['query']:
+        query['query']['orgUnitInfo']['orgUnitPath'] = convertOrgUnitIDtoPath(cd, query['query']['orgUnitInfo']['orgUnitId'])
     if drive is not None:
-      _getQuerySharedDriveNames(query, drive)
+      if 'sharedDriveInfo' in query['query']:
+        query['query']['sharedDriveInfo']['sharedDriveNames'] = []
+        for sharedDriveId in query['query']['sharedDriveInfo']['sharedDriveIds']:
+          query['query']['sharedDriveInfo']['sharedDriveNames'].append(_getSharedDriveNameFromId(drive, sharedDriveId, useDomainAdminAccess=True))
     query['query'].pop('searchMethod', None)
     query['query'].pop('teamDriveInfo', None)
 
-def _showVaultQuery(query, cd, drive):
+VAULT_QUERY_TIME_OBJECTS = {'createTime', 'endTime', 'startTime', 'versionDate'}
+
+def _showVaultQuery(matterNameId, query, cd, drive, FJQC, k=0, kcount=0):
   _cleanVaultQuery(query, cd, drive)
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(query, timeObjects=VAULT_QUERY_TIME_OBJECTS), ensure_ascii=False, sort_keys=False))
+    return
+  printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, formatVaultNameId(query['displayName'], query['savedQueryId'])], k, kcount)
   Ind.Increment()
   showJSON(None, query, timeObjects=VAULT_QUERY_TIME_OBJECTS)
   Ind.Decrement()
@@ -36720,8 +36753,10 @@ VAULT_QUERY_FIELDS_CHOICE_MAP = {
 
 # gam info vaultquery <QueryItem> matter <MatterItem>
 #	[fields <VaultQueryFieldNameList>] [shownames]
+#	[formatjson]
 # gam info vaultquery <MatterItem> <QueryItem>
 #	[fields <VaultQueryFieldNameList>] [shownames]
+#	[formatjson]
 def doInfoVaultQuery():
   v = buildGAPIObject(API.VAULT)
   if not Cmd.ArgumentIsAhead('matter'):
@@ -36731,6 +36766,7 @@ def doInfoVaultQuery():
     queryName = getString(Cmd.OB_QUERY_ITEM)
   cd = drive = None
   fieldsList = []
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'matter':
@@ -36744,26 +36780,28 @@ def doInfoVaultQuery():
     elif getFieldsList(myarg, VAULT_QUERY_FIELDS_CHOICE_MAP, fieldsList, initialField=['savedQueryId', 'displayName']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSON(myarg)
   fields = getFieldsFromFieldsList(fieldsList)
   try:
     query = callGAPI(v.matters().savedQueries(), 'get',
                     throwReasons=[GAPI.NOT_FOUND, GAPI.BAD_REQUEST, GAPI.FORBIDDEN],
                     matterId=matterId, savedQueryId=queryId, fields=fields)
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, formatVaultNameId(query['displayName'], query['savedQueryId'])])
-    _showVaultQuery(query, cd, drive)
+    _showVaultQuery(matterNameId, query, cd, drive, FJQC)
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, queryNameId], str(e))
 
-PRINT_VAULT_QUERYS_TITLES = ['matterId', 'matterName', 'savedQueryId', 'displayName']
+PRINT_VAULT_QUERIES_TITLES = ['matterId', 'matterName', 'savedQueryId', 'displayName']
 
 # gam print vaultqueries [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
 #	[fields <VaultQueryFieldNameList>] [shownames]
+#	[formatjson [quotechar <Character>]]
 # gam show vaultqueries [matters <MatterItemList>]
 #	[fields <VaultQueryFieldNameList>] [shownames]
+#	[formatjson]
 def doPrintShowVaultQueries():
   v = buildGAPIObject(API.VAULT)
-  csvPF = CSVPrintFile(PRINT_VAULT_QUERYS_TITLES, 'sortall') if Act.csvFormat() else None
+  csvPF = CSVPrintFile(PRINT_VAULT_QUERIES_TITLES, 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
   matters = []
   cd = drive = None
   fieldsList = []
@@ -36781,8 +36819,10 @@ def doPrintShowVaultQueries():
     elif getFieldsList(myarg, VAULT_QUERY_FIELDS_CHOICE_MAP, fieldsList, initialField=['savedQueryId', 'displayName']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
   fields = getItemFieldsFromFieldsList('savedQueries', fieldsList)
+  if csvPF and FJQC.formatJSON:
+    csvPF.SetJSONTitles(PRINT_VAULT_QUERIES_TITLES+['JSON'])
   if not matters:
     printGettingAllAccountEntities(Ent.VAULT_MATTER, qualifier=' (OPEN)')
     try:
@@ -36830,18 +36870,24 @@ def doPrintShowVaultQueries():
       continue
     kcount = len(queries)
     if not csvPF:
-      entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId], kcount, Ent.VAULT_QUERY, j, jcount)
+      if not FJQC.formatJSON:
+        entityPerformActionNumItems([Ent.VAULT_MATTER, matterNameId], kcount, Ent.VAULT_QUERY, j, jcount)
       Ind.Increment()
       k = 0
       for query in queries:
         k += 1
-        printEntity([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_QUERY, formatVaultNameId(query['displayName'], query['savedQueryId'])], k, kcount)
-        _showVaultQuery(query, cd, drive)
+        _showVaultQuery(matterNameId, query, cd, drive, FJQC, k, kcount)
       Ind.Decrement()
     else:
       for query in queries:
         _cleanVaultQuery(query, cd, drive)
-        csvPF.WriteRowTitles(flattenJSON(query, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_QUERY_TIME_OBJECTS))
+        row = flattenJSON(query, flattened={'matterId': matterId, 'matterName': matterName}, timeObjects=VAULT_QUERY_TIME_OBJECTS)
+        if not FJQC.formatJSON:
+          csvPF.WriteRowTitles(row)
+        elif csvPF.CheckRowTitles(row):
+          csvPF.WriteRowNoFilter({'matterId': matterId, 'matterName': matterName,
+                                  'savedQueryId': query['savedQueryId'], 'displayName': query['displayName'],
+                                  'JSON': json.dumps(cleanJSON(query, timeObjects=VAULT_QUERY_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
   if csvPF:
     csvPF.writeCSVfile('Vault Saved Queries')
 
@@ -36851,10 +36897,18 @@ def validateCollaborators(cd):
     collaborators.append({'email': collaborator, 'id': convertEmailAddressToUID(collaborator, cd)})
   return collaborators
 
-def _showVaultMatter(matter, cd):
-  if 'matterPermissions' in matter:
-    for i in range(0, len(matter['matterPermissions'])):
-      matter['matterPermissions'][i]['email'] = convertUIDtoEmailAddress(f'uid:{matter["matterPermissions"][i]["accountId"]}', cd)
+def _cleanVaultMatter(matter, cd):
+  if cd is not None:
+    if 'matterPermissions' in matter:
+      for i in range(0, len(matter['matterPermissions'])):
+        matter['matterPermissions'][i]['email'] = convertUserIDtoEmail(matter["matterPermissions"][i]["accountId"], cd)
+
+def _showVaultMatter(matter, cd, FJQC, j=0, jcount=0):
+  _cleanVaultMatter(matter, cd)
+  if FJQC is not None and FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON(matter), ensure_ascii=False, sort_keys=False))
+    return
+  printEntity([Ent.VAULT_MATTER, formatVaultNameId(matter['name'], matter['matterId'])], j, jcount)
   Ind.Increment()
   showJSON(None, matter)
   Ind.Decrement()
@@ -36918,7 +36972,7 @@ def doCreateVaultMatter():
         break
     Ind.Decrement()
   if showDetails:
-    _showVaultMatter(matter, cd)
+    _showVaultMatter(None, matter, cd, None)
 
 VAULT_MATTER_ACTIONS = {
   'close': Act.CLOSE,
@@ -37049,11 +37103,13 @@ VAULT_MATTER_FIELDS_CHOICE_MAP = {
 
 # gam info vaultmatter|matter <MatterItem>
 #	[basic|full|(fields <VaultMatterFieldNameList>)]
+#	[formatjson]
 def doInfoVaultMatter():
   v = buildGAPIObject(API.VAULT)
   matterId, matterNameId = getMatterItem(v)
-  fieldsList = []
   view = 'FULL'
+  fieldsList = []
+  FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in PROJECTION_CHOICE_MAP:
@@ -37061,15 +37117,14 @@ def doInfoVaultMatter():
     elif getFieldsList(myarg, VAULT_MATTER_FIELDS_CHOICE_MAP, fieldsList, initialField=['matterId', 'name']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSON(myarg)
   fields = getFieldsFromFieldsList(fieldsList)
   try:
     matter = callGAPI(v.matters(), 'get',
                       throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                       matterId=matterId, view=view, fields=fields)
     cd = buildGAPIObject(API.DIRECTORY) if 'matterPermissions' in matter else None
-    entityActionPerformed([Ent.VAULT_MATTER, matterNameId])
-    _showVaultMatter(matter, cd)
+    _showVaultMatter(matter, cd, FJQC)
   except (GAPI.notFound, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
 
@@ -37078,30 +37133,18 @@ PRINT_VAULT_MATTERS_TITLES = ['matterId', 'name']
 
 # gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [matterstate <MatterStateList>]
 #	[basic|full|(fields <VaultMatterFieldNameList>)]
+#	[formatjson [quotechar <Character>]]
 # gam show vaultmatters|matters [matterstate <MatterStateList>]
 #	[basic|full|(fields <VaultMatterFieldNameList>)]
+#	[formatjson]
 def doPrintShowVaultMatters():
-  def getPermissionEmails(matter):
-    for matterPermission in matter.get('matterPermissions', []):
-      userId = matterPermission['accountId']
-      userEmail = emails.get(userId)
-      if userEmail is None:
-        try:
-          userEmail = callGAPI(cd.users(), 'get',
-                               throwReasons=GAPI.USER_GET_THROW_REASONS,
-                               userKey=userId, fields='primaryEmail').get('primaryEmail')
-        except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-                GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-          userEmail = 'Unknown user'
-        emails[userId] = userEmail
-      matterPermission['email'] = emails[userId]
-
   v = buildGAPIObject(API.VAULT)
   csvPF = CSVPrintFile(PRINT_VAULT_MATTERS_TITLES, 'sortall') if Act.csvFormat() else None
-  fieldsList = []
+  FJQC = FormatJSONQuoteChar(csvPF)
+  cd = None
   view = 'FULL'
+  fieldsList = []
   matterStatesList = []
-  emails = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -37117,10 +37160,12 @@ def doPrintShowVaultMatters():
     elif getFieldsList(myarg, VAULT_MATTER_FIELDS_CHOICE_MAP, fieldsList, initialField=['matterId', 'name']):
       pass
     else:
-      unknownArgumentExit()
+      FJQC.GetFormatJSONQuoteChar(myarg, False)
   if fieldsList and matterStatesList:
     fieldsList.append('state')
   fields = f'nextPageToken,matters({getFieldsFromFieldsList(fieldsList)})' if fieldsList else None
+  if csvPF and FJQC.formatJSON:
+    csvPF.SetJSONTitles(PRINT_VAULT_MATTERS_TITLES+['JSON'])
   # If no states are set, there is no filtering; if 1 state is set, the API can filter; else GAM filters
   matterStates = set()
   stateParm = None
@@ -37144,27 +37189,28 @@ def doPrintShowVaultMatters():
   jcount = len(matters)
   if view == 'FULL':
     cd = buildGAPIObject(API.DIRECTORY)
-    for matter in matters:
-      getPermissionEmails(matter)
   if not csvPF:
-    performActionNumItems(jcount, Ent.VAULT_MATTER)
     if jcount == 0:
       setSysExitRC(NO_ENTITIES_FOUND_RC)
-      return
+    if not FJQC.formatJSON:
+      performActionNumItems(jcount, Ent.VAULT_MATTER)
     Ind.Increment()
     j = 0
     for matter in matters:
       j += 1
       if not matterStates or matter['state'] in matterStates:
-        printEntity([Ent.VAULT_MATTER, formatVaultNameId(matter['name'], matter['matterId'])], j, jcount)
-        Ind.Increment()
-        showJSON(None, matter)
-        Ind.Decrement()
+        _showVaultMatter(matter, cd, FJQC, j, jcount)
     Ind.Decrement()
   else:
     for matter in matters:
       if not matterStates or matter['state'] in matterStates:
-        csvPF.WriteRowTitles(flattenJSON(matter))
+        _cleanVaultMatter(matter, cd)
+        row = flattenJSON(matter)
+        if not FJQC.formatJSON:
+          csvPF.WriteRowTitles(row)
+        elif csvPF.CheckRowTitles(row):
+          csvPF.WriteRowNoFilter({'matterId': matter['id'], 'name': matter['name'],
+                                  'JSON': json.dumps(cleanJSON(matter), ensure_ascii=False, sort_keys=True)})
   if csvPF:
     csvPF.writeCSVfile('Vault Matters')
 
@@ -52722,7 +52768,7 @@ def copyDriveFile(users):
           try:
             result = callGAPI(drive.files(), 'copy',
                               bailOnInternalError=True,
-                              throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR],
+                              throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR, GAPI.TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED],
                               fileId=childId, body=child, fields='id,name', supportsAllDrives=True)
             if not csvPF:
               entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
@@ -52755,7 +52801,8 @@ def copyDriveFile(users):
                                'copyFileNonInheritedPermissions')
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                   GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
-                  GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, GAPI.internalError) as e:
+                  GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, 
+                  GAPI.internalError, GAPI.teamDrivesShortcutFileNotSupported) as e:
             entityActionFailedWarning(kvList, str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
       Ind.Decrement()
@@ -53243,6 +53290,7 @@ def moveDriveFile(users):
                                                              GAPI.FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED,
                                                              GAPI.CANNOT_MOVE_TRASHED_ITEM_INTO_TEAMDRIVE,
                                                              GAPI.CANNOT_MOVE_TRASHED_ITEM_OUT_OF_TEAMDRIVE,
+                                                             GAPI.TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED,
                                                              GAPI.CROSS_DOMAIN_MOVE_RESTRICTION],
                fileId=childId, addParents=newParentId, removeParents=removeParents,
                body=body, fields='', supportsAllDrives=True)
@@ -53251,7 +53299,8 @@ def moveDriveFile(users):
                                                  k, kcount)
       _incrStatistic(statistics, STAT_FILE_COPIED_MOVED)
     except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.unknownError, GAPI.badRequest,
-            GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive) as e:
+            GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive,
+            GAPI.teamDrivesShortcutFileNotSupported) as e:
       entityActionFailedWarning(kvList, str(e), k, kcount)
       _incrStatistic(statistics, STAT_FILE_FAILED)
       copyMoveOptions['retainSourceFolders'] = True
@@ -53444,6 +53493,11 @@ def moveDriveFile(users):
           if not _verifyUserIsOrganizer(drive, user, i, count, copyMoveOptions['destDriveId']):
             _incrStatistic(statistics, STAT_USER_NOT_ORGANIZER)
             continue
+# 3rd party shortcuts can't be moved to Shared Drives
+          if sourceMimeType.startswith(MIMETYPE_GA_3P_SHORTCUT):
+            entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_3PSHORTCUT, sourceNameId], Msg.NOT_MOVABLE, j, jcount)
+            _incrStatistic(statistics, STAT_FILE_NOT_COPYABLE_MOVABLE)
+            continue
 # Move folder
         if sourceMimeType == MIMETYPE_GA_FOLDER:
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
@@ -53493,7 +53547,7 @@ def moveDriveFile(users):
               GAPI.fileOwnerNotMemberOfTeamDrive, GAPI.fileOwnerNotMemberOfWriterDomain,
               GAPI.fileWriterTeamDriveMoveInDisabled,
               GAPI.cannotMoveTrashedItemIntoTeamDrive, GAPI.cannotMoveTrashedItemOutOfTeamDrive,
-              GAPI.crossDomainMoveRestriction) as e:
+              GAPI.teamDrivesShortcutFileNotSupported, GAPI.crossDomainMoveRestriction) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         _incrStatistic(statistics, STAT_FILE_FAILED)
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:

@@ -4705,10 +4705,13 @@ gam undelete vaultmatter|matter <MatterItem>
 
 gam info vaultmatter|matter <MatterItem> [basic|full]
         [basic|full|(fields <VaultMatterFieldNameList>)]
+        [formatjson]
 gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [matterstate <MatterStateList>]
         [basic|full|(fields <VaultMatterFieldNameList>)]
+        [formatjson [quotechar <Character>]]
 gam show vaultmatters|matters [matterstate <MatterStateList>]
         [basic|full|(fields <VaultMatterFieldNameList>)]
+        [formatjson]
 
 gam print vaultcounts [todrive <ToDriveAttributes>*]
         matter <MatterItem> corpus mail|groups
@@ -4772,15 +4775,19 @@ gam copy vaultexport|export <MatterItem> <ExportItem>
 
 gam info vaultexport|export <ExportItem> matter <MatterItem>
         [fields <VaultExportFieldNameList>] [shownames]
+        [formatjson]
 gam info vaultexport|export <MatterItem> <ExportItem>
         [fields <VaultExportFieldNameList>] [shownames]
+        [formatjson]
 gam print vaultexports|exports [todrive <ToDriveAttribute>*]
         [matters <MatterItemList>] [exportstatus <ExportStatusList>]
         [fields <VaultExportFieldNameList>] [shownames]
+        [formatjson [quotechar <Character>]]
         [oneitemperrow]
 gam show vaultexports|exports
         [matters <MatterItemList>] [exportstatus <ExportStatusList>]
         [fields <VaultExportFieldNameList>] [shownames]
+        [formatjson]
 
 gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
         [(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
@@ -4818,12 +4825,16 @@ gam delete vaulthold|hold <MatterItem> <HoldItem>
 
 gam info vaulthold|hold <HoldItem> matter <MatterItem>
         [fields <VaultHoldFieldNameList>] [shownames]
+        [formatjson]
 gam info vaulthold|hold <MatterItem> <HoldItem>
         [fields <VaultHoldFieldNameList>] [shownames]
+        [formatjson]
 gam print vaultholds|holds [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
         [fields <VaultHoldFieldNameList>] [shownames]
+        [formatjson [quotechar <Character>]]
 gam show vaultholds|holds [matters <MatterItemList>]
         [fields <VaultHoldFieldNameList>] [shownames]
+        [formatjson]
 
 gam <UserTypeEntity> print vaultholds|holds [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> show vaultholds|holds
@@ -4840,12 +4851,16 @@ gam <UserTypeEntity> show vaultholds|holds
 
 gam info vaultquery <QueryItem> matter <MatterItem>
         [fields <VaultQueryFieldNameList>] [shownames]
+        [formatjson]
 gam info vaultquery <MatterItem> <QueryItem>
         [fields <VaultQueryFieldNameList>] [shownames]
+        [formatjson]
 gam print vaultqueries [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
         [fields <VaultQueryFieldNameList>] [shownames]
+        [formatjson [quotechar <Character>]]
 gam show vaultqueries [matters <MatterItemList>]
         [fields <VaultQueryFieldNameList>] [shownames]
+        [formatjson]
 
 gam download storagebucket <TakeoutBucketName>
         [targetfolder <FilePath>]
