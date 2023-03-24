@@ -29,8 +29,9 @@
   </Product>
 
   <Fragment>
+    <SetDirectory Id="WINDOWSVOLUME" Value="[WindowsVolume]"/>
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ROOTDRIVE">
+      <Directory Id="WINDOWSVOLUME">
           <Directory Id="INSTALLFOLDER" Name="GAMADV-XTD3" />
         </Directory>
     </Directory>
