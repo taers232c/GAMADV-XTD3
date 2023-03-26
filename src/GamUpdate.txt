@@ -1,3 +1,11 @@
+6.52.06
+
+Updated `gam <UserTypeEntity> create|update drivefile` to handle the following error that occurs when an attempt is
+made to create/move a third-party shortcut on/to a Shared Drive.
+```
+ERROR: 403: teamDrivesShortcutFileNotSupported - The application associated with this third-party shortcut file does not support shared drives.
+```
+
 6.52.05
 
 Added option `formatjson` to all commands that display Vault Matters, Exports, Holds and Saved Queries.

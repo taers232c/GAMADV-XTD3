@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.52.05'
+__version__ = '6.52.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -46283,6 +46283,8 @@ def printShowCalendarEvents(users):
 def _getEntityMimeType(fileEntry):
   if fileEntry['mimeType'] == MIMETYPE_GA_FOLDER:
     return Ent.DRIVE_FOLDER
+  if fileEntry['mimeType'].startswith(MIMETYPE_GA_3P_SHORTCUT):
+    return Ent.DRIVE_3PSHORTCUT
   if fileEntry['mimeType'] != MIMETYPE_GA_SHORTCUT:
     return Ent.DRIVE_FILE
   if 'shortcutDetails' not in fileEntry or 'targetMimeType' not in fileEntry['shortcutDetails']:
@@ -50988,7 +50990,8 @@ def createDriveFile(users):
                                                                     GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
                                                                     GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
                                                                     GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.UPLOAD_TOO_LARGE],
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.UPLOAD_TOO_LARGE,
+                                                                    GAPI.TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED],
                         ocrLanguage=parameters[DFA_OCRLANGUAGE],
                         ignoreDefaultVisibility=parameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                         keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -51025,7 +51028,7 @@ def createDriveFile(users):
     except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.insufficientParentPermissions,
             GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
             GAPI.fileNotFound, GAPI.unknownError, GAPI.teamDrivesSharingRestrictionNotAllowed,
-            GAPI.teamDriveHierarchyTooDeep, GAPI.uploadTooLarge) as e:
+            GAPI.teamDriveHierarchyTooDeep, GAPI.uploadTooLarge, GAPI.teamDrivesShortcutFileNotSupported) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, body['name']], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -51560,7 +51563,8 @@ def updateDriveFile(users):
                                 throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.CANNOT_ADD_PARENT,
                                                                               GAPI.INSUFFICIENT_PARENT_PERMISSIONS,
                                                                               GAPI.CANNOT_MODIFY_VIEWERS_CAN_COPY_CONTENT,
-                                                                              GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
+                                                                              GAPI.TEAMDRIVES_PARENT_LIMIT,
+                                                                              GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                               GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED],
                                 fileId=fileId,
                                 ocrLanguage=parameters[DFA_OCRLANGUAGE],
@@ -51602,6 +51606,7 @@ def updateDriveFile(users):
                                                                             GAPI.TEAMDRIVES_PARENT_LIMIT, GAPI.TEAMDRIVES_FOLDER_MOVE_IN_NOT_SUPPORTED,
                                                                             GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
                                                                             GAPI.CROSS_DOMAIN_MOVE_RESTRICTION, GAPI.UPLOAD_TOO_LARGE,
+                                                                            GAPI.TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED,
                                                                             GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN],
                               fileId=fileId,
                               ocrLanguage=parameters[DFA_OCRLANGUAGE],
@@ -51627,8 +51632,10 @@ def updateDriveFile(users):
                 GAPI.unknownError, GAPI.invalid, GAPI.badRequest, GAPI.cannotAddParent,
                 GAPI.fileNeverWritable, GAPI.cannotModifyViewersCanCopyContent,
                 GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
-                GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported, GAPI.teamDrivesSharingRestrictionNotAllowed,
-                GAPI.crossDomainMoveRestriction, GAPI.uploadTooLarge, GAPI.fileOwnerNotMemberOfWriterDomain) as e:
+                GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported,
+                GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.crossDomainMoveRestriction,
+                GAPI.uploadTooLarge, GAPI.teamDrivesShortcutFileNotSupported,
+                GAPI.fileOwnerNotMemberOfWriterDomain) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -52801,7 +52808,7 @@ def copyDriveFile(users):
                                'copyFileNonInheritedPermissions')
           except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
                   GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
-                  GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded, 
+                  GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded,
                   GAPI.internalError, GAPI.teamDrivesShortcutFileNotSupported) as e:
             entityActionFailedWarning(kvList, str(e), k, kcount)
             _incrStatistic(statistics, STAT_FILE_FAILED)
