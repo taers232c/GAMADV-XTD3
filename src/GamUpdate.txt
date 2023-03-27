@@ -1,3 +1,16 @@
+6.52.08
+
+Added `maximumfilesize <Integer>` to the following commands to allow selection of files with content of size <= `<Integer>`.
+```
+gam <UserTypeEntity> print filelist
+gam <UserTypeEntity> print|show filetree
+gam <UserTypeEntity> print|show filecounts
+```
+
+Added field `workinglocationproperties` to `<EventFieldName>`.
+
+* See: https://workspaceupdates.googleblog.com/2023/03/manage-working-location-feature-with-calendar-api.html
+
 6.52.07
 
 Fixed bug in `gam <UserTypeEntity> copy drivefile` that caused the following error:

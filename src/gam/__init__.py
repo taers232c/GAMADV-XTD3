@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.52.07'
+__version__ = '6.52.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -34485,6 +34485,7 @@ EVENT_FIELDS_CHOICE_MAP = {
   'location': 'location',
   'locked': 'locked',
   'organizer': 'organizer',
+  'originalstart': 'originalStartTime',
   'originalstarttime': 'originalStartTime',
   'privatecopy': 'privateCopy',
   'recurrence': 'recurrence',
@@ -34499,6 +34500,7 @@ EVENT_FIELDS_CHOICE_MAP = {
   'transparency': 'transparency',
   'updated': 'updated',
   'visibility': 'visibility',
+  'workinglocationproperties': 'workingLocationProperties',
   }
 
 EVENT_ATTACHMENTS_SUBFIELDS_CHOICE_MAP = {
@@ -34545,12 +34547,19 @@ EVENT_ORGANIZER_SUBFIELDS_CHOICE_MAP = {
   'self': 'self',
   }
 
+EVENT_WORKINGLOCATION_SUBFIELDS_CHOICE_MAP = {
+  'homeoffice': 'homeOffice',
+  'customlocation': 'customLocation',
+  'officelocation': 'officeLocation',
+  }
+
 EVENT_SUBFIELDS_CHOICE_MAP = {
   'attachments': EVENT_ATTACHMENTS_SUBFIELDS_CHOICE_MAP,
   'attendees': EVENT_ATTENDEES_SUBFIELDS_CHOICE_MAP,
   'conferencedata': EVENT_CONFERENCEDATA_SUBFIELDS_CHOICE_MAP,
   'creator': EVENT_CREATOR_SUBFIELDS_CHOICE_MAP,
   'organizer': EVENT_ORGANIZER_SUBFIELDS_CHOICE_MAP,
+  'workinglocationproperties': EVENT_WORKINGLOCATION_SUBFIELDS_CHOICE_MAP,
 }
 
 def _getEventFields(fieldsList):
@@ -49410,6 +49419,7 @@ class DriveListParameters():
     self.locationSet = False
     self.maxItems = 0
     self.mimeTypeCheck = MimeTypeCheck()
+    self.maximumFileSize = None
     self.minimumFileSize = None
     self.onlySharedDrives = False
     self.queryTimes = {}
@@ -49422,6 +49432,8 @@ class DriveListParameters():
   def ProcessArgument(self, myarg, fileIdEntity):
     if myarg == 'maxfiles':
       self.maxItems = getInteger(minVal=0)
+    elif myarg == 'maximumfilesize':
+      self.maximumFileSize = getInteger(minVal=0)
     elif myarg == 'minimumfilesize':
       self.minimumFileSize = getInteger(minVal=0)
     elif myarg == 'showsharedbyme':
@@ -49628,8 +49640,13 @@ class DriveListParameters():
   def CheckMimeType(self, fileInfo):
     return self.mimeTypeCheck.Check(fileInfo)
 
-  def CheckMinimumFileSize(self, fileInfo):
-    return self.minimumFileSize is None or int(fileInfo.get('size', '0')) >= self.minimumFileSize
+  def CheckFileSize(self, fileInfo):
+    size = int(fileInfo.get('size', '0'))
+    if self.minimumFileSize is not None and size < self.minimumFileSize:
+      return False
+    if self.maximumFileSize is not None and size > self.maximumFileSize:
+      return False
+    return True
 
   def CheckOnlySharedDrives(self, fileInfo):
     return not self.onlySharedDrives or fileInfo.get('driveId') is not None
@@ -49662,7 +49679,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[select <DriveFileEntity>> [selectsubquery <QueryDriveFile>]
 #	    [(norecursion [<Boolean>])|(depth <Number>)] [showparent]]
 #	[anyowner|(showownedby any|me|others)]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [maximumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>] [pmfilter] [oneitemperrow]
 #	[excludetrashed]
@@ -49694,7 +49711,7 @@ def printFileList(users):
       skipObjects.discard('size')
       if showSize and 'size' not in DFF.fieldsList:
         DFF.fieldsList.append('size')
-    if DLP.minimumFileSize is not None:
+    if (DLP.minimumFileSize is not None) or (DLP.maximumFileSize is not None):
       _setSkipObjects(skipObjects, ['size'], DFF.fieldsList)
     if DLP.filenameMatchPattern or showParent:
       _setSkipObjects(skipObjects, ['name'], DFF.fieldsList)
@@ -49722,7 +49739,7 @@ def printFileList(users):
         not DLP.CheckShowSharedByMe(f_file) or
         not DLP.CheckExcludeTrashed(f_file) or
         not DLP.CheckMimeType(f_file) or
-        not DLP.CheckMinimumFileSize(f_file) or
+        not DLP.CheckFileSize(f_file) or
         not DLP.CheckFilenameMatch(f_file) or
         (not checkSharedDrivePermissions and not DLP.CheckFilePermissionMatches(f_file)) or
         (DLP.onlySharedDrives and not driveId)):
@@ -50399,7 +50416,7 @@ def printShowFilePaths(users):
 #	[corpora <CorporaAttribute>]
 #	[select <SharedDriveEntity>]
 #	[anyowner|(showownedby any|me|others)]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [maximumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
@@ -50409,7 +50426,7 @@ def printShowFilePaths(users):
 #	[corpora <CorporaAttribute>]
 #	[select <SharedDriveEntity>]
 #	[anyowner|(showownedby any|me|others)]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [maximumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
@@ -50418,7 +50435,7 @@ def printShowFileCounts(users):
   def _setSelectionFields():
     if DLP.showOwnedBy is not None:
       fieldsList.extend(OWNED_BY_ME_FIELDS_TITLES)
-    if showSize or DLP.minimumFileSize is not None:
+    if showSize or (DLP.minimumFileSize is not None) or (DLP.maximumFileSize is not None):
       fieldsList.append('size')
     if DLP.filenameMatchPattern:
       fieldsList.append('name')
@@ -50549,7 +50566,7 @@ def printShowFileCounts(users):
           if (not DLP.CheckShowOwnedBy(f_file) or
               not DLP.CheckShowSharedByMe(f_file) or
               not DLP.CheckExcludeTrashed(f_file) or
-              not DLP.CheckMinimumFileSize(f_file) or
+              not DLP.CheckFileSize(f_file) or
               not DLP.CheckFilenameMatch(f_file) or
               (not checkSharedDrivePermissions and not DLP.CheckFilePermissionMatches(f_file)) or
               (DLP.onlySharedDrives and not driveId)):
@@ -50606,7 +50623,7 @@ FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size', 'e
 # gam <UserTypeEntity> print filetree [todrive <ToDriveAttribute>*]
 #	[select <DriveFileEntity> [selectsubquery <QueryDriveFile>] [depth <Number>]]
 #	[anyowner|(showownedby any|me|others)]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [maximumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
@@ -50616,7 +50633,7 @@ FILETREE_FIELDS_PRINT_ORDER = ['id', 'parents', 'owners', 'mimeType', 'size', 'e
 # gam <UserTypeEntity> show filetree
 #	[select <DriveFileEntity> [selectsubquery <QueryDriveFile>] [depth <Number>]]
 #	[anyowner|(showownedby any|me|others)]
-#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>]
+#	[showmimetype [not] <MimeTypeList>] [minimumfilesize <Integer>] [maximumfilesize <Integer>]
 #	[filenamematchpattern <RegularExpression>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
@@ -50674,7 +50691,7 @@ def printShowFileTree(users):
         if not DLP.CheckExcludeTrashed(childEntry['info']):
           continue
         if (DLP.CheckMimeType(childEntry['info']) and
-            DLP.CheckMinimumFileSize(childEntry['info']) and
+            DLP.CheckFileSize(childEntry['info']) and
             DLP.CheckFilenameMatch(childEntry['info']) and
             DLP.CheckFilePermissionMatches(childEntry['info'])):
           _showFileInfo(childEntry['info'], depth)
@@ -50706,7 +50723,7 @@ def printShowFileTree(users):
         continue
       if (DLP.CheckShowOwnedBy(childEntryInfo) and
           DLP.CheckMimeType(childEntryInfo) and
-          DLP.CheckMinimumFileSize(childEntryInfo) and
+          DLP.CheckFileSize(childEntryInfo) and
           DLP.CheckFilenameMatch(childEntryInfo) and
           DLP.CheckFilePermissionMatches(childEntryInfo)):
         _showFileInfo(childEntryInfo, depth)
