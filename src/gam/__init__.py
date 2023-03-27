@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.52.06'
+__version__ = '6.52.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8831,6 +8831,7 @@ def doVersion(checkForArgs=True):
                f'Path: {GM.Globals[GM.GAM_PATH]}\n'
                f'{Ent.Singular(Ent.CONFIG_FILE)}: {GM.Globals[GM.GAM_CFG_FILE]}, {Ent.Singular(Ent.SECTION)}: {GM.Globals[GM.GAM_CFG_SECTION_NAME]}, '
                f'{GC.CUSTOMER_ID}: {GC.Values[GC.CUSTOMER_ID]}, {GC.DOMAIN}: {GC.Values[GC.DOMAIN]}\n'
+               f'Time: {ISOformatTimeStamp(todaysTime())}\n'
                ))
   if sys.platform.startswith('win') and str(struct.calcsize('P')*8).find('32') != -1 and platform.machine().find('64') != -1:
     printKeyValueList([Msg.UPDATE_GAM_TO_64BIT])
@@ -52746,7 +52747,6 @@ def copyDriveFile(users):
           continue
         child.pop('parents', [])
         child['parents'] = [newFolderId]
-        child.pop('mimeType')
         if childMimeType == MIMETYPE_GA_FOLDER:
           _recursiveFolderCopy(drive, user, i, count, k, kcount,
                                child, subTargetChildren, newChildName, newFolderId, newFolderName, child['modifiedTime'],
@@ -52772,6 +52772,7 @@ def copyDriveFile(users):
           child.pop('driveId', None)
           if childMimeType == MIMETYPE_GA_SHORTCUT:
             child.pop('folderColorRgb', None)
+          child.pop('mimeType')
           try:
             result = callGAPI(drive.files(), 'copy',
                               bailOnInternalError=True,

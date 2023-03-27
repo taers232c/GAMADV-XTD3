@@ -1,3 +1,12 @@
+6.52.07
+
+Fixed bug in `gam <UserTypeEntity> copy drivefile` that caused the following error:
+```
+ERROR: 403: parentNotAFolder - The specified parent is not a folder.
+```
+
+Current time is now printed in `gam version`.
+
 6.52.06
 
 Updated `gam <UserTypeEntity> create|update drivefile` to handle the following error that occurs when an attempt is
