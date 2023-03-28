@@ -349,28 +349,30 @@ jobs:
           "${PYTHON}" -m pip install --upgrade setuptools
 
       - name: Install pip requirements
+        env:
+          arch: ${{ matrix.arch }}
         run: |
-             if [[ "${RUNNER_OS}" == "macOS" ]]; then
-               if [[ "${arch}" == "arm64" ]]; then
-                 echo "CRYPT_PLATFORM=macosx_11_0_arm64" >> $GITHUB_ENV
-               elif [[ "${arch}" == 'x86_64" ]]; then
-                 echo "CRYPT_PLATFORM=_10_15_x86_64" >> $GITHUB_ENV
-               fi
-               "${PYTHON}" -m pip install --upgrade cffi ${PIP_ARGS}
-               "${PYTHON}" -m pip download --only-binary :all: \
-                                             --dest . \
-                                             --no-cache \
-                                             --no-deps \
-                                             --platform ${CRYPT_PLATFORM} \
-                                             cryptography
-               "${PYTHON}" -m pip install --force-reinstall --no-deps cryptography*.whl
-             fi
-             #"${PYTHON}" -m pip install --upgrade -r requirements.txt ${PIP_ARGS} --use-pep517
-	     # build constraints file to prevent downgrades of existing
-             # packages
-             "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
-             "${PYTHON}" -m pip install --upgrade -c constraints.txt -r requirements.txt ${PIP_ARGS}
-             "${PYTHON}" -m pip list
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            if [[ "${arch}" == "arm64" ]]; then
+              echo "CRYPT_PLATFORM=macosx_11_0_arm64" >> $GITHUB_ENV
+            elif [[ "${arch}" == 'x86_64" ]]; then
+              echo "CRYPT_PLATFORM=_10_15_x86_64" >> $GITHUB_ENV
+            fi
+            "${PYTHON}" -m pip install --upgrade cffi ${PIP_ARGS}
+            "${PYTHON}" -m pip download --only-binary :all: \
+                                          --dest . \
+                                          --no-cache \
+                                          --no-deps \
+                                          --platform ${CRYPT_PLATFORM} \
+                                          cryptography
+            "${PYTHON}" -m pip install --force-reinstall --no-deps cryptography*.whl
+          fi
+          #"${PYTHON}" -m pip install --upgrade -r requirements.txt ${PIP_ARGS} --use-pep517
+          # build constraints file to prevent downgrades of existing
+          # packages
+          "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
+          "${PYTHON}" -m pip install --upgrade -c constraints.txt -r requirements.txt ${PIP_ARGS}
+          "${PYTHON}" -m pip list
 
       - name: Install PyInstaller
         if: matrix.goal == 'build'
