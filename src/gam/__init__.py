@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.52.08'
+__version__ = '6.52.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4887,7 +4887,7 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
     lContent = eContent.lower()
     if GC.Values[GC.DEBUG_LEVEL] > 0:
       writeStdout(f'{ERROR_PREFIX} HTTP: {str(eContent)}\n')
-    if eContent[0:15] != b'<!DOCTYPE html>':
+    if eContent[0:15] != '<!DOCTYPE html>':
       if (e.resp['status'] == '403') and (lContent.startswith('request rate higher than configured')):
         return (e.resp['status'], GAPI.QUOTA_EXCEEDED, eContent)
       if (e.resp['status'] == '429') and (lContent.startswith('quota exceeded for quota metric')):
@@ -5331,6 +5331,17 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
     except google.auth.exceptions.RefreshError as e:
       if isinstance(e.args, tuple):
         e = e.args[0]
+      if n < retries:
+        eContent = e.content.decode(UTF8) if isinstance(e.content, bytes) else e.content
+        if eContent[0:15] == '<!DOCTYPE html>':
+          if GC.Values[GC.DEBUG_LEVEL] > 0:
+            writeStdout(f'{ERROR_PREFIX} HTTP: {str(eContent)}\n')
+          lContent = eContent.lower()
+          tg = HTML_TITLE_PATTERN.match(lContent)
+          lContent = tg.group(1) if tg else ''
+          if lContent.startswith('Error 502 (Server Error)'):
+            time.sleep(30)
+            continue
       handleOAuthTokenError(e, True)
       if displayError:
         entityServiceNotApplicableWarning(Ent.USER, userEmail, i, count)
