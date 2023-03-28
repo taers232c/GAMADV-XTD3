@@ -9,8 +9,8 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.52.08
-  OPENSSL_CONFIG_OPTS: no-fips
+  GAMVERSION: 6.52.09
+  OPENSSL_CONFIG_OPTS: no-fips --api=3.0.0
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
   PYTHON_INSTALL_PATH: ${{ github.workspace }}/bin/python
@@ -64,7 +64,7 @@ jobs:
           path: |
             bin.tar.xz
             src/cpython
-          key: gam-${{ matrix.jid }}-20230327
+          key: gam-${{ matrix.jid }}-20230328
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -84,12 +84,6 @@ jobs:
           echo "RUNNING: apt update..."
           sudo apt-get -qq --yes update
           sudo apt-get -qq --yes install swig libpcsclite-dev
-
-     #- name: MacOS remove Homebrew
-     #  if: runner.os == 'macOS'
-     #  run: |
-     #    # remove everything except the libraries needed by yubikey-manager
-     #    brew uninstall $(brew list | grep -v 'pcre\|swig\|pcsc-lite')
 
       - name: MacOS install tools
         if: runner.os == 'macOS'
@@ -115,7 +109,7 @@ jobs:
           openssl_archs: ${{ matrix.openssl_archs }}
         run: |
           echo "We are running on ${RUNNER_OS}"
-          LD_LIBRARY_PATH="${OPENSSL_INSTALL_PATH}/lib:${PYTHON_INSTALL_PATH}/lib"
+          LD_LIBRARY_PATH="${OPENSSL_INSTALL_PATH}/lib:${PYTHON_INSTALL_PATH}/lib:/usr/local/lib"
           if [[ "${arch}" == "Win64" ]]; then
             PYEXTERNALS_PATH="amd64"
             PYBUILDRELEASE_ARCH="x64"
@@ -237,7 +231,7 @@ jobs:
             rm -rf ${GITHUB_WORKSPACE}/bin/ssl-darwin64-arm64
             echo "LDFLAGS=-L${OPENSSL_INSTALL_PATH}/lib" >> $GITHUB_ENV
             echo "CRYPTOGRAPHY_SUPPRESS_LINK_FLAGS=1" >> $GITHUB_ENV
-            echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch arm64 -arch x86_64" >> $GITHUB_ENV
+            echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch arm64 -arch x86_64 ${CFLAGS}" >> $GITHUB_ENV
             echo "ARCHFLAGS=-arch x86_64 -arch arm64" >> $GITHUB_ENV
           else
             cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_archs}"
@@ -249,6 +243,7 @@ jobs:
         if: matrix.goal == 'build'
         run: |
           "${OPENSSL_INSTALL_PATH}/bin/openssl" version
+          "${OPENSSL_INSTALL_PATH}/bin/openssl" version -f
           file "${OPENSSL_INSTALL_PATH}/bin/openssl"
 
       - name: Get latest stable Python source
@@ -257,11 +252,6 @@ jobs:
           cd "${GITHUB_WORKSPACE}/src"
           git clone https://github.com/python/cpython.git
           cd "${PYTHON_SOURCE_PATH}"
-          # if [[ "${RUNNER_OS}" == "Windows" ]]; then
-          #   export LATEST_STABLE_TAG="v3.11.2"
-          # else
-          #   export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
-          # fi
           export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
           git checkout "${LATEST_STABLE_TAG}"
           export COMPILED_PYTHON_VERSION=${LATEST_STABLE_TAG:1} # Trim the "v" prefix
@@ -312,13 +302,12 @@ jobs:
 
       - name: Windows Install sphinx-build
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
-        env:
-          arch: ${{ matrix.arch }}
+        shell: powershell
         run: |
           pip install --upgrade pip
           pip install --upgrade sphinx
           sphinx-build --version
-    
+
       - name: Windows Config/Build Python
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         shell: powershell
@@ -437,10 +426,7 @@ jobs:
               cp -v gam-setup.bat $gampath
           fi
 
-      - name: Basic Tests for build
-        if: matrix.goal == 'build'
-        env:
-          arch: ${{ matrix.arch }}
+      - name: Basic Tests for all jobs
         run: |
           if [[ "${RUNNER_OS}" != "macOS" ]]; then
             $gam version extended
@@ -455,10 +441,10 @@ jobs:
           arch: ${{ matrix.arch }}
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-${arch}.tar.xz"
+              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-${arch}.tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
-            this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
-            GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-${arch}-glibc${this_glibc_ver}.tar.xz"
+              this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
+              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-${arch}-glibc${this_glibc_ver}.tar.xz"
           fi
           echo "GAM Archive ${GAM_ARCHIVE}"
           tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3

@@ -1,3 +1,7 @@
+6.52.09
+
+Updated build steps to avoid trap with `gam create project` on M1 Macs.
+
 6.52.08
 
 Added `maximumfilesize <Integer>` to the following commands to allow selection of files with content of size <= `<Integer>`.
