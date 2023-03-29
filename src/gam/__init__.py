@@ -62382,7 +62382,7 @@ def printShowMessagesThreads(users, entityType):
               continue
             attachmentName = mg.group(1)
             if (not attachmentNamePattern) or attachmentNamePattern.match(attachmentName):
-              if part['mimeType'] == 'text/plain' or save_attachments:
+              if (part['mimeType'] == 'text/plain' and not noshow_text_plain)  or save_attachments:
                 try:
                   result = callGAPI(gmail.users().messages().attachments(), 'get',
                                     throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND],
@@ -62395,6 +62395,7 @@ def printShowMessagesThreads(users, entityType):
                         printKeyValueList([Ind.MultiLineText(base64.urlsafe_b64decode(str(result['data'])).decode(UTF8)+'\n')])
                       else:
                         printKeyValueList(['mimeType', part['mimeType']])
+                        printKeyValueList(['size', part['body']['size']])
                       Ind.Decrement()
                     if save_attachments:
                       filename, _ = uniqueFilename(targetFolder, cleanFilename(attachmentName), overwrite)
@@ -62412,6 +62413,7 @@ def printShowMessagesThreads(users, entityType):
                 printKeyValueList(['Attachment', attachmentName])
                 Ind.Increment()
                 printKeyValueList(['mimeType', part['mimeType']])
+                printKeyValueList(['size', part['body']['size']])
                 Ind.Decrement()
             break
       else:
@@ -62534,7 +62536,7 @@ def printShowMessagesThreads(users, entityType):
               continue
             attachmentName = mg.group(1)
             if (not attachmentNamePattern) or attachmentNamePattern.match(attachmentName):
-              attachments.append((attachmentName, part['mimeType']))
+              attachments.append((attachmentName, part['mimeType'], part['body']['size']))
             break
       else:
         _getAttachments(messageId, part, attachmentNamePattern, attachments)
@@ -62589,6 +62591,7 @@ def printShowMessagesThreads(users, entityType):
       for i, attachment in enumerate(attachments):
         row[f'Attachments{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{i}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}name'] = attachment[0]
         row[f'Attachments{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{i}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}mimeType'] = attachment[1]
+        row[f'Attachments{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{i}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}size'] = attachment[2]
     csvPF.WriteRowTitles(row)
     parameters['messagesProcessed'] += 1
 
@@ -62745,6 +62748,7 @@ def printShowMessagesThreads(users, entityType):
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   countsOnly = positiveCountsOnly = includeSpamTrash = onlyUser = overwrite = save_attachments = False
   show_all_headers = show_attachments = show_body = show_date = show_labels = show_size = show_snippet = False
+  noshow_text_plain = False
   attachmentNamePattern = None
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   defaultHeaders = ['Date', 'Subject', 'From', 'Reply-To', 'To', 'Delivered-To', 'Content-Type', 'Message-ID']
@@ -62778,6 +62782,8 @@ def printShowMessagesThreads(users, entityType):
       show_snippet = True
     elif myarg == 'showattachments':
       show_attachments = True
+    elif myarg == 'noshowtextplain':
+      noshow_text_plain = True
     elif myarg == 'attachmentnamepattern':
       attachmentNamePattern = getREPattern(re.IGNORECASE)
     elif showMode and myarg == 'saveattachments':
@@ -62984,7 +62990,7 @@ def printShowMessagesThreads(users, entityType):
 #	[labelmatchpattern <RegularExpression>] [sendermatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [dateheaderformat iso|rfc2822|<String>] [dateheaderconverttimezone [<Boolean>]]
 #	[showlabels] [showbody] [showdate] [showsize] [showsnippet]
-#	[showattachments [attachmentnamepattern <RegularExpression>]]
+#	[showattachments [attachmentnamepattern <RegularExpression>] [noshowtextplain]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 def printShowMessages(users):
@@ -63003,7 +63009,7 @@ def printShowMessages(users):
 #	[labelmatchpattern <RegularExpression>]
 #	[headers all|<SMTPHeaderList>] [dateheaderformat iso|rfc2822|<String>] [dateheaderconverttimezone [<Boolean>]]
 #	[showlabels] [showbody] [showdate] [showsize] [showsnippet]
-#	[showattachments [attachmentnamepattern <RegularExpression>]]
+#	[showattachments [attachmentnamepattern <RegularExpression>] [noshowtextplain]]
 #	[countsonly|positivecountsonly] [useronly]
 #       [saveattachments [attachmentnamepattern <RegularExpression>]] [targetfolder <FilePath>] [overwrite [<Boolean>]]
 def printShowThreads(users):

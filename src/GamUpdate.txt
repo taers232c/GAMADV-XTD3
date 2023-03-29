@@ -2,6 +2,9 @@
 
 Updated build steps to avoid trap with `gam create project` on M1 Macs.
 
+Added option `noshowtextplain` to `gam <UserTypeEntity> show messages|threads` that suppresses
+the default display of `text/plain` attachment content when `showattachments` is specified.
+
 6.52.08
 
 Added `maximumfilesize <Integer>` to the following commands to allow selection of files with content of size <= `<Integer>`.
