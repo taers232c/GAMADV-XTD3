@@ -354,24 +354,27 @@ jobs:
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             if [[ "${arch}" == "arm64" ]]; then
+              CFFI_PLATFORM="macosx_11_0_arm64"
               CRYPT_PLATFORM="macosx_11_0_arm64"
             elif [[ "${arch}" == "x86_64" ]]; then
+              CFFI_PLATFORM="macosx_10_9_x86_64"
               CRYPT_PLATFORM="macosx_10_15_x86_64"
             fi
-            "${PYTHON}" -m pip install --upgrade cffi ${PIP_ARGS}
+            "${PYTHON}" -m pip install ${PIP_ARGS} --verbose --platform ${CFFI_PLATFORM} --upgrade cffi
             "${PYTHON}" -m pip download --only-binary :all: \
                                           --dest . \
                                           --no-cache \
                                           --no-deps \
                                           --platform ${CRYPT_PLATFORM} \
+					  --verbose \
                                           cryptography
-            "${PYTHON}" -m pip install --force-reinstall --no-deps --platform ${CRYPT_PLATFORM} cryptography*.whl
+            "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cryptography*.whl
           fi
           #"${PYTHON}" -m pip install --upgrade -r requirements.txt ${PIP_ARGS} --use-pep517
           # build constraints file to prevent downgrades of existing
           # packages
           "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
-          "${PYTHON}" -m pip install --upgrade -c constraints.txt -r requirements.txt ${PIP_ARGS}
+          "${PYTHON}" -m pip install --upgrade  --verbose -c constraints.txt -r requirements.txt ${PIP_ARGS}
           "${PYTHON}" -m pip list
 
       - name: Install PyInstaller
