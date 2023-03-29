@@ -64,7 +64,7 @@ jobs:
           path: |
             bin.tar.xz
             src/cpython
-          key: gam-${{ matrix.jid }}-20230328
+          key: gam-${{ matrix.jid }}-20230329
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -352,11 +352,11 @@ jobs:
         env:
           arch: ${{ matrix.arch }}
         run: |
-          #"${PYTHON}" -m pip install --upgrade -r requirements.txt ${PIP_ARGS} --use-pep517
+          #"${PYTHON}" -m pip install --upgrade --verbose -r requirements.txt ${PIP_ARGS} --use-pep517
           # build constraints file to prevent downgrades of existing
           # packages
           "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
-          "${PYTHON}" -m pip install --upgrade  --verbose -c constraints.txt -r requirementsgha.txt ${PIP_ARGS}
+          "${PYTHON}" -m pip install --upgrade  --verbose -c constraints.txt -r requirements.txt ${PIP_ARGS}
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             if [[ "${arch}" == "arm64" ]]; then
               CRYPT_PLATFORM="macosx_11_0_arm64"
