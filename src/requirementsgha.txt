@@ -1,0 +1,14 @@
+chardet
+distro; sys_platform == 'linux'
+filelock
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+google-auth
+httplib2
+importlib.metadata; python_version < '3.8'
+passlib
+python-dateutil
+pathvalidate
+lxml == 4.9.2
+yubikey-manager>=5.0

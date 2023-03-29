@@ -374,7 +374,7 @@ jobs:
           # build constraints file to prevent downgrades of existing
           # packages
           "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
-          "${PYTHON}" -m pip install --upgrade  --verbose -c constraints.txt -r requirements.txt ${PIP_ARGS}
+          "${PYTHON}" -m pip install --upgrade  --verbose -c constraints.txt -r requirementsgha.txt ${PIP_ARGS}
           "${PYTHON}" -m pip list
 
       - name: Install PyInstaller
