@@ -354,9 +354,9 @@ jobs:
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             if [[ "${arch}" == "arm64" ]]; then
-              echo "CRYPT_PLATFORM=macosx_11_0_arm64" >> $GITHUB_ENV
+              CRYPT_PLATFORM="macosx_11_0_arm64"
             elif [[ "${arch}" == "x86_64" ]]; then
-              echo "CRYPT_PLATFORM=_10_15_x86_64" >> $GITHUB_ENV
+              CRYPT_PLATFORM="macosx_10_15_x86_64"
             fi
             "${PYTHON}" -m pip install --upgrade cffi ${PIP_ARGS}
             "${PYTHON}" -m pip download --only-binary :all: \
