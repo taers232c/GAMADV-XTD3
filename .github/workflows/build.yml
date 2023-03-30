@@ -36,7 +36,8 @@ jobs:
           - os: macos-12
             jid: 3
             goal: build
-            arch: arm64
+#            arch: arm64
+            arch: universal2
             openssl_archs: darwin64-x86_64 darwin64-arm64
           - os: windows-2022
             jid: 5
@@ -347,35 +348,33 @@ jobs:
           "${PYTHON}" -m pip install --upgrade setuptools
 
       - name: Install pip requirements
-        run: |
-          "${PYTHON}" -m pip install --upgrade -r requirements.txt
-          # "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
-          # build constraints file to prevent downgrades of existing packages
-          # "${PYTHON}" -m pip install --upgrade -c constraints.txt -r requirements.txt
-          "${PYTHON}" -m pip list
-
-      - name: MacOS update pip requirements
-        if: runner.os == 'macOS'
         env:
           arch: ${{ matrix.arch }}
         run: |
-          if [[ "${arch}" == "arm64" ]]; then
-            CFFI_PLATFORM="macosx_11_0_arm64"
-            # CRYPT_PLATFORM="macosx_11_0_arm64"
-            CRYPT_PLATFORM="macosx_10_15_universal2"
-          elif [[ "${arch}" == "x86_64" ]]; then
-            CFFI_PLATFORM="macosx_10_9_x86_64"
-            CRYPT_PLATFORM="macosx_10_15_x86_64"
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            "${PYTHON}" -m pip install --upgrade -r requirements.txt --no-cache
+            if [[ "${arch}" == "universal2" ]]; then
+              CFFI_PLATFORM="macosx_11_0_arm64"
+              # CRYPT_PLATFORM="macosx_11_0_arm64"
+              CRYPT_PLATFORM="macosx_10_15_universal2"
+            elif [[ "${arch}" == "x86_64" ]]; then
+              CFFI_PLATFORM="macosx_10_9_x86_64"
+              CRYPT_PLATFORM="macosx_10_15_x86_64"
+            fi
+            "${PYTHON}" -m pip install --upgrade cffi --no-cache
+            "${PYTHON}" -m pip download --only-binary :all: \
+                                          --dest . \
+                                          --no-cache \
+                                          --no-deps \
+                                          --platform ${CRYPT_PLATFORM} \
+                                          --verbose \
+                                          cryptography
+            "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cryptography*.whl
+          else
+            "${PYTHON}" -m pip install --upgrade -r requirements.txt
+            "${PYTHON}" -m pip install --force-reinstall --no-deps --upgrade cryptography
           fi
-          "${PYTHON}" -m pip install --upgrade cffi --no-cache
-          "${PYTHON}" -m pip download --only-binary :all: \
-                                        --dest . \
-                                        --no-cache \
-                                        --no-deps \
-                                        --platform ${CRYPT_PLATFORM} \
-                                        --verbose \
-                                        cryptography
-          "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cryptography*.whl
+          "${PYTHON}" -m pip list
 
       - name: Install PyInstaller
         if: matrix.goal == 'build'
@@ -412,7 +411,7 @@ jobs:
              export gamspec="gam.spec"
              if [[ "${RUNNER_OS}" == "macOS" ]]; then
                export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
-               if [[ "${arch}" == "arm64" ]]; then
+               if [[ "${arch}" == "universal2" ]]; then
                  export gamspec="gamarm64.spec"
                elif [[ "${arch}" == "x86_64" ]]; then
                  export gamspec="gamx86_64.spec"
@@ -443,10 +442,8 @@ jobs:
 
       - name: Basic Tests for all jobs
         run: |
-          if [[ "${RUNNER_OS}" != "macOS" ]]; then
-            $gam version extended
-            export GAMVERSION=$($gam version simple)
-          fi
+          $gam version extended
+          export GAMVERSION=$($gam version simple)
           echo "GAM Version ${GAMVERSION}"
           echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
 

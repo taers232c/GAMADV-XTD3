@@ -153,7 +153,8 @@ case $gamos in
         esac
         ;;
       arm|arm64|aarch64)
-        gamfile="macos-arm64.tar.xz";;
+#        gamfile="macos-arm64.tar.xz";;
+        gamfile="macos-universal2.tar.xz";;
       *)
         echo_red "ERROR: this installer currently only supports x86_64 and arm64 MacOS. Looks like you're running on $gamarch. Exiting."
         exit

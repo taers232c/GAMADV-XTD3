@@ -39,7 +39,8 @@ pyz = PYZ(a.pure,
           a.zipped_data,
           cipher=None)
 # use strip on all non-Windows platforms
-target_arch = 'arm64'
+#target_arch = 'arm64'
+target_arch = 'universal2'
 strip = not sys.platform == 'win32'
 
 name = 'gam'
