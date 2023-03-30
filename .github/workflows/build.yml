@@ -350,9 +350,10 @@ jobs:
 
       - name: Install pip requirements
         run: |
+          "${PYTHON}" -m pip install --upgrade -r requirements.txt
+          # "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
           # build constraints file to prevent downgrades of existing packages
-          "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
-          "${PYTHON}" -m pip install --upgrade  --verbose -c constraints.txt -r requirements.txt
+          # "${PYTHON}" -m pip install --upgrade -c constraints.txt -r requirements.txt
           "${PYTHON}" -m pip list
 
       - name: MacOS update pip requirements
