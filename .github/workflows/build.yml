@@ -453,7 +453,10 @@ jobs:
         env:
           arch: ${{ matrix.arch }}
         run: |
-          if [[ "${RUNNER_OS}" != "macOS" or "${arch}" != "arm64" ]]; then
+          if [[ "${RUNNER_OS}" != "macOS" ]]; then
+            $gam version extended
+            export GAMVERSION=$($gam version simple)
+          elif [[ "${arch}" != "arm64" ]]; then
             $gam version extended
             export GAMVERSION=$($gam version simple)
           fi
