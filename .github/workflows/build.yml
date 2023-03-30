@@ -361,7 +361,8 @@ jobs:
         run: |
           if [[ "${arch}" == "arm64" ]]; then
             CFFI_PLATFORM="macosx_11_0_arm64"
-            CRYPT_PLATFORM="macosx_11_0_arm64"
+            # CRYPT_PLATFORM="macosx_11_0_arm64"
+            CRYPT_PLATFORM="macosx_10_15_universal2"
           elif [[ "${arch}" == "x86_64" ]]; then
             CFFI_PLATFORM="macosx_10_9_x86_64"
             CRYPT_PLATFORM="macosx_10_15_x86_64"
