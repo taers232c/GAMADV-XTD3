@@ -1,3 +1,7 @@
+6.53.01
+
+Following Jay's lead, added instructions to `gam create project` to have GAM be a trusted app.
+
 6.53.00
 
 Updated build steps to avoid trap with `gam create project` on M1 Macs.

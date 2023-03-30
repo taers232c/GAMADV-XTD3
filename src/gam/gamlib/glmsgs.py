@@ -44,7 +44,7 @@ SETTING_GAM_PROJECT_CONSENT_SCREEN = 'Setting GAM project consent screen...\n'
 CREATE_PROJECT_INSTRUCTIONS = '''
 Please go to:
 
-{0}
+  {0}
 
 1. Choose "Desktop App" or "Other" for "Application type".
 2. Enter "GAM" or another desired value for "Name".
@@ -71,6 +71,25 @@ Is not a valid Client Secret.
 
 Please make sure you are following the directions exactly and that there are no extra spaces in your Client Secret.
 '''
+TRUST_GAM_CLIENT_ID = '''
+Now it's important to mark the GAM Client ID as trusted by your Workspace instance.
+
+Please go to:
+
+  https://admin.google.com/ac/owl/list?tab=configuredApps
+
+1. Click on: Add app > OAuth App Name Or Client ID.
+2. Enter the following Client ID value:
+
+  {0}
+
+3. Press Search, select the GAM app, press Select, check the box and press Select.
+4. Keep the default scope or select a preferred scope that includes your GAM admin.
+5. Press Continue
+6. Select Trusted radio button, press Continue and Finish.
+7. Press enter once trust is complete.'
+'''
+
 YOUR_GAM_PROJECT_IS_CREATED_AND_READY_TO_USE = 'That\'s it! Your GAM Project is created and ready to use.\n'
 
 # check|update service messages in order of appearance
