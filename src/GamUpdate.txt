@@ -1,4 +1,4 @@
-6.52.09
+6.53.00
 
 Updated build steps to avoid trap with `gam create project` on M1 Macs.
 
