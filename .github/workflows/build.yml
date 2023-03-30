@@ -350,11 +350,9 @@ jobs:
 
       - name: Install pip requirements
         run: |
-          # "${PYTHON}" -m pip install --upgrade --verbose -r requirements.txt ${PIP_ARGS} --use-pep517
-          # build constraints file to prevent downgrades of existing
-          # packages
+          # build constraints file to prevent downgrades of existing packages
           "${PYTHON}" -m pip freeze | grep == | sed 's/==/>=/' > constraints.txt
-          "${PYTHON}" -m pip install --upgrade  --verbose -c constraints.txt -r requirements.txt ${PIP_ARGS}
+          "${PYTHON}" -m pip install --upgrade  --verbose -c constraints.txt -r requirements.txt
           "${PYTHON}" -m pip list
 
       - name: MacOS update pip requirements
