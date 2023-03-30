@@ -367,7 +367,7 @@ jobs:
             CFFI_PLATFORM="macosx_10_9_x86_64"
             CRYPT_PLATFORM="macosx_10_15_x86_64"
           fi
-          "${PYTHON}" -m pip install --upgrade cffi --no-cache_dir
+          "${PYTHON}" -m pip install --upgrade cffi --no-cache
           "${PYTHON}" -m pip download --only-binary :all: \
                                         --dest . \
                                         --no-cache \
