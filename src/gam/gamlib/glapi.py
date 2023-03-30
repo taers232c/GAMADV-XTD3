@@ -388,6 +388,7 @@ _CLIENT_SCOPES = [
   {'name': 'Email Audit API',
    'api': EMAIL_AUDIT,
    'subscopes': [],
+   'offByDefault': True,
    'scope': 'https://apps-apis.google.com/a/feeds/compliance/audit/'},
   {'name': 'Groups Migration API',
    'api': GROUPSMIGRATION,
