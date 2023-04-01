@@ -26,4 +26,7 @@ $pip install --upgrade pip
 $pip install --upgrade packaging
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
 $pip install --upgrade -r src/requirementsmaclegacy.txt --use-pep517
+$pip install --upgrade --no-binary=:all: cffi 
+$pip download --only-binary :all: --dest . --no-cache --no-deps --platform macosx_10_15_x86_64 --verbose cryptography
+$pip install --force-reinstall --no-deps --verbose cryptography*.whl
 $pip install --upgrade git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION

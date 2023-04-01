@@ -50641,6 +50641,7 @@ FILESHARECOUNTS_ZEROCOUNTS = {
   'internalDomain': 0, 'internalDomainWithLink': 0,
   'externalGroup': 0, 'internalGroup': 0,
   'externalUser': 0, 'internalUser': 0,
+  'deletedGroup': 0, 'deletedUser': 0,
   }
 
 FILESHARECOUNTS_CATEGORIES = {
@@ -50648,6 +50649,7 @@ FILESHARECOUNTS_CATEGORIES = {
   'domain': {False: {False: 'externalDomain', True: 'externalDomainWithLink'}, True: {False: 'internalDomain', True: 'internalDomainWithLink'}},
   'group': {False: 'externalGroup', True: 'internalGroup'},
   'user': {False: 'externalUser', True: 'internalUser'},
+  'deleted': {'group': 'deletedGroup', 'user': 'deletedUser'},
   }
 
 # gam <UserTypeEntity> print filesharecounts [todrive <ToDriveAttribute>*]
@@ -50736,6 +50738,7 @@ def printShowFileShareCounts(users):
                 domain = permission.get('domain', '')
                 if not domain and type in ['user', 'group']:
                   if permission.get('deleted') == 'True':
+                    userShareCounts[COUNT_CATEGORIES['deleted'][type]] += 1
                     continue
                   emailAddress = permission['emailAddress']
                   domain = emailAddress[emailAddress.find('@')+1:]
