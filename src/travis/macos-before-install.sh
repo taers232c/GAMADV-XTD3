@@ -22,10 +22,10 @@ $python -V
 cd $mypath
 
 #export PATH=/usr/local/opt/python/libexec/bin:$PATH
+brew install swig
 $pip install --upgrade pip
 $pip install --upgrade packaging
 $pip list --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
-$pip install swig
 $pip install --upgrade -r src/requirementsmaclegacy.txt --use-pep517
 $pip install --upgrade --no-binary=:all: cffi 
 $pip download --only-binary :all: --dest . --no-cache --no-deps --platform macosx_10_15_x86_64 --verbose cryptography
