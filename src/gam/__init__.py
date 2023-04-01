@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.53.01'
+__version__ = '6.53.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5332,7 +5332,10 @@ def buildGAPIServiceObject(api, user, i=0, count=0, displayError=True):
       if isinstance(e.args, tuple):
         e = e.args[0]
       if n < retries:
-        eContent = e.content.decode(UTF8) if isinstance(e.content, bytes) else e.content
+        if isinstance(e, str):
+          eContent = e
+        else:
+          eContent = e.content.decode(UTF8) if isinstance(e.content, bytes) else e.content
         if eContent[0:15] == '<!DOCTYPE html>':
           if GC.Values[GC.DEBUG_LEVEL] > 0:
             writeStdout(f'{ERROR_PREFIX} HTTP: {str(eContent)}\n')
@@ -10290,25 +10293,28 @@ def doOAuthRequest(currentScopes, login_hint, verifyScopes=False):
     selectedScopes = getScopesFromUser(scopesList, True, currentScopes)
     if selectedScopes is None:
       return False
-    scopes = API.REQUIRED_SCOPES[:]
+    scopes = set(API.REQUIRED_SCOPES)
     i = 0
     for scope in scopesList:
       if selectedScopes[i] == '*':
-        scopes.append(scope['scope'])
+        if scope['scope']:
+          scopes.add(scope['scope'])
       elif selectedScopes[i] == 'R':
-        scopes.append(f'{scope["scope"]}.readonly')
+        scopes.add(f'{scope["scope"]}.readonly')
       elif selectedScopes[i] == 'A':
-        scopes.append(f'{scope["scope"]}.action')
+        scopes.add(f'{scope["scope"]}.action')
       i += 1
   else:
-    scopes = currentScopes+API.REQUIRED_SCOPES[:]
+    scopes = set(currentScopes+API.REQUIRED_SCOPES)
+  if API.STORAGE_READWRITE_SCOPE in scopes:
+    scopes.discard(API.STORAGE_READONLY_SCOPE)
   login_hint = _getValidateLoginHint(login_hint)
 # Needs to be set so oauthlib doesn't puke when Google changes our scopes
   os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = 'true'
   credentials = Credentials.from_client_secrets(
     client_id,
     client_secret,
-    scopes=scopes,
+    scopes=list(scopes),
     access_type='offline',
     login_hint=login_hint,
     open_browser=not GC.Values[GC.NO_BROWSER])
@@ -50619,6 +50625,135 @@ def printShowFileCounts(users):
   if csvPF:
     csvPF.writeCSVfile('Drive File Counts')
 
+FILESHARECOUNTS_OWNER = 'Owner'
+FILESHARECOUNTS_TOTAL = 'Total'
+FILESHARECOUNTS_SHARED = 'Shared'
+FILESHARECOUNTS_SHARED_EXTERNAL = 'Shared External'
+FILESHARECOUNTS_SHARED_INTERNAL = 'Shared Internal'
+
+FILESHARECOUNTS_ZEROCOUNTS = {
+  FILESHARECOUNTS_TOTAL: 0,
+  FILESHARECOUNTS_SHARED: 0,
+  FILESHARECOUNTS_SHARED_EXTERNAL: 0,
+  FILESHARECOUNTS_SHARED_INTERNAL: 0,
+  'anyone': 0, 'anyoneWithLink': 0,
+  'externalDomain': 0, 'externalDomainWithLink': 0,
+  'internalDomain': 0, 'internalDomainWithLink': 0,
+  'externalGroup': 0, 'internalGroup': 0,
+  'externalUser': 0, 'internalUser': 0,
+  }
+
+FILESHARECOUNTS_CATEGORIES = {
+  'anyone': {False: 'anyone', True: 'anyoneWithLink'},
+  'domain': {False: {False: 'externalDomain', True: 'externalDomainWithLink'}, True: {False: 'internalDomain', True: 'internalDomainWithLink'}},
+  'group': {False: 'externalGroup', True: 'internalGroup'},
+  'user': {False: 'externalUser', True: 'internalUser'},
+  }
+
+# gam <UserTypeEntity> print filesharecounts [todrive <ToDriveAttribute>*]
+#	[excludetrashed]
+#	[internaldomains <DomainNameList>]
+#	[summary none|only|plus] [summaryuser <String>]
+# gam <UserTypeEntity> show filesharecounts
+#	[excludetrashed]
+#	[internaldomains <DomainNameList>]
+#	[summary none|only|plus] [summaryuser <String>]
+def printShowFileShareCounts(users):
+  def incrementCounter(counter):
+    if not counterSet[counter]:
+      userShareCounts[counter] += 1
+      counterSet[counter] = True
+
+  def showShareCounts(user, shareCounts, i, count):
+    if summary != FILECOUNT_SUMMARY_NONE:
+      if user != summaryUser:
+        for field, shareCount in iter(shareCounts.items()):
+          summaryShareCounts[field] += shareCount
+        if summary == FILECOUNT_SUMMARY_ONLY:
+          return
+    if not csvPF:
+      printEntity([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, shareCounts[FILESHARECOUNTS_TOTAL]], i, count)
+      Ind.Increment()
+      for field, shareCount in iter(shareCounts.items()):
+        printKeyValueList([field, shareCount])
+      Ind.Decrement()
+    else:
+      row = {FILESHARECOUNTS_OWNER: user}
+      row.update(shareCounts)
+      csvPF.WriteRow(row)
+
+  csvPF = CSVPrintFile([FILESHARECOUNTS_OWNER]+list(FILESHARECOUNTS_ZEROCOUNTS.keys())) if Act.csvFormat() else None
+  query =  ME_IN_OWNERS
+  summary = FILECOUNT_SUMMARY_NONE
+  summaryUser = FILECOUNT_SUMMARY_USER
+  fileIdEntity = {}
+  internalDomains = [GC.Values[GC.DOMAIN]]
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'excludetrashed':
+      query += ' and trashed=false'
+    elif myarg == 'internaldomains':
+      internalDomains = getString(Cmd.OB_DOMAIN_NAME_LIST).replace(',', ' ').split()
+    elif myarg == 'summary':
+      summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
+    elif myarg == 'summaryuser':
+      summaryUser = getString(Cmd.OB_STRING)
+    else:
+      unknownArgumentExit()
+  summaryShareCounts = FILESHARECOUNTS_ZEROCOUNTS.copy()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = _validateUserSharedDrive(user, i, count, fileIdEntity)
+    if not drive:
+      continue
+    userShareCounts = FILESHARECOUNTS_ZEROCOUNTS.copy()
+    printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=query)
+    pageMessage = getPageMessageForWhom()
+    try:
+      feed = yieldGAPIpages(drive.files(), 'list', 'files',
+                            pageMessage=pageMessage,
+                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
+                            retryReasons=[GAPI.UNKNOWN_ERROR],
+                            q=query, fields='nextPageToken,files(permissions(type,role,emailAddress,domain,allowFileDiscovery,deleted))',
+                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
+      for files in  feed:
+        for f_file in files:
+          counterSet = {FILESHARECOUNTS_TOTAL: False, FILESHARECOUNTS_SHARED: False,
+                        FILESHARECOUNTS_SHARED_EXTERNAL: False, FILESHARECOUNTS_SHARED_INTERNAL: False}
+          for permission in f_file['permissions']:
+            if permission['role'] == 'owner':
+              incrementCounter(FILESHARECOUNTS_TOTAL)
+            else:
+              incrementCounter(FILESHARECOUNTS_SHARED)
+              type = permission['type']
+              if type == 'anyone':
+                incrementCounter(FILESHARECOUNTS_SHARED_EXTERNAL)
+                userShareCounts[FILESHARECOUNTS_CATEGORIES[type][not permission['allowFileDiscovery']]] += 1
+              else:
+                domain = permission.get('domain', '')
+                if not domain and type in ['user', 'group']:
+                  if permission.get('deleted') == 'True':
+                    continue
+                  emailAddress = permission['emailAddress']
+                  domain = emailAddress[emailAddress.find('@')+1:]
+                internal = domain in internalDomains
+                incrementCounter([FILESHARECOUNTS_SHARED_EXTERNAL, FILESHARECOUNTS_SHARED_INTERNAL][internal])
+                if type == 'domain':
+                  userShareCounts[FILESHARECOUNTS_CATEGORIES[type][internal][not permission['allowFileDiscovery']]] +=1
+                else: # group, user
+                  userShareCounts[FILESHARECOUNTS_CATEGORIES[type][internal]] += 1
+      showShareCounts(user, userShareCounts, i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      continue
+  if summary != FILECOUNT_SUMMARY_NONE:
+    showShareCounts(summaryUser, summaryShareCounts, 0, 0)
+  if csvPF:
+    csvPF.writeCSVfile('Drive File Share Counts')
+
 FILETREE_FIELDS_CHOICE_MAP = {
   'explicitlytrashed': 'explicitlyTrashed',
   'filesize': 'size',
@@ -67839,6 +67974,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FILELIST:		printFileList,
       Cmd.ARG_FILEPATH:		printShowFilePaths,
       Cmd.ARG_FILEREVISION:	printShowFileRevisions,
+      Cmd.ARG_FILESHARECOUNT:	printShowFileShareCounts,
       Cmd.ARG_FILETREE:		printShowFileTree,
       Cmd.ARG_FILTER:		printShowFilters,
       Cmd.ARG_FORM:		printShowForms,
@@ -67918,6 +68054,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_FILELIST:		printFileList,
       Cmd.ARG_FILEPATH:		printShowFilePaths,
       Cmd.ARG_FILEREVISION:	printShowFileRevisions,
+      Cmd.ARG_FILESHARECOUNT:	printShowFileShareCounts,
       Cmd.ARG_FILETREE:		printShowFileTree,
       Cmd.ARG_FILTER:		printShowFilters,
       Cmd.ARG_FORM:		printShowForms,
@@ -68104,6 +68241,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_FILECOUNTS:		Cmd.ARG_FILECOUNT,
   Cmd.ARG_FILEPATHS:		Cmd.ARG_FILEPATH,
   Cmd.ARG_FILEREVISIONS:	Cmd.ARG_FILEREVISION,
+  Cmd.ARG_FILESHARECOUNTS:	Cmd.ARG_FILESHARECOUNT,
   Cmd.ARG_FILTERS:		Cmd.ARG_FILTER,
   Cmd.ARG_FORMS:		Cmd.ARG_FORM,
   Cmd.ARG_FORMRESPONSES:	Cmd.ARG_FORMRESPONSE,

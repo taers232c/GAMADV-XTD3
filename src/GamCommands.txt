@@ -6276,6 +6276,15 @@ gam <UserTypeEntity> show filecounts
         [excludetrashed]
         [summary none|only|plus] [summaryuser <String>] [showsize]
 
+gam <UserTypeEntity> print filesharecounts [todrive <ToDriveAttribute>*]
+        [excludetrashed]
+        [internaldomains <DomainNameList>]
+        [summary none|only|plus] [summaryuser <String>]
+gam <UserTypeEntity> show filesharecounts
+        [excludetrashed]
+        [internaldomains <DomainNameList>]
+        [summary none|only|plus] [summaryuser <String>]
+
 <FileTreeFieldName> ::=
         explicitlytrashed|
         filesize|

@@ -96,6 +96,8 @@ GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
 GOOGLE_OAUTH2_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
 IAM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
 PEOPLE_SCOPE = 'https://www.googleapis.com/auth/contacts'
+STORAGE_READONLY_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_only'
+STORAGE_READWRITE_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_write'
 USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email' # email
 USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile' # profile
 VAULT_SCOPES = ['https://www.googleapis.com/auth/ediscovery', 'https://www.googleapis.com/auth/ediscovery.readonly']
@@ -319,16 +321,16 @@ _CLIENT_SCOPES = [
    'api': CLOUDIDENTITY_USERINVITATIONS,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/cloud-identity.userinvitations'},
-  {'name': 'Cloud Storage API (Read, Vault/Takeout Download)',
+  {'name': 'Cloud Storage API (Read Only, Vault/Takeout Download, Cloud Storage)',
    'api': STORAGEREAD,
    'subscopes': [],
    'offByDefault': True,
-   'scope': 'https://www.googleapis.com/auth/devstorage.read_only'},
-  {'name': 'Cloud Storage API (Write, Vault/Takeout Copy)',
+   'scope': STORAGE_READONLY_SCOPE},
+  {'name': 'Cloud Storage API (Read/Write, Vault/Takeout Copy/Download, Cloud Storage)',
    'api': STORAGEWRITE,
    'subscopes': [],
    'offByDefault': True,
-   'scope': 'https://www.googleapis.com/auth/devstorage.read_write'},
+   'scope': STORAGE_READWRITE_SCOPE},
   {'name': 'Contacts API - Domain Shared Contacts and GAL',
    'api': CONTACTS,
    'subscopes': [],

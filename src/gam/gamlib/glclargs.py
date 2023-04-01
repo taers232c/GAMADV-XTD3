@@ -556,6 +556,8 @@ class GamCLArgs():
   ARG_FILEPATHS = 'filepaths'
   ARG_FILEREVISION = 'filerevision'
   ARG_FILEREVISIONS = 'filerevisions'
+  ARG_FILESHARECOUNT = 'filesharecount'
+  ARG_FILESHARECOUNTS = 'filesharecounts'
   ARG_FILETREE = 'filetree'
   ARG_FILTER = 'filter'
   ARG_FILTERS = 'filters'
