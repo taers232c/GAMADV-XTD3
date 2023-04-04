@@ -10720,6 +10720,8 @@ def _getProjects(crm, pfilter, returnNF=False):
                              query=pfilter)
     if projects:
       return projects
+    if not pfilter:
+      return []
     if pfilter.startswith('id:'):
       projects = [callGAPI(crm.projects(), 'get',
                            throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
