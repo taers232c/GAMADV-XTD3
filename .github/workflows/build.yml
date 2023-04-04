@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.53.02
+  GAMVERSION: 6.53.03
   OPENSSL_CONFIG_OPTS: no-fips --api=3.0.0
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -83,6 +83,17 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - name: Set cURL retry flag
+        run: |
+          curl_version=$(curl --version | head -n 1 | awk '{ print $2 }')
+          echo "cURL is ${curl_version}"
+          if [ "$curl_version" == "7.68.0" ]; then
+            export curl_retry="--retry 5 --retry-connrefused"
+          else
+            export curl_retry="--retry 5 --retry-all-errors"
+          fi
+          echo "curl_retry=${curl_retry}" >> $GITHUB_ENV
+
       - name: Install necessary Github-hosted Linux packages
         if: runner.os == 'Linux' && runner.arch == 'X64'
         run: |
@@ -94,7 +105,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           # Install latest Rust
-          curl --retry 5 --retry-connrefused -fsS -o rust.sh https://sh.rustup.rs
+          curl $curl_retry -fsS -o rust.sh https://sh.rustup.rs
           bash ./rust.sh -y
           source $HOME/.cargo/env
           # needed for Rust to compile cryptography Python package for universal2
@@ -346,7 +357,7 @@ jobs:
 
       - name: Upgrade pip, wheel, etc
         run: |
-          curl --retry 5 --retry-connrefused -O https://bootstrap.pypa.io/get-pip.py
+          curl $curl_retry -O https://bootstrap.pypa.io/get-pip.py
           "${PYTHON}" get-pip.py
           "${PYTHON}" -m pip install --upgrade pip
           "${PYTHON}" -m pip install --upgrade wheel
@@ -449,7 +460,7 @@ jobs:
               cp -v gam-setup.bat $gampath
           fi
 
-      - name: Basic Tests for all jobs
+      - name: Basic Tests all jobs
         env:
           arch: ${{ matrix.arch }}
         run: |

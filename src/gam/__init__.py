@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.53.02'
+__version__ = '6.53.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4283,7 +4283,7 @@ class signjwtSignJwt(google.auth.crypt.Signer):
   def sign(self, message):
     ''' Call IAM Credentials SignJWT API to get our signed JWT '''
     try:
-      credentials, _ = google.auth.default()
+      credentials, _ = google.auth.default(scopes='https://www.googleapis.com/auth/iam')
     except google.auth.exceptions.DefaultCredentialsError as e:
       systemErrorExit(API_ACCESS_DENIED_RC, str(e))
     httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
@@ -4320,6 +4320,8 @@ def getOauth2TxtCredentials(exitOnError=True, api=None, noDASA=False, refreshOnl
     jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=False)
     if jsonData:
       try:
+        if api in API.APIS_NEEDING_ACCESS_TOKEN:
+          return (False, getSvcAcctCredentials(API.APIS_NEEDING_ACCESS_TOKEN[api], userEmail=None, forceOauth=True))
         jsonDict = json.loads(jsonData)
         api, _, _ = API.getVersion(api)
         audience = f'https://{api}.googleapis.com/'
@@ -10487,7 +10489,7 @@ def doOAuthExport():
     entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_TO, filename)
 
 def getCRMService(login_hint):
-  scopes = ['https://www.googleapis.com/auth/cloud-platform']
+  scopes = [API.IAM_SCOPE]
   client_id = '297408095146-fug707qsjv4ikron0hugpevbrjhkmsk7.apps.googleusercontent.com'
   client_secret = 'qM3dP8f_4qedwzWQE1VR4zzU'
   credentials = Credentials.from_client_secrets(
@@ -11597,7 +11599,7 @@ SVCACCT_KEY_TYPE_CHOICE_MAP = {
 # gam show svcaccts [<EmailAddress>] [all|<ProjectIDEntity>]
 #	[showsakeys all|system|user]
 def doPrintShowSvcAccts():
-  _, httpObj, login_hint, projects = _getLoginHintProjects(printShowCmd=True, readOnly=True)
+  _, httpObj, login_hint, projects = _getLoginHintProjects(printShowCmd=True, readOnly=False)
   csvPF = CSVPrintFile(['User', 'projectId']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   iam = getAPIService(API.IAM, httpObj)

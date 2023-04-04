@@ -1,8 +1,12 @@
+6.53.03
+
+`gam gam print|show svcaccts` now requires password authentication.
+
 6.53.02
 
 Added commands to display the share type counts of a user's files.
 
-* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Display#display-file-share_counts
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Files-Display#display-file-share-counts
 
 6.53.01
 
