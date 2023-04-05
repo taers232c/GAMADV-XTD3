@@ -34,7 +34,7 @@ CLASSROOM = 'classroom'
 CLOUDCHANNEL = 'cloudchannel'
 CLOUDIDENTITY_DEVICES = 'cloudidentitydevices'
 CLOUDIDENTITY_GROUPS = 'cloudidentitygroups'
-CLOUDIDENTITY_INBOUND_SSO_BETA = 'cloudidentityinboundssobeta'
+CLOUDIDENTITY_INBOUND_SSO = 'cloudidentityinboundsso'
 CLOUDIDENTITY_ORGUNITS = 'cloudidentityorgunits'
 CLOUDIDENTITY_ORGUNITS_BETA = 'cloudidentityorgunitsbeta'
 CLOUDIDENTITY_USERINVITATIONS = 'cloudidentityuserinvitations'
@@ -88,7 +88,8 @@ CHROMEVERSIONHISTORY_URL = 'https://versionhistory.googleapis.com/v1/chrome/plat
 DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
 GMAIL_SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send'
 GOOGLE_OAUTH2_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
-IAM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
+CLOUD_PLATFORM_SCOPE = 'https://www.googleapis.com/auth/cloud-platform'
+IAM_SCOPE = 'https://www.googleapis.com/auth/iam'
 PEOPLE_SCOPE = 'https://www.googleapis.com/auth/contacts'
 STORAGE_READONLY_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_only'
 STORAGE_READWRITE_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_write'
@@ -99,9 +100,9 @@ REQUIRED_SCOPES = [USERINFO_EMAIL_SCOPE, USERINFO_PROFILE_SCOPE]
 REQUIRED_SCOPES_SET = set(REQUIRED_SCOPES)
 #
 JWT_APIS = {
-  ACCESSCONTEXTMANAGER: [IAM_SCOPE],
+  ACCESSCONTEXTMANAGER: [CLOUD_PLATFORM_SCOPE],
   CHAT: ['https://www.googleapis.com/auth/chat.bot'],
-  CLOUDRESOURCEMANAGER: [IAM_SCOPE]
+  CLOUDRESOURCEMANAGER: [CLOUD_PLATFORM_SCOPE]
   }
 #
 APIS_NEEDING_ACCESS_TOKEN = {
@@ -188,7 +189,7 @@ _INFO = {
   CLOUDCHANNEL: {'name': 'Channel Channel API', 'version': 'v1', 'v2discovery': True},
   CLOUDIDENTITY_DEVICES: {'name': 'Cloud Identity Devices API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_GROUPS: {'name': 'Cloud Identity Groups API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
-  CLOUDIDENTITY_INBOUND_SSO_BETA: {'name': 'Cloud Identity Inbound SSO API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
+  CLOUDIDENTITY_INBOUND_SSO: {'name': 'Cloud Identity Inbound SSO API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_ORGUNITS: {'name': 'Cloud Identity OrgUnits API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_ORGUNITS_BETA: {'name': 'Cloud Identity OrgUnits API', 'version': 'v1beta1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
   CLOUDIDENTITY_USERINVITATIONS: {'name': 'Cloud Identity User Invitations API', 'version': 'v1', 'v2discovery': True, 'mappedAPI': 'cloudidentity'},
@@ -314,7 +315,7 @@ _CLIENT_SCOPES = [
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/cloud-identity.groups'},
   {'name': 'Cloud Identity - Inbound SSO Settings',
-   'api': CLOUDIDENTITY_INBOUND_SSO_BETA,
+   'api': CLOUDIDENTITY_INBOUND_SSO,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/cloud-identity.inboundsso'},
   {'name': 'Cloud Identity OrgUnits API',
@@ -562,7 +563,7 @@ _SVCACCT_SCOPES = [
   {'name': 'Identity and Access Management API',
    'api': IAM,
    'subscopes': [],
-   'scope': IAM_SCOPE},
+   'scope': CLOUD_PLATFORM_SCOPE},
   {'name': 'Keep API',
    'api': KEEP,
    'subscopes': READONLY,
@@ -601,7 +602,7 @@ _SVCACCT_SPECIAL_SCOPES = [
   {'name': 'Cloud Resource Manager API v3',
    'api': CLOUDRESOURCEMANAGER,
    'subscopes': [],
-   'scope': IAM_SCOPE},
+   'scope': CLOUD_PLATFORM_SCOPE},
   {'name': 'Drive API - todrive',
    'api': DRIVETD,
    'subscopes': [],

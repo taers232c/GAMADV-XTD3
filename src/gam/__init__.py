@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.53.03'
+__version__ = '6.53.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4283,7 +4283,7 @@ class signjwtSignJwt(google.auth.crypt.Signer):
   def sign(self, message):
     ''' Call IAM Credentials SignJWT API to get our signed JWT '''
     try:
-      credentials, _ = google.auth.default(scopes='https://www.googleapis.com/auth/iam')
+      credentials, _ = google.auth.default(scopes=[API.IAM_SCOPE])
     except google.auth.exceptions.DefaultCredentialsError as e:
       systemErrorExit(API_ACCESS_DENIED_RC, str(e))
     httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
@@ -10489,7 +10489,7 @@ def doOAuthExport():
     entityModifierNewValueActionPerformed([Ent.OAUTH2_TXT_FILE, GC.Values[GC.OAUTH2_TXT]], Act.MODIFIER_TO, filename)
 
 def getCRMService(login_hint):
-  scopes = [API.IAM_SCOPE]
+  scopes = [API.CLOUD_PLATFORM_SCOPE]
   client_id = '297408095146-fug707qsjv4ikron0hugpevbrjhkmsk7.apps.googleusercontent.com'
   client_secret = 'qM3dP8f_4qedwzWQE1VR4zzU'
   credentials = Credentials.from_client_secrets(
@@ -11474,7 +11474,7 @@ def checkServiceAccount(users):
     invalidOauth2serviceJsonExit(f'Authentication{auth_error}')
   _getSvcAcctData() # needed to read in GM.OAUTH2SERVICE_JSON_DATA
   if GM.Globals[GM.SVCACCT_SCOPES_DEFINED] and API.IAM not in GM.Globals[GM.SVCACCT_SCOPES]:
-    GM.Globals[GM.SVCACCT_SCOPES][API.IAM] = [API.IAM_SCOPE]
+    GM.Globals[GM.SVCACCT_SCOPES][API.IAM] = [API.CLOUD_PLATFORM_SCOPE]
   key_type = GM.Globals[GM.OAUTH2SERVICE_JSON_DATA].get('key_type', 'default')
   if key_type == 'default':
     printMessage(Msg.SERVICE_ACCOUNT_CHECK_PRIVATE_KEY_AGE)
@@ -12015,16 +12015,12 @@ def doShowSvcAcctKeys():
 def doCreateGCPServiceAccount():
   checkForExtraneousArguments()
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
-  sa_info = {
-    'key_type': 'signjwt',
-    'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT,
-    'type': 'service_account',
-  }
+  sa_info = {'key_type': 'signjwt', 'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT, 'type': 'service_account'}
+  request = transportCreateRequest()
   try:
-    credentials, sa_info['project_id'] = google.auth.default()
+    credentials, sa_info['project_id'] = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
   except google.auth.exceptions.DefaultCredentialsError as e:
     systemErrorExit(API_ACCESS_DENIED_RC, str(e))
-  request = transportCreateRequest()
   credentials.refresh(request)
   sa_info['client_email'] = credentials.service_account_email
   oa2 = buildGAPIObjectNoAuthentication(API.OAUTH2)
@@ -40713,7 +40709,7 @@ def _convertInboundSSOProfileDisplaynameToName(ci=None, displayName=''):
       displayName = f'inboundSamlSsoProfiles/{displayName}'
     return displayName
   if not ci:
-    ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+    ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   profiles = _getInboundSSOProfiles(ci)
   matches = []
   for profile in profiles:
@@ -40776,7 +40772,7 @@ def _processInboundSSOProfileResult(result, returnNameOnly, kvlist, function):
 #	[entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
 #	[returnnameonly]
 def doCreateInboundSSOProfile():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   body = {'customer': normalizeChannelCustomerID(GC.Values[GC.CUSTOMER_ID]),
           'displayName': 'SSO Profile'
          }
@@ -40788,7 +40784,7 @@ def doCreateInboundSSOProfile():
                       bailOnInternalError=True,
                       body=body)
     _processInboundSSOProfileResult(result, returnNameOnly, kvlist, 'create')
-  except (GAPI.failedPrecondition, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+  except (GAPI.failedPrecondition, GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
           GAPI.systemError, GAPI.permissionDenied, GAPI.internalError) as e:
     entityActionFailedWarning(kvlist, str(e))
@@ -40797,7 +40793,7 @@ def doCreateInboundSSOProfile():
 #	[entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
 #	[returnnameonly]
 def doUpdateInboundSSOProfile():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   name = _convertInboundSSOProfileDisplaynameToName(ci, getString(Cmd.OB_STRING))
   returnNameOnly, body = _getInboundSSOProfileArguments({})
   kvlist = [Ent.INBOUND_SSO_PROFILE, name]
@@ -40816,7 +40812,7 @@ def doUpdateInboundSSOProfile():
 
 # gam delete inboundssoprofile <SSOProfileItem>
 def doDeleteInboundSSOProfile():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   name = _convertInboundSSOProfileDisplaynameToName(ci, getString(Cmd.OB_STRING))
   checkForExtraneousArguments()
   kvlist = [Ent.INBOUND_SSO_PROFILE, name]
@@ -40849,7 +40845,7 @@ def _getInboundSSOProfile(ci, name):
 
 # gam info inboundssoprofile <SSOProfileItem> [formatjson]
 def doInfoInboundSSOProfile():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   name = _convertInboundSSOProfileDisplaynameToName(ci, getString(Cmd.OB_STRING))
   FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   profile = _getInboundSSOProfile(ci, name)
@@ -40861,7 +40857,7 @@ def doInfoInboundSSOProfile():
 # gam print inboundssoprofile [todrive <ToDriveAttribute>*]
 #	[[formatjson [quotechar <Character>]]
 def doPrintShowInboundSSOProfiles():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   customer = normalizeChannelCustomerID(GC.Values[GC.CUSTOMER_ID])
   csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -40942,7 +40938,7 @@ def _processInboundSSOCredentialsResult(result, kvlist, function):
 # gam create inboundssocredentials profile <SSOProfileItem>
 #	(pemfile <FileName>)|(generatekey [keysize 1024|2048|4096]) [replaceolddest]
 def doCreateInboundSSOCredential():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   profile = None
   generateKey = replaceOldest = False
   keySize = 2048
@@ -41007,7 +41003,7 @@ def doCreateInboundSSOCredential():
 # gam delete inboundssocredential <SSOCredentialsName>
 def doDeleteInboundSSOCredential(ci=None, name=None):
   if not ci:
-    ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+    ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   if not name:
     name = getInboundSSOCredentialsName()
   checkForExtraneousArguments()
@@ -41027,7 +41023,7 @@ def doDeleteInboundSSOCredential(ci=None, name=None):
 
 # gam info inboundssocredential <SSOCredentialsName> [formatjson]
 def doInfoInboundSSOCredential():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   name = getInboundSSOCredentialsName()
   FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   kvlist = [Ent.INBOUND_SSO_CREDENTIALS, name]
@@ -41048,7 +41044,7 @@ def doInfoInboundSSOCredential():
 # gam print inboundssocredentials [profile|profiles <SSOProfileItemList>]
 #	[[formatjson [quotechar <Character>]]
 def doPrintShowInboundSSOCredentials():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   profiles = []
@@ -41212,7 +41208,7 @@ def _processInboundSSOAssignmentResult(result, kvlist, ci, cd, function):
 #	(mode sso_off)|(mode saml_sso profile <SSOProfileItem>)(mode domain_wide_saml_if_enabled) [neverredirect]
 def doCreateInboundSSOAssignment():
   cd = buildGAPIObject(API.DIRECTORY)
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   body = {'customer': normalizeChannelCustomerID(GC.Values[GC.CUSTOMER_ID])}
   body = _getInboundSSOAssignmentArguments(ci, cd, body)
   kvlist = [Ent.INBOUND_SSO_ASSIGNMENT, body['customer']]
@@ -41222,7 +41218,7 @@ def doCreateInboundSSOAssignment():
                       bailOnInternalError=True,
                       body=body)
     _processInboundSSOAssignmentResult(result, kvlist, ci, cd, 'create')
-  except (GAPI.failedPrecondition, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+  except (GAPI.failedPrecondition, GAPI.notFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
           GAPI.badRequest, GAPI.invalid, GAPI.invalidInput, GAPI.invalidArgument,
           GAPI.systemError, GAPI.permissionDenied, GAPI.internalError) as e:
     entityActionFailedWarning(kvlist, str(e))
@@ -41231,7 +41227,7 @@ def doCreateInboundSSOAssignment():
 #	[(mode sso_off)|(mode saml_sso profile <SSOProfileItem>)(mode domain_wide_saml_if_enabled)] [neverredirect]
 def doUpdateInboundSSOAssignment():
   cd = buildGAPIObject(API.DIRECTORY)
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   name = _getInboundSSOAssignmentName()
   body = _getInboundSSOAssignmentArguments(ci,cd, {})
   kvlist = [Ent.INBOUND_SSO_ASSIGNMENT, name]
@@ -41248,10 +41244,15 @@ def doUpdateInboundSSOAssignment():
           GAPI.systemError, GAPI.permissionDenied, GAPI.internalError) as e:
     entityActionFailedWarning(kvlist, str(e))
 
-# gam delete inboundssoassignment <SSOAssignmentName>
+# gam delete inboundssoassignment <SSOAssignmentSelector>
 def doDeleteInboundSSOAssignment():
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
-  name = _getInboundSSOAssignmentName()
+  cd = buildGAPIObject(API.DIRECTORY)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
+  target = getString(Cmd.OB_STRING)
+  assignment = _getInboundSSOAssignmentByTarget(ci, cd, target)
+  if assignment is None:
+    return
+  name = assignment['name']
   checkForExtraneousArguments()
   kvlist = [Ent.INBOUND_SSO_ASSIGNMENT, name]
   try:
@@ -41270,7 +41271,7 @@ def doDeleteInboundSSOAssignment():
 # gam info inboundssoassignment <SSOAssignmentSelector> [formatjson]
 def doInfoInboundSSOAssignment():
   cd = buildGAPIObject(API.DIRECTORY)
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   target = getString(Cmd.OB_STRING)
   FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
   assignment = _getInboundSSOAssignmentByTarget(ci, cd, target)
@@ -41289,7 +41290,7 @@ def doInfoInboundSSOAssignment():
 #	[[formatjson [quotechar <Character>]]
 def doPrintShowInboundSSOAssignments():
   cd = buildGAPIObject(API.DIRECTORY)
-  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO_BETA)
+  ci = buildGAPIObject(API.CLOUDIDENTITY_INBOUND_SSO)
   customer = normalizeChannelCustomerID(GC.Values[GC.CUSTOMER_ID])
   csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -50742,7 +50743,7 @@ def printShowFileShareCounts(users):
                 domain = permission.get('domain', '')
                 if not domain and type in ['user', 'group']:
                   if permission.get('deleted') == 'True':
-                    userShareCounts[COUNT_CATEGORIES['deleted'][type]] += 1
+                    userShareCounts[FILESHARECOUNTS_CATEGORIES['deleted'][type]] += 1
                     continue
                   emailAddress = permission['emailAddress']
                   domain = emailAddress[emailAddress.find('@')+1:]

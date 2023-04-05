@@ -7,7 +7,6 @@ google-auth-httplib2
 google-auth-oauthlib
 google-auth
 httplib2
-importlib.metadata; python_version < '3.8'
 passlib
 python-dateutil
 pathvalidate
