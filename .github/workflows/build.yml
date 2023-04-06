@@ -376,12 +376,18 @@ jobs:
               CFFI_PLATFORM="macosx_10_9_x86_64"
               CRYPT_PLATFORM="macosx_10_15_x86_64"
             fi
-            "${PYTHON}" -m pip install --upgrade --force-reinstall --no-binary :all: \
-                              --no-cache-dir --no-deps --use-pep517 \
-                              --use-feature=no-binary-enable-wheel-cache \
-                              cffi 
-             echo "before cryptography..."
-             "${PYTHON}" -m pip list
+            echo "before cffi..."
+            "${PYTHON}" -m pip list
+            "${PYTHON}" -m pip download --only-binary :all: \
+                                          --dest . \
+                                          --no-cache \
+                                          --no-deps \
+                                          --platform ${CFFI_PLATFORM} \
+                                          --verbose \
+                                          cffi
+            "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cffi*.whl
+            echo "before cryptography..."
+            "${PYTHON}" -m pip list
             "${PYTHON}" -m pip download --only-binary :all: \
                                           --dest . \
                                           --no-cache \
