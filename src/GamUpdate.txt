@@ -5,6 +5,9 @@ more flexibility in selecting assignments to delete.
 
 Fixed bug in `gam <UserTypeEntity> print|show filesharecounts` that would cause a trap.
 
+Updated `gam <UserTypeEntity> print filelist ... fullpath showparent` and `gam <UserTypeEntity> print filepath`
+to properly display the file path of My Drive.
+
 Upgraded to Python 3.11.3 where possible.
 
 6.53.03

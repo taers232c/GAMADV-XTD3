@@ -10580,10 +10580,9 @@ def doEnableAPIs():
       automatic = False
     else:
       unknownArgumentExit()
-#  request = getTLSv1_2Request()
+  request = getTLSv1_2Request()
   try:
-#    _, projectId = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
-    _, projectId = google.auth.default()
+    _, projectId = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
   except google.auth.exceptions.DefaultCredentialsError:
     projectId = readStdin(Msg.WHAT_IS_YOUR_PROJECT_ID).strip()
   while automatic is None:
@@ -12024,11 +12023,9 @@ def doCreateGCPServiceAccount():
   checkForExtraneousArguments()
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
   sa_info = {'key_type': 'signjwt', 'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT, 'type': 'service_account'}
-  request = transportCreateRequest()
-#  request = getTLSv1_2Request()
+  request = getTLSv1_2Request()
   try:
-#    credentials, sa_info['project_id'] = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
-    credentials, sa_info['project_id'] = google.auth.default()
+    credentials, sa_info['project_id'] = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
   except google.auth.exceptions.DefaultCredentialsError as e:
     systemErrorExit(API_ACCESS_DENIED_RC, str(e))
   credentials.refresh(request)
@@ -47879,7 +47876,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
     fplist = []
     maxDepth = _makeFilePaths(filePathInfo['localPaths'], fplist, filePaths, initialResult['name'], -1)
   else:
-    if fullpath and initialResult['name'] == MY_DRIVE:
+    if fullpath and initialResult['mimeType'] == MIMETYPE_GA_FOLDER and initialResult['name'] == MY_DRIVE:
       filePaths.append(MY_DRIVE)
     maxDepth = 0
   return (_getEntityMimeType(initialResult), filePaths, maxDepth)
@@ -49143,7 +49140,10 @@ def extendFileTree(fileTree, feed, DLP, stripCRsFromName):
     fileId = f_file['id']
     if not f_file.get('parents', []):
       if not f_file.get('driveId'):
-        f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) else [SHARED_WITHME]
+        if f_file['mimeType'] == MIMETYPE_GA_FOLDER and f_file['name'] == MY_DRIVE:
+          f_file['parents'] = []
+        else:
+          f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) else [SHARED_WITHME]
       else:
         f_file['parents'] = [SHARED_DRIVES] if 'sharedWithMeTime' not in f_file else [SHARED_WITHME]
     if fileId not in fileTree:
@@ -49212,8 +49212,8 @@ def buildFileTree(feed, drive):
       fileTree[parentId]['children'].append(fileId)
   return fileTree
 
-def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row, showDepth=False):
-  _, paths, maxDepth = getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo, showDepth=showDepth)
+def addFilePathsToRow(drive, fileTree, fileEntryInfo, filePathInfo, csvPF, row, fullpath=False, showDepth=False):
+  _, paths, maxDepth = getFilePaths(drive, fileTree, fileEntryInfo, filePathInfo, fullpath=fullpath, showDepth=showDepth)
   kcount = len(paths)
   if showDepth:
     row['depth'] = maxDepth
@@ -49799,7 +49799,7 @@ def printFileList(users):
       fileInfo['driveName'] = DFF.SharedDriveName(driveId)
     if filepath:
       if not FJQC.formatJSON or not addPathsToJSON:
-        addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row, showDepth=showDepth)
+        addFilePathsToRow(drive, fileTree, fileInfo, filePathInfo, csvPF, row, fullpath=fullpath, showDepth=showDepth)
       else:
         addFilePathsToInfo(drive, fileTree, fileInfo, filePathInfo)
     if showParentsIdsAsList and 'parents' in fileInfo:
