@@ -21,7 +21,6 @@
 """
 
 import os
-import ssl
 
 TRUE = 'true'
 FALSE = 'false'
@@ -363,7 +362,7 @@ Defaults = {
   SMTP_HOST: '',
   SMTP_USERNAME: '',
   SMTP_PASSWORD: '',
-  TLS_MIN_VERSION: 'TLSv1_3' if hasattr(ssl.SSLContext(), "minimum_version") else '',
+  TLS_MIN_VERSION: 'TLSv1_3',
   TLS_MAX_VERSION: '',
   TIMEZONE: 'utc',
   TODRIVE_CLEARFILTER: FALSE,

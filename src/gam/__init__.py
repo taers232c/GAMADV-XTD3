@@ -4248,6 +4248,12 @@ class signjwtJWTCredentials(google.auth.jwt.Credentials):
     jwt = self._signer.sign(payload)
     return jwt, expiry
 
+# Some Workforce Identity Federation endpoints such as GitHub Actions                                                                       
+# only allow TLS 1.2 as of April 2023.                                                                                                      
+def getTLSv1_2Request():
+  httpc = getHttpObj(override_min_tls='TLSv1_2')
+  return transportCreateRequest(httpc)
+
 class signjwtCredentials(google.oauth2.service_account.Credentials):
   ''' Class used for DwD '''
 
@@ -10574,7 +10580,9 @@ def doEnableAPIs():
       automatic = False
     else:
       unknownArgumentExit()
+#  request = getTLSv1_2Request()
   try:
+#    _, projectId = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
     _, projectId = google.auth.default()
   except google.auth.exceptions.DefaultCredentialsError:
     projectId = readStdin(Msg.WHAT_IS_YOUR_PROJECT_ID).strip()
@@ -12017,8 +12025,10 @@ def doCreateGCPServiceAccount():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
   sa_info = {'key_type': 'signjwt', 'token_uri': API.GOOGLE_OAUTH2_TOKEN_ENDPOINT, 'type': 'service_account'}
   request = transportCreateRequest()
+#  request = getTLSv1_2Request()
   try:
-    credentials, sa_info['project_id'] = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
+#    credentials, sa_info['project_id'] = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
+    credentials, sa_info['project_id'] = google.auth.default()
   except google.auth.exceptions.DefaultCredentialsError as e:
     systemErrorExit(API_ACCESS_DENIED_RC, str(e))
   credentials.refresh(request)
