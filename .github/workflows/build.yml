@@ -377,18 +377,18 @@ jobs:
               CFFI_PLATFORM="macosx_10_9_x86_64"
               CRYPT_PLATFORM="macosx_10_15_x86_64"
             fi
-            echo "before cffi..."
-            "${PYTHON}" -m pip install --upgrade cffi ${PIP_ARGS}
-            echo "before cryptography..."
-            "${PYTHON}" -m pip list
-            "${PYTHON}" -m pip download --only-binary :all: \
-                                          --dest . \
-                                          --no-cache \
-                                          --no-deps \
-                                          --platform ${CRYPT_PLATFORM} \
-                                          --verbose \
-                                          cryptography
-            "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cryptography*.whl
+            # echo "before cffi..."
+            # "${PYTHON}" -m pip install --upgrade cffi ${PIP_ARGS}
+            # echo "before cryptography..."
+            # "${PYTHON}" -m pip list
+            # "${PYTHON}" -m pip download --only-binary :all: \
+            #                               --dest . \
+            #                              --no-cache \
+            #                              --no-deps \
+            #                              --platform ${CRYPT_PLATFORM} \
+            #                              --verbose \
+            #                            cryptography
+            # "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cryptography*.whl
             echo "after cryptography..."
             "${PYTHON}" -m pip list
           else
