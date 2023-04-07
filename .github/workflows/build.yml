@@ -365,7 +365,6 @@ jobs:
           echo "before anything..."
           "${PYTHON}" -m pip list
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            "${PYTHON}" -m pip install --upgrade -r requirements.txt
             if [[ "${arch}" == "arm64" ]]; then
               export CFLAGS=" -arch arm64"
               export ARCHFLAGS="-arch arm64"
@@ -390,6 +389,7 @@ jobs:
                                        cryptography
             "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cryptography*.whl
             echo "after cryptography..."
+            "${PYTHON}" -m pip install --upgrade -r requirements.txt
             "${PYTHON}" -m pip list
           else
             "${PYTHON}" -m pip install --upgrade -r requirements.txt
