@@ -2390,6 +2390,11 @@ gam print chromschemas [todrive <ToDriveAttribute>*]
 gam show chromeschemas std
         [filter <String>]
 
+gam create chromenetwork
+        <OrgUnitItem> <String> <JSONData>
+gam delete chromenetwork
+         <OrgUnitItem> <NetworkID>
+
 # Chrome Apps/Versions
 
 gam show chromeapps

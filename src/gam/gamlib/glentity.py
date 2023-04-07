@@ -86,6 +86,8 @@ class GamEntity():
   CHROME_CHANNEL = 'chan'
   CHROME_DEVICE = 'chdv'
   CHROME_MODEL = 'chmo'
+  CHROME_NETWORK_ID = 'chni'
+  CHROME_NETWORK_NAME = 'chnn'
   CHROME_PLATFORM = 'cpla'
   CHROME_POLICY = 'cpol'
   CHROME_POLICY_IMAGE = 'cpim'
@@ -397,6 +399,8 @@ class GamEntity():
     CHROME_CHANNEL: ['Chrome Channels', 'Chrome Channel'],
     CHROME_DEVICE: ['Chrome Devices', 'Chrome Device'],
     CHROME_MODEL: ['Chrome Models', 'Chrome Model'],
+    CHROME_NETWORK_ID: ['Chrome Network IDs', 'Chrome Network ID'],
+    CHROME_NETWORK_NAME: ['Chrome Network Names', 'Chrome Network Name'],
     CHROME_PLATFORM: ['Chrome Platforms', 'Chrome Platform'],
     CHROME_POLICY: ['Chrome Policies', 'Chrome Policy'],
     CHROME_POLICY_IMAGE: ['Chrome Policy Images', 'Chrome Policy Image'],

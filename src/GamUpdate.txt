@@ -1,4 +1,4 @@
-6.53.04
+6.54.00
 
 Following Jay's lead, updated `gam delete inboundssoassignment <SSOAssignmentSelector>` to allow
 more flexibility in selecting assignments to delete.
@@ -9,6 +9,14 @@ Updated `gam <UserTypeEntity> print filelist ... fullpath showparent` and `gam <
 to properly display the file path of My Drive.
 
 Upgraded to Python 3.11.3 where possible.
+
+Added commands to create and delete Chrome networks.
+```
+gam create chromenetwork
+        <OrgUnitItem> <String> <JSONData>
+gam delete chromenetwork
+         <OrgUnitItem> <NetworkID>
+```
 
 6.53.03
 

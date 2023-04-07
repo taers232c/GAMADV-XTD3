@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.53.04'
+__version__ = '6.54.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4248,8 +4248,9 @@ class signjwtJWTCredentials(google.auth.jwt.Credentials):
     jwt = self._signer.sign(payload)
     return jwt, expiry
 
-# Some Workforce Identity Federation endpoints such as GitHub Actions                                                                       
-# only allow TLS 1.2 as of April 2023.                                                                                                      
+# Some Workforce Identity Federation endpoints such as GitHub Actions
+# only allow TLS 1.2 as of April 2023.
+
 def getTLSv1_2Request():
   httpc = getHttpObj(override_min_tls='TLSv1_2')
   return transportCreateRequest(httpc)
@@ -24805,6 +24806,46 @@ def doShowChromeSchemasStd():
       Ind.Decrement()
     Ind.Decrement()
     printBlankLine()
+
+# gam create chromenetwork
+#	<OrgUnitItem> <String> <JSONData>
+def doCreateChromeNetwork():
+  cp = buildGAPIObject(API.CHROMEPOLICY)
+  customer = _getCustomersCustomerIdWithC()
+  body = {}
+  orgUnitPath, body['targetResource'] = _getOrgunitsOrgUnitIdPath(getString(Cmd.OB_ORGUNIT_PATH))
+  body['name'] = getString(Cmd.OB_STRING)
+  body.update(getJSON(['direct', 'name', 'orgUnitPath', 'parentOrgUnitPath']))
+  checkForExtraneousArguments()
+  kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_NETWORK_NAME, body['name']]
+  try:
+    result = callGAPI(cp.customers().policies().networks(), 'defineNetwork',
+                      bailOnInternalError=True,
+                      throwReasons=[GAPI.ALREADY_EXISTS, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                      customer=customer, body=body)
+    entityActionPerformed(kvList+[Ent.CHROME_NETWORK_ID, result['networkId']])
+  except (GAPI.alreadyExists, GAPI.invalidArgument, GAPI.internalError, GAPI.serviceNotAvailable) as e:
+    entityActionFailedWarning(kvList, str(e))
+
+# gam delete chromenetwork
+#	 <OrgUnitItem> <NetworkID>
+def doDeleteChromeNetwork():
+  cp = buildGAPIObject(API.CHROMEPOLICY)
+  customer = _getCustomersCustomerIdWithC()
+  body = {}
+  orgUnitPath, body['targetResource'] = _getOrgunitsOrgUnitIdPath(getString(Cmd.OB_ORGUNIT_PATH))
+  body['networkId'] = getString(Cmd.OB_NETWORK_ID)
+  checkForExtraneousArguments()
+  kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_NETWORK_ID, body['networkId']]
+  try:
+    callGAPI(cp.customers().policies().networks(), 'removeNetwork',
+             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
+             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+             customer=customer, body=body)
+    entityActionPerformed(kvList)
+  except (GAPI.invalidArgument, GAPI.notFound, GAPI.serviceNotAvailable) as e:
+    entityActionFailedWarning(kvList, str(e))
 
 # Device command utilities
 def buildGAPICIDeviceServiceObject():
@@ -66759,6 +66800,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_CHATMEMBER:		doCreateChatMember,
   Cmd.ARG_CHATMESSAGE:		doCreateChatMessage,
   Cmd.ARG_CHATSPACE:		doCreateChatSpace,
+  Cmd.ARG_CHROMENETWORK:	doCreateChromeNetwork,
   Cmd.ARG_CHROMEPOLICYIMAGE:	doCreateChromePolicyImage,
   Cmd.ARG_CIGROUP:		doCreateCIGroup,
   Cmd.ARG_CONTACT:		doCreateDomainContact,
@@ -66866,6 +66908,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BUILDING:		doDeleteBuilding,
       Cmd.ARG_CAALEVEL:		doDeleteCAALevel,
       Cmd.ARG_CHATMESSAGE:	doDeleteChatMessage,
+      Cmd.ARG_CHROMENETWORK:	doDeleteChromeNetwork,
       Cmd.ARG_CHROMEPOLICY:	doDeleteChromePolicy,
       Cmd.ARG_CIGROUP:		doDeleteCIGroups,
       Cmd.ARG_CONTACT:		doDeleteDomainContacts,
@@ -67324,6 +67367,7 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CHANNELPRODUCTS:	Cmd.ARG_CHANNELPRODUCT,
   Cmd.ARG_CHANNELSKUS:		Cmd.ARG_CHANNELSKU,
   Cmd.ARG_CHATSPACES:		Cmd.ARG_CHATSPACE,
+  Cmd.ARG_CHROMENETWORKS:	Cmd.ARG_CHROMENETWORK,
   Cmd.ARG_CHROMEPOLICIES:	Cmd.ARG_CHROMEPOLICY,
   Cmd.ARG_CHROMESCHEMAS:	Cmd.ARG_CHROMESCHEMA,
   Cmd.ARG_CIGROUPS:		Cmd.ARG_CIGROUP,
