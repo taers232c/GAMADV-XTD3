@@ -371,8 +371,10 @@ jobs:
           "${PYTHON}" -m pip list
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             if [[ "${arch}" == "arm64" ]]; then
-              export CFLAGS="-arch arm64"
-              export ARCHFLAGS="-arch arm64"
+              export CFLAGS="-arch x86_64 -arch arm64"
+              export ARCHFLAGS="-arch x86_64 -arch arm64"
+              # export CFLAGS="-arch arm64"
+              # export ARCHFLAGS="-arch arm64"
               CFFI_PLATFORM="macosx_11_0_arm64"
               CRYPT_PLATFORM="macosx_11_0_arm64"
             elif [[ "${arch}" == "x86_64" ]]; then
@@ -390,7 +392,6 @@ jobs:
                                  --no-cache-dir --no-deps --use-pep517 \
                                  --use-feature=no-binary-enable-wheel-cache \
                                  cffi 
-            "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cffi*.whl
             echo "before cryptography..."
             "${PYTHON}" -m pip list
             "${PYTHON}" -m pip download --only-binary :all: \
