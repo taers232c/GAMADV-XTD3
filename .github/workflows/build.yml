@@ -38,6 +38,11 @@ jobs:
             goal: build
             arch: arm64
             openssl_archs: darwin64-x86_64 darwin64-arm64
+          - os: macos-12
+            jid: 4
+            goal: build
+            arch: universal2
+            openssl_archs: darwin64-x86_64 darwin64-arm64
           - os: windows-2022
             jid: 5
             goal: build
@@ -366,20 +371,25 @@ jobs:
           "${PYTHON}" -m pip list
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             if [[ "${arch}" == "arm64" ]]; then
+              export CFLAGS="-arch arm64"
+              export ARCHFLAGS="-arch arm64"
               CFFI_PLATFORM="macosx_11_0_arm64"
               CRYPT_PLATFORM="macosx_11_0_arm64"
             elif [[ "${arch}" == "x86_64" ]]; then
+              export CFLAGS="-arch x86_64"
+              export ARCHFLAGS="-arch x86_64"
               CFFI_PLATFORM="macosx_10_9_x86_64"
               CRYPT_PLATFORM="macosx_10_15_x86_64"
+            else
+              export CFLAGS="-arch x86_64 -arch arm64"
+              export ARCHFLAGS="-arch x86_64 -arch arm64"
+              CRYPT_PLATFORM="macosx_10_15_universal2"
             fi
             echo "before cffi..."
-            "${PYTHON}" -m pip download --only-binary :all: \
-                                        --dest . \
-                                        --no-cache \
-                                        --no-deps \
-                                        --platform ${CFFI_PLATFORM} \
-                                        --verbose \
-                                       cffi
+            "${PYTHON}" -m pip install --upgrade --force-reinstall --no-binary :all: \
+                                 --no-cache-dir --no-deps --use-pep517 \
+                                 --use-feature=no-binary-enable-wheel-cache \
+                                 cffi 
             "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cffi*.whl
             echo "before cryptography..."
             "${PYTHON}" -m pip list
@@ -442,6 +452,8 @@ jobs:
                  export gamspec="gamarm64.spec"
                elif [[ "${arch}" == "x86_64" ]]; then
                  export gamspec="gamx86_64.spec"
+               else
+                 export gamspec="gamuniversal2.spec"
                fi
              elif [[ "${RUNNER_OS}" == "Windows" ]]; then
                # Work around issue where PyInstaller picks up python3.dll from other Python versions
