@@ -4291,7 +4291,7 @@ class signjwtSignJwt(google.auth.crypt.Signer):
     ''' Call IAM Credentials SignJWT API to get our signed JWT '''
     try:
       credentials, _ = google.auth.default(scopes=[API.IAM_SCOPE])
-    except google.auth.exceptions.DefaultCredentialsError as e:
+    except (google.auth.exceptions.DefaultCredentialsError, google.auth.exceptions.RefreshError) as e:
       systemErrorExit(API_ACCESS_DENIED_RC, str(e))
     httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
     iamc = getService(API.IAM_CREDENTIALS, httpObj)
@@ -10584,7 +10584,7 @@ def doEnableAPIs():
   request = getTLSv1_2Request()
   try:
     _, projectId = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
-  except google.auth.exceptions.DefaultCredentialsError:
+  except (google.auth.exceptions.DefaultCredentialsError, google.auth.exceptions.RefreshError):
     projectId = readStdin(Msg.WHAT_IS_YOUR_PROJECT_ID).strip()
   while automatic is None:
     a_or_m = readStdin(Msg.ENABLE_PROJECT_APIS_AUTOMATICALLY_OR_MANUALLY).strip().lower()
