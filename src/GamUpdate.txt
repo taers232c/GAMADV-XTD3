@@ -1,3 +1,9 @@
+6.54.01
+
+Added commands to export messages/threads in EML/raw format.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-Messages-Threads#export-messagesthreads
+
 6.54.00
 
 Following Jay's lead, updated `gam delete inboundssoassignment <SSOAssignmentSelector>` to allow
@@ -17,6 +23,8 @@ gam create chromenetwork
 gam delete chromenetwork
          <OrgUnitItem> <NetworkID>
 ```
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Policies#create-chrome-network
 
 6.53.03
 

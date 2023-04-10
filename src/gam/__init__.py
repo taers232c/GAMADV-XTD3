@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.54.00'
+__version__ = '6.54.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -12027,7 +12027,7 @@ def doCreateGCPServiceAccount():
   request = getTLSv1_2Request()
   try:
     credentials, sa_info['project_id'] = google.auth.default(scopes=[API.IAM_SCOPE], request=request)
-  except google.auth.exceptions.DefaultCredentialsError as e:
+  except (google.auth.exceptions.DefaultCredentialsError, google.auth.exceptions.RefreshError) as e:
     systemErrorExit(API_ACCESS_DENIED_RC, str(e))
   credentials.refresh(request)
   sa_info['client_email'] = credentials.service_account_email
@@ -61698,6 +61698,7 @@ def _convertLabelNamesToIds(gmail, bodyLabels, labelNameMap, addLabelIfMissing):
 MESSAGES_MAX_TO_KEYWORDS = {
   Act.ARCHIVE: 'maxtoarchive',
   Act.DELETE: 'maxtodelete',
+  Act.EXPORT: 'maxtoexport',
   Act.FORWARD: 'maxtoforward',
   Act.MODIFY: 'maxtomodify',
   Act.PRINT: 'maxtoprint',
@@ -62040,6 +62041,123 @@ def processMessages(users):
 #	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_untrash <Number>])|(ids <ThreadIDEntity>)
 def processThreads(users):
   _processMessagesThreads(users, Ent.THREAD)
+
+def exportMessagesThreads(users, entityType):
+  parameters = _initMessageThreadParameters(entityType, False, 1)
+  targetFolderPattern = GC.Values[GC.DRIVE_DIR]
+  targetNamePattern = None
+  includeSpamTrash = overwrite = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if _getMessageSelectParameters(myarg, parameters):
+      pass
+    elif myarg == 'targetfolder':
+      targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
+    elif myarg == 'targetname':
+      targetNamePattern = getString(Cmd.OB_FILE_NAME)
+    elif myarg == 'overwrite':
+      overwrite = getBoolean()
+    else:
+      unknownArgumentExit()
+  _finalizeMessageSelectParameters(parameters, True)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, gmail, entityIds = _validateUserGetMessageIds(user, i, count, parameters['messageEntity'])
+    if not gmail:
+      continue
+    _, userName, _ = splitEmailAddressOrUID(user)
+    targetFolder = _substituteForUser(targetFolderPattern, user, userName)
+    if not os.path.isdir(targetFolder):
+      os.makedirs(targetFolder)
+    targetName = _substituteForUser(targetNamePattern, user, userName) if targetNamePattern else None
+    service = gmail.users().messages() if entityType == Ent.MESSAGE else gmail.users().threads()
+    try:
+      if parameters['messageEntity'] is None:
+        printGettingAllEntityItemsForWhom(entityType, user, i, count)
+        listResult = callGAPIpages(service, 'list', parameters['listType'],
+                                   pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
+                                   throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
+                                   userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
+                                   maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
+        entityIds = [entity['id'] for entity in listResult]
+    except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.invalid, GAPI.invalidArgument) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+      continue
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      continue
+    jcount = len(entityIds)
+    if jcount == 0:
+      entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.NO_ENTITIES_MATCHED.format(Ent.Plural(entityType)), i, count)
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+      continue
+    if parameters['messageEntity'] is None:
+      if parameters['maxToProcess'] and jcount > parameters['maxToProcess']:
+        entityNumEntitiesActionNotPerformedWarning([Ent.USER, user], entityType, jcount, Msg.COUNT_N_EXCEEDS_MAX_TO_PROCESS_M.format(jcount, Act.ToPerform(), parameters['maxToProcess']), i, count)
+        continue
+    entityPerformActionNumItems([Ent.USER, user], jcount, entityType, i, count)
+    Ind.Increment()
+    j = 0
+    for entityId in entityIds:
+      j += 1
+      if entityType == Ent.THREAD:
+        try:
+          result = callGAPI(gmail.users().threads(), 'get',
+                             throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                             userId='me', id=entityId, fields='messages(id)')
+          messageIds = [message['id'] for message in result['messages']]
+          kcount = len(messageIds)
+          entityPerformActionNumItems([Ent.USER, user, Ent.THREAD, entityId], kcount, Ent.MESSAGE, j, jcount)
+          Ind.Increment()
+          k = 0
+        except (GAPI.serviceNotAvailable, GAPI.badRequest):
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+          break
+        except (GAPI.notFound, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.THREAD, entityId], str(e), j, jcount)
+          continue
+      else:
+        messageIds = [entityId]
+        kcount = jcount
+        k = j-1
+      for messageId in messageIds:
+        k += 1
+        try:
+          result = callGAPI(gmail.users().messages(), 'get',
+                            throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
+                            userId='me', id=messageId, format='raw')
+          if targetName:
+            msgName = targetName.replace('#id#', messageId)
+          else:
+            msgName = f'Msg-{messageId}.eml'
+          filename, _ = uniqueFilename(targetFolder, msgName, overwrite)
+          status, e = writeFileReturnError(filename, base64.urlsafe_b64decode(str(result['raw'])), mode='wb')
+          if status:
+            entityActionPerformed([Ent.MESSAGE, filename])
+          else:
+            entityActionFailedWarning([Ent.MESSAGE, filename], str(e))
+        except (GAPI.serviceNotAvailable, GAPI.badRequest):
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+          break
+        except (GAPI.notFound, GAPI.invalidArgument) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.MESSAGE, messageId], str(e), k, kcount)
+          continue
+      if entityType == Ent.THREAD:
+        Ind.Decrement()
+    Ind.Decrement()
+
+# gam <UserTypeEntity> export message|messages
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_export <Number>])|(ids <MessageIDEntity>)
+#	[targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+def exportMessages(users):
+  exportMessagesThreads(users, Ent.MESSAGE)
+
+# gam <UserTypeEntity> export thread|threads
+#	(((query <QueryGmail>) (matchlabel <LabelName>) [or|and])+ [quick|notquick] [doit] [max_to_export <Number>])|(ids <ThreadIDEntity>)
+#	[targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+def exportThreads(users):
+  exportMessagesThreads(users, Ent.THREAD)
 
 HEADER_ENCODE_PATTERN = re.compile(r'=\?([^?]*?)\?[qQbB]\?(.*?)\?=', re.VERBOSE | re.MULTILINE)
 
@@ -67938,6 +68056,12 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.EMPTY,
      {Cmd.ARG_CALENDARTRASH:	emptyCalendarTrash,
       Cmd.ARG_DRIVETRASH:	emptyDriveTrash,
+     }
+    ),
+  'export':
+    (Act.EXPORT,
+     {Cmd.ARG_MESSAGE:		exportMessages,
+      Cmd.ARG_THREAD:		exportThreads,
      }
     ),
   'get':
