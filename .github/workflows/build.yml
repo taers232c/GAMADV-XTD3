@@ -371,16 +371,17 @@ jobs:
           "${PYTHON}" -m pip list
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             if [[ "${arch}" == "arm64" ]]; then
-              export CFLAGS="-arch x86_64 -arch arm64"
-              export ARCHFLAGS="-arch x86_64 -arch arm64"
               # export CFLAGS="-arch arm64"
               # export ARCHFLAGS="-arch arm64"
-              CFFI_PLATFORM="macosx_11_0_arm64"
+              # CFFI_PLATFORM="macosx_11_0_arm64"
               CRYPT_PLATFORM="macosx_11_0_arm64"
+              export CFLAGS="-arch x86_64 -arch arm64"
+              export ARCHFLAGS="-arch x86_64 -arch arm64"
+              CRYPT_PLATFORM="macosx_10_15_universal2"
             elif [[ "${arch}" == "x86_64" ]]; then
               export CFLAGS="-arch x86_64"
               export ARCHFLAGS="-arch x86_64"
-              CFFI_PLATFORM="macosx_10_9_x86_64"
+              # CFFI_PLATFORM="macosx_10_9_x86_64"
               CRYPT_PLATFORM="macosx_10_15_x86_64"
             else
               export CFLAGS="-arch x86_64 -arch arm64"
@@ -389,9 +390,9 @@ jobs:
             fi
             echo "before cffi..."
             "${PYTHON}" -m pip install --upgrade --force-reinstall --no-binary :all: \
-                                 --no-cache-dir --no-deps --use-pep517 \
-                                 --use-feature=no-binary-enable-wheel-cache \
-                                 cffi 
+                              --no-cache-dir --no-deps --use-pep517 \
+                              --use-feature=no-binary-enable-wheel-cache \
+                              cffi 
             echo "before cryptography..."
             "${PYTHON}" -m pip list
             "${PYTHON}" -m pip download --only-binary :all: \
@@ -403,8 +404,8 @@ jobs:
                                        cryptography
             "${PYTHON}" -m pip install --force-reinstall --no-deps --verbose cryptography*.whl
             echo "after cryptography..."
-            "${PYTHON}" -m pip install --upgrade -r requirements.txt
             "${PYTHON}" -m pip list
+            "${PYTHON}" -m pip install --upgrade --no-binary :all: -r requirements.txt
           else
             "${PYTHON}" -m pip install --upgrade -r requirements.txt
             echo "after requirements..."
