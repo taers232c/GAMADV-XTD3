@@ -3904,7 +3904,7 @@ gam info orgs|ous <OrgUnitEntity> [nousers|notsuspended|suspended] [children|chi
         ou_and_children | ou_and_children_ns | ou_and_children_susp
 
 gam print orgs|ous [todrive <ToDriveAttribute>*]
-        [fromparent <OrgUnitItem>] [showparent] [toplevelonly]
+        [fromparent <OrgUnitItem>] [showparent [<Boolean>]] [toplevelonly]
         [parentselector <OrgUnitSelector> childselector <OrgUnitSelector>]
         [allfields|<OrgUnitFieldName>*|(fields <OrgUnitFieldNameList>)] [convertcrnl] [batchsuborgs [<Boolean>]]
         [mincroscount <Number>] [maxcroscount <Number>]
@@ -6695,7 +6695,7 @@ gam <UserTypeEntity> print gmailprofile [todrive <ToDriveAttribute>*]
 
 # Users - Gmail - Send As/Signature/Vacation
 
-gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
+gam <UserTypeEntity> [create|add] sendas <EmailAddress> [name] <String>
         [<SendAsContent> (replace <Tag> <UserReplacement>)*]
         [html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
         [smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587

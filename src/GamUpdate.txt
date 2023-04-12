@@ -1,3 +1,13 @@
+6.54.02
+
+Updated `gam <UserTypeEntity> get photo` and `gam <UserTypeEntity> get profilephoto` to inspect the
+photo data and add the appropriate extension: `jpg`, `png`, `gif`. If the type of the photo can't be
+determined, `img` is used as the extenstion. If you use `[filename <FileNamePattern>]`, `#ext#` will be replaced
+with the extension. 
+
+Updated `gam <UserTypeEntity> [create|add] sendas <EmailAddress> [name] <String>` to allow the
+optional argument `name` before `<String>` to make clear that `<String>` is the sendas display name.
+
 6.54.01
 
 Added commands to export messages/threads in EML/raw format.

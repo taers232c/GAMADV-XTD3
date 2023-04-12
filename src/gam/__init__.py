@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.54.01'
+__version__ = '6.54.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -140,6 +140,8 @@ import google.oauth2.service_account
 import google_auth_oauthlib.flow
 import google_auth_httplib2
 import httplib2
+
+httplib2.RETRIES = 5
 
 from passlib.hash import sha512_crypt
 
@@ -59857,7 +59859,7 @@ def deletePhoto(users):
 def getPhoto(users, profileMode):
   cd = buildGAPIObject(API.DIRECTORY)
   targetFolder = os.getcwd()
-  filenamePattern = '#email#.jpg'
+  filenamePattern = '#email#.#ext#'
   noDefault = returnURLonly = False
   writeFileData = showPhotoData = True
   size = ''
@@ -59937,12 +59939,25 @@ def getPhoto(users, profileMode):
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
           continue
       if writeFileData:
-        status, e = writeFileReturnError(filename, photo_data, mode='wb')
+        if photo_data[:3] == b'\xff\xd8\xff':
+          extension = 'jpg'
+        elif photo_data[:8] == b'\x89\x50\x4e\x47\x0d\x0a\x1a\x0a':
+          extension = 'png'
+        elif photo_data[:6] == b'\x47\x49\x46\x38\x37\x61' or photo_data[:6] == b'\x47\x49\x46\x38\x39\x61':
+          extension = 'gif'
+        elif photo_data[:2] == b'\x42\x4d':
+          extension= 'bmp'
+        elif photo_data[:4] == b'\x49\x49\x2A\x00' or photo_data[:4] == b'\x4D\x4D\x00\x2A':
+          extension= 'tif'
+        else:
+          extension = 'img'
+        filenameExt = filename.replace('#ext#', extension)
+        status, e = writeFileReturnError(filenameExt, photo_data, mode='wb')
         if status:
           if not showPhotoData:
-            entityActionPerformed([Ent.USER, user, Ent.PHOTO, filename], i, count)
+            entityActionPerformed([Ent.USER, user, Ent.PHOTO, filenameExt], i, count)
         else:
-          entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
+          entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filenameExt], str(e), i, count)
     except (GAPI.notFound, GAPI.photoNotFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, None], str(e), i, count)
     except (GAPI.userNotFound, GAPI.forbidden):
@@ -64723,7 +64738,7 @@ SMTPMSA_PORTS = ['25', '465', '587']
 SMTPMSA_SECURITY_MODES = ['none', 'ssl', 'starttls']
 SMTPMSA_REQUIRED_FIELDS = ['host', 'port', 'username', 'password']
 
-# gam <UserTypeEntity> [create|add] sendas <EmailAddress> <String>
+# gam <UserTypeEntity> [create|add] sendas <EmailAddress> [name] <String>
 #	[<SendAsContent> (replace <Tag> <UserReplacement>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 #	[smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
@@ -64736,7 +64751,9 @@ def createUpdateSendAs(users):
   updateCmd = Act.Get() == Act.UPDATE
   emailAddress = getEmailAddress(noUid=True)
   if not updateCmd:
-    body = {'sendAsEmail': emailAddress, 'displayName': getString(Cmd.OB_NAME)}
+    body = {'sendAsEmail': emailAddress}
+    checkArgumentPresent(['name'])
+    body['displayName'] = getString(Cmd.OB_NAME)
   else:
     body = {}
   signature = None
