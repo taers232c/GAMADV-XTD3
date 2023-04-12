@@ -53,10 +53,7 @@ from html.entities import name2codepoint
 from html.parser import HTMLParser
 import http.client as http_client
 import importlib
-try:
-  from importlib.metadata import version as lib_version
-except ImportError:
-  from importlib_metadata import version as lib_version
+from importlib.metadata import version as lib_version
 import io
 import ipaddress
 import json
@@ -117,6 +114,7 @@ from gamlib import glindent
 from gamlib import glmsgs as Msg
 from gamlib import glskus as SKU
 from gamlib import gluprop as UProp
+from gamlib import glverlibs
 
 import atom
 import gdata.apps.service
@@ -8870,22 +8868,11 @@ def doVersion(checkForArgs=True):
   if extended:
     printKeyValueList([ssl.OPENSSL_VERSION])
     tls_ver, cipher_name = _getServerTLSUsed(testLocation)
-    libs = ['cryptography',
-            'filelock',
-            'google-api-python-client',
-            'google-auth',
-            'google-auth-httplib2',
-            'google-auth-oauthlib',
-            'httplib2',
-            'passlib',
-            'python-dateutil',
-            'yubikey-manager',
-            ]
-    for lib in libs:
+    for lib in glverlibs.GAM_VER_LIBS:
       try:
         writeStdout(f'{lib} {lib_version(lib)}\n')
-      except Exception:
-        pass
+      except Exception as e:
+        writeStdout(str(e)+'\n')
     printKeyValueList([f'{testLocation} connects using {tls_ver} {cipher_name}'])
 
 # gam help

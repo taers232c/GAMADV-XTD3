@@ -4,10 +4,13 @@ import sys
 
 from PyInstaller.utils.hooks import copy_metadata
 
+from gam.gamlib.glverlibs import GAM_VER_LIBS
+
 sys.modules['FixTk'] = None
 
 extra_files = []
-extra_files += copy_metadata('google-api-python-client')
+for pkg in GAM_VER_LIBS:
+    copy_metadata(pkg, recursive=True)
 extra_files += [('admin-directory_v1.1beta1.json', '.')]
 extra_files += [('cbcm-v1.1beta1.json', '.')]
 extra_files += [('contactdelegation-v1.json', '.')]
