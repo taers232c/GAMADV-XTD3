@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.54.02'
+__version__ = '6.54.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13372,6 +13372,7 @@ TAG_NAME_ARGUMENT_TO_FIELD_MAP = {
 
 TAG_ORGANIZATION_ARGUMENT_TO_FIELD_MAP = {
   'costcenter': 'costCenter',
+  'costcentre': 'costCenter',
   'customtype': 'customType',
   'department': 'department',
   'description': 'description',
@@ -13447,6 +13448,8 @@ TAG_FIELD_SUBFIELD_CHOICE_MAP = {
   'name': ('name', TAG_NAME_ARGUMENT_TO_FIELD_MAP),
   'organization': ('organizations', TAG_ORGANIZATION_ARGUMENT_TO_FIELD_MAP),
   'organizations': ('organizations', TAG_ORGANIZATION_ARGUMENT_TO_FIELD_MAP),
+  'organisation': ('organizations', TAG_ORGANIZATION_ARGUMENT_TO_FIELD_MAP),
+  'organisations': ('organizations', TAG_ORGANIZATION_ARGUMENT_TO_FIELD_MAP),
   'otheremail': ('emails', TAG_OTHEREMAIL_ARGUMENT_TO_FIELD_MAP),
   'otheremails': ('emails', TAG_OTHEREMAIL_ARGUMENT_TO_FIELD_MAP),
   'phone': ('phones', TAG_PHONE_ARGUMENT_TO_FIELD_MAP),
@@ -13956,7 +13959,7 @@ def _showCustomerAddressPhoneNumber(customerInfo):
 
 ADDRESS_FIELDS_ARGUMENT_MAP = {
   'contact': 'contactName', 'contactname': 'contactName',
-  'name': 'organizationName', 'organizationname': 'organizationName',
+  'name': 'organizationName', 'organizationname': 'organizationName', 'organisationname': 'organizationName',
   'address': 'addressLine1', 'address1': 'addressLine1', 'addressline1': 'addressLine1',
   'address2': 'addressLine2', 'addressline2': 'addressLine2',
   'address3': 'addressLine3', 'addressline3': 'addressLine3',
@@ -17101,6 +17104,8 @@ class ContactsManager():
     'jots': CONTACT_JOTS,
     'organization': CONTACT_ORGANIZATIONS,
     'organizations': CONTACT_ORGANIZATIONS,
+    'organisation': CONTACT_ORGANIZATIONS,
+    'organisations': CONTACT_ORGANIZATIONS,
     'phone': CONTACT_PHONES,
     'phones': CONTACT_PHONES,
     'relation': CONTACT_RELATIONS,
@@ -17213,6 +17218,7 @@ class ContactsManager():
     'customer': 'customer',
     'network': 'network',
     'organization': 'organization',
+    'organisation': 'organization',
     }
 
   EXTERNALID_REL_TO_TYPE_ARGUMENT = {
@@ -17220,6 +17226,7 @@ class ContactsManager():
     'customer': 'customer',
     'network': 'network',
     'organization': 'organization',
+    'organisation': 'organization',
     }
 
   IM_TYPE_ARGUMENT_TO_REL = {
@@ -18801,6 +18808,8 @@ class PeopleManager():
     'occupations': PEOPLE_OCCUPATIONS,
     'organization': PEOPLE_ORGANIZATIONS,
     'organizations': PEOPLE_ORGANIZATIONS,
+    'organisation': PEOPLE_ORGANIZATIONS,
+    'organisations': PEOPLE_ORGANIZATIONS,
     'phone': PEOPLE_PHONE_NUMBERS,
     'phones': PEOPLE_PHONE_NUMBERS,
     'phonenumbers': PEOPLE_PHONE_NUMBERS,
@@ -18902,6 +18911,7 @@ class PeopleManager():
       'loginid': 'loginId',
       'network': 'network',
       'organization': 'organization',
+      'organisation': 'organization',
       },
     PEOPLE_RELATIONS: {
       'spouse' : 'spouse',
@@ -20129,6 +20139,8 @@ PEOPLE_FIELDS_CHOICE_MAP = {
   'occupations': PEOPLE_OCCUPATIONS,
   'organization': PEOPLE_ORGANIZATIONS,
   'organizations': PEOPLE_ORGANIZATIONS,
+  'organisation': PEOPLE_ORGANIZATIONS,
+  'organisations': PEOPLE_ORGANIZATIONS,
   'phone': PEOPLE_PHONE_NUMBERS,
   'phones': PEOPLE_PHONE_NUMBERS,
   'phonenumbers': PEOPLE_PHONE_NUMBERS,
@@ -33631,6 +33643,8 @@ LIST_EVENTS_MATCH_FIELDS = {
   'creatoremail': ['creator', 'email'],
   'organizername': ['organizer', 'displayName'],
   'organizeremail': ['organizer', 'email'],
+  'organisername': ['organizer', 'displayName'],
+  'organiseremail': ['organizer', 'email'],
   'status': ['status'],
   'transparency': ['transparency'],
   'visibility': ['visibility'],
@@ -33874,9 +33888,9 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body['transparency'] = 'transparent'
   elif myarg == 'visibility':
     body['visibility'] = getChoice(CALENDAR_EVENT_VISIBILITY_CHOICES)
-  elif myarg == 'color':
+  elif myarg in {'color', 'colour'}:
     body['colorId'] = getChoice(CALENDAR_EVENT_COLOR_MAP, mapChoice=True)
-  elif myarg in {'colorindex', 'colorid'}:
+  elif myarg in {'colorindex', 'colorid', 'colourindex', 'colourid'}:
     body['colorId'] = getInteger(CALENDAR_EVENT_MIN_COLOR_INDEX, CALENDAR_EVENT_MAX_COLOR_INDEX)
   elif myarg == 'noreminders':
     body['reminders'] = {'overrides': [], 'useDefault': False}
@@ -33904,10 +33918,10 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
     body.setdefault('extendedProperties', {})
     body['extendedProperties'].setdefault('shared', {})
     body['extendedProperties']['shared'][getString(Cmd.OB_PROPERTY_KEY)] = None
-  elif function == 'import' and myarg == 'organizername':
+  elif function == 'import' and myarg in {'organizername', 'organisername'}:
     body.setdefault('organizer', {})
     body['organizer']['displayName'] = getString(Cmd.OB_NAME)
-  elif function == 'import' and myarg == 'organizeremail':
+  elif function == 'import' and myarg in {'organizeremail', 'organiseremail'}:
     body.setdefault('organizer', {})
     body['organizer']['email'] = getEmailAddress(noUid=True)
   else:
@@ -34541,6 +34555,7 @@ EVENT_FIELDS_CHOICE_MAP = {
   'location': 'location',
   'locked': 'locked',
   'organizer': 'organizer',
+  'organiser': 'organizer',
   'originalstart': 'originalStartTime',
   'originalstarttime': 'originalStartTime',
   'privatecopy': 'privateCopy',
@@ -34575,6 +34590,7 @@ EVENT_ATTENDEES_SUBFIELDS_CHOICE_MAP = {
   'id': 'id',
   'optional': 'optional',
   'organizer': 'organizer',
+  'organiser': 'organizer',
   'resource': 'resource',
   'responsestatus': 'responseStatus',
   'self': 'self',
@@ -34615,6 +34631,7 @@ EVENT_SUBFIELDS_CHOICE_MAP = {
   'conferencedata': EVENT_CONFERENCEDATA_SUBFIELDS_CHOICE_MAP,
   'creator': EVENT_CREATOR_SUBFIELDS_CHOICE_MAP,
   'organizer': EVENT_ORGANIZER_SUBFIELDS_CHOICE_MAP,
+  'organiser': EVENT_ORGANIZER_SUBFIELDS_CHOICE_MAP,
   'workinglocationproperties': EVENT_WORKINGLOCATION_SUBFIELDS_CHOICE_MAP,
 }
 
@@ -38350,6 +38367,8 @@ UPDATE_USER_ARGUMENT_TO_PROPERTY_MAP = {
   'org': 'orgUnitPath',
   'organization': 'organizations',
   'organizations': 'organizations',
+  'organisation': 'organizations',
+  'organisations': 'organizations',
   'orgunitpath': 'orgUnitPath',
   'otheremail': 'emails',
   'otheremails': 'emails',
@@ -38390,6 +38409,7 @@ ADDRESS_ARGUMENT_TO_FIELD_MAP = {
 
 ORGANIZATION_ARGUMENT_TO_FIELD_MAP = {
   'costcenter': 'costCenter',
+  'costcentre': 'costCenter',
   'department': 'department',
   'description': 'description',
   'domain': 'domain',
@@ -38556,7 +38576,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       parameters['notifyOnUpdate'] = getBoolean()
     elif updateCmd and myarg == 'setchangepasswordoncreate':
       parameters['setChangePasswordOnCreate'] = getBoolean()
-    elif not updateCmd and myarg in {'licence', 'license'}:
+    elif not updateCmd and myarg in {'license', 'licence'}:
       if parameters['lic'] is None:
         parameters['lic'] = buildGAPIObject(API.LICENSING)
       parameters[LICENSE_PRODUCT_SKUIDS] = getGoogleSKUList(allowUnknownProduct=True)
@@ -39555,6 +39575,8 @@ USER_FIELDS_CHOICE_MAP = {
   'org': 'orgUnitPath',
   'organization': 'organizations',
   'organizations': 'organizations',
+  'organisation': 'organizations',
+  'organisations': 'organizations',
   'orgunitpath': 'orgUnitPath',
   'otheremail': 'emails',
   'otheremails': 'emails',
@@ -45250,15 +45272,15 @@ def _getCalendarAttributes(body):
       body['hidden'] = getBoolean()
     elif myarg == 'summary':
       body['summaryOverride'] = getString(Cmd.OB_STRING)
-    elif myarg == 'color':
+    elif myarg in {'color', 'colour'}:
       body['colorId'] = getChoice(CALENDAR_COLOR_MAP, mapChoice=True)
-    elif myarg in {'colorindex', 'colorid'}:
+    elif myarg in {'colorindex', 'colorid', 'colourindex', 'colourid'}:
       body['colorId'] = getInteger(minVal=CALENDAR_MIN_COLOR_INDEX, maxVal=CALENDAR_MAX_COLOR_INDEX)
-    elif myarg == 'backgroundcolor':
+    elif myarg in {'backgroundcolor', 'backgroundcolour'}:
       body['backgroundColor'] = getColor()
       body.setdefault('foregroundColor', '#000000')
       colorRgbFormat = True
-    elif myarg == 'foregroundcolor':
+    elif myarg in {'foregroundcolor', 'foregroundcolour'}:
       body['foregroundColor'] = getColor()
       colorRgbFormat = True
     elif myarg == 'reminder':
@@ -45465,12 +45487,14 @@ def _getCalendarPermissions(cal, calendar):
 CALENDAR_LIST_FIELDS_CHOICE_MAP = {
   "accessrole": 'accessRole',
   "backgroundcolor": 'backgroundColor',
+  "backgroundcolour": 'backgroundColor',
   "colorid": 'colorId',
   "conferenceproperties": 'conferenceProperties',
   "defaultreminders": 'defaultReminders',
   "deleted": 'deleted',
   "description": 'description',
   "foregroundcolor": 'foregroundColor',
+  "foregroundcolour": 'foregroundColor',
   "hidden": 'hidden',
   "id": 'id',
   "location": 'location',
@@ -49283,8 +49307,10 @@ DRIVEFILE_ACL_ROLES_MAP = {
   'contributor': 'writer',
   'editor': 'writer',
   'fileorganizer': 'fileOrganizer',
+  'fileorganiser': 'fileOrganizer',
   'manager': 'organizer',
   'organizer': 'organizer',
+  'organiser': 'organizer',
   'owner': 'owner',
   'read': 'reader',
   'reader': 'reader',
@@ -54369,8 +54395,10 @@ TRANSFER_DRIVEFILE_ACL_ROLES_MAP = {
   'contributor': 'writer',
   'editor': 'writer',
   'fileorganizer': 'fileOrganizer',
+  'fileorganiser': 'fileOrganizer',
   'manager': 'organizer',
   'organizer': 'organizer',
+  'organiser': 'organizer',
   'owner': 'organizer',
   'read': 'reader',
   'reader': 'reader',
@@ -56996,6 +57024,7 @@ DRIVELABELS_MINIMUM_ROLE_MAP = {
   'applier': 'APPLIER',
   'editor': 'EDITOR',
   'organizer': 'ORGANIZER',
+  'organiser': 'ORGANIZER',
   'reader': 'READER',
   }
 DRIVELABELS_TIME_OBJECTS = {'createTime', 'publishTime', 'disableTime', 'revisionCreateTime'}
@@ -57406,7 +57435,7 @@ def _getSharedDriveTheme(myarg, body):
       'yCoordinate': getFloat(minVal=0.0, maxVal=1.0),
       'width': getFloat(minVal=0.0, maxVal=1.0)
       }
-  elif myarg == 'color':
+  elif myarg in {'color', 'colour'}:
     body.pop('themeId', None)
     body['colorRgb'] = getColor()
   else:
@@ -57836,8 +57865,10 @@ SHAREDDRIVE_ACL_ROLES_MAP = {
   'contributor': 'writer',
   'editor': 'writer',
   'fileorganizer': 'fileOrganizer',
+  'fileorganiser': 'fileOrganizer',
   'manager': 'organizer',
   'organizer': 'organizer',
+  'organiser': 'organizer',
   'owner': 'organizer',
   'read': 'reader',
   'reader': 'reader',
@@ -61061,10 +61092,10 @@ def getLabelAttributes(myarg, body):
     body['labelListVisibility'] = getChoice(LABEL_LABEL_LIST_VISIBILITY_CHOICE_MAP, mapChoice=True)
   elif myarg == 'messagelistvisibility':
     body['messageListVisibility'] = getChoice(LABEL_MESSAGE_LIST_VISIBILITY_CHOICES)
-  elif myarg == 'backgroundcolor':
+  elif myarg in {'backgroundcolor', 'backgroundcolour'}:
     body.setdefault('color', {})
     body['color']['backgroundColor'] = getLabelColor(LABEL_BACKGROUND_COLORS)
-  elif myarg == 'textcolor':
+  elif myarg in {'textcolor', 'textcolour'}:
     body.setdefault('color', {})
     body['color']['textColor'] = getLabelColor(LABEL_TEXT_COLORS)
   else:

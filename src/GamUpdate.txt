@@ -1,3 +1,25 @@
+6.54.03
+
+By special request, British spelling of various keywords/arguments is now available.
+```
+backgroundcolor backgroundcolour
+color colour
+colorindex colourindex
+costcenter costcentre
+fileorganizer fileorganiser
+foregroundcolor foregroundcolour
+license licence
+licenses licences
+nolicenses nolicences
+organization organisation
+organizationname organisationname
+organizations organisations
+organizer organiser
+organizeremail organiseremail
+organizername organisername
+textcolor textcolour
+```
+
 6.54.02
 
 Updated `gam <UserTypeEntity> get photo` and `gam <UserTypeEntity> get profilephoto` to inspect the
