@@ -259,6 +259,7 @@ INSTRUCTIONS_OAUTH2SERVICE_JSON = 'Please run\n\ngam create|use project\ngam use
 INSUFFICIENT_PERMISSIONS_TO_PERFORM_TASK = 'Insufficient permissions to perform this task'
 INTER_BATCH_WAIT_INCREASED = 'inter_batch_wait increased to {0:.2f}'
 INVALID = 'Invalid'
+INVALID_RESELLER_CUSTOMER_NAME = 'name must be: accounts/<ResellerID>/customers/<ChannelCustomerID>'
 INVALID_ALIAS = 'Invalid Alias'
 INVALID_ATTENDEE_CHANGE = 'Invalid attendee change "{0}"'
 INVALID_CHARSET = 'Invalid charset "{0}"'

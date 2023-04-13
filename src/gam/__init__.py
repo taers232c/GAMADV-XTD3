@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.54.03'
+__version__ = '6.54.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14435,6 +14435,10 @@ def doPrintShowChannelItems(entityType):
       customerId = normalizeChannelCustomerID(getString(Cmd.OB_CHANNEL_CUSTOMER_ID))
     elif (entityType == Ent.CHANNEL_CUSTOMER_ENTITLEMENT) and myarg == 'name':
       name = getString(Cmd.OB_STRING)
+      parent = name.split('/')
+      if (len(parent) != 4) or (parent[0] != 'accounts') or (not parent[1]) or (parent[2] != 'customers') or (not parent[3]):
+        Cmd.Backup()
+        usageErrorExit(Msg.INVALID_RESELLER_CUSTOMER_NAME)
     elif (entityType in {Ent.CHANNEL_OFFER, Ent.CHANNEL_PRODUCT, Ent.CHANNEL_SKU}) and myarg == 'language':
       kwargs['languageCode'] = getLanguageCode(LANGUAGE_CODES_MAP)
     elif (entityType in {Ent.CHANNEL_CUSTOMER, Ent.CHANNEL_OFFER}) and myarg == 'filter':
@@ -14462,6 +14466,8 @@ def doPrintShowChannelItems(entityType):
       if entityType == Ent.CHANNEL_SKU:
         kwargs['parent'] = productId
   else:
+    if not name and customerId == 'customers/':
+      missingArgumentExit('channelcustomerid')
     entityName = kwargs['parent'] = name if name else f'{resellerId}/{customerId}'
   fields = getItemFieldsFromFieldsList(channelEntityMap['items'], fieldsList)
 #  if csvPF and FJQC.formatJSON and not fieldsList:
@@ -14469,9 +14475,9 @@ def doPrintShowChannelItems(entityType):
   try:
     results = callGAPIpages(service, 'list', channelEntityMap['items'],
                             bailOnInternalError=True,
-                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.INTERNAL_ERROR],
+                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.INTERNAL_ERROR, GAPI.NOT_FOUND],
                             fields=fields, **kwargs)
-  except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.internalError) as e:
+  except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.internalError, GAPI.notFound) as e:
     entityActionFailedWarning([entityType, entityName], str(e))
     return
   jcount = len(results)
@@ -14525,13 +14531,13 @@ def doPrintShowChannelCustomers():
 
 # gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
 #	([resellerid <ResellerID>] [customerid <ChannelCustomerID>])|
-#	(name accounts/<AccountID/customers/<ChannelCustomerID>)
+#	(name accounts/<ResellerID>/customers/<ChannelCustomerID>)
 #	[fields <ChannelCustomerEntitlementFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam show channelcustomerentitlements
 #	([resellerid <ResellerID>] [customerid <ChannelCustomerID>])|
-#	(name accounts/<AccountID/customers/<ChannelCustomerID>)
+#	(name accounts/<ResellerID>/customers/<ChannelCustomerID>)
 #	[fields <ChannelCustomerEntitlementFieldList>]
 #	[maxresults <Integer>]
 #	[formatjson]

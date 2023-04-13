@@ -2564,7 +2564,7 @@ gam print channelcustomercentitlements [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
 gam show channelcustomerentitlements
         ([resellerid <ResellerID>] [customerid <ChannelCustomerID>])|
-        (name accounts/<AccountID>/customers/<ChannelCustomerID>)
+        (name accounts/<ResellerID>/customers/<ChannelCustomerID>)
         [fields <ChannelCustomerEntitlementsFieldList>]
         [maxresults <Number>]
         [formatjson]
@@ -7312,4 +7312,3 @@ gam print tokens|token [todrive <ToDriveAttribute>*] [clientid <ClientID>]
 gam create|add verify|verification <DomainName>
 gam update verify|verification <DomainName> cname|txt|text|site|file
 gam info verify|verification
-

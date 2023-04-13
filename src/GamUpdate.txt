@@ -1,3 +1,11 @@
+6.54.04
+
+Updated `gam print|show channelcustomerentitlements` to handle the following error when
+none of `gam.cfg/channel_customer_id` or command line arguments `channelcustomerid` or `name` are set.
+```
+ERROR: Parameter "parent" value "accounts/C03kt1789/customers/" does not match the pattern "^accounts/[^/]+/customers/[^/]+$"
+```
+
 6.54.03
 
 By special request, British spelling of various keywords/arguments is now available.
