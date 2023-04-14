@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.54.04'
+__version__ = '6.54.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -16836,16 +16836,23 @@ def doInfoAliases():
 #	[aliasmatchpattern <RegularExpression>]
 #	[shownoneditable] [nogroups] [nousers]
 #	[onerowpertarget] [suppressnoaliasrows]
+#	(addcsvdata <FieldName> <String>)*
 def doPrintAliases():
   def writeAliases(target, targetEmail, targetType):
     if not oneRowPerTarget:
       for alias in target.get('aliases', []):
         if aliasMatchPattern.match(alias):
-          csvPF.WriteRow({'Alias': alias, 'Target': targetEmail, 'TargetType': targetType})
+          row = {'Alias': alias, 'Target': targetEmail, 'TargetType': targetType}
+        if addCSVData:
+          row.update(addCSVData)
+        csvPF.WriteRow(row)
       if showNonEditable:
         for alias in target.get('nonEditableAliases', []):
           if aliasMatchPattern.match(alias):
-            csvPF.WriteRow({'NonEditableAlias': alias, 'Target': targetEmail, 'TargetType': targetType})
+            row = {'NonEditableAlias': alias, 'Target': targetEmail, 'TargetType': targetType}
+            if addCSVData:
+              row.update(addCSVData)
+            csvPF.WriteRow(row)
     else:
       aliases = [alias for alias in target.get('aliases', []) if aliasMatchPattern.match(alias)]
       if showNonEditable:
@@ -16857,6 +16864,8 @@ def doPrintAliases():
       row = {'Target': targetEmail, 'TargetType': targetType, 'Aliases': ' '.join(aliases)}
       if showNonEditable:
         row['NonEditableAliases'] = ' '.join(nealiases)
+      if addCSVData:
+        row.update(addCSVData)
       csvPF.WriteRow(row)
 
   cd = buildGAPIObject(API.DIRECTORY)
@@ -16868,6 +16877,7 @@ def doPrintAliases():
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   queries = [None]
   aliasMatchPattern = re.compile(r'^.*$')
+  addCSVData = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -16893,6 +16903,9 @@ def doPrintAliases():
       oneRowPerTarget = True
     elif myarg == 'suppressnoaliasrows':
       suppressNoAliasRows = True
+    elif myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     else:
       unknownArgumentExit()
   if not oneRowPerTarget:
@@ -16904,6 +16917,8 @@ def doPrintAliases():
     if showNonEditable:
       titlesList.append('NonEditableAliases')
   csvPF.SetTitles(titlesList)
+  if addCSVData:
+    csvPF.AddTitles(sorted(addCSVData.keys()))
   if getUsers:
     for query in queries:
       printGettingAllAccountEntities(Ent.USER, query)

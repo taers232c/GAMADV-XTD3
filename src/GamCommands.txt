@@ -1449,6 +1449,7 @@ gam print alias|aliases [todrive <ToDriveAttribute>*]
         [aliasmatchpattern <RegularExpression>]
         [shownoneditable] [nogroups] [nousers]
         [onerowpertarget] [suppressnoaliasrows]
+        (addcsvdata <FieldName> <String>)*
 
 gam whatis <EmailItem> [noinfo] [noinivitablecheck]
 

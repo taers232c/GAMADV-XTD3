@@ -1,3 +1,9 @@
+6.54.05
+
+Added option `addcsvdata <FieldName> <String>` to `gam print aliases`. This adds additional columns of data to the CSV file output.
+This can be used when printing aliases for departed employees to indicate the new target for the user's alises. Subsequent
+commands using the CSV file can reassign the aliases to the new target.
+
 6.54.04
 
 Updated `gam print|show channelcustomerentitlements` to handle the following error when
