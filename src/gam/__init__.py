@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.54.05'
+__version__ = '6.54.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -16833,9 +16833,12 @@ def doInfoAliases():
 
 # gam print aliases|nicknames [todrive <ToDriveAttribute>*]
 #	[domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
+#	[user|users <EmailAddressList>] [group|groups <EmailAddressList>]
+#	[select <UserTypeEntity>]
 #	[aliasmatchpattern <RegularExpression>]
 #	[shownoneditable] [nogroups] [nousers]
-#	[onerowpertarget] [suppressnoaliasrows]
+#	[onerowpertarget] [delimiter <Character>]
+#	[suppressnoaliasrows]
 #	(addcsvdata <FieldName> <String>)*
 def doPrintAliases():
   def writeAliases(target, targetEmail, targetType):
@@ -16861,9 +16864,9 @@ def doPrintAliases():
         nealiases = []
       if suppressNoAliasRows and not aliases and not nealiases:
         return
-      row = {'Target': targetEmail, 'TargetType': targetType, 'Aliases': ' '.join(aliases)}
+      row = {'Target': targetEmail, 'TargetType': targetType, 'Aliases': delimiter.join(aliases)}
       if showNonEditable:
-        row['NonEditableAliases'] = ' '.join(nealiases)
+        row['NonEditableAliases'] = delimiter.join(nealiases)
       if addCSVData:
         row.update(addCSVData)
       csvPF.WriteRow(row)
@@ -16872,12 +16875,15 @@ def doPrintAliases():
   csvPF = CSVPrintFile()
   userFields = ['primaryEmail', 'aliases']
   groupFields = ['email', 'aliases']
-  getGroups = getUsers = True
   oneRowPerTarget = showNonEditable = suppressNoAliasRows = False
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   queries = [None]
+  getGroups = getUsers = True
+  groups = []
+  users = []
   aliasMatchPattern = re.compile(r'^.*$')
   addCSVData = {}
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -16897,6 +16903,12 @@ def doPrintAliases():
       queries = getQueries(myarg)
       getGroups = False
       getUsers = True
+    elif myarg == 'select':
+      _, users = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+    elif myarg in {'user','users'}:
+      users.extend(convertEntityToList(getString(Cmd.OB_EMAIL_ADDRESS_LIST, minLen=0)))
+    elif myarg in {'group', 'groups'}:
+      groups.extend(convertEntityToList(getString(Cmd.OB_EMAIL_ADDRESS_LIST, minLen=0)))
     elif myarg == 'aliasmatchpattern':
       aliasMatchPattern = getREPattern(re.IGNORECASE)
     elif myarg == 'onerowpertarget':
@@ -16906,8 +16918,12 @@ def doPrintAliases():
     elif myarg == 'addcsvdata':
       k = getString(Cmd.OB_STRING)
       addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
     else:
       unknownArgumentExit()
+  if users or groups and queries[0] == None:
+    getUsers = getGroups = False
   if not oneRowPerTarget:
     titlesList = ['Alias', 'Target', 'TargetType']
     if showNonEditable:
@@ -16940,6 +16956,21 @@ def doPrintAliases():
         return
       except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
         accessErrorExit(cd)
+  count = len(users)
+  i = 0
+  for user in users:
+    i += 1
+    user = normalizeEmailAddressOrUID(user)
+    printGettingEntityItemForWhom(Ent.USER_ALIAS, user, i, count)
+    try:
+      result = callGAPI(cd.users().aliases(), 'list',
+                        throwReasons=[GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                      GAPI.CONDITION_NOT_MET],
+                        userKey=user, fields='aliases(alias)')
+      aliases = {'aliases': [alias['alias'] for alias in result.get('aliases', [])]}
+      writeAliases(aliases, user, 'User')
+    except (GAPI.userNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource, GAPI.conditionNotMet) as e:
+      entityActionFailedWarning([Ent.USER, user], str(e), i, count)
   if getGroups:
     printGettingAllAccountEntities(Ent.GROUP)
     try:
@@ -16954,6 +16985,21 @@ def doPrintAliases():
       return
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
       accessErrorExit(cd)
+  count = len(groups)
+  i = 0
+  for group in groups:
+    i += 1
+    group = normalizeEmailAddressOrUID(group)
+    printGettingEntityItemForWhom(Ent.GROUP_ALIAS, group, i, count)
+    try:
+      result = callGAPI(cd.groups().aliases(), 'list',
+                        throwReasons=[GAPI.GROUP_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FORBIDDEN, GAPI.INVALID_RESOURCE,
+                                      GAPI.CONDITION_NOT_MET],
+                        groupKey=group, fields='aliases(alias)')
+      aliases = {'aliases': [alias['alias'] for alias in result.get('aliases', [])]}
+      writeAliases(aliases, group, 'Group')
+    except (GAPI.groupNotFound, GAPI.badRequest, GAPI.invalid, GAPI.forbidden, GAPI.invalidResource, GAPI.conditionNotMet) as e:
+      entityActionFailedWarning([Ent.GROUP, group], str(e), i, count)
   csvPF.writeCSVfile('Aliases')
 
 # gam print addresses [todrive <ToDriveAttribute>*]

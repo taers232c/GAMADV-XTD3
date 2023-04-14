@@ -1446,9 +1446,12 @@ gam info alias|aliases <EmailAddressEntity>
 
 gam print alias|aliases [todrive <ToDriveAttribute>*]
         [domain <DomainName>] [(query <QueryUser>)|(queries <QueryUserList>)]
+        [user|users <EmailAddressList>] [group|groups <EmailAddressList>]
+        [select <UserTypeEntity>]
         [aliasmatchpattern <RegularExpression>]
         [shownoneditable] [nogroups] [nousers]
-        [onerowpertarget] [suppressnoaliasrows]
+        [onerowpertarget] [delimiter <Character>]
+        [suppressnoaliasrows]
         (addcsvdata <FieldName> <String>)*
 
 gam whatis <EmailItem> [noinfo] [noinivitablecheck]

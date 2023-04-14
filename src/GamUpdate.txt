@@ -1,3 +1,15 @@
+6.54.06
+
+Added options `users <EmailAddressList>` and `groups <EmailAddressList>` to `gam print aliases` that is more
+efficient for getting aliases for specific users and groups.
+
+Added option `select <UserTypeEntity>` to `gam print aliases` that allows specification of a list users by `<UserTypeEntity>`;
+e.g., a group or an org unit.
+
+Added option `delimiter <Character>` to `gam print aliases` that is applicable when option `onerowpertarget` is specified.
+Previously, multiple aliases were separated by a space character. Now, by default, the aliases are separated by the `csv_output_field_delimiter' from `gam.cfg`.
+The option `delimiter <Character>` overrides that value.
+
 6.54.05
 
 Added option `addcsvdata <FieldName> <String>` to `gam print aliases`. This adds additional columns of data to the CSV file output.
