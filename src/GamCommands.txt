@@ -1409,12 +1409,14 @@ gam info adminrole <RoleItem> [privileges]
 gam print adminroles|roles [todrive <ToDriveAttribute>*] [privileges]
 gam show adminroles|roles [privileges]
 
-gam create|add admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
+gam create|add admin <EmailAddress>|<UniqueID> <RoleItem> customer|(org_unit <OrgUnitItem>)
         [condition securitygroup|nonsecuritygroup]
 gam delete admin <RoleAssignmentId>
 
-gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition] [privileges]
-gam show admins [user <UserItem>] [role <RoleItem>] [condition] [privileges]
+gam print admins [todrive <ToDriveAttribute>*]
+        [user|group <EmailAddress>|<UniqueID>] [role <RoleItem>] [condition] [privileges]
+gam show admins
+        [user|group <EmailAddress>|<UniqueID>] [role <RoleItem>] [condition] [privileges]
 
 # Alert Center
 
@@ -3538,7 +3540,9 @@ gam show group-members
 gam create cigroup <EmailAddress> [copyfrom <GroupItem>] <GroupAttribute>*
         [makeowner] [alias|aliases <CIGroupAliasList>] [dynamic <QueryDynamicGroup>]
 gam update cigroup <GroupEntity> [copyfrom <GroupItem>] <GroupAttribute>
-        [security|makesecuritygroup|dynamicsecurity|makedynamicsecuritygroup]
+        [security|makesecuritygroup|
+         dynamicsecurity|makedynamicsecuritygroup|
+         lockedsecurity|makelockedsecuritygroup]
         [dynamic <QueryDynamicGroup>]
         [memberrestrictions <QueryMemberRestrictions>]
 gam update cigroups <GroupEntity> create|add [<GroupRole>]

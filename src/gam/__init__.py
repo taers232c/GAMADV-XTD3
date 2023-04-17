@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.54.06'
+__version__ = '6.57.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5419,41 +5419,68 @@ def getSitesObject(entityType=Ent.DOMAIN, entityName=None, i=0, count=0):
     sitesObject.debug = True
   return (userEmail, sitesObject)
 
-# Convert UID to email address
-def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None,
-                             checkForCustomerId=False, ciGroupsAPI=False, aliasAllowed=True):
+
+def getUserEmailFromID(uid, cd):
+  try:
+    result = callGAPI(cd.users(), 'get',
+                      throwReasons=GAPI.USER_GET_THROW_REASONS,
+                      userKey=uid, fields='primaryEmail')
+    return result.get('primaryEmail')
+  except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    return None
+
+def getGroupEmailFromID(uid, cd):
+  try:
+    result = callGAPI(cd.groups(), 'get',
+                      throwReasons=GAPI.GROUP_GET_THROW_REASONS,
+                      groupKey=uid, fields='email')
+    return result.get('email')
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
+    return None
+
+# Convert UID to email address and type
+def convertUIDtoEmailAddressWithType(emailAddressOrUID, cd=None, emailTypes=None,
+                                     checkForCustomerId=False, ciGroupsAPI=False, aliasAllowed=True):
   if emailTypes is None:
     emailTypes = ['user']
   elif not isinstance(emailTypes, list):
     emailTypes = [emailTypes] if emailTypes != 'any' else ['user', 'group']
   if checkForCustomerId and (emailAddressOrUID == GC.Values[GC.CUSTOMER_ID]):
-    return emailAddressOrUID
+    return (emailAddressOrUID, 'email')
   normalizedEmailAddressOrUID = normalizeEmailAddressOrUID(emailAddressOrUID, ciGroupsAPI=ciGroupsAPI)
   if ciGroupsAPI and emailAddressOrUID.startswith('groups/'):
     return emailAddressOrUID
   if normalizedEmailAddressOrUID.find('@') > 0 and aliasAllowed:
-    return normalizedEmailAddressOrUID
+    return (normalizedEmailAddressOrUID, 'email')
   if cd is None:
     cd = buildGAPIObject(API.DIRECTORY)
-  if 'user' in emailTypes:
-    try:
-      result = callGAPI(cd.users(), 'get',
-                        throwReasons=GAPI.USER_GET_THROW_REASONS,
-                        userKey=normalizedEmailAddressOrUID, fields='primaryEmail')
-      if 'primaryEmail' in result:
-        return result['primaryEmail'].lower()
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-            GAPI.badRequest, GAPI.backendError, GAPI.systemError):
-      pass
-  if 'group' in emailTypes:
-    try:
-      result = callGAPI(cd.groups(), 'get',
-                        throwReasons=GAPI.GROUP_GET_THROW_REASONS,
-                        groupKey=normalizedEmailAddressOrUID, fields='email')
-      if 'email' in result:
-        return result['email'].lower()
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
-      pass
+  if 'user' in emailTypes and 'group' in emailTypes:
+    # Google User IDs *TEND* to be integers while groups tend to have letters
+    # thus we can optimize which check we try first. We'll still check
+    # both since there is no guarantee this will always be true.
+    if normalizedEmailAddressOrUID.isdigit():
+      uid = getUserEmailFromID(normalizedEmailAddressOrUID, cd)
+      if uid:
+        return (uid, 'user')
+      uid = getGroupEmailFromID(normalizedEmailAddressOrUID, cd)
+      if uid:
+        return (uid, 'group')
+    else:
+      uid = getGroupEmailFromID(normalizedEmailAddressOrUID, cd)
+      if uid:
+        return (uid, 'group')
+      uid = getUserEmailFromID(normalizedEmailAddressOrUID, cd)
+      if uid:
+        return (uid, 'user')
+  elif 'user' in emailTypes:
+    uid = getUserEmailFromID(normalizedEmailAddressOrUID, cd)
+    if uid:
+      return (uid, 'user')
+  elif 'group' in emailTypes:
+    uid = getGroupEmailFromID(normalizedEmailAddressOrUID, cd)
+    if uid:
+      return (uid, 'group')
   if 'resource' in emailTypes:
     try:
       result = callGAPI(cd.resources().calendars(), 'get',
@@ -5461,10 +5488,17 @@ def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None,
                         calendarResourceId=normalizedEmailAddressOrUID,
                         customer=GC.Values[GC.CUSTOMER_ID], fields='resourceEmail')
       if 'resourceEmail' in result:
-        return result['resourceEmail'].lower()
+        return (result['resourceEmail'].lower(), 'resource')
     except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
       pass
-  return normalizedEmailAddressOrUID
+  return (normalizedEmailAddressOrUID, 'unknown')
+
+# Convert UID to email address
+def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None,
+                             checkForCustomerId=False, ciGroupsAPI=False, aliasAllowed=True):
+  email, _ = convertUIDtoEmailAddressWithType(emailAddressOrUID, cd, emailTypes,
+                                              checkForCustomerId, ciGroupsAPI, aliasAllowed)
+  return email
 
 # Convert email address to User/Group UID; called immediately after getting email address from command line
 def convertEmailAddressToUID(emailAddressOrUID, cd=None, emailType='user', savedLocation=None):
@@ -8871,8 +8905,8 @@ def doVersion(checkForArgs=True):
     for lib in glverlibs.GAM_VER_LIBS:
       try:
         writeStdout(f'{lib} {lib_version(lib)}\n')
-      except Exception as e:
-        writeStdout(str(e)+'\n')
+      except:
+        pass
     printKeyValueList([f'{testLocation} connects using {tls_ver} {cipher_name}'])
 
 # gam help
@@ -15286,12 +15320,12 @@ ADMIN_CONDITION_CHOICE_MAP = {
   'nonsecuritygroup': NONSECURITY_GROUP_CONDITION,
   }
 
-# gam create admin <UserItem> <RoleItem> customer|(org_unit <OrgUnitItem>)
+# gam create admin <EmailAddress>|<UniqueID> <RoleItem> customer|(org_unit <OrgUnitItem>)
 #	[condition securitygroup|nonsecuritygroup]
 def doCreateAdmin():
   cd = buildGAPIObject(API.DIRECTORY)
   user = getEmailAddress(returnUIDprefix='uid:')
-  body = {'assignedTo': convertEmailAddressToUID(user, cd)}
+  body = {'assignedTo': convertEmailAddressToUID(user, cd, emailType='any')}
   role, roleId = getRoleId()
   body['roleId'] = roleId
   body['scopeType'] = getChoice(ADMIN_SCOPE_TYPE_CHOICE_MAP, mapChoice=True)
@@ -15314,9 +15348,16 @@ def doCreateAdmin():
                                     GAPI.FORBIDDEN, GAPI.CUSTOMER_EXCEEDED_ROLE_ASSIGNMENTS_LIMIT, GAPI.SERVICE_NOT_AVAILABLE,
                                     GAPI.INVALID_ORGUNIT, GAPI.DUPLICATE],
                       retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                      customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='roleAssignmentId')
+                      customer=GC.Values[GC.CUSTOMER_ID], body=body, fields='roleAssignmentId,assigneeType')
+    assigneeType = result.get('assigneeType')
+    if assigneeType == 'user':
+      entityType = Ent.USER
+    elif assigneeType == 'group':
+      entityType = Ent.GROUP
+    else:
+      entityType = Ent.ADMINISTRATOR
     entityActionPerformedMessage([Ent.ROLE_ASSIGNMENT_ID, result['roleAssignmentId']],
-                                 f'{Ent.Singular(Ent.USER)} {user}, {Ent.Singular(Ent.ROLE)} {role}, {Ent.Singular(Ent.SCOPE)} {scope}')
+                                 f'{Ent.Singular(entityType)} {user}, {Ent.Singular(Ent.ROLE)} {role}, {Ent.Singular(Ent.SCOPE)} {scope}')
   except GAPI.internalError:
     pass
   except (GAPI.badRequest, GAPI.customerNotFound):
@@ -15348,10 +15389,12 @@ def doDeleteAdmin():
     accessErrorExit(cd)
 
 PRINT_ADMIN_FIELDS = ['roleAssignmentId', 'roleId', 'assignedTo', 'scopeType', 'orgUnitId']
-PRINT_ADMIN_TITLES = ['roleAssignmentId', 'roleId', 'role', 'assignedTo', 'assignedToUser', 'scopeType', 'orgUnitId', 'orgUnit']
+PRINT_ADMIN_TITLES = ['roleAssignmentId', 'roleId', 'role', 'assignedTo', 'assignedToUser', 'assignedToGroup', 'scopeType', 'orgUnitId', 'orgUnit']
 
-# gam print admins [todrive <ToDriveAttribute>*] [user <UserItem>] [role <RoleItem>] [condition] [privileges]
-# gam show admins [user <UserItem>] [role <RoleItem>] [condition] [privileges]
+# gam print admins [todrive <ToDriveAttribute>*]
+#	[user|group <EmailAddress>|<UniqueID>] [role <RoleItem>] [condition] [privileges]
+# gam show admins
+#	[user|group <EmailAddress>|<UniqueID>] [role <RoleItem>] [condition] [privileges]
 def doPrintShowAdmins():
   def _getPrivileges(admin):
     if showPrivileges:
@@ -15366,7 +15409,21 @@ def doPrintShowAdmins():
     return None
 
   def _setNamesFromIds(admin, privileges):
-    admin['assignedToUser'] = convertUserIDtoEmail(admin['assignedTo'], cd)
+    assigneeType = admin.get('assigneeType')
+    if assigneeType == 'user':
+      assignedToField = 'assignedToUser'
+    elif assigneeType == 'group':
+      assignedToField = 'assignedToGroup'
+    else:
+      assignedToField = None
+    assigneeEmail, assigneeType = convertUIDtoEmailAddressWithType(f'uid:{admin["assignedTo"]}', cd, emailTypes=['user', 'group'])
+    if not assignedToField and assigneeType in ['user', 'group']:
+      if assigneeType == 'user':
+        assignedToField = 'assignedToUser'
+      else:
+        assignedToField = 'assignedToGroup'
+    if assignedToField:
+      admin[assignedToField] = assigneeEmail
     admin['role'] = role_from_roleid(admin['roleId'])
     if privileges is not None:
       admin['rolePrivileges'] = privileges
@@ -15389,7 +15446,7 @@ def doPrintShowAdmins():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'user':
+    elif myarg in {'user', 'group'}:
       userKey = kwargs['userKey'] = getEmailAddress()
     elif myarg == 'role':
       _, roleId = getRoleId()
@@ -15413,10 +15470,10 @@ def doPrintShowAdmins():
                            throwReasons=[GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
                            customer=GC.Values[GC.CUSTOMER_ID], fields=fields, **kwargs)
   except (GAPI.invalid, GAPI.userNotFound):
-    entityUnknownWarning(Ent.USER, userKey)
+    entityUnknownWarning(Ent.ADMINISTRATOR, userKey)
     return
   except GAPI.forbidden as e:
-    entityActionFailedExit([Ent.USER, userKey, Ent.ROLE, roleId], str(e))
+    entityActionFailedExit([Ent.ADMINISTRATOR, userKey, Ent.ROLE, roleId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
   if not csvPF:
@@ -30714,6 +30771,10 @@ def doUpdateCIGroups():
       elif myarg in {'dynamicsecurity', 'makedynamicsecuritygroup'}:
         ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
                              'cloudidentity.googleapis.com/groups.dynamic': '',
+                             'cloudidentity.googleapis.com/groups.security': ''}
+      elif myarg in {'locked', 'makelockedsecuritygroup'}:
+        ci_body['labels'] = {'cloudidentity.googleapis.com/groups.discussion_forum': '',
+                             'cloudidentity.googleapis.com/groups.locked': '',
                              'cloudidentity.googleapis.com/groups.security': ''}
       elif myarg in ['memberrestriction', 'memberrestrictions']:
         query = getString(Cmd.OB_QUERY, minLen=0)
