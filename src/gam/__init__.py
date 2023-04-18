@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.00'
+__version__ = '6.57.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3676,7 +3676,9 @@ def SetGlobalVariables():
         fileName = GC.Values[itemName]
         if (not fileName) and (itemName in {GC.EXTRA_ARGS, GC.CMDLOG}):
           continue
-        if GC.Values[GC.ENABLE_DASA] and (itemName in {GC.OAUTH2_TXT, GC.CLIENT_SECRETS_JSON}):
+        if itemName == GC.CLIENT_SECRETS_JSON: # Added 6.57.01
+          continue
+        if GC.Values[GC.ENABLE_DASA] and itemName == GC.OAUTH2_TXT:
           continue
         if not os.path.isfile(fileName):
           writeStderr(formatKeyValueList([WARNING_PREFIX, ERROR_PREFIX][itemName == GC.CACERTS_PEM],
@@ -10898,11 +10900,17 @@ def _getLoginHintProjectInfo(createCmd):
   return (crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo)
 
 def _getCurrentProjectId():
-  cs_data = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
-  if not cs_data:
+  jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=False)
+  if jsonData:
+    try:
+      return json.loads(jsonData)['project_id']
+    except (IndexError, KeyError, SyntaxError, TypeError, ValueError):
+      pass
+  jsonData = readFile(GC.Values[GC.CLIENT_SECRETS_JSON], continueOnError=True, displayError=True)
+  if not jsonData:
     invalidClientSecretsJsonExit(Msg.NO_DATA)
   try:
-    return json.loads(cs_data)['installed']['project_id']
+    return json.loads(jsonData)['installed']['project_id']
   except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
     invalidClientSecretsJsonExit(str(e))
 
@@ -65524,10 +65532,10 @@ def setVacation(users):
         oldBody.pop('responseBodyHtml', None)
       oldBody.update(body)
       result = callGAPI(gmail.users().settings(), 'updateVacation',
-                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_ARGUMENT],
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_ARGUMENT, GAPI.FAILED_PRECONDITION],
                         userId='me', body=oldBody)
       printEntity([Ent.USER, user, Ent.VACATION_ENABLED, result['enableAutoReply']], i, count)
-    except GAPI.invalidArgument as e:
+    except (GAPI.invalidArgument, GAPI.failedPrecondition) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.VACATION_ENABLED, enable], str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)

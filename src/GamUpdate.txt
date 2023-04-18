@@ -1,3 +1,18 @@
+6.57.01
+
+Updated `gam <UserTypeEntity> vacation` to handle the following error:
+```
+ERROR: 400: failedPrecondition - Precondition check failed.
+```
+What the error means is unknown to me at the moment.
+
+Updated GAM so that when the current project ID is required, it will first try to get it from oauth2service.json and
+if not successful, try to get it from client_secrets.json. There are cases, e.g., when DASA is enabled,
+that client_secrets.json is not present.
+
+Previously, GAM checked for the existence of client_secrets.json on every command; this check has been
+eliminated as the file is only required by `gam oauth create`.
+
 6.57.00
 
 Following Jay's lead, updated `gam create admin` to allow assignment of a delegated admin role to a group.
