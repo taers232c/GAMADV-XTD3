@@ -1,3 +1,8 @@
+6.57.02
+
+Following Jay's lead, removed Google bug (237397223) workaround code in
+`gam print devices|deviceusers|crostelemetry` as the bug is now fixed.
+
 6.57.01
 
 Updated `gam <UserTypeEntity> vacation` to handle the following error:
