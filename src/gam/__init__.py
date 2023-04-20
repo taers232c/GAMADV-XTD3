@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.02'
+__version__ = '6.57.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -19654,6 +19654,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
   return None
 
 def queryPeopleOtherContacts(people, contactQuery, fields, entityType, user, i=0, count=0):
+  sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
   try:
     printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=contactQuery['query'])
     pageMessage = getPageMessage()
@@ -19662,7 +19663,7 @@ def queryPeopleOtherContacts(people, contactQuery, fields, entityType, user, i=0
                                  pageMessage=pageMessage,
                                  throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                                  pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
-                                 readMask=fields, fields='nextPageToken,otherContacts')
+                                 readMask=fields, fields='nextPageToken,otherContacts', sources=sources)
     else:
       results = callGAPI(people.otherContacts(), 'search',
                          throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
@@ -20312,15 +20313,26 @@ PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP = {
   'photos': PEOPLE_PHOTOS,
   }
 
+PEOPLE_CONTACTS_DEFAULT_FIELDS = ['names', 'emailaddresses', 'phonenumbers']
+
 PEOPLE_ORDERBY_CHOICE_MAP = {
   'firstname': 'FIRST_NAME_ASCENDING',
   'lastname': 'LAST_NAME_ASCENDING',
   'lastmodified': 'LAST_MODIFIED_',
   }
 
-def _getPersonFields(fieldsChoiceMap, fieldsList, parameters):
-  if not fieldsList:
+def getPersonFieldsList(myarg, fieldsChoiceMap, fieldsList, initialField=None, fieldsArg='fields'):
+  if fieldsList is None:
+    fieldsList = []
+  return getFieldsList(myarg, fieldsChoiceMap, fieldsList, initialField, fieldsArg)
+
+def _getPersonFields(fieldsChoiceMap, defaultFields, fieldsList, parameters):
+  if fieldsList is None:
+    fieldsList = []
     for field in fieldsChoiceMap:
+      addFieldToFieldsList(field, fieldsChoiceMap, fieldsList)
+  elif not fieldsList:
+    for field in defaultFields:
       addFieldToFieldsList(field, fieldsChoiceMap, fieldsList)
   fieldsList = list(set(fieldsList))
   if PEOPLE_UPDATE_TIME in fieldsList:
@@ -20343,8 +20355,8 @@ def _infoPeople(users, entityType, source):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'allfields':
-      fieldsList = []
-    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      fieldsList = None
+    elif getPersonFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'showgroups':
       showContactGroups = True
@@ -20352,7 +20364,7 @@ def _infoPeople(users, entityType, source):
       parameters['strip'] = False
     else:
       FJQC.GetFormatJSON(myarg)
-  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -20434,8 +20446,8 @@ def printShowUserPeopleContacts(users):
     elif myarg == 'showgroupnameslist':
       showContactGroups = showContactGroupNamesList = True
     elif myarg == 'allfields':
-      fieldsList = []
-    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      fieldsList = None
+    elif getPersonFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'countsonly':
       countsOnly = True
@@ -20457,10 +20469,10 @@ def printShowUserPeopleContacts(users):
     if contactQuery['contactGroupFilter'] and fieldsList and 'memberships' not in fieldsList:
       fieldsList.append('memberships')
       contactQuery['dropMemberships'] = True
-    fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
+    fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
   if contactQuery['otherContacts']:
     if not fieldsList:
-      ofields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList, parameters)
+      ofields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
     else:
       fieldsList = [PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP[field.lower()] for field in fieldsList if field.lower() in PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP]
       ofields = ','.join(set(fieldsList))
@@ -20697,6 +20709,7 @@ def processUserPeopleOtherContacts(users):
 def printShowUserPeopleOtherContacts(users):
   entityType = Ent.USER
   entityTypeName = Ent.Singular(entityType)
+  sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
   csvPF = CSVPrintFile([entityTypeName, 'resourceName'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   CSVTitle = 'Other Contacts'
@@ -20709,8 +20722,8 @@ def printShowUserPeopleOtherContacts(users):
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'allfields':
-      fieldsList = []
-    elif getFieldsList(myarg, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList):
+      fieldsList = None
+    elif getPersonFieldsList(myarg, PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'countsonly':
       countsOnly = True
@@ -20724,7 +20737,7 @@ def printShowUserPeopleOtherContacts(users):
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if countsOnly:
     fieldsList = ['emailAddresses']
-  fields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  fields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -20779,8 +20792,8 @@ def _printShowPeople(source):
     elif myarg == 'showmetadata':
       parameters['strip'] = False
     elif myarg == 'allfields':
-      fieldsList = []
-    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      fieldsList = None
+    elif getPersonFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'countsonly':
       countsOnly = True
@@ -20792,7 +20805,7 @@ def _printShowPeople(source):
       function = 'searchDirectoryPeople'
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
   printGettingAllEntityItemsForWhom(peopleEntityType, GC.Values[GC.DOMAIN], query=kwargs.get('query'))
   try:
     entityList = callGAPIpages(people.people(), function, 'people',
@@ -20877,8 +20890,8 @@ def printShowUserPeopleProfiles(users):
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'allfields':
-      fieldsList = []
-    elif getFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
+      fieldsList = None
+    elif getPersonFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'showmetadata':
       parameters['strip'] = False
@@ -20886,7 +20899,7 @@ def printShowUserPeopleProfiles(users):
       deprecatedArgument(myarg)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -21229,6 +21242,8 @@ PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP = {
   'name': 'name',
   }
 
+PEOPLE_CONTACTGROUPS_DEFAULT_FIELDS = ['name', 'metadata', 'grouptype', 'membercount']
+
 # gam <UserTypeEntity> info contactgroups <PeopleContactGroupEntity>
 #	[allfields|(fields <PeoplaContactGroupFieldList>)] [showmetadata]
 #	[formatjson]
@@ -21242,14 +21257,14 @@ def infoUserPeopleContactGroups(users):
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'allfields':
-      fieldsList = []
-    elif getFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
+      fieldsList = None
+    elif getPersonFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'showmetadata':
       parameters['strip'] = False
     else:
       FJQC.GetFormatJSON(myarg)
-  fields = _getPersonFields(PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  fields = _getPersonFields(PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, PEOPLE_CONTACTGROUPS_DEFAULT_FIELDS, fieldsList, parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -21309,14 +21324,14 @@ def printShowUserPeopleContactGroups(users):
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'allfields':
-      fieldsList = []
-    elif getFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
+      fieldsList = None
+    elif getPersonFieldsList(myarg, PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList):
       pass
     elif myarg == 'showmetadata':
       parameters['strip'] = False
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  fields = _getPersonFields(PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, fieldsList, parameters)
+  fields = _getPersonFields(PEOPLE_CONTACTGROUPS_FIELDS_CHOICE_MAP, PEOPLE_CONTACTGROUPS_DEFAULT_FIELDS, fieldsList, parameters)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1

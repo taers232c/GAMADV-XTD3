@@ -1,3 +1,9 @@
+6.57.03
+
+Updated `gam <UserTypeEntity> info|print|show contacts|othercontacts` and
+`gam info|print|show peoplecontacts|peopleprofiles` to default to displaying the fields `names,emailaddresses,phonenumbers`
+as documented rather than all fields.
+
 6.57.02
 
 Following Jay's lead, removed Google bug (237397223) workaround code in
