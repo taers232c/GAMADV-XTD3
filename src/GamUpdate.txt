@@ -1,3 +1,11 @@
+6.57.04
+
+Updated `gam batch <BatchContent>` and `gam tbatch <BatchContent>` commands to accept lines with the following form:
+```
+set keyword value
+```
+Subsequent lines in `<BatchContent>` will have `%keyword%` replaced with `value`.
+
 6.57.03
 
 Updated `gam <UserTypeEntity> info|print|show contacts|othercontacts` and

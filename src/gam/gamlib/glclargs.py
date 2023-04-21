@@ -377,6 +377,7 @@ class GamCLArgs():
   GAM_CMD = 'gam'
   COMMIT_BATCH_CMD = 'commit-batch'
   PRINT_CMD = 'print'
+  SET_CMD = 'set'
 # Command line batch/csv/loop/tbatch keywords
   BATCH_CMD = 'batch'
   CSV_CMD = 'csv'
