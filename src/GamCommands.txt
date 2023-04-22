@@ -6240,7 +6240,7 @@ gam <UserTypeEntity> collect orphans
             [emailaddress <RegularExpression>] [name|displayname <String>]
             [domain|notdomain <RegularExpression>] [domainlist|notdomainlist <DomainNameList>]
             [expirationstart <Time>] [expirationend <Time>]
-            [deleted <Boolean>]
+            [deleted <Boolean>] [inherited <Boolean>]
         endmatch|em
 <PermissionMatchMode> ::=
         permissionmatchmode|pmm or|and

@@ -1,3 +1,12 @@
+6.57.06
+
+Added `inherited <Boolean>` to `<PermissionMatch>` that applies only to Shared Drive files/folders;
+this makes it easy to identify files/folders on Shared Drive with non-inherited permissions.
+```
+gam user organizer@domain.com print filelist select teamdriveid <TeamDriveID> fields id,name,mimetype pm inherited false em pmfilter oneitemperrow
+```
+This clause will always cause a permission match failure on My Drive files/folders.
+
 6.57.05
 
 Updated `gam batch <BatchContent>` and `gam tbatch <BatchContent>` commands to accept lines with the following form:

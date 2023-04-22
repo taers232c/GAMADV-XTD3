@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.05'
+__version__ = '6.57.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -48016,6 +48016,7 @@ def _mapDrivePermissionNames(permission):
   emailAddress = permission.get('emailAddress')
   if emailAddress:
     _, permission['domain'] = splitEmailAddress(emailAddress)
+  permission.pop('teamDrivePermissionDetails', None)
 
 def _mapDriveParents(f_file, parentsSubFields):
   if 'parents' in f_file:
@@ -48609,7 +48610,7 @@ def showFileInfo(users):
           else:
             addFilePathsToInfo(drive, fileTree, result, filePathInfo, addParentsToTree=True)
         if fullpath:
-          # Save simple parents list as mappings t<urn it into a list of dicts
+          # Save simple parents list as mappings turn it into a list of dicts
           fpparents = result['parents'][:]
         if showParentsIdsAsList and 'parents' in result:
           result['parentsIds'] = result.pop('parents')
@@ -49415,6 +49416,9 @@ class PermissionMatch():
         deletedLocation = Cmd.Location()
         body['deleted'] = getBoolean()
         self.permissionFields.add('deleted')
+      elif myarg == 'inherited':
+        body['inherited'] = getBoolean()
+        self.permissionFields.add('permissionDetails')
       elif myarg in {'em', 'endmatch'}:
         break
       else:
@@ -49458,6 +49462,12 @@ class PermissionMatch():
           break
       elif field in {'allowFileDiscovery', 'deleted'}:
         if value != permission.get(field, False):
+          break
+      elif field in {'inherited'}:
+        if 'permissionDetails' in permission:
+          if value != permission['permissionDetails'][0].get(field, False):
+            break
+        else:
           break
       elif field in {'expirationstart', 'expirationend'}:
         if 'expirationTime' in permission:
