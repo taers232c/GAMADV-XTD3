@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.04'
+__version__ = '6.57.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9524,8 +9524,9 @@ def doBatch(threadBatch=False):
     for line in f:
       if line.startswith('#'):
         continue
-      for kw, value in iter(kwValues.items()):
-        line = line.replace(f'%{kw}%', value)
+      if kwValues:
+        for kw, value in iter(kwValues.items()):
+          line = line.replace(f'%{kw}%', value)
       try:
         argv = shlex.split(line)
       except ValueError as e:
@@ -9541,6 +9542,14 @@ def doBatch(threadBatch=False):
           else:
             writeStderr(f'Command: >>>{Cmd.QuotedArgumentList([argv[0]])}<<< {Cmd.QuotedArgumentList(argv[1:])}\n')
             writeStderr(f'{ERROR_PREFIX}{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]}: {Msg.EXPECTED} <{Cmd.SET_CMD} keyword value>)>\n')
+            errors += 1
+          continue
+        if cmd == Cmd.CLEAR_CMD:
+          if len(argv) == 2:
+            kwValues.pop(argv[1], None)
+          else:
+            writeStderr(f'Command: >>>{Cmd.QuotedArgumentList([argv[0]])}<<< {Cmd.QuotedArgumentList(argv[1:])}\n')
+            writeStderr(f'{ERROR_PREFIX}{Cmd.ARGUMENT_ERROR_NAMES[Cmd.ARGUMENT_INVALID][1]}: {Msg.EXPECTED} <{Cmd.CLEAR_CMD} keyword>)>\n')
             errors += 1
           continue
         if (not cmd) or ((len(argv) == 1) and (cmd not in [Cmd.COMMIT_BATCH_CMD, Cmd.PRINT_CMD])):

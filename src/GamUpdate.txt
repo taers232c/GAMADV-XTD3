@@ -1,3 +1,11 @@
+6.57.05
+
+Updated `gam batch <BatchContent>` and `gam tbatch <BatchContent>` commands to accept lines with the following form:
+```
+clear keyword
+```
+This can improve performance as subsequent lines in `<BatchContent>` will not be scanned for `%keyword%`.
+
 6.57.04
 
 Updated `gam batch <BatchContent>` and `gam tbatch <BatchContent>` commands to accept lines with the following form:
