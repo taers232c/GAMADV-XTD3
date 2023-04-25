@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.07'
+__version__ = '6.57.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -19608,6 +19608,7 @@ def _getPeopleOtherContacts(people, entityType, user, i=0, count=0):
     results = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
                             pageMessage=pageMessage,
                             throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                             readMask='emailAddresses', fields='nextPageToken,otherContacts')
     otherContacts = {}
@@ -19630,6 +19631,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
         results = callGAPIpages(people.people().connections(), 'list', 'connections',
                                 pageMessage=pageMessage,
                                 throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                 resourceName='people/me', sources=sources, personFields=fields,
                                 sortOrder=sortOrder, fields='nextPageToken,connections')
@@ -19682,6 +19684,7 @@ def queryPeopleOtherContacts(people, contactQuery, fields, entityType, user, i=0
       entityList = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
                                  pageMessage=pageMessage,
                                  throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                  pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                  readMask=fields, fields='nextPageToken,otherContacts', sources=sources)
     else:
