@@ -1,3 +1,18 @@
+6.57.07
+
+Updated code to recognize the following Google Drive API error that is issued when Google
+doesn't recognize an email address as valid.
+```
+$ gam user user@domain.com print filelist query "'j@ab.net' in writers" fields id,name
+Getting all Drive Files/Folders that match query ('me' in owners and ('j@ab.net' in writers)) for user@domain.com
+
+ERROR: 400: badRequest - Bad Request
+$ gam user user@domain.com print filelist query "'j@ab.com' in writers" fields id,name
+Getting all Drive Files/Folders that match query ('me' in owners and ('j@ab.com' in writers)) for user@domain.com
+Got 0 Drive Files/Folders that matched query ('me' in owners and ('j@ab.com' in writers)) for user@domain.com...
+Owner,id,name
+```
+
 6.57.06
 
 Added `inherited <Boolean>` to `<PermissionMatch>` that applies only to Shared Drive files/folders;

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.06'
+__version__ = '6.57.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -20729,7 +20729,6 @@ def processUserPeopleOtherContacts(users):
 def printShowUserPeopleOtherContacts(users):
   entityType = Ent.USER
   entityTypeName = Ent.Singular(entityType)
-  sources = PEOPLE_READ_SOURCES_CHOICE_MAP['contact']
   csvPF = CSVPrintFile([entityTypeName, 'resourceName'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   CSVTitle = 'Other Contacts'
@@ -46477,8 +46476,9 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
   try:
     files = callGAPIpages(drive.files(), 'list', 'files',
                           pageMessage=getPageMessageForWhom(),
-                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND, GAPI.NOT_FOUND,
-                                                                      GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                          throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
+                                                                      GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND,
+                                                                      GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                           retryReasons=[GAPI.UNKNOWN_ERROR],
                           q=query, orderBy=orderBy, fields='nextPageToken,files(id,driveId)', pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **kwargs)
     if files or not parentQuery:
@@ -46487,7 +46487,7 @@ def doDriveSearch(drive, user, i, count, query=None, parentQuery=False, emptyQue
       return []
     entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None],
                                     emptyQuery(query, Ent.DRIVE_FILE_OR_FOLDER if not parentQuery else Ent.DRIVE_PARENT_FOLDER), i, count)
-  except (GAPI.invalidQuery, GAPI.invalid):
+  except (GAPI.invalidQuery, GAPI.invalid, GAPI.badRequest):
     entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(query), i, count)
   except GAPI.fileNotFound:
     printGotEntityItemsForWhom(0)
@@ -47605,13 +47605,14 @@ def printDriveActivity(users):
       try:
         fileList.extend(callGAPIpages(drive.files(), 'list', 'files',
                                       pageMessage=getPageMessageForWhom(),
-                                      throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND],
+                                      throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
+                                                                                  GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND],
                                       retryReasons=[GAPI.UNKNOWN_ERROR],
                                       q=query, fields='nextPageToken,files(id,mimeType)', pageSize=GC.Values[GC.DRIVE_MAX_RESULTS]))
         if not fileList:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], emptyQuery(query, Ent.DRIVE_FILE_OR_FOLDER), i, count)
           continue
-      except (GAPI.invalidQuery, GAPI.invalid):
+      except (GAPI.invalidQuery, GAPI.invalid, GAPI.badRequest):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(query), i, count)
         continue
       except GAPI.fileNotFound:
@@ -48016,7 +48017,6 @@ def _mapDrivePermissionNames(permission):
   emailAddress = permission.get('emailAddress')
   if emailAddress:
     _, permission['domain'] = splitEmailAddress(emailAddress)
-  permission.pop('teamDrivePermissionDetails', None)
 
 def _mapDriveParents(f_file, parentsSubFields):
   if 'parents' in f_file:
@@ -48583,6 +48583,8 @@ def showFileInfo(users):
                                                   throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
                                                   retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                                   fileId=fileId, fields=permissionsFields, supportsAllDrives=True)
+            for permission in result['permissions']:
+              permission.pop('teamDrivePermissionDetails', None)
           except (GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions) as e:
             if fields != '*':
               entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
@@ -48619,6 +48621,8 @@ def showFileInfo(users):
         else:
           _mapDriveParents(result, DFF.parentsSubFields)
           _mapDriveProperties(result)
+          for permission in result.get('permissions', []):
+            _mapDrivePermissionNames(permission)
         if not FJQC.formatJSON:
           showJSON(None, result, skipObjects=skipObjects, timeObjects=timeObjects, simpleLists=simpleLists,
                    dictObjectsKey={'owners': 'displayName', 'fields': 'id', 'labels': 'id', 'user': 'emailAddress', 'parents': 'id',
@@ -49883,6 +49887,8 @@ def printFileList(users):
                                               fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
         if not DLP.CheckFilePermissionMatches(f_file):
           return
+        for permission in f_file['permissions']:
+          permission.pop('teamDrivePermissionDetails', None)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
               GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.invalid,
@@ -49985,7 +49991,8 @@ def printFileList(users):
     try:
       children = callGAPIpages(drive.files(), 'list', 'files',
                                pageMessage=pageMessage, noFinalize=True,
-                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID],
+                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
+                                                                           GAPI.BAD_REQUEST],
                                retryReasons=[GAPI.UNKNOWN_ERROR],
                                q=q, orderBy=DFF.orderBy, includeLabels=includeLabels, fields=pagesFields,
                                pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], includeItemsFromAllDrives=True, supportsAllDrives=True)
@@ -50003,7 +50010,7 @@ def printFileList(users):
           _printFileInfo(drive, user, childEntryInfo.copy())
         if childEntryInfo['mimeType'] == MIMETYPE_GA_FOLDER and (maxdepth == -1 or depth < maxdepth):
           _printChildDriveFolderContents(drive, childEntryInfo, user, i, count, depth+1)
-    except (GAPI.invalidQuery, GAPI.invalid):
+    except (GAPI.invalidQuery, GAPI.invalid, GAPI.badRequest):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(selectSubQuery), i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -50256,7 +50263,8 @@ def printFileList(users):
       try:
         feed = yieldGAPIpages(drive.files(), 'list', 'files',
                               pageMessage=pageMessage, maxItems=DLP.maxItems,
-                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
+                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
+                                                                          GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND,
                                                                           GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                               retryReasons=[GAPI.UNKNOWN_ERROR],
                               q=DLP.fileIdEntity['query'], orderBy=DFF.orderBy, includeLabels=includeLabels,
@@ -50287,7 +50295,7 @@ def printFileList(users):
           continue
         extendFileTreeParents(drive, fileTree, fields)
         DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
-      except (GAPI.invalidQuery, GAPI.invalid):
+      except (GAPI.invalidQuery, GAPI.invalid, GAPI.badRequest):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
         break
       except GAPI.fileNotFound:
@@ -50685,7 +50693,8 @@ def printShowFileCounts(users):
     try:
       feed = yieldGAPIpages(drive.files(), 'list', 'files',
                             pageMessage=pageMessage,
-                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID, GAPI.FILE_NOT_FOUND,
+                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
+                                                                        GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND,
                                                                         GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                             retryReasons=[GAPI.UNKNOWN_ERROR],
                             q=DLP.fileIdEntity['query'],
@@ -50710,6 +50719,8 @@ def printShowFileCounts(users):
                                                     fileId=f_file['id'], fields=permissionsFields, supportsAllDrives=True)
               if not DLP.CheckFilePermissionMatches(f_file):
                 continue
+              for permission in f_file['permissions']:
+                permission.pop('teamDrivePermissionDetails', None)
             except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
                     GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
                     GAPI.unknownError, GAPI.invalid, GAPI.badRequest,
@@ -50721,7 +50732,7 @@ def printShowFileCounts(users):
             sizeTotals['User'] += int(f_file.get('size', '0'))
       showMimeTypeCounts(user, mimeTypeCounts, sizeTotals['User'], sharedDriveId, sharedDriveName, i, count)
       incrementSizeSummary()
-    except (GAPI.invalidQuery, GAPI.invalid):
+    except (GAPI.invalidQuery, GAPI.invalid, GAPI.badRequest):
       entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
       break
     except GAPI.fileNotFound:
@@ -52288,6 +52299,7 @@ def _copyPermissions(drive, user, i, count, j, jcount,
                              fields='nextPageToken,permissions(allowFileDiscovery,domain,emailAddress,expirationTime,id,role,type,deleted,view,pendingOwner,permissionDetails)',
                              useDomainAdminAccess=copyMoveOptions['useDomainAdminAccess'], supportsAllDrives=True)
       for permission in result:
+        permission.pop('teamDrivePermissionDetails', None)
         permission['inherited'] = permission.pop('permissionDetails', [{'inherited': False}])[0]['inherited']
         permissions[permission['id']] = permission
       return permissions
@@ -56992,6 +57004,8 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
                                     useDomainAdminAccess=useDomainAdminAccess,
                                     includePermissionsForView=includePermissionsForView,
                                     fileId=fileId, fields=fields, supportsAllDrives=True)
+        for permission in permissions:
+          permission.pop('teamDrivePermissionDetails', None)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
               GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.invalid) as e:
@@ -58347,6 +58361,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
         for permission in permissions:
           if roles and permission['role'] not in roles:
             continue
+          permission.pop('teamDrivePermissionDetails', None)
           if permtype is None:
             shareddrive['permissions'].append(permission)
           elif permission['type'] == permtype and permission['emailAddress'] == emailAddress:
