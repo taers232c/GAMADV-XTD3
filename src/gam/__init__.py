@@ -47614,7 +47614,7 @@ def printDriveActivity(users):
           continue
       except (GAPI.invalidQuery, GAPI.invalid, GAPI.badRequest):
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE, None], invalidQuery(query), i, count)
-        continue
+        break
       except GAPI.fileNotFound:
         printGotEntityItemsForWhom(0)
         continue
