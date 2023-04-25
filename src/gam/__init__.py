@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.08'
+__version__ = '6.57.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -49390,6 +49390,9 @@ class PermissionMatch():
       elif myarg == 'emailaddress':
         body['emailAddress'] = getREPattern(re.IGNORECASE)
         self.permissionFields.add('emailAddress')
+      elif myarg == 'emailaddresslist':
+        body[myarg] = set(convertEntityToList(getString(Cmd.OB_EMAIL_ADDRESS_LIST, minLen=0)))
+        self.permissionFields.add('emailAddress')
       elif myarg in {'domain', 'notdomain'}:
         body[myarg] = getREPattern(re.IGNORECASE)
         self.permissionFields.add('domain')
@@ -49485,6 +49488,13 @@ class PermissionMatch():
           else:
             if expirationDateTime > value:
               break
+        else:
+          break
+      elif field in {'emailaddresslist'}:
+        emailAddress = permission.get('emailAddress')
+        if emailAddress:
+          if emailAddress not in value:
+            break
         else:
           break
       elif field not in {'domain', 'notdomain', 'domainlist', 'notdomainlist'}:
