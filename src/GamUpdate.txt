@@ -1,3 +1,8 @@
+6.57.11
+
+Fixed bug where the `csv_output_header_force` variable in `gam.cfg` was being interpreted as
+a list of `<RegularExpressions>` rather than a list of `<Strings>` as documented.
+
 6.57.10
 
 When doing commands similar to these:

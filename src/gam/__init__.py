@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.10'
+__version__ = '6.57.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3376,7 +3376,7 @@ def SetGlobalVariables():
     headerFilters = []
     for filterStr in GC.Values[itemName]:
       try:
-        headerFilters.append(re.compile(filterStr))
+        headerFilters.append(re.compile(fr'^{filterStr}$'))
       except re.error as e:
         _printValueError(sectionName, itemName, f'"{filterStr}"', f'{Msg.INVALID_RE}: {e}')
     return headerFilters
@@ -49391,14 +49391,14 @@ class PermissionMatch():
         body['emailAddress'] = getREPattern(re.IGNORECASE)
         self.permissionFields.add('emailAddress')
       elif myarg == 'emailaddresslist':
-        body[myarg] = set(convertEntityToList(getString(Cmd.OB_EMAIL_ADDRESS_LIST, minLen=0)))
+        body[myarg] = set(getString(Cmd.OB_EMAIL_ADDRESS_LIST).replace(',', ' ').split())
         self.permissionFields.add('emailAddress')
       elif myarg in {'domain', 'notdomain'}:
         body[myarg] = getREPattern(re.IGNORECASE)
         self.permissionFields.add('domain')
         self.permissionFields.add('emailAddress')
       elif myarg in {'domainlist', 'notdomainlist'}:
-        body[myarg] = getString(Cmd.OB_DOMAIN_NAME_LIST).replace(',', ' ').split()
+        body[myarg] = set(getString(Cmd.OB_DOMAIN_NAME_LIST).replace(',', ' ').split())
         self.permissionFields.add('domain')
         self.permissionFields.add('emailAddress')
       elif myarg == 'withlink':
