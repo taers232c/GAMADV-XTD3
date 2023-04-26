@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.09'
+__version__ = '6.57.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -50443,7 +50443,10 @@ def printFileList(users):
       csvPF.FixPathsTitles(csvPF.JSONtitlesList)
       if 'JSON' in csvPF.JSONtitlesList:
         csvPF.MoveJSONTitlesToEnd(['JSON'])
-    csvPF.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive Files')
+    if GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] is None:
+      csvPF.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive Files')
+    else:
+      csvPF.writeCSVfile('Drive Files')
   else:
     if not csvPFco.rows:
       setSysExitRC(NO_ENTITIES_FOUND_RC)
@@ -50452,7 +50455,10 @@ def printFileList(users):
     csvPFco.todrive = csvPF.todrive
     if not countsRowFilter:
       csvPFco.SetRowFilter([], GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE])
-    csvPFco.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive File Counts')
+    if GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] is None:
+      csvPFco.writeCSVfile(f'{Cmd.Argument(GM.Globals[GM.ENTITY_CL_START])} {Cmd.Argument(GM.Globals[GM.ENTITY_CL_START]+1)} Drive File Counts')
+    else:
+      csvPFco.writeCSVfile('Drive File Counts')
 
 # gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*

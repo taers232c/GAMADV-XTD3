@@ -1,3 +1,13 @@
+6.57.10
+
+When doing commands similar to these:
+```
+gam redirect csv - multiprocess todrive csv Users.csv gam user "~primaryEmail" print filelist ...
+gam config auto_batch_min 1 redirect csv - multiprocess todrive <UserTypeEntity> print filelist ...
+```
+GAM was including the name of the last user processed in the title of the uploaded Google Sheet;
+as this is not accurate, it has been eliminated.
+
 6.57.09
 
 Added `emailaddresslist <EmailAddressList>` to `<PermissionMatch>` that allows matching any email address in a list.
