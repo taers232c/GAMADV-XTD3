@@ -1,3 +1,9 @@
+6.58.00
+
+Added `license_max_results` variable to `gam.cfg`.  When retrieving licenses from License API,
+this variable controls how many should be retrieved in each chunk. The default value is 100; the range is 100-1000.
+As of 2023-04-27, larger numbers cause Google to return an incorrect numbert of licenses.
+
 6.57.11
 
 Fixed bug where the `csv_output_header_force` variable in `gam.cfg` was being interpreted as

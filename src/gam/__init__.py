@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.57.11'
+__version__ = '6.58.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13685,9 +13685,37 @@ RTL_PATTERN = re.compile(r'(?s){RTL}.*?{/RTL}')
 RT_PATTERN = re.compile(r'(?s){RT}.*?{/RT}')
 TAG_REPLACE_PATTERN = re.compile(r'{(.+?)}')
 RT_MARKERS = {'RT', '/RT', 'RTL', '/RTL'}
+PC_PATTERN = re.compile(r'(?s){PC}.*?{/PC}')
+UC_PATTERN = re.compile(r'(?s){UC}.*?{/UC}')
+LC_PATTERN = re.compile(r'(?s){LC}.*?{/LC}')
+CASE_MARKERS = {'PC', '/PC', 'UC', '/UC', 'LC', '/LC'}
 SKIP_PATTERNS = [re.compile(r'<head>.*?</head>'), re.compile(r'<script>.*?</script>')]
 
 def _processTagReplacements(tagReplacements, message):
+  def pcase(string):
+    return ' '.join([x.capitalize() for x in string.split(' ')])
+
+  def ucase(string):
+    return string.upper()
+
+  def lcase(string):
+    return string.lower()
+
+  def _processCase(message, casePattern, caseFunc):
+# Find all {xC}.*?{/xC} sequences
+    pos = 0
+    while True:
+      match = casePattern.search(message, pos)
+      if not match:
+        return message
+      start, end = match.span()
+      for skipArea in skipAreas:
+        if start >= skipArea[0] and end <= skipArea[1]:
+          break
+      else:
+        message = message[:start]+caseFunc(message[start+4:end-5])+message[end:]
+      pos = end
+
 # Identify areas of message to avoid replacements
   skipAreas = []
   for pattern in SKIP_PATTERNS:
@@ -13709,7 +13737,9 @@ def _processTagReplacements(tagReplacements, message):
       break
     start, end = match.span()
     tag = match.group(1)
-    if tag not in RT_MARKERS:
+    if tag in CASE_MARKERS:
+      pass
+    elif tag not in RT_MARKERS:
       for skipArea in skipAreas:
         if start >= skipArea[0] and end <= skipArea[1]:
           skipTags.add(tag)
@@ -13809,6 +13839,7 @@ def _processTagReplacements(tagReplacements, message):
 # Strip {RTL} {/RTL}, {RT} {/RT}, {RTL}.*?{/RTL}, {RT}.*?{/RT} sequences
   for rtStrip in allStrips[::-1]:
     message = message[:rtStrip[1]]+message[rtStrip[2]:]
+# Strip {RTL} {/RTL}, {RT} {/RT}, {RTL}.*?{/RTL}, {RT}.*?{/RT} sequences
 # Make {tag} replacements; ignore tags in skipAreas
   pos = 0
   while True:
@@ -13817,7 +13848,9 @@ def _processTagReplacements(tagReplacements, message):
       break
     start, end = match.span()
     tag = match.group(1)
-    if tag not in RT_MARKERS:
+    if tag in CASE_MARKERS:
+      pos = end
+    elif tag not in RT_MARKERS:
       if tag not in skipTags:
         message = re.sub(match.group(0), tagSubs[tag], message)
         pos = start+1
@@ -13827,6 +13860,10 @@ def _processTagReplacements(tagReplacements, message):
 # Replace invalid RT tags with ERROR(RT)
       message = re.sub(match.group(0), f'ERROR({tag})', message)
       pos = start+1
+# Process case changes
+  message = _processCase(message, PC_PATTERN, pcase)
+  message = _processCase(message, UC_PATTERN, ucase)
+  message = _processCase(message, LC_PATTERN, lcase)
   return message
 
 def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, count=0, msgFrom=None, createMessage=True):
@@ -32028,7 +32065,7 @@ def doShowCIGroupMembers():
 #	[(products|product <ProductIDList>)|(skus|sku <SKUIDList>)|allskus|gsuite]
 #	[maxresults <Integer>]
 #	[countsonly]
-def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False, maxResults=500):
+def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts=False):
   lic = buildGAPIObject(API.LICENSING)
   setTrueCustomerId()
   customerId = _getCustomerId()
@@ -32036,6 +32073,7 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
   products = []
   feed = []
   licenseCounts = []
+  maxResults = GC.Values[GC.LICENSE_MAX_RESULTS]
   if not returnFields:
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -40385,7 +40423,7 @@ def doPrintUsers(entityList=None):
     if printOptions['getLicenseFeed']:
       if skus is None and GM.Globals[GM.LICENSE_SKUS]:
         skus = GM.Globals[GM.LICENSE_SKUS]
-      licenses = doPrintLicenses(returnFields=['userId', 'skuId'], skus=skus, maxResults=maxResults)
+      licenses = doPrintLicenses(returnFields=['userId', 'skuId'], skus=skus)
     elif printOptions['getLicenseFeedByUser']:
       lic = buildGAPIObject(API.LICENSING)
       if skus is None:
