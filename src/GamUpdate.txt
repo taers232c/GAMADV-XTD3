@@ -1,3 +1,12 @@
+6.58.01
+
+Added the following options to tag replace processing to allow control of the case of replacement data.
+
+You can control the case of the letters in `replace <Tag> <String>` and `replace <Tag> <UserReplacement>`.
+  * `{PC}...{Tag1}...{Tag2}...{/PC}` - For all sequences of letters between `{PC}` and `{/PC}`, the first letter is converted to uppercase, subsequent letters to lowercase.
+  * `{UC}...{Tag1}...{Tag2}...{/UC}` - All letters between `{UC}` and `{/UC}` will be converted to uppercase
+  * `{LC}...{Tag1}...{Tag2}...{/LC}` - All letters between `{LC}` and `{/LC}` will be converted to lowercase
+
 6.58.00
 
 Added `license_max_results` variable to `gam.cfg`.  When retrieving licenses from License API,

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.58.00'
+__version__ = '6.58.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13693,7 +13693,24 @@ SKIP_PATTERNS = [re.compile(r'<head>.*?</head>'), re.compile(r'<script>.*?</scri
 
 def _processTagReplacements(tagReplacements, message):
   def pcase(string):
-    return ' '.join([x.capitalize() for x in string.split(' ')])
+    new = ''
+    # state = True: Upshift 1st letter found
+    # state = False: Downshift subsequent letters
+    state = True
+    for c in string:
+      if state:
+        if c.isalpha():
+          new += c.upper()
+          state = False
+        else:
+          new += c
+      else:
+        if c.isalpha():
+          new += c.lower()
+        else:
+          state = True
+          new += c
+    return new
 
   def ucase(string):
     return string.upper()
@@ -32094,7 +32111,7 @@ def doPrintLicenses(returnFields=None, skus=None, countsOnly=False, returnCounts
       elif myarg == 'countsonly':
         countsOnly = True
       elif myarg == 'maxresults':
-        maxResults = getInteger(minVal=100, maxVal=1000)
+        maxResults = getInteger(minVal=10, maxVal=1000)
       else:
         unknownArgumentExit()
     if not skus and not products and GM.Globals[GM.LICENSE_SKUS]:
