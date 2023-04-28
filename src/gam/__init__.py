@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.58.01'
+__version__ = '6.58.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10942,7 +10942,7 @@ PROJECTS_PRINTSHOW_OPTIONS = {'showsakeys', 'showiampolicies', 'onememberperrow'
 
 def _getLoginHintProjects(createSvcAcctCmd=False, deleteSvcAcctCmd=False, printShowCmd=False, readOnly=False):
   if checkArgumentPresent(['admin']):
-    login_hint = getString(Cmd.OB_EMAIL_ADDRESS)
+    login_hint = getEmailAddress(noUid=True)
   else:
     login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
   if login_hint and login_hint.find('@') == -1:
@@ -23908,12 +23908,12 @@ def doInfoChatSpaces():
     missingArgumentExit('space')
   try:
     space = callGAPI(chat.spaces(), 'get',
-                     throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                     throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                      name=name)
     _showChatSpace(space, FJQC)
   except GAPI.notFound as e:
     exitIfChatNotConfigured(chat, str(e))
-  except GAPI.permissionDenied as e:
+  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
 
 # gam show chatspaces
@@ -24008,11 +24008,11 @@ def doCreateChatMember():
   try:
     member = callGAPI(chat.spaces().members(), 'create',
                       bailOnInternalError=True,
-                      throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                      throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
                       parent=parent, body=body)
     _showChatMember(member, FJQC)
-  except (GAPI.permissionDenied, GAPI.internalError) as e:
-    entityActionFailedWarning([Ent.CHAT_MEMBER, name], str(e))
+  except (GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
+    entityActionFailedWarning([Ent.CHAT_SPACE, parent, Ent.CHAT_MEMBER, name], str(e))
 
 # gam info chatmember member <ChatMember>
 #	[formatjson]
@@ -24069,12 +24069,12 @@ def doPrintShowChatMembers():
     missingArgumentExit('space')
   try:
     members = callGAPIpages(chat.spaces().members(), 'list', 'memberships',
-                            throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                            throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                             parent=name)
   except GAPI.notFound as e:
     exitIfChatNotConfigured(chat, str(e))
     return
-  except GAPI.permissionDenied as e:
+  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
     return
   if not csvPF:
@@ -24120,13 +24120,13 @@ def doCreateChatMessage():
   trimChatMessageIfRequired(body)
   try:
     resp = callGAPI(chat.spaces().messages(), 'create',
-                    throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                     parent=name, body=body)
     entityActionPerformed([Ent.CHAT_SPACE, name, Ent.CHAT_THREAD, resp['thread']['name'], Ent.CHAT_MESSAGE, resp['name']])
   except GAPI.notFound as e:
     exitIfChatNotConfigured(chat, str(e))
     entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
-  except GAPI.permissionDenied as e:
+  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
 
 # gam update chatmessage name <ChatMessage>
@@ -24150,14 +24150,14 @@ def doUpdateChatMessage():
   trimChatMessageIfRequired(body)
   try:
     resp = callGAPI(chat.spaces().messages(), 'update',
-                    throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
+                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                     name=name, updateMask='text', body=body)
     entityActionPerformed([Ent.CHAT_SPACE, resp['space']['name'], Ent.CHAT_THREAD, resp['thread']['name'],
                            Ent.CHAT_MESSAGE, resp['name']])
   except GAPI.notFound as e:
     exitIfChatNotConfigured(chat, str(e))
     entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
-  except GAPI.permissionDenied as e:
+  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
     entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
 
 # gam delete chatmessage name <ChatMessage>
@@ -48078,7 +48078,9 @@ def _mapDrivePermissionNames(permission):
 
 def _mapDriveParents(f_file, parentsSubFields):
   if 'parents' in f_file:
-    parents = f_file['parents'][:]
+    parents = f_file.pop('parents')
+    if parents[0] == ORPHANS:
+      return
     f_file['parents'] = []
     for parentId in parents:
       parent = {}
