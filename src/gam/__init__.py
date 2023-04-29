@@ -48079,7 +48079,7 @@ def _mapDrivePermissionNames(permission):
 def _mapDriveParents(f_file, parentsSubFields):
   if 'parents' in f_file:
     parents = f_file.pop('parents')
-    if parents[0] == ORPHANS:
+    if len(parents) == 1 and parents[0] == ORPHANS:
       return
     f_file['parents'] = []
     for parentId in parents:
