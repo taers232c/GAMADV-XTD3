@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.58.02'
+__version__ = '6.58.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -20010,10 +20010,8 @@ def _clearUpdatePeopleContacts(users, updateContacts):
         entityActionPerformed([entityType, user, peopleEntityType, person['resourceName']], j, jcount)
       except GAPI.invalidArgument as e:
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
-        continue
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
-        continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
@@ -20160,10 +20158,8 @@ def dedupReplaceDomainUserPeopleContacts(users):
         entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
       except GAPI.invalidArgument as e:
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], str(e), j, jcount)
-        continue
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
-        continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
@@ -20217,7 +20213,6 @@ def deleteUserPeopleContacts(users):
         entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
-        continue
       except (GAPI.serviceNotAvailable, GAPI.forbidden):
         ClientAPIAccessDeniedExit()
     Ind.Decrement()
@@ -46259,6 +46254,8 @@ def updateCalendarAttendees(users):
       pass
     elif myarg == 'doit':
       doIt = True
+    elif myarg == 'dryrun':
+      doIt = False
     elif myarg == 'splitupdate':
       splitUpdate = True
     else:
@@ -58463,7 +58460,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
           _showDriveFilePermissions(Ent.SHAREDDRIVE, f'{shareddrive["name"]} ({shareddrive["id"]}) - {shareddrive["createdTime"]}',
                                     shareddrive['permissions'], printKeys, timeObjects, j, jcount)
         else:
-          if oneItemPerRow:
+          if oneItemPerRow and shareddrive['permissions']:
             for permission in shareddrive['permissions']:
               _showDriveFilePermissionJSON(user, shareddrive['id'], shareddrive['name'], shareddrive['createdTime'], permission, timeObjects)
           else:
@@ -58473,30 +58470,44 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
       if oneItemPerRow:
         for shareddrive in matchFeed:
           baserow = {'User': user, 'id': shareddrive['id'], 'name': shareddrive['name'], 'createdTime': shareddrive['createdTime']}
-          for permission in shareddrive['permissions']:
-            row = baserow.copy()
-            _mapDrivePermissionNames(permission)
-            flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
-            if not FJQC.formatJSON:
-              csvPF.WriteRowTitles(row)
-            elif csvPF.CheckRowTitles(row):
+          if shareddrive['permissions']:
+            for permission in shareddrive['permissions']:
               row = baserow.copy()
-              row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
-                                       ensure_ascii=False, sort_keys=True)
-              csvPF.WriteRowNoFilter(row)
+              _mapDrivePermissionNames(permission)
+              flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
+              if not FJQC.formatJSON:
+                csvPF.WriteRowTitles(row)
+              elif csvPF.CheckRowTitles(row):
+                row = baserow.copy()
+                row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
+                                         ensure_ascii=False, sort_keys=True)
+                csvPF.WriteRowNoFilter(row)
+          else:
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(baserow)
+            elif csvPF.CheckRowTitles(baserow):
+              baserow['JSON'] = json.dumps({})
+              csvPF.WriteRowNoFilter(baserow)
       else:
         for shareddrive in matchFeed:
           baserow = {'User': user, 'id': shareddrive['id'], 'name': shareddrive['name'], 'createdTime': shareddrive['createdTime']}
           row = baserow.copy()
-          for permission in shareddrive['permissions']:
-            _mapDrivePermissionNames(permission)
-          flattenJSON({'permissions': shareddrive['permissions']}, flattened=row, timeObjects=timeObjects)
-          if not FJQC.formatJSON:
-            csvPF.WriteRowTitles(row)
-          elif csvPF.CheckRowTitles(row):
-            baserow['JSON'] = json.dumps(cleanJSON({'permissions': shareddrive['permissions']}, timeObjects=timeObjects),
-                                         ensure_ascii=False, sort_keys=True)
-            csvPF.WriteRowNoFilter(baserow)
+          if shareddrive['permissions']:
+            for permission in shareddrive['permissions']:
+              _mapDrivePermissionNames(permission)
+            flattenJSON({'permissions': shareddrive['permissions']}, flattened=row, timeObjects=timeObjects)
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(row)
+            elif csvPF.CheckRowTitles(row):
+              baserow['JSON'] = json.dumps(cleanJSON({'permissions': shareddrive['permissions']}, timeObjects=timeObjects),
+                                           ensure_ascii=False, sort_keys=True)
+              csvPF.WriteRowNoFilter(baserow)
+          else:
+            if not FJQC.formatJSON:
+              csvPF.WriteRowTitles(baserow)
+            elif csvPF.CheckRowTitles(baserow):
+              baserow['JSON'] = json.dumps({})
+              csvPF.WriteRowNoFilter(baserow)
   if csvPF:
     if not oneItemPerRow:
       csvPF.SetIndexedTitles(['permissions'])

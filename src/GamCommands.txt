@@ -5529,7 +5529,7 @@ gam <UserTypeEntity> print events <UserCalendarEntity> [<EventtEntity>] <EventDi
         [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [anyorganizer]
-        [<EventNotificationAttribute>] [splitupdate] [doit]
+        [<EventNotificationAttribute>] [splitupdate] [dryrun|doit]
         (csv|csvfile <CSVFileInput>)
         (delete <EmailAddress>)*
         (deleteentity <EmailAddressEntity>)*

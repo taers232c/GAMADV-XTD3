@@ -1,3 +1,8 @@
+6.58.03
+
+Fixed bug in `gam [<UserTypeEntity>] print shareddriveacls oneitemperrow shownopermissionsdrives true`
+where the Shared Drives with no ACLs were not shown; they were shown if `oneitemperrow` was omitted.
+
 6.58.02
 
 Updated `gam <UserTypeEntity> print filelist ... filepath|fullpath` to not display parent information
