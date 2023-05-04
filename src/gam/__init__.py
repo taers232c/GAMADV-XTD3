@@ -13692,12 +13692,12 @@ CASE_MARKERS = {'PC', '/PC', 'UC', '/UC', 'LC', '/LC'}
 SKIP_PATTERNS = [re.compile(r'<head>.*?</head>'), re.compile(r'<script>.*?</script>')]
 
 def _processTagReplacements(tagReplacements, message):
-  def pcase(string):
+  def pcase(trstring):
     new = ''
     # state = True: Upshift 1st letter found
     # state = False: Downshift subsequent letters
     state = True
-    for c in string:
+    for c in trstring:
       if state:
         if c.isalpha():
           new += c.upper()
@@ -13712,11 +13712,11 @@ def _processTagReplacements(tagReplacements, message):
           new += c
     return new
 
-  def ucase(string):
-    return string.upper()
+  def ucase(trstring):
+    return trstring.upper()
 
-  def lcase(string):
-    return string.lower()
+  def lcase(trstring):
+    return trstring.lower()
 
   def _processCase(message, casePattern, caseFunc):
 # Find all {xC}.*?{/xC} sequences
