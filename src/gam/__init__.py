@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.58.03'
+__version__ = '6.59.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14698,6 +14698,131 @@ def doPrintShowChannelProducts():
 #	[formatjson]
 def doPrintShowChannelSKUs():
   doPrintShowChannelItems(Ent.CHANNEL_SKU)
+
+ANALYTIC_ENTITY_MAP = {
+  Ent.ANALYTIC_ACCOUNT:
+    {'titles': ['name', 'displayName', 'createTime', 'updateTime', 'regionCode', 'deleted'],
+     'JSONtitles': ['name', 'displayName', 'JSON'],
+     'timeObjects': ['createTime', 'updateTime'],
+     'items': 'accounts',
+     'pageSize': 50,
+     'maxPageSize': 200,
+     },
+  Ent.ANALYTIC_ACCOUNT_SUMMARY:
+    {'titles': ['name', 'displayName', 'account'],
+     'JSONtitles': ['name', 'displayName', 'account', 'JSON'],
+     'timeObjects': ['createTime', 'updateTime', 'deleteTime', 'expireTime'],
+     'items': 'accountSummaries',
+     'pageSize': 50,
+     'maxPageSize': 200,
+     },
+  Ent.ANALYTIC_PROPERTY:
+    {'titles': ['name', 'displayName', 'createTime', 'updateTime', 'propertyType', 'parent'],
+     'JSONtitles': ['name', 'displayName', 'propertyType', 'parent', 'JSON'],
+     'timeObjects': ['createTime', 'updateTime', 'deleteTime', 'expireTime'],
+     'items': 'properties',
+     'pageSize': 50,
+     'maxPageSize': 200,
+     },
+  }
+
+def doPrintShowAnalyticItems(entityType):
+  analytics = buildGAPIObject(API.ANALYTICS_ADMIN)
+  if entityType == Ent.ANALYTIC_ACCOUNT:
+    service = analytics.accounts()
+  elif entityType == Ent.ANALYTIC_ACCOUNT_SUMMARY:
+    service = analytics.accountSummaries()
+  else: #Ent.ANALYTIC_ACCOUNT_SUMMARY:
+    service = analytics.properties()
+  analyticEntityMap = ANALYTIC_ENTITY_MAP[entityType]
+  csvPF = CSVPrintFile(analyticEntityMap['titles'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  kwargs = {'pageSize': analyticEntityMap['pageSize']}
+  if entityType == Ent.ANALYTIC_ACCOUNT:
+    kwargs['showDeleted'] = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'maxresults':
+      kwargs['pageSize'] = getInteger(minVal=1, maxVal=analyticEntityMap['maxPageSize'])
+    elif entityType == Ent.ANALYTIC_ACCOUNT and myarg == 'showdeleted':
+      kwargs['showDeleted'] = getBoolean()
+    elif entityType == Ent.ANALYTIC_PROPERTY and myarg == 'filter':
+      kwargs['filter'] = getString(Cmd.OB_STRING)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if entityType == Ent.ANALYTIC_PROPERTY and 'filter' not in kwargs:
+    missingArgumentExit('filter')
+  if csvPF and FJQC.formatJSON:
+    csvPF.SetJSONTitles(analyticEntityMap['JSONtitles'])
+  try:
+    results = callGAPIpages(service, 'list', analyticEntityMap['items'],
+                            bailOnInternalError=True,
+                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.INTERNAL_ERROR],
+                            **kwargs)
+  except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.internalError) as e:
+    entityActionFailedWarning([entityType, None], str(e))
+    return
+  jcount = len(results)
+  if not csvPF:
+    if not FJQC.formatJSON:
+      performActionNumItems(jcount, entityType)
+    Ind.Increment()
+    j = 0
+    for item in results:
+      j += 1
+      if not FJQC.formatJSON:
+        printEntity([entityType, item['name']], j, jcount)
+        Ind.Increment()
+        showJSON(None, item, timeObjects=analyticEntityMap['timeObjects'])
+        Ind.Decrement()
+      else:
+        printLine(json.dumps(cleanJSON(item, timeObjects=analyticEntityMap['timeObjects']),
+                             ensure_ascii=False, sort_keys=False))
+    Ind.Decrement()
+  else:
+    for item in results:
+      row = flattenJSON(item, timeObjects=analyticEntityMap['timeObjects'])
+      if not FJQC.formatJSON:
+        csvPF.WriteRowTitles(row)
+      elif csvPF.CheckRowTitles(row):
+        row = {'name': item['name'], 'displayName': item['displayName']}
+        for field in analyticEntityMap['JSONtitles'][2:-1]:
+          row[field] = item[field]
+        row['JSON'] = json.dumps(cleanJSON(item, timeObjects=analyticEntityMap['timeObjects']),
+                                 ensure_ascii=False, sort_keys=True)
+        csvPF.WriteRowNoFilter(row)
+    csvPF.writeCSVfile(Ent.Plural(entityType))
+
+# gam print analyticaccounts [todrive <ToDriveAttribute>*]
+#	[maxresults <Integer>] [showdeleted [<Boolean>]]
+#	[formatjson [quotechar <Character>]]
+# gam show analyticaccounts
+#	[maxresults <Integer>] [showdeleted [<Boolean>]]
+#	[formatjson]
+def doPrintShowAnalyticAccounts():
+  doPrintShowAnalyticItems(Ent.ANALYTIC_ACCOUNT)
+
+# gam print analyticaccountsummaries [todrive <ToDriveAttribute>*]
+#	[maxresults <Integer>]
+#	[formatjson [quotechar <Character>]]
+# gam show analyticaccountsummaries
+#	[maxresults <Integer>]
+#	[formatjson]
+def doPrintShowAnalyticAccountSummaries():
+  doPrintShowAnalyticItems(Ent.ANALYTIC_ACCOUNT_SUMMARY)
+
+# gam print analyticproperties [todrive <ToDriveAttribute>*]
+#	filter <String>
+#	[maxresults <Integer>] [showdeleted [<Boolean>]]
+#	[formatjson [quotechar <Character>]]
+# gam show analyticproperties
+#	filter <String>
+#	[maxresults <Integer>] [showdeleted [<Boolean>]]
+#	[formatjson]
+def doPrintShowAnalyticProperties():
+  doPrintShowAnalyticItems(Ent.ANALYTIC_PROPERTY)
 
 # gam create domainalias|aliasdomain <DomainAlias> <DomainName>
 def doCreateDomainAlias():
@@ -67350,6 +67475,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
       Cmd.ARG_ALIAS:		doPrintAliases,
+      Cmd.ARG_ANALYTICACCOUNT:	doPrintShowAnalyticAccounts,
+      Cmd.ARG_ANALYTICACCOUNTSUMMARY:	doPrintShowAnalyticAccountSummaries,
+      Cmd.ARG_ANALYTICPROPERTY:	doPrintShowAnalyticProperties,
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
@@ -67476,6 +67604,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ADMIN:		doPrintShowAdmins,
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
+      Cmd.ARG_ANALYTICACCOUNT:	doPrintShowAnalyticAccounts,
+      Cmd.ARG_ANALYTICACCOUNTSUMMARY:	doPrintShowAnalyticAccountSummaries,
+      Cmd.ARG_ANALYTICPROPERTY:	doPrintShowAnalyticProperties,
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
@@ -67648,6 +67779,10 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ALIASDOMAIN:		Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASDOMAINS:		Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASES:		Cmd.ARG_ALIAS,
+  Cmd.ARG_ANALYTICACCOUNTS:	Cmd.ARG_ANALYTICACCOUNT,
+  Cmd.ARG_ANALYTICACCOUNTSUMMARIES:	Cmd.ARG_ANALYTICACCOUNTSUMMARY,
+  Cmd.ARG_ANALYTICPROPERTIES:	Cmd.ARG_ANALYTICPROPERTY,
+  Cmd.ARG_ALIASDOMAINS:		Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_APIS:			Cmd.ARG_API,
   Cmd.ARG_APIPROJECT:		Cmd.ARG_PROJECT,
   Cmd.ARG_BROWSERS:		Cmd.ARG_BROWSER,

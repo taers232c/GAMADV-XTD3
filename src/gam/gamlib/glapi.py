@@ -22,6 +22,7 @@
 # APIs
 ACCESSCONTEXTMANAGER = 'accesscontextmanager'
 ALERTCENTER = 'alertcenter'
+ANALYTICS_ADMIN = 'analyticsadmin'
 CALENDAR = 'calendar'
 CALENDAR_USER_AVAILABILITY = 'calendaruseravailability'
 CBCM = 'cbcm'
@@ -140,6 +141,7 @@ PROJECT_APIS = [
   'accesscontextmanager.googleapis.com',
   'admin.googleapis.com',
   'alertcenter.googleapis.com',
+  'analytics.googleapis.com',
   'audit.googleapis.com',
   'calendar-json.googleapis.com',
 ###  'calendaruseravailability.googleapis.com',
@@ -177,6 +179,7 @@ PROJECT_APIS = [
 _INFO = {
   ACCESSCONTEXTMANAGER: {'name': 'Access Context Manager API', 'version': 'v1', 'v2discovery': True},
   ALERTCENTER: {'name': 'AlertCenter API', 'version': 'v1beta1', 'v2discovery': True},
+  ANALYTICS_ADMIN: {'name': 'Analytics Admin API', 'version': 'v1beta', 'v2discovery': True},
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': True, 'mappedAPI': 'calendar-json'},
 ###  CALENDAR_USER_AVAILABILITY: {'name': 'Calendar User Availability API', 'version': 'v1', 'v2discovery': True},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
@@ -241,6 +244,11 @@ _INFO = {
 READONLY = ['readonly',]
 
 _CLIENT_SCOPES = [
+  {'name': 'Analytics Admin API - read only',
+   'api': ANALYTICS_ADMIN,
+   'subscopes': [],
+   'offByDefault': True,
+   'scope': 'https://www.googleapis.com/auth/analytics.readonly'},
   {'name': 'Calendar API',
    'api': CALENDAR,
    'subscopes': READONLY,

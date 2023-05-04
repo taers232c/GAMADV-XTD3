@@ -52,6 +52,9 @@ class GamEntity():
   ALIAS = 'alia'
   ALIAS_EMAIL = 'alie'
   ALIAS_TARGET = 'alit'
+  ANALYTIC_ACCOUNT = 'anac'
+  ANALYTIC_ACCOUNT_SUMMARY = 'anas'
+  ANALYTIC_PROPERTY = 'anap'
   API = 'api '
   APP_ACCESS_SETTINGS = 'apps'
   APP_ID = 'appi'
@@ -365,6 +368,9 @@ class GamEntity():
     ALIAS: ['Aliases', 'Alias'],
     ALIAS_EMAIL: ['Alias Emails', 'Alias Email'],
     ALIAS_TARGET: ['Alias Targets', 'Alias Target'],
+    ANALYTIC_ACCOUNT: ['Analytic Accounts', 'Analytic Account'],
+    ANALYTIC_ACCOUNT_SUMMARY: ['Analytic Account Summaries', 'Analytic Account Summary'],
+    ANALYTIC_PROPERTY: ['Analytic Properties', 'Analytic Property'],
     API: ['APIs', 'API'],
     APP_ACCESS_SETTINGS: ['Application Access Settings', 'Application Access Settings'],
     APP_ID: ['Application IDs', 'Application ID'],
