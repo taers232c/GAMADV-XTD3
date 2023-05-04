@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.00'
+__version__ = '6.59.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8805,7 +8805,7 @@ def doCheckConnection():
            'accounts.google.com', 'oauth2.googleapis.com', 'www.googleapis.com']
   fix_hosts = {'calendar-json.googleapis.com': 'www.googleapis.com',
                'storage-api.googleapis.com': 'storage.googleapis.com'}
-  api_hosts = ['versionhistory.googleapis.com']
+  api_hosts = ['apps-apis.google.com', 'sites.google.com', 'versionhistory.googleapis.com', 'www.google.com']
   for host in API.PROJECT_APIS:
     host = fix_hosts.get(host, host)
     if host not in api_hosts and host not in hosts:

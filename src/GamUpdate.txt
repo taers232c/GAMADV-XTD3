@@ -1,3 +1,12 @@
+6.59.01
+
+Updated `gam checkconnection` to check connections to the following sites:
+```
+Contacts API - Domain Shared Contacts - www.google.com
+Email Audit API - apps-apis.google.com
+Sites API - sites.google.com
+```
+
 6.59.00
 
 Added commands to display Analytic account/property information.
