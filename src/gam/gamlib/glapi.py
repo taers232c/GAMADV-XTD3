@@ -244,11 +244,6 @@ _INFO = {
 READONLY = ['readonly',]
 
 _CLIENT_SCOPES = [
-  {'name': 'Analytics Admin API - read only',
-   'api': ANALYTICS_ADMIN,
-   'subscopes': [],
-   'offByDefault': True,
-   'scope': 'https://www.googleapis.com/auth/analytics.readonly'},
   {'name': 'Calendar API',
    'api': CALENDAR,
    'subscopes': READONLY,
@@ -480,6 +475,10 @@ _SVCACCT_SCOPES = [
    'api': ALERTCENTER,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/apps.alerts'},
+  {'name': 'Analytics Admin API - read only',
+   'api': ANALYTICS_ADMIN,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/analytics.readonly'},
   {'name': 'Calendar API',
    'api': CALENDAR,
    'subscopes': READONLY,

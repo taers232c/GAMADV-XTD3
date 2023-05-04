@@ -14701,24 +14701,24 @@ def doPrintShowChannelSKUs():
 
 ANALYTIC_ENTITY_MAP = {
   Ent.ANALYTIC_ACCOUNT:
-    {'titles': ['name', 'displayName', 'createTime', 'updateTime', 'regionCode', 'deleted'],
-     'JSONtitles': ['name', 'displayName', 'JSON'],
+    {'titles': ['User', 'name', 'displayName', 'createTime', 'updateTime', 'regionCode', 'deleted'],
+     'JSONtitles': ['User', 'name', 'displayName', 'JSON'],
      'timeObjects': ['createTime', 'updateTime'],
      'items': 'accounts',
      'pageSize': 50,
      'maxPageSize': 200,
      },
   Ent.ANALYTIC_ACCOUNT_SUMMARY:
-    {'titles': ['name', 'displayName', 'account'],
-     'JSONtitles': ['name', 'displayName', 'account', 'JSON'],
+    {'titles': ['User', 'name', 'displayName', 'account'],
+     'JSONtitles': ['User', 'name', 'displayName', 'account', 'JSON'],
      'timeObjects': ['createTime', 'updateTime', 'deleteTime', 'expireTime'],
      'items': 'accountSummaries',
      'pageSize': 50,
      'maxPageSize': 200,
      },
   Ent.ANALYTIC_PROPERTY:
-    {'titles': ['name', 'displayName', 'createTime', 'updateTime', 'propertyType', 'parent'],
-     'JSONtitles': ['name', 'displayName', 'propertyType', 'parent', 'JSON'],
+    {'titles': ['User', 'name', 'displayName', 'createTime', 'updateTime', 'propertyType', 'parent'],
+     'JSONtitles': ['User', 'name', 'displayName', 'propertyType', 'parent', 'JSON'],
      'timeObjects': ['createTime', 'updateTime', 'deleteTime', 'expireTime'],
      'items': 'properties',
      'pageSize': 50,
@@ -14726,14 +14726,7 @@ ANALYTIC_ENTITY_MAP = {
      },
   }
 
-def doPrintShowAnalyticItems(entityType):
-  analytics = buildGAPIObject(API.ANALYTICS_ADMIN)
-  if entityType == Ent.ANALYTIC_ACCOUNT:
-    service = analytics.accounts()
-  elif entityType == Ent.ANALYTIC_ACCOUNT_SUMMARY:
-    service = analytics.accountSummaries()
-  else: #Ent.ANALYTIC_ACCOUNT_SUMMARY:
-    service = analytics.properties()
+def printShowAnalyticItems(users, entityType):
   analyticEntityMap = ANALYTIC_ENTITY_MAP[entityType]
   csvPF = CSVPrintFile(analyticEntityMap['titles'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -14756,73 +14749,95 @@ def doPrintShowAnalyticItems(entityType):
     missingArgumentExit('filter')
   if csvPF and FJQC.formatJSON:
     csvPF.SetJSONTitles(analyticEntityMap['JSONtitles'])
-  try:
-    results = callGAPIpages(service, 'list', analyticEntityMap['items'],
-                            bailOnInternalError=True,
-                            throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.INTERNAL_ERROR],
-                            **kwargs)
-  except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.internalError) as e:
-    entityActionFailedWarning([entityType, None], str(e))
-    return
-  jcount = len(results)
-  if not csvPF:
-    if not FJQC.formatJSON:
-      performActionNumItems(jcount, entityType)
-    Ind.Increment()
-    j = 0
-    for item in results:
-      j += 1
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, analytics = buildGAPIServiceObject(API.ANALYTICS_ADMIN, user, i, count)
+    if not analytics:
+      continue
+    if entityType == Ent.ANALYTIC_ACCOUNT:
+      service = analytics.accounts()
+    elif entityType == Ent.ANALYTIC_ACCOUNT_SUMMARY:
+      service = analytics.accountSummaries()
+    else: #Ent.ANALYTIC_ACCOUNT_SUMMARY:
+      service = analytics.properties()
+    if csvPF:
+      printGettingAllEntityItemsForWhom(entityType, user, i, count)
+      pageMessage = getPageMessageForWhom()
+    else:
+      pageMessage = None
+    try:
+      results = callGAPIpages(service, 'list', analyticEntityMap['items'],
+                              pageMessage=pageMessage,
+                              throwReasons=[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.INTERNAL_ERROR,
+                                            GAPI.SERVICE_NOT_AVAILABLE],
+                              **kwargs)
+    except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.badRequest, GAPI.internalError) as e:
+      entityActionFailedWarning([Ent.USER, user, entityType, None], str(e), i, count)
+      continue
+    except GAPI.serviceNotAvailable:
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+      continue
+    jcount = len(results)
+    if not csvPF:
       if not FJQC.formatJSON:
-        printEntity([entityType, item['name']], j, jcount)
-        Ind.Increment()
-        showJSON(None, item, timeObjects=analyticEntityMap['timeObjects'])
-        Ind.Decrement()
-      else:
-        printLine(json.dumps(cleanJSON(item, timeObjects=analyticEntityMap['timeObjects']),
-                             ensure_ascii=False, sort_keys=False))
-    Ind.Decrement()
-  else:
-    for item in results:
-      row = flattenJSON(item, timeObjects=analyticEntityMap['timeObjects'])
-      if not FJQC.formatJSON:
-        csvPF.WriteRowTitles(row)
-      elif csvPF.CheckRowTitles(row):
-        row = {'name': item['name'], 'displayName': item['displayName']}
-        for field in analyticEntityMap['JSONtitles'][2:-1]:
-          row[field] = item[field]
-        row['JSON'] = json.dumps(cleanJSON(item, timeObjects=analyticEntityMap['timeObjects']),
-                                 ensure_ascii=False, sort_keys=True)
-        csvPF.WriteRowNoFilter(row)
+        performActionNumItems(jcount, entityType)
+      Ind.Increment()
+      j = 0
+      for item in results:
+        j += 1
+        if not FJQC.formatJSON:
+          printEntity([entityType, item['name']], j, jcount)
+          Ind.Increment()
+          showJSON(None, item, timeObjects=analyticEntityMap['timeObjects'])
+          Ind.Decrement()
+        else:
+          printLine(json.dumps(cleanJSON(item, timeObjects=analyticEntityMap['timeObjects']),
+                               ensure_ascii=False, sort_keys=False))
+      Ind.Decrement()
+    else:
+      for item in results:
+        row = flattenJSON(item, flattened={'User': user}, timeObjects=analyticEntityMap['timeObjects'])
+        if not FJQC.formatJSON:
+          csvPF.WriteRowTitles(row)
+        elif csvPF.CheckRowTitles(row):
+          row = {'User': user, 'name': item['name'], 'displayName': item['displayName']}
+          for field in analyticEntityMap['JSONtitles'][2:-1]:
+            row[field] = item[field]
+          row['JSON'] = json.dumps(cleanJSON(item, timeObjects=analyticEntityMap['timeObjects']),
+                                   ensure_ascii=False, sort_keys=True)
+          csvPF.WriteRowNoFilter(row)
+  if csvPF:
     csvPF.writeCSVfile(Ent.Plural(entityType))
 
-# gam print analyticaccounts [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print analyticaccounts [todrive <ToDriveAttribute>*]
 #	[maxresults <Integer>] [showdeleted [<Boolean>]]
 #	[formatjson [quotechar <Character>]]
-# gam show analyticaccounts
+# gam <UserTypeEntity> show analyticaccounts
 #	[maxresults <Integer>] [showdeleted [<Boolean>]]
 #	[formatjson]
-def doPrintShowAnalyticAccounts():
-  doPrintShowAnalyticItems(Ent.ANALYTIC_ACCOUNT)
+def printShowAnalyticAccounts(users):
+  printShowAnalyticItems(users, Ent.ANALYTIC_ACCOUNT)
 
-# gam print analyticaccountsummaries [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print analyticaccountsummaries [todrive <ToDriveAttribute>*]
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
-# gam show analyticaccountsummaries
+# gam <UserTypeEntity> show analyticaccountsummaries
 #	[maxresults <Integer>]
 #	[formatjson]
-def doPrintShowAnalyticAccountSummaries():
-  doPrintShowAnalyticItems(Ent.ANALYTIC_ACCOUNT_SUMMARY)
+def printShowAnalyticAccountSummaries(users):
+  printShowAnalyticItems(users, Ent.ANALYTIC_ACCOUNT_SUMMARY)
 
-# gam print analyticproperties [todrive <ToDriveAttribute>*]
+# gam <UserTypeEntity> print analyticproperties [todrive <ToDriveAttribute>*]
 #	filter <String>
 #	[maxresults <Integer>] [showdeleted [<Boolean>]]
 #	[formatjson [quotechar <Character>]]
-# gam show analyticproperties
+# gam <UserTypeEntity> show analyticproperties
 #	filter <String>
 #	[maxresults <Integer>] [showdeleted [<Boolean>]]
 #	[formatjson]
-def doPrintShowAnalyticProperties():
-  doPrintShowAnalyticItems(Ent.ANALYTIC_PROPERTY)
+def printShowAnalyticProperties(users):
+  printShowAnalyticItems(users, Ent.ANALYTIC_PROPERTY)
 
 # gam create domainalias|aliasdomain <DomainAlias> <DomainName>
 def doCreateDomainAlias():
@@ -67475,9 +67490,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
       Cmd.ARG_ALIAS:		doPrintAliases,
-      Cmd.ARG_ANALYTICACCOUNT:	doPrintShowAnalyticAccounts,
-      Cmd.ARG_ANALYTICACCOUNTSUMMARY:	doPrintShowAnalyticAccountSummaries,
-      Cmd.ARG_ANALYTICPROPERTY:	doPrintShowAnalyticProperties,
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
@@ -67604,9 +67616,6 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ADMIN:		doPrintShowAdmins,
       Cmd.ARG_ALERT:		doPrintShowAlerts,
       Cmd.ARG_ALERTFEEDBACK:	doPrintShowAlertFeedback,
-      Cmd.ARG_ANALYTICACCOUNT:	doPrintShowAnalyticAccounts,
-      Cmd.ARG_ANALYTICACCOUNTSUMMARY:	doPrintShowAnalyticAccountSummaries,
-      Cmd.ARG_ANALYTICPROPERTY:	doPrintShowAnalyticProperties,
       Cmd.ARG_BROWSER:		doPrintShowBrowsers,
       Cmd.ARG_BROWSERTOKEN:	doPrintShowBrowserTokens,
       Cmd.ARG_BUILDING:		doPrintShowBuildings,
@@ -67779,9 +67788,6 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ALIASDOMAIN:		Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASDOMAINS:		Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_ALIASES:		Cmd.ARG_ALIAS,
-  Cmd.ARG_ANALYTICACCOUNTS:	Cmd.ARG_ANALYTICACCOUNT,
-  Cmd.ARG_ANALYTICACCOUNTSUMMARIES:	Cmd.ARG_ANALYTICACCOUNTSUMMARY,
-  Cmd.ARG_ANALYTICPROPERTIES:	Cmd.ARG_ANALYTICPROPERTY,
   Cmd.ARG_APIS:			Cmd.ARG_API,
   Cmd.ARG_APIPROJECT:		Cmd.ARG_PROJECT,
   Cmd.ARG_BROWSERS:		Cmd.ARG_BROWSER,
@@ -68450,7 +68456,10 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   'print':
     (Act.PRINT,
-     {Cmd.ARG_ASP:		printShowASPs,
+     {Cmd.ARG_ANALYTICACCOUNT:	printShowAnalyticAccounts,
+      Cmd.ARG_ANALYTICACCOUNTSUMMARY:	printShowAnalyticAccountSummaries,
+      Cmd.ARG_ANALYTICPROPERTY:	printShowAnalyticProperties,
+      Cmd.ARG_ASP:		printShowASPs,
       Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
       Cmd.ARG_CALENDAR:		printShowCalendars,
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
@@ -68531,7 +68540,10 @@ USER_COMMANDS_WITH_OBJECTS = {
     ),
   'show':
     (Act.SHOW,
-     {Cmd.ARG_ASP:		printShowASPs,
+     {Cmd.ARG_ANALYTICACCOUNT:	printShowAnalyticAccounts,
+      Cmd.ARG_ANALYTICACCOUNTSUMMARY:	printShowAnalyticAccountSummaries,
+      Cmd.ARG_ANALYTICPROPERTY:	printShowAnalyticProperties,
+      Cmd.ARG_ASP:		printShowASPs,
       Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
       Cmd.ARG_CALENDAR:		printShowCalendars,
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
@@ -68712,6 +68724,9 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_3LO:			Cmd.ARG_TOKEN,
   Cmd.ARG_ALIASES:		Cmd.ARG_ALIAS,
   Cmd.ARG_APPLICATIONSPECIFICPASSWORDS:	Cmd.ARG_ASP,
+  Cmd.ARG_ANALYTICACCOUNTS:	Cmd.ARG_ANALYTICACCOUNT,
+  Cmd.ARG_ANALYTICACCOUNTSUMMARIES:	Cmd.ARG_ANALYTICACCOUNTSUMMARY,
+  Cmd.ARG_ANALYTICPROPERTIES:	Cmd.ARG_ANALYTICPROPERTY,
   Cmd.ARG_ASPS:			Cmd.ARG_ASP,
   Cmd.ARG_BACKUPCODES:		Cmd.ARG_BACKUPCODE,
   Cmd.ARG_CALENDARS:		Cmd.ARG_CALENDAR,

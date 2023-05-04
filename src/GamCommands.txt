@@ -1460,25 +1460,25 @@ gam whatis <EmailItem> [noinfo] [noinivitablecheck]
 
 # Analytics Admin
 
-gam print analyticaccounts [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print analyticaccounts [todrive <ToDriveAttribute>*]
         [maxresults <Number>] [showdeleted [<Boolean>]]
         [formatjson [quotechar <Character>]]
-gam show analyticaccounts
+gam <UserTypeEntity> show analyticaccounts
         [maxresults <Number>] [showdeleted [<Boolean>]]
         [formatjson]
 
-gam print analyticaccountsummaries [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print analyticaccountsummaries [todrive <ToDriveAttribute>*]
         [maxresults <Number>]
         [formatjson [quotechar <Character>]]
-gam show analyticaccountsummaries
+gam <UserTypeEntity> show analyticaccountsummaries
         [maxresults <Number>]
         [formatjson]
 
-gam print analyticproperties [todrive <ToDriveAttribute>*]
+gam <UserTypeEntity> print analyticproperties [todrive <ToDriveAttribute>*]
         filter <String>
         [maxresults <Number>] [showdeleted [<Boolean>]]
         [formatjson [quotechar <Character>]]
-gam show analyticproperties
+gam <UserTypeEntity> show analyticproperties
         filter <String>
         [maxresults <Number>] [showdeleted [<Boolean>]]
         [formatjson]
