@@ -17186,7 +17186,7 @@ def doPrintAliases():
       delimiter = getCharacter()
     else:
       unknownArgumentExit()
-  if users or groups and queries[0] == None:
+  if users or groups and queries[0] is None:
     getUsers = getGroups = False
   if not oneRowPerTarget:
     titlesList = ['Alias', 'Target', 'TargetType']
@@ -67782,7 +67782,6 @@ MAIN_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ANALYTICACCOUNTS:	Cmd.ARG_ANALYTICACCOUNT,
   Cmd.ARG_ANALYTICACCOUNTSUMMARIES:	Cmd.ARG_ANALYTICACCOUNTSUMMARY,
   Cmd.ARG_ANALYTICPROPERTIES:	Cmd.ARG_ANALYTICPROPERTY,
-  Cmd.ARG_ALIASDOMAINS:		Cmd.ARG_DOMAINALIAS,
   Cmd.ARG_APIS:			Cmd.ARG_API,
   Cmd.ARG_APIPROJECT:		Cmd.ARG_PROJECT,
   Cmd.ARG_BROWSERS:		Cmd.ARG_BROWSER,
