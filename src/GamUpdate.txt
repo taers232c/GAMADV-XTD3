@@ -1,3 +1,8 @@
+6.59.02
+
+Fixed bug where the Analytics Admin API was not being added in `gam update project`
+forcing you to manually enable it.
+
 6.59.01
 
 Updated `gam checkconnection` to check connections to the following sites:
