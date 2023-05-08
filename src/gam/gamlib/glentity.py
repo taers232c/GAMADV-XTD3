@@ -45,6 +45,8 @@ class GamEntity():
   ACTION = 'actn'
   ACTIVITY = 'actv'
   ADMINISTRATOR = 'admi'
+  ADMIN_ROLE = 'adro'
+  ADMIN_ROLE_ASSIGNMENT = 'adra'
   ALERT = 'alrt'
   ALERT_ID = 'alri'
   ALERT_FEEDBACK = 'alfb'
@@ -288,7 +290,6 @@ class GamEntity():
   RESOURCE_CALENDAR = 'resc'
   RESOURCE_ID = 'resi'
   ROLE = 'role'
-  ROLE_ASSIGNMENT_ID = 'raid'
   ROW = 'row '
   SCOPE = 'scop'
   SECTION = 'sect'
@@ -361,6 +362,8 @@ class GamEntity():
     ACTION: ['Actions', 'Action'],
     ACTIVITY: ['Activities', 'Activity'],
     ADMINISTRATOR: ['Administrators', 'Administrator'],
+    ADMIN_ROLE: ['Admin Roles', 'Admin Role'],
+    ADMIN_ROLE_ASSIGNMENT: ['Admin Role Assignments', 'Admin Role Assignment'],
     ALERT: ['Alerts', 'Alert'],
     ALERT_ID: ['Alert IDs', 'Alert ID'],
     ALERT_FEEDBACK: ['Alert Feedbacks', 'Alert Feedback'],
@@ -604,7 +607,6 @@ class GamEntity():
     RESOURCE_CALENDAR: ['Resource Calendars', 'Resource Calendar'],
     RESOURCE_ID: ['Resource IDs', 'Resource ID'],
     ROLE: ['Roles', 'Role'],
-    ROLE_ASSIGNMENT_ID: ['Role Assignment IDs', 'Role Assignment ID'],
     ROW: ['Rows', 'Row'],
     SCOPE: ['Scopes', 'Scope'],
     SECTION: ['Sections', 'Section'],

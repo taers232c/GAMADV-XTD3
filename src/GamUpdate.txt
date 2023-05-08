@@ -1,3 +1,9 @@
+6.59.03
+
+Cleaned up `Getting/Got` messages for several commands.
+
+Improved performance of `gam print admins`.
+
 6.59.02
 
 Updated the Analytic account/property commands to use service account access so that data

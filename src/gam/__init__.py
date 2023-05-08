@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.02'
+__version__ = '6.59.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4304,7 +4304,9 @@ class signjwtSignJwt(google.auth.crypt.Signer):
 
 def handleOAuthTokenError(e, softErrors):
   errMsg = str(e).replace('.', '')
-  if errMsg in API.OAUTH2_TOKEN_ERRORS or errMsg.startswith('Invalid response'):
+  if ((errMsg in API.OAUTH2_TOKEN_ERRORS) or
+      errMsg.startswith('Invalid response') or
+      errMsg.startswith('invalid_request: Invalid impersonation &quot;sub&quot; field')):
     if softErrors:
       return None
     if not GM.Globals[GM.CURRENT_SVCACCT_USER]:
@@ -5943,7 +5945,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
       printGettingAllEntityItemsForWhom(Ent.USER, domain, entityType=Ent.DOMAIN)
       try:
         result = callGAPIpages(cd.users(), 'list', 'users',
-                               pageMessage=getPageMessage(),
+                               pageMessage=getPageMessageForWhom(),
                                throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN],
                                domain=domain,
                                query=query, orderBy='email', fields='nextPageToken,users(primaryEmail,archived)',
@@ -6301,10 +6303,9 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
       for query in queries:
         printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou,
                                           query=query, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-        pageMessage = getPageMessage()
         try:
           result = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
-                                 pageMessage=getPageMessage(),
+                                 pageMessage=getPageMessageForWhom(),
                                  throwReasons=[GAPI.INVALID_INPUT, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND,
                                                GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
                                  customerId=GC.Values[GC.CUSTOMER_ID], query=query,
@@ -6346,7 +6347,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
       printGettingAllEntityItemsForWhom(Ent.CHROME_BROWSER, ou, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
       try:
         result = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
-                               pageMessage=getPageMessage(),
+                               pageMessage=getPageMessageForWhom(),
                                throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
                                customer=customerId, orgUnitPath=ou, projection='BASIC',
                                orderBy='id', sortOrder='ASCENDING', fields='nextPageToken,browsers(deviceId)')
@@ -11681,7 +11682,6 @@ def doPrintShowSvcAccts():
   else:
     csvPF.AddTitles(['projectId']+SVCACCT_DISPLAY_FIELDS)
     csvPF.SetSortAllTitles()
-  Ind.Increment()
   i = 0
   for project in projects:
     i += 1
@@ -11735,7 +11735,6 @@ def doPrintShowSvcAccts():
                                                        ensure_ascii=False, sort_keys=True)})
     except (GAPI.notFound, GAPI.permissionDenied) as e:
       entityActionFailedWarning([Ent.PROJECT, projectId], str(e), i, count)
-  Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Service Accounts')
 
@@ -14781,7 +14780,7 @@ def printShowAnalyticItems(users, entityType):
     jcount = len(results)
     if not csvPF:
       if not FJQC.formatJSON:
-        performActionNumItems(jcount, entityType)
+        entityPerformActionNumItems([Ent.USER, user], jcount, entityType)
       Ind.Increment()
       j = 0
       for item in results:
@@ -15422,11 +15421,11 @@ def doCreateUpdateAdminRoles():
       result = callGAPI(cd.roles(), 'patch',
                         throwReasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN]+[GAPI.NOT_FOUND],
                         customer=GC.Values[GC.CUSTOMER_ID], roleId=roleId, body=body, fields='roleId,roleName')
-    entityActionPerformed([Ent.ROLE, f"{result['roleName']}({result['roleId']})"])
+    entityActionPerformed([Ent.ADMIN_ROLE, f"{result['roleName']}({result['roleId']})"])
   except GAPI.duplicate as e:
-    entityActionFailedWarning([Ent.ROLE, f"{body['roleName']}"], str(e))
+    entityActionFailedWarning([Ent.ADMIN_ROLE, f"{body['roleName']}"], str(e))
   except (GAPI.notFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.ROLE, roleId], str(e))
+    entityActionFailedWarning([Ent.ADMIN_ROLE, roleId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
@@ -15439,16 +15438,16 @@ def doDeleteAdminRole():
     callGAPI(cd.roles(), 'delete',
              throwReasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN]+[GAPI.NOT_FOUND],
              customer=GC.Values[GC.CUSTOMER_ID], roleId=roleId)
-    entityActionPerformed([Ent.ROLE, f"{role}({roleId})"])
+    entityActionPerformed([Ent.ADMIN_ROLE, f"{role}({roleId})"])
   except (GAPI.notFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.ROLE, roleId], str(e))
+    entityActionFailedWarning([Ent.ADMIN_ROLE, roleId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
 PRINT_ADMIN_ROLES_FIELDS = ['roleId', 'roleName', 'roleDescription', 'isSuperAdminRole', 'isSystemRole']
 
 def _showAdminRole(role, i=0, count=0):
-  printEntity([Ent.ROLE, role['roleName']], i, count)
+  printEntity([Ent.ADMIN_ROLE, role['roleName']], i, count)
   Ind.Increment()
   for field in PRINT_ADMIN_ROLES_FIELDS:
     if field != 'roleName' and field in role:
@@ -15487,7 +15486,7 @@ def doInfoAdminRole():
     role.setdefault('isSystemRole', False)
     _showAdminRole(role)
   except (GAPI.notFound, GAPI.forbidden) as e:
-    entityActionFailedWarning([Ent.ROLE, roleId], str(e))
+    entityActionFailedWarning([Ent.ADMIN_ROLE, roleId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
@@ -15509,8 +15508,10 @@ def doPrintShowAdminRoles():
     else:
       unknownArgumentExit()
   fields = getItemFieldsFromFieldsList('items', fieldsList)
+  printGettingAllAccountEntities(Ent.ADMIN_ROLE)
   try:
     roles = callGAPIpages(cd.roles(), 'list', 'items',
+                          pageMessage=getPageMessage(),
                           throwReasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
                           customer=GC.Values[GC.CUSTOMER_ID], fields=fields)
   except (GAPI.badRequest, GAPI.customerNotFound, GAPI.forbidden):
@@ -15520,7 +15521,7 @@ def doPrintShowAdminRoles():
     role.setdefault('isSystemRole', False)
   if not csvPF:
     count = len(roles)
-    performActionNumItems(count, Ent.ROLE)
+    performActionNumItems(count, Ent.ADMIN_ROLE)
     Ind.Increment()
     i = 0
     for role in roles:
@@ -15578,18 +15579,18 @@ def doCreateAdmin():
       entityType = Ent.GROUP
     else:
       entityType = Ent.ADMINISTRATOR
-    entityActionPerformedMessage([Ent.ROLE_ASSIGNMENT_ID, result['roleAssignmentId']],
-                                 f'{Ent.Singular(entityType)} {user}, {Ent.Singular(Ent.ROLE)} {role}, {Ent.Singular(Ent.SCOPE)} {scope}')
+    entityActionPerformedMessage([Ent.ADMIN_ROLE_ASSIGNMENT, result['roleAssignmentId']],
+                                 f'{Ent.Singular(entityType)} {user}, {Ent.Singular(Ent.ADMIN_ROLE)} {role}, {Ent.Singular(Ent.SCOPE)} {scope}')
   except GAPI.internalError:
     pass
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
   except (GAPI.forbidden, GAPI.customerExceededRoleAssignmentsLimit, GAPI.serviceNotAvailable) as e:
-    entityActionFailedWarning([Ent.ADMINISTRATOR, user, Ent.ROLE, role], str(e))
+    entityActionFailedWarning([Ent.ADMINISTRATOR, user, Ent.ADMIN_ROLE, role], str(e))
   except GAPI.invalidOrgunit:
     entityActionFailedWarning([Ent.ADMINISTRATOR, user], Msg.INVALID_ORGUNIT)
   except GAPI.duplicate:
-    entityActionFailedWarning([Ent.ADMINISTRATOR, user, Ent.ROLE, role], Msg.DUPLICATE)
+    entityActionFailedWarning([Ent.ADMINISTRATOR, user, Ent.ADMIN_ROLE, role], Msg.DUPLICATE)
 
 # gam delete admin <RoleAssignmentId>
 def doDeleteAdmin():
@@ -15603,10 +15604,10 @@ def doDeleteAdmin():
                            GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=GC.Values[GC.CUSTOMER_ID], roleAssignmentId=roleAssignmentId)
-    entityActionPerformed([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId])
+    entityActionPerformed([Ent.ADMIN_ROLE_ASSIGNMENT, roleAssignmentId])
   except (GAPI.notFound, GAPI.operationNotSupported, GAPI.forbidden,
           GAPI.invalidInput, GAPI.serviceNotAvailable) as e:
-    entityActionFailedWarning([Ent.ROLE_ASSIGNMENT_ID, roleAssignmentId], str(e))
+    entityActionFailedWarning([Ent.ADMIN_ROLE_ASSIGNMENT, roleAssignmentId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
 
@@ -15625,28 +15626,32 @@ def doPrintShowAdmins():
                         throwReasons=[GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN]+[GAPI.NOT_FOUND],
                         customer=GC.Values[GC.CUSTOMER_ID], roleId=admin['roleId'], fields='rolePrivileges')
       except (GAPI.notFound, GAPI.forbidden) as e:
-        entityActionFailedExit([Ent.USER, userKey, Ent.ROLE, admin['roleId']], str(e))
+        entityActionFailedExit([Ent.USER, userKey, Ent.ADMIN_ROLE, admin['roleId']], str(e))
       except (GAPI.badRequest, GAPI.customerNotFound):
         accessErrorExit(cd)
     return None
 
   def _setNamesFromIds(admin, privileges):
-    assigneeType = admin.get('assigneeType')
-    if assigneeType == 'user':
-      assignedToField = 'assignedToUser'
-    elif assigneeType == 'group':
-      assignedToField = 'assignedToGroup'
-    else:
-      assignedToField = None
-    assigneeEmail, assigneeType = convertUIDtoEmailAddressWithType(f'uid:{admin["assignedTo"]}', cd, emailTypes=['user', 'group'])
-    if not assignedToField and assigneeType in ['user', 'group']:
+    admin['role'] = role_from_roleid(admin['roleId'])
+    assignedTo = admin['assignedTo']
+    if assignedTo not in assignedToIdEmailMap:
+      assigneeType = admin.get('assigneeType')
       if assigneeType == 'user':
         assignedToField = 'assignedToUser'
-      else:
+      elif assigneeType == 'group':
         assignedToField = 'assignedToGroup'
+      else:
+        assignedToField = None
+      assigneeEmail, assigneeType = convertUIDtoEmailAddressWithType(f'uid:{assignedTo}', cd, emailTypes=['user', 'group'])
+      if not assignedToField and assigneeType in ['user', 'group']:
+        if assigneeType == 'user':
+          assignedToField = 'assignedToUser'
+        else:
+          assignedToField = 'assignedToGroup'
+      assignedToIdEmailMap[assignedTo] = {'assignedToField': assignedToField, 'assigneeEmail': assigneeEmail}
+    assignedToField = assignedToIdEmailMap[assignedTo]['assignedToField']
     if assignedToField:
-      admin[assignedToField] = assigneeEmail
-    admin['role'] = role_from_roleid(admin['roleId'])
+      admin[assignedToField] = assignedToIdEmailMap[assignedTo]['assigneeEmail']
     if privileges is not None:
       admin['rolePrivileges'] = privileges
     if 'orgUnitId' in admin:
@@ -15658,12 +15663,13 @@ def doPrintShowAdmins():
         admin['condition'] = 'nonsecuritygroup'
 
   cd = buildGAPIObject(API.DIRECTORY)
+  csvPF = CSVPrintFile() if Act.csvFormat() else None
   roleId = None
   userKey = None
   showPrivileges = False
   kwargs = {}
   fieldsList = PRINT_ADMIN_FIELDS
-  csvPF = CSVPrintFile() if Act.csvFormat() else None
+  assignedToIdEmailMap = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -15687,20 +15693,22 @@ def doPrintShowAdmins():
   fields = getItemFieldsFromFieldsList('items', fieldsList)
   if csvPF:
     csvPF.SetTitles(PRINT_ADMIN_TITLES)
+  printGettingAllAccountEntities(Ent.ADMIN_ROLE_ASSIGNMENT)
   try:
     admins = callGAPIpages(cd.roleAssignments(), 'list', 'items',
+                           pageMessage=getPageMessage(),
                            throwReasons=[GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
                            customer=GC.Values[GC.CUSTOMER_ID], fields=fields, **kwargs)
   except (GAPI.invalid, GAPI.userNotFound):
     entityUnknownWarning(Ent.ADMINISTRATOR, userKey)
     return
   except GAPI.forbidden as e:
-    entityActionFailedExit([Ent.ADMINISTRATOR, userKey, Ent.ROLE, roleId], str(e))
+    entityActionFailedExit([Ent.ADMINISTRATOR, userKey, Ent.ADMIN_ROLE, roleId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
   if not csvPF:
     count = len(admins)
-    performActionNumItems(count, Ent.ROLE_ASSIGNMENT_ID)
+    performActionNumItems(count, Ent.ADMIN_ROLE_ASSIGNMENT)
     Ind.Increment()
     i = 0
     for admin in admins:
@@ -15708,7 +15716,7 @@ def doPrintShowAdmins():
       if roleId and roleId != admin['roleId']:
         continue
       _setNamesFromIds(admin, _getPrivileges(admin))
-      printEntity([Ent.ROLE_ASSIGNMENT_ID, admin['roleAssignmentId']], i, count)
+      printEntity([Ent.ADMIN_ROLE_ASSIGNMENT, admin['roleAssignmentId']], i, count)
       Ind.Increment()
       for field in PRINT_ADMIN_TITLES:
         if field in admin:
@@ -16638,7 +16646,7 @@ def doPrintOrgs():
       userCounts[orgUnit['orgUnitPath']] = [0, 0]
     qualifier = Msg.IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
     printGettingAllEntityItemsForWhom(Ent.USER, orgUnitPath, qualifier=qualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-    pageMessage = getPageMessage()
+    pageMessage = getPageMessageForWhom()
     try:
       feed = yieldGAPIpages(cd.users(), 'list', 'users',
                             pageMessage=pageMessage,
@@ -16658,7 +16666,7 @@ def doPrintOrgs():
     if showCrOSCounts:
       crosCounts[orgUnit['orgUnitPath']] = {}
       printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, orgUnitPath, entityType=Ent.ORGANIZATIONAL_UNIT)
-      pageMessage = getPageMessage()
+      pageMessage = getPageMessageForWhom()
       pageToken = None
       totalItems = 0
       tokenRetries = 0
@@ -18339,7 +18347,7 @@ def queryContacts(contactsObject, contactQuery):
   printGettingAllEntityItemsForWhom(Ent.CONTACT, user, query=contactQuery['query'])
   try:
     entityList = callGDataPages(contactsObject, 'GetContactsFeed',
-                                pageMessage=getPageMessage(),
+                                pageMessage=getPageMessageForWhom(),
                                 throwErrors=[GDATA.BAD_REQUEST, GDATA.FORBIDDEN],
                                 retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
                                 uri=uri, url_params=contactQuery['url_params'])
@@ -19798,9 +19806,8 @@ def _getPeopleOtherContactEntityList(unknownAction):
 def _getPeopleOtherContacts(people, entityType, user, i=0, count=0):
   try:
     printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count)
-    pageMessage = getPageMessage()
     results = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
-                            pageMessage=pageMessage,
+                            pageMessage=getPageMessageForWhom(),
                             throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
@@ -19816,9 +19823,9 @@ def _getPeopleOtherContacts(people, entityType, user, i=0, count=0):
 
 def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, user, i=0, count=0):
   sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['domaincontact' if entityType == Ent.DOMAIN else 'contact']]
+  printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=contactQuery['query'])
+  pageMessage = getPageMessageForWhom()
   try:
-    printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT, user, i, count, query=contactQuery['query'])
-    pageMessage = getPageMessage()
 # Contact group not selected
     if not contactQuery['contactGroupSelect']:
       if not contactQuery['query']:
@@ -19871,9 +19878,9 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
 
 def queryPeopleOtherContacts(people, contactQuery, fields, entityType, user, i=0, count=0):
   sources = [PEOPLE_READ_SOURCES_CHOICE_MAP['contact']]
+  printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=contactQuery['query'])
+  pageMessage = getPageMessageForWhom()
   try:
-    printGettingAllEntityItemsForWhom(Ent.OTHER_CONTACT, user, i, count, query=contactQuery['query'])
-    pageMessage = getPageMessage()
     if not contactQuery['query']:
       entityList = callGAPIpages(people.otherContacts(), 'list', 'otherContacts',
                                  pageMessage=pageMessage,
@@ -21020,7 +21027,7 @@ def _printShowPeople(source):
   printGettingAllEntityItemsForWhom(peopleEntityType, GC.Values[GC.DOMAIN], query=kwargs.get('query'))
   try:
     entityList = callGAPIpages(people.people(), function, 'people',
-                               pageMessage=getPageMessage(),
+                               pageMessage=getPageMessageForWhom(),
                                throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                                pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                sources=sources, mergeSources=mergeSources,
@@ -21552,7 +21559,7 @@ def printShowUserPeopleContactGroups(users):
     printGettingAllEntityItemsForWhom(Ent.PEOPLE_CONTACT_GROUP, user, i, count)
     try:
       entityList = callGAPIpages(people.contactGroups(), 'list', 'contactGroups',
-                                 pageMessage=getPageMessage(),
+                                 pageMessage=getPageMessageForWhom(),
                                  throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                                  pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
                                  groupFields=fields, fields='nextPageToken,contactGroups')
@@ -21656,10 +21663,10 @@ def printShowContactDelegates(users):
     user = checkUserExists(cd, user, Ent.USER, i, count)
     if not user:
       continue
-    if csvPF:
-      printGettingAllEntityItemsForWhom(Ent.CONTACT_DELEGATE, user, i, count)
+    printGettingAllEntityItemsForWhom(Ent.CONTACT_DELEGATE, user, i, count)
     try:
       delegates = callGAPIpages(condel.delegates(), 'list', 'delegates',
+                                pageMessage=getPageMessageForWhom(),
                                 throwReasons=GAPI.CONTACT_DELEGATE_THROW_REASONS,
                                 user=user)
     except (GAPI.failedPrecondition, GAPI.permissionDenied, GAPI.forbidden, GAPI.invalidArgument) as e:
@@ -22860,7 +22867,7 @@ def doPrintCrOSDevices(entityList=None):
       for query in queries:
         printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, ou,
                                           query=query, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
-        pageMessage = getPageMessage()
+        pageMessage = getPageMessageForWhom()
         pageToken = None
         totalItems = 0
         tokenRetries = 0
@@ -23119,9 +23126,10 @@ def doPrintCrOSActivity(entityList=None):
           if orgUnitPath is not None:
             oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
             printGettingAllEntityItemsForWhom(Ent.CROS_DEVICE, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+            pageMessage = getPageMessageForWhom()
           else:
             printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
-          pageMessage = getPageMessage()
+            pageMessage = getPageMessage()
           pageToken = None
           totalItems = 0
           tokenRetries = 0
@@ -24908,10 +24916,9 @@ def doPrintShowChromePolicies():
     body['policySchemaFilter'] = f'{namespace}.*' if not policySchemaFilter else policySchemaFilter
     body['pageToken'] = None
     printGettingAllEntityItemsForWhom(Ent.CHROME_POLICY, orgUnitPath, query=body['policySchemaFilter'])
-    pageMessage = getPageMessage()
     try:
       policies.extend(callGAPIpages(cp.customers().policies(), 'resolve', 'resolvedPolicies',
-                                    pageMessage=pageMessage,
+                                    pageMessage=getPageMessageForWhom(),
                                     throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
                                     customer=customer, body=body, pageArgsInBody=True))
     except GAPI.notFound as e:
@@ -26326,13 +26333,14 @@ def doPrintShowPrinters():
       if orgUnitId is not None:
         oneQualifier = Msg.DIRECTLY_IN_THE.format(Ent.Singular(Ent.ORGANIZATIONAL_UNIT))
         printGettingAllEntityItemsForWhom(Ent.PRINTER, orgUnitPath, qualifier=oneQualifier, entityType=Ent.ORGANIZATIONAL_UNIT)
+        pageMessage = getPageMessageForWhom()
       else:
         printGettingAllAccountEntities(Ent.PRINTER, pfilter)
-      pageMessage = getPageMessage()
+        pageMessage = getPageMessage()
       try:
         printers = callGAPIpages(cd.customers().chrome().printers(), 'list', 'printers',
-                                 throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
                                  pageMessage=pageMessage,
+                                 throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
                                  parent=parent, orgUnitId=orgUnitId, filter=pfilter, fields=fields)
       except (GAPI.invalid, GAPI.permissionDenied) as e:
         entityActionFailedWarning([Ent.PRINTER, None], str(e))
@@ -30133,6 +30141,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
   validRoles, listRoles, listFields = _getRoleVerification(memberRoles, 'nextPageToken,members(email,id,role,status,type,delivery_settings)')
   try:
     groupMembers = callGAPIpages(cd.members(), 'list', 'members',
+                                 pageMessage=getPageMessageForWhom(),
                                  throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                  includeDerivedMembership=memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP],
                                  groupKey=groupEmail, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
@@ -31850,6 +31859,7 @@ def getCIGroupMembers(ci, groupName, memberRoles, membersList, membersSet, i, co
     return
   try:
     groupMembers = callGAPIpages(ci.groups().memberships(), 'list', 'memberships',
+                                 pageMessage=getPageMessageForWhom(),
                                  throwReasons=GAPI.CIGROUP_LIST_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                  parent=groupName, view='FULL',
                                  fields='nextPageToken,memberships(*)', pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
@@ -36970,10 +36980,9 @@ def printShowUserVaultHolds(entityList):
     matterName = matter['name']
     matterNameId = formatVaultNameId(matterName, matterId)
     printGettingAllEntityItemsForWhom(Ent.VAULT_HOLD, f'{Ent.Singular(Ent.VAULT_MATTER)}: {matterNameId}', j, jcount)
-    pageMessage = getPageMessageForWhom()
     try:
       matter['holds'] = callGAPIpages(v.matters().holds(), 'list', 'holds',
-                                      pageMessage=pageMessage,
+                                      pageMessage=getPageMessageForWhom(),
                                       throwReasons=[GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN],
                                       matterId=matterId, fields='holds(holdId,name,accounts(accountId,email),orgUnit(orgUnitId)),nextPageToken')
     except GAPI.failedPrecondition:
@@ -38022,7 +38031,7 @@ def printShowSites(entityList, entityType):
   def _getSites(domain, i, count):
     try:
       return callGDataPages(sitesObject, 'GetSiteFeed',
-                            pageMessage=getPageMessage(),
+                            pageMessage=getPageMessageForWhom(),
                             throwErrors=[GDATA.NOT_FOUND, GDATA.FORBIDDEN],
                             retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
                             domain=domain, url_params=url_params)
@@ -38361,7 +38370,7 @@ def _printSiteActivity(users, entityType):
       printGettingAllEntityItemsForWhom(Ent.ACTIVITY, domainSite)
       try:
         activities = callGDataPages(sitesObject, 'GetActivityFeed',
-                                    pageMessage=getPageMessage(),
+                                    pageMessage=getPageMessageForWhom(),
                                     throwErrors=[GDATA.NOT_FOUND, GDATA.FORBIDDEN],
                                     retryErrors=[GDATA.INTERNAL_SERVER_ERROR],
                                     domain=domain, site=site, url_params=url_params)
@@ -40371,6 +40380,7 @@ def doPrintUsers(entityList=None):
         printGettingAllEntityItemsForWhom(Ent.GROUP_MEMBERSHIP, userEmail, i, count)
         try:
           groups = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 pageMessage=getPageMessageForWhom(),
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  userKey=userEmail, orderBy='email', fields='nextPageToken,groups(email)')
           numGroups = len(groups)
@@ -42008,7 +42018,7 @@ class CourseAttributes():
                                         _gettingCourseEntityQuery(Ent.COURSE_ANNOUNCEMENT_STATE, self.announcementStates))
       try:
         self.courseAnnouncements = callGAPIpages(self.croom.courses().announcements(), 'list', 'announcements',
-                                                 pageMessage=getPageMessage(),
+                                                 pageMessage=getPageMessageForWhom(),
                                                  throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                                  courseId=self.courseId, announcementStates=self.announcementStates,
@@ -42025,7 +42035,7 @@ class CourseAttributes():
                                         _gettingCourseEntityQuery(Ent.COURSE_MATERIAL_STATE, self.materialStates))
       try:
         self.courseMaterials = callGAPIpages(self.croom.courses().courseWorkMaterials(), 'list', 'courseWorkMaterial',
-                                             pageMessage=getPageMessage(),
+                                             pageMessage=getPageMessageForWhom(),
                                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                              courseId=self.courseId, courseWorkMaterialStates=self.materialStates,
@@ -42046,7 +42056,7 @@ class CourseAttributes():
                                         _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, self.workStates))
       try:
         self.courseWorks = callGAPIpages(self.croom.courses().courseWork(), 'list', 'courseWork',
-                                         pageMessage=getPageMessage(),
+                                         pageMessage=getPageMessageForWhom(),
                                          throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                          courseId=self.courseId, courseWorkStates=self.workStates,
@@ -42070,7 +42080,7 @@ class CourseAttributes():
       printGettingAllEntityItemsForWhom(Ent.COURSE_TOPIC, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0)
       try:
         courseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
-                                     pageMessage=getPageMessage(),
+                                     pageMessage=getPageMessageForWhom(),
                                      throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                      courseId=self.courseId, fields='nextPageToken,topic(topicId,name)',
@@ -43138,7 +43148,7 @@ def doPrintCourseAnnouncements():
                                         _gettingCourseEntityQuery(Ent.COURSE_ANNOUNCEMENT_STATE, courseAnnouncementStates))
       try:
         results = callGAPIpages(croom.courses().announcements(), 'list', 'announcements',
-                                pageMessage=getPageMessage(),
+                                pageMessage=getPageMessageForWhom(),
                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 courseId=courseId, announcementStates=courseAnnouncementStates, orderBy=OBY.orderBy,
@@ -43225,7 +43235,7 @@ def doPrintCourseTopics():
       printGettingAllEntityItemsForWhom(Ent.COURSE_TOPIC, Ent.TypeName(Ent.COURSE, courseId), i, count)
       try:
         results = callGAPIpages(croom.courses().topics(), 'list', 'topic',
-                                pageMessage=getPageMessage(),
+                                pageMessage=getPageMessageForWhom(),
                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 courseId=courseId,
@@ -43446,7 +43456,7 @@ def doPrintCourseWM(entityIDType, entityStateType):
                                         _gettingCourseEntityQuery(entityStateType, courseWMSelectionParameters['courseWMStates']))
       try:
         results = callGAPIpages(service, 'list', items,
-                                pageMessage=getPageMessage(),
+                                pageMessage=getPageMessageForWhom(),
                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS,
                                 courseId=courseId, orderBy=OBY.orderBy,
                                 fields=fields, pageSize=GC.Values[GC.CLASSROOM_MAX_RESULTS], **kwargs)
@@ -43627,7 +43637,7 @@ def doPrintCourseSubmissions():
                                         _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, courseWMSelectionParameters['courseWMStates']))
       try:
         results = callGAPIpages(croom.courses().courseWork(), 'list', 'courseWork',
-                                pageMessage=getPageMessage(),
+                                pageMessage=getPageMessageForWhom(),
                                 throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                 courseId=courseId, courseWorkStates=courseWMSelectionParameters['courseWMStates'], orderBy=OBY.orderBy,
@@ -43652,7 +43662,7 @@ def doPrintCourseSubmissions():
                                           _gettingCourseSubmissionQuery(courseSubmissionStates, late, courseSelectionParameters['studentId']))
         try:
           results = callGAPIpages(croom.courses().courseWork().studentSubmissions(), 'list', 'studentSubmissions',
-                                  pageMessage=getPageMessage(),
+                                  pageMessage=getPageMessageForWhom(),
                                   throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                   retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                   courseId=courseId, courseWorkId=courseWorkId, states=courseSubmissionStates, late=late, userId=courseSelectionParameters['studentId'],
@@ -44557,6 +44567,8 @@ def _printShowGuardians(entityList=None):
       guardianClass = GUARDIAN_CLASS_ACCEPTED
     elif myarg == 'all':
       guardianClass = GUARDIAN_CLASS_ALL
+      if not states:
+        states.append('PENDING')
     elif myarg in {'state', 'states', 'status'}:
       statesList = getString(Cmd.OB_GUARDIAN_STATE_LIST).lower().split(',')
       states = []
@@ -44596,11 +44608,22 @@ def _printShowGuardians(entityList=None):
       studentId = normalizeStudentGuardianEmailAddressOrUID(studentId)
       if showStudentEmails:
         studentId = _getClassroomEmail(croom, classroomEmails, studentId, studentId)
-      if csvPF:
-        printGettingAllEntityItemsForWhom(GUARDIAN_CLASS_ENTITY[guardianClass], studentId, i, count)
     try:
       if guardianClass != GUARDIAN_CLASS_ACCEPTED:
+        if csvPF:
+          if states:
+            qualifier = f' ({",".join(states)})'
+          else:
+            qualifier = ''
+          if not allStudents:
+            printGettingAllEntityItemsForWhom(Ent.GUARDIAN_INVITATION, studentId, i, count, qualifier=qualifier)
+          else:
+            printGettingAllEntityItemsForWhom(Ent.GUARDIAN_INVITATION, 'All students', qualifier=qualifier)
+          pageMessage = getPageMessageForWhom()
+        else:
+          pageMessage = None
         invitations = callGAPIpages(croom.userProfiles().guardianInvitations(), 'list', 'guardianInvitations',
+                                    pageMessage=pageMessage,
                                     throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
                                                   GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
                                     retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
@@ -44634,8 +44657,19 @@ def _printShowGuardians(entityList=None):
             csvPF.WriteRow({'studentId': studentId, 'studentEmail': _getClassroomEmail(croom, classroomEmails, studentId, studentId),
                             'JSON': json.dumps(cleanJSON(invitations, timeObjects=GUARDIAN_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)})
       if guardianClass != GUARDIAN_CLASS_INVITATIONS:
+        if csvPF:
+          if not allStudents:
+            printGettingAllEntityItemsForWhom(Ent.GUARDIAN, studentId, i, count)
+          else:
+            printGettingAllEntityItemsForWhom(Ent.GUARDIAN, 'All students')
+          pageMessage = getPageMessageForWhom()
+        else:
+          pageMessage = None
         guardians = callGAPIpages(croom.userProfiles().guardians(), 'list', 'guardians',
-                                  throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                                  pageMessage=pageMessage,
+                                  throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.BAD_REQUEST,
+                                                GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                                  retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                   studentId=studentId, invitedEmailAddress=invitedEmailAddress)
         jcount = len(guardians)
         if not csvPF:
@@ -50462,14 +50496,13 @@ def printFileList(users):
     mimeTypeCounts = {}
     if buildTree:
       printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
-      pageMessage = getPageMessageForWhom()
       if not incrementalPrint:
         fileTree, status = initFileTree(drive, fileIdEntity.get('shareddrive'), DLP, shareddriveFields, showParent, user, i, count)
         if not status:
           continue
       try:
         feed = yieldGAPIpages(drive.files(), 'list', 'files',
-                              pageMessage=pageMessage, maxItems=DLP.maxItems,
+                              pageMessage=getPageMessageForWhom(), maxItems=DLP.maxItems,
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
                                                                           GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND,
                                                                           GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
@@ -50902,10 +50935,9 @@ def printShowFileCounts(users):
       sharedDriveName = ''
     mimeTypeCounts = {}
     printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
-    pageMessage = getPageMessageForWhom()
     try:
       feed = yieldGAPIpages(drive.files(), 'list', 'files',
-                            pageMessage=pageMessage,
+                            pageMessage=getPageMessageForWhom(),
                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
                                                                         GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND,
                                                                         GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
@@ -51049,10 +51081,9 @@ def printShowFileShareCounts(users):
       continue
     userShareCounts = FILESHARECOUNTS_ZEROCOUNTS.copy()
     printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=query)
-    pageMessage = getPageMessageForWhom()
     try:
       feed = yieldGAPIpages(drive.files(), 'list', 'files',
-                            pageMessage=pageMessage,
+                            pageMessage=getPageMessageForWhom(),
                             throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                             retryReasons=[GAPI.UNKNOWN_ERROR],
                             q=query, fields='nextPageToken,files(permissions(type,role,emailAddress,domain,allowFileDiscovery,deleted))',
@@ -51066,24 +51097,24 @@ def printShowFileShareCounts(users):
               incrementCounter(FILESHARECOUNTS_TOTAL)
             else:
               incrementCounter(FILESHARECOUNTS_SHARED)
-              type = permission['type']
-              if type == 'anyone':
+              ptype = permission['type']
+              if ptype == 'anyone':
                 incrementCounter(FILESHARECOUNTS_SHARED_EXTERNAL)
-                userShareCounts[FILESHARECOUNTS_CATEGORIES[type][not permission['allowFileDiscovery']]] += 1
+                userShareCounts[FILESHARECOUNTS_CATEGORIES[ptype][not permission['allowFileDiscovery']]] += 1
               else:
                 domain = permission.get('domain', '')
-                if not domain and type in ['user', 'group']:
+                if not domain and ptype in ['user', 'group']:
                   if permission.get('deleted') == 'True':
-                    userShareCounts[FILESHARECOUNTS_CATEGORIES['deleted'][type]] += 1
+                    userShareCounts[FILESHARECOUNTS_CATEGORIES['deleted'][ptype]] += 1
                     continue
                   emailAddress = permission['emailAddress']
                   domain = emailAddress[emailAddress.find('@')+1:]
                 internal = domain in internalDomains
                 incrementCounter([FILESHARECOUNTS_SHARED_EXTERNAL, FILESHARECOUNTS_SHARED_INTERNAL][internal])
-                if type == 'domain':
-                  userShareCounts[FILESHARECOUNTS_CATEGORIES[type][internal][not permission['allowFileDiscovery']]] +=1
+                if ptype == 'domain':
+                  userShareCounts[FILESHARECOUNTS_CATEGORIES[ptype][internal][not permission['allowFileDiscovery']]] +=1
                 else: # group, user
-                  userShareCounts[FILESHARECOUNTS_CATEGORIES[type][internal]] += 1
+                  userShareCounts[FILESHARECOUNTS_CATEGORIES[ptype][internal]] += 1
       showShareCounts(user, userShareCounts, i, count)
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
@@ -51308,10 +51339,9 @@ def printShowFileTree(users):
       if not status:
         continue
       printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
-      pageMessage = getPageMessageForWhom()
       try:
         feed = yieldGAPIpages(drive.files(), 'list', 'files',
-                              pageMessage=pageMessage,
+                              pageMessage=getPageMessageForWhom(),
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
                               retryReasons=[GAPI.UNKNOWN_ERROR],
                               orderBy=OBY.orderBy,
@@ -58230,10 +58260,12 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
     try:
       if useDomainAdminAccess:
         printGettingAllAccountEntities(Ent.SHAREDDRIVE, query)
+        pageMessage = getPageMessage()
       else:
         printGettingAllEntityItemsForWhom(Ent.SHAREDDRIVE, user, i, count, query)
+        pageMessage = getPageMessageForWhom()
       feed = callGAPIpages(drive.drives(), 'list', 'drives',
-                           pageMessage=getPageMessage(),
+                           pageMessage=pageMessage,
                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
                                                                        GAPI.QUERY_REQUIRES_ADMIN_CREDENTIALS,
                                                                        GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE,
@@ -58529,10 +58561,12 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
       try:
         if useDomainAdminAccess:
           printGettingAllAccountEntities(Ent.SHAREDDRIVE, query)
+          pageMessage = getPageMessage()
         else:
           printGettingAllEntityItemsForWhom(Ent.SHAREDDRIVE, user, i, count, query)
+          pageMessage = getPageMessageForWhom()
         feed = callGAPIpages(drive.drives(), 'list', 'drives',
-                             pageMessage=getPageMessage(),
+                             pageMessage=pageMessage,
                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
                                                                          GAPI.QUERY_REQUIRES_ADMIN_CREDENTIALS,
                                                                          GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
@@ -58556,6 +58590,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
       shareddrive['permissions'] = []
       try:
         permissions = callGAPIpages(drive.permissions(), 'list', 'permissions',
+                                    pageMessage=getPageMessageForWhom(),
                                     throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
                                     retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                                     useDomainAdminAccess=useDomainAdminAccess,
@@ -59524,9 +59559,13 @@ def printShowUserGroups(users):
     user = normalizeEmailAddressOrUID(user)
     if csvPF:
       printGettingAllEntityItemsForWhom(Ent.GROUP, user, i, count)
+      pageMessage = getPageMessageForWhom()
+    else:
+      pageMessage = None
     _setUserGroupArgs(user, kwargs)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 pageMessage=pageMessage,
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
@@ -59760,6 +59799,7 @@ def printUserGroupsList(users):
     _setUserGroupArgs(user, kwargs)
     try:
       entityList = callGAPIpages(cd.groups(), 'list', 'groups',
+                                 pageMessage=getPageMessageForWhom(),
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  orderBy='email', fields='nextPageToken,groups(email)', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
@@ -62138,7 +62178,7 @@ def archiveMessages(users):
       if parameters['messageEntity'] is None:
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
-                                   pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
+                                   pageMessage=getPageMessageForWhom(), maxItems=parameters['maxItems'],
                                    throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                                    userId='me', q=parameters['query'], fields=parameters['fields'],
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
@@ -62288,7 +62328,7 @@ def _processMessagesThreads(users, entityType):
       if parameters['messageEntity'] is None:
         printGettingAllEntityItemsForWhom(Ent.MESSAGE, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
-                                   pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
+                                   pageMessage=getPageMessageForWhom(), maxItems=parameters['maxItems'],
                                    throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                                    userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
@@ -62392,7 +62432,7 @@ def exportMessagesThreads(users, entityType):
       if parameters['messageEntity'] is None:
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
-                                   pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
+                                   pageMessage=getPageMessageForWhom(), maxItems=parameters['maxItems'],
                                    throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                                    userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
@@ -62531,7 +62571,7 @@ def forwardMessagesThreads(users, entityType):
       if parameters['messageEntity'] is None:
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
-                                   pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
+                                   pageMessage=getPageMessageForWhom(), maxItems=parameters['maxItems'],
                                    throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                                    userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
@@ -63502,7 +63542,7 @@ def printShowMessagesThreads(users, entityType):
       if parameters['messageEntity'] is None:
         printGettingAllEntityItemsForWhom(entityType, user, i, count)
         listResult = callGAPIpages(service, 'list', parameters['listType'],
-                                   pageMessage=getPageMessage(), maxItems=parameters['maxItems'],
+                                   pageMessage=getPageMessageForWhom(), maxItems=parameters['maxItems'],
                                    throwReasons=GAPI.GMAIL_THROW_REASONS+GAPI.GMAIL_LIST_THROW_REASONS,
                                    userId='me', q=parameters['query'], fields=parameters['fields'], includeSpamTrash=includeSpamTrash,
                                    maxResults=GC.Values[GC.MESSAGE_MAX_RESULTS])
@@ -66116,12 +66156,19 @@ def printShowNotes(users):
       continue
     if csvPF:
       printGettingEntityItemForWhom(Ent.NOTE, user, i, count)
+      pageMessage = getPageMessageForWhom()
+    else:
+      pageMessage = None
     try:
       notes = callGAPIpages(keep.notes(), 'list', 'notes',
+                            pageMessage=pageMessage,
                             throwReasons=GAPI.KEEP_THROW_REASONS,
                             filter=noteFilter, fields=fields)
       if not csvPF:
         jcount = len(notes)
+        if not FJQC.formatJSON:
+          entityPerformActionNumItems([Ent.USER, user], jcount, Ent.NOTE, i, count)
+        Ind.Increment()
         j = 0
         for note in notes:
           j += 1
@@ -66131,6 +66178,7 @@ def printShowNotes(users):
             if not showPermissions:
               note.pop('permissions', None)
             _showNote(note, j, jcount, FJQC, compact)
+        Ind.Decrement()
       else:
         for note in notes:
           if showPermissions:
@@ -66658,7 +66706,7 @@ def printShowTasks(users):
       printGettingEntityItemForWhom(Ent.TASKLIST, user, i, count)
       try:
         results = callGAPIpages(svc.tasklists(), 'list', 'items',
-                                pageMessage=getPageMessage(),
+                                pageMessage=getPageMessageForWhom(),
                                 throwReasons=GAPI.TASKLIST_THROW_REASONS,
                                 **tlkwargs)
       except GAPI.notFound:
@@ -66677,14 +66725,16 @@ def printShowTasks(users):
       if jcount == 0:
         continue
     taskCount = 0
+    if not csvPF and not FJQC.formatJSON:
+      entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TASKLIST, i, count)
     Ind.Increment()
     j = 0
     for tasklist in tasklists:
       j += 1
-      if csvPF:
-        printGettingEntityItemForWhom(Ent.TASK, tasklist, j, jcount)
+      printGettingEntityItemForWhom(Ent.TASK, tasklist, j, jcount)
       try:
         tasks = callGAPIpages(svc.tasks(), 'list', 'items',
+                              pageMessage=getPageMessageForWhom(),
                               throwReasons=GAPI.TASK_THROW_REASONS,
                               tasklist=tasklist, **kwargs)
         kcount = len(tasks)
@@ -66865,7 +66915,7 @@ def printShowTasklists(users):
     printGettingAllEntityItemsForWhom(Ent.TASKLIST, user, i, count)
     try:
       tasklists = callGAPIpages(svc.tasklists(), 'list', 'items',
-                                pageMessage=getPageMessage(),
+                                pageMessage=getPageMessageForWhom(),
                                 throwReasons=GAPI.TASKLIST_THROW_REASONS,
                                 **kwargs)
     except GAPI.notFound:
