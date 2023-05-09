@@ -1,3 +1,14 @@
+6.59.05
+
+Added option `includepermissionsfromdomains <DomainNameList>` to the following commands
+that copies only those permissions that reference any domain in `<DomainNameList>`.
+It is mutually exclusive with `exludepermissionsfromdomains <DomainNameList>`.
+```
+gam copy|sync teamdriveacls <SharedDriveEntity>
+gam <UserTypeEntity> copy|sync teamdriveacls <SharedDriveEntity>
+gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>
+```
+
 6.59.04
 
 Fixed bug in `gam <UserTypeEntity> print|show filesharecounts` where ACLs for deleted user/groups

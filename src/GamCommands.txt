@@ -4546,12 +4546,12 @@ In these commands, the Google administrator named in oauth2.txt is used.
 gam copy teamdriveacls <SharedDriveEntity> to <SharedDriveEntity>
         [adminaccess|asadmin]
         [showpermissionsmessages [<Boolean>]]
-        [excludepermissionsfromdomains <DomainNameList>]
+        [excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
         (mappermissionsdomain <DomainName> <DomainName>)*
 gam sync teamdriveacls <SharedDriveEntity> with <SharedDriveEntity>
         [adminaccess|asadmin]
         [showpermissionsmessages [<Boolean>]]
-        [excludepermissionsfromdomains <DomainNameList>]
+        [excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
         (mappermissionsdomain <DomainName> <DomainName>)*
 
 gam print teamdriveacls [todrive <ToDriveAttribute>*]
@@ -4572,12 +4572,12 @@ In these commands, you specify an administrator and then indicate that you want 
 gam <UserTypeEntity> copy teamdriveacls <SharedDriveEntity> to <SharedDriveEntity>
         [adminaccess|asadmin]
         [showpermissionsmessages [<Boolean>]]
-        [excludepermissionsfromdomains <DomainNameList>]
+        [excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
         (mappermissionsdomain <DomainName> <DomainName>)*
 gam <UserTypeEntity> sync teamdriveacls <SharedDriveEntity> with <SharedDriveEntity>
         [adminaccess|asadmin]
         [showpermissionsmessages [<Boolean>]]
-        [excludepermissionsfromdomains <DomainNameList>]
+        [excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
         (mappermissionsdomain <DomainName> <DomainName>)*
 
 gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
@@ -5791,7 +5791,7 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [copysubfolderpermissions [<Boolean>]]
         [copysubfolderinheritedpermissions [<Boolean>]]
         [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
-        [excludepermissionsfromdomains <DomainNameList>]
+        [excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
         (mappermissionsdomain <DomainName> <DomainName>)*
         [copysheetprotectedranges [<Boolean>]]
         [copysheetprotectedrangesinheritedpermissions [<Boolean>]]
@@ -5815,7 +5815,7 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copysubfolderpermissions [<Boolean>]]
         [copysubfolderinheritedpermissions [<Boolean>]]
         [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
-        [excludepermissionsfromdomains <DomainNameList>]
+        [excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
         (mappermissionsdomain <DomainName> <DomainName>)*
         [retainsourcefolders [<Boolean>]]
         [sendemailifrequired [<Boolean>]]

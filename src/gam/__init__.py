@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.04'
+__version__ = '6.59.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52361,7 +52361,8 @@ def initCopyMoveOptions(copyCmd):
     'copyTopFolderNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
     'copySubFolderNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_ALWAYS,
     'noCopyNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_NEVER,
-    'excludePermissionsFromDomains': [],
+    'excludePermissionsFromDomains': set(),
+    'includePermissionsFromDomains': set(),
     'mapPermissionsDomains': {},
     'copySheetProtectedRangesInheritedPermissions': False,
     'copySheetProtectedRangesNonInheritedPermissions': COPY_NONINHERITED_PERMISSIONS_NEVER,
@@ -52430,7 +52431,11 @@ def getCopyMoveOptions(myarg, copyMoveOptions):
   elif myarg == 'copysubfoldernoninheritedpermissions':
     copyMoveOptions['copySubFolderNonInheritedPermissions'] = getChoice(COPY_NONINHERITED_PERMISSIONS_CHOICES_MAP, mapChoice=True)
   elif myarg == 'excludepermissionsfromdomains':
-    copyMoveOptions['excludePermissionsFromDomains'] = getString(Cmd.OB_DOMAIN_NAME_LIST).lower().replace(',', ' ').split()
+    copyMoveOptions['excludePermissionsFromDomains'] = set(getString(Cmd.OB_DOMAIN_NAME_LIST).lower().replace(',', ' ').split())
+    copyMoveOptions['includePermissionsFromDomains'] = set()
+  elif myarg == 'includepermissionsfromdomains':
+    copyMoveOptions['includePermissionsFromDomains'] = set(getString(Cmd.OB_DOMAIN_NAME_LIST).lower().replace(',', ' ').split())
+    copyMoveOptions['excludePermissionsFromDomains'] = set()
   elif myarg == 'mappermissionsdomain':
     oldDomain = getString(Cmd.OB_DOMAIN_NAME).lower()
     copyMoveOptions['mapPermissionsDomains'][oldDomain] = getString(Cmd.OB_DOMAIN_NAME).lower()
@@ -52567,7 +52572,7 @@ def _copyPermissions(drive, user, i, count, j, jcount,
   def isPermissionCopyable(kvList, permission):
     role = permission['role']
     domain = ''
-    if copyMoveOptions['excludePermissionsFromDomains']:
+    if copyMoveOptions['excludePermissionsFromDomains'] or copyMoveOptions['includePermissionsFromDomains']:
       if permission['type'] in {'group', 'user'}:
         atLoc = permission.get('emailAddress', '').find('@')
         if atLoc > 0:
@@ -52582,6 +52587,8 @@ def _copyPermissions(drive, user, i, count, j, jcount,
       notCopiedMessage = f'role {role} copy not required/appropriate'
     elif domain and domain in copyMoveOptions['excludePermissionsFromDomains']:
       notCopiedMessage = f'domain {domain} excluded'
+    elif domain and copyMoveOptions['includePermissionsFromDomains'] and domain not in copyMoveOptions['includePermissionsFromDomains']:
+      notCopiedMessage = f'domain {domain} not included'
     elif permission.pop('deleted', False):
       notCopiedMessage = f"{permission['type']} {permission['emailAddress']} deleted"
     elif ((copyInherited == 'copySheetProtectedRangesInheritedPermissions' and copyMoveOptions[copyInherited]) or
@@ -53021,7 +53028,7 @@ copyReturnItemMap = {
 #	[copysubfolderpermissions [<Boolean>]]
 #	[copysubfolderinheritedpermissions [<Boolean>]]
 #	[copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
-#	[excludepermissionsfromdomains <DomainNameList>]
+#	[excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
 #	(mappermissionsdomain <DomainName> <DomainName>)*
 #	[copysheetprotectedranges [<Boolean>]]
 #	[copysheetprotectedrangesinheritedpermissions [<Boolean>]]
@@ -53626,7 +53633,7 @@ def copyDriveFile(users):
 #	[copysubfolderinheritedpermissions [<Boolean>]]
 #	[copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
 #	[synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
-#	[excludepermissionsfromdomains <DomainNameList>]
+#	[excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
 #	(mappermissionsdomain <DomainName> <DomainName>)*
 #	[retainsourcefolders [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
@@ -58401,7 +58408,7 @@ def doPrintShowOrgunitSharedDrives():
 # gam [<UserTypeEntity>] sync shareddriveacls <SharedDriveEntity> with <SharedDriveEntity>
 #	[adminaccess|asadmin]
 #	[showpermissionsmessages [<Boolean>]]
-#	[excludepermissionsfromdomains <DomainNameList>]
+#	[excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
 #	(mappermissionsdomain <DomainName> <DomainName>)*
 def copySyncSharedDriveACLs(users, useDomainAdminAccess=False):
   copyMoveOptions = initCopyMoveOptions(True)
