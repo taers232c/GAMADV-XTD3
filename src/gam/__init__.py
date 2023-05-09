@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.03'
+__version__ = '6.59.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51104,7 +51104,7 @@ def printShowFileShareCounts(users):
               else:
                 domain = permission.get('domain', '')
                 if not domain and ptype in ['user', 'group']:
-                  if permission.get('deleted') == 'True':
+                  if permission.get('deleted', False):
                     userShareCounts[FILESHARECOUNTS_CATEGORIES['deleted'][ptype]] += 1
                     continue
                   emailAddress = permission['emailAddress']

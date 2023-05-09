@@ -1,3 +1,8 @@
+6.59.04
+
+Fixed bug in `gam <UserTypeEntity> print|show filesharecounts` where ACLs for deleted user/groups
+were miscounted as external shares.
+
 6.59.03
 
 Cleaned up `Getting/Got` messages for several commands.
