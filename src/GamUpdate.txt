@@ -1,3 +1,29 @@
+6.59.06
+
+Added option `sources <PeopleProfileSourceNameList>` to `gam <UserTypeEntity> print|show peopleprofile`
+that allows specification of the sources of the data to display. By default, data from all sources is displayed.
+```
+<PeopleProfileSourceName> ::=
+        account|accounts|
+        domain|domains|
+        profile|profiles
+<PeopleProfileSourceNameList> ::= "<PeopleProfileSourceName>(,<PeopleProfileSourceName>)*"
+```
+
+Added option `updatefilepermissions [<Boolean>]` to `gam <UserTypeEntity> move drivefile <DriveFileEntity>`.
+Previously, file permissions were not updated in the command; now, when `updatefilepermissions` is true,
+file permissions will be removed/created as specified by the following noptions:
+```
+excludepermissionsfromdomains <DomainNameList>
+includepermissionsfromdomains <DomainNameList>
+mappermissionsdomain <DomainName> <DomainName>
+```
+Additionally, permissions referencing deleted groups/users will be removed.
+
+The permissions are updated on the file before it is moved.
+
+Test before using in production.
+
 6.59.05
 
 Added option `includepermissionsfromdomains <DomainNameList>` to the following commands

@@ -3242,17 +3242,19 @@ gam show peoplecontacts
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 
-gam info peopleprofile <PeopleResourceNameEntity>
+gam info people <PeopleResourceNameEntity>
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
-gam print peopleprofile [todrive <ToDriveAttribute>*]
+gam print people [todrive <ToDriveAttribute>*]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
+        [coountsonly]
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
-gam show peopleprofile
+gam show people
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
+        [coountsonly]
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 
@@ -5817,6 +5819,7 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [copysubfoldernoniheritedpermissions never|always|syncallfolders|syncupdatedfolders]
         [excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
         (mappermissionsdomain <DomainName> <DomainName>)*
+        [updatefilepermissions [<Boolean>]]
         [retainsourcefolders [<Boolean>]]
         [sendemailifrequired [<Boolean>]]
 
@@ -7095,11 +7098,19 @@ gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*]
         userdefined
 <PeopleFieldNameList> ::= "<PeopleFieldName>(,<PeopleFieldName>)*"
 
+<PeopleProfileSourceName> ::=
+        account|accounts|
+        domain|domains|
+        profile|profiles
+<PeopleProfileSourceNameList> ::= "<PeopleProfileSourceName>(,<PeopleProfileSourceName>)*"
+
 gam <UserTypeEntity> show peopleprofile
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+	[sources <PeopleProfileSourceNameList>]
         [formatjson]
 gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+	[sources <PeopleProfileSourceNameList>]
         [formatjson [quotechar <Character>]]
 
 # Users - Photo

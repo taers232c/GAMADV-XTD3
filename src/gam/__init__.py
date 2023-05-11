@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.05'
+__version__ = '6.59.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -20365,7 +20365,7 @@ def deleteUserPeopleContacts(users):
     Ind.Decrement()
 
 def _initPersonMetadataParameters():
-  return {'strip': True, 'mapUpdateTime': False}
+  return {'strip': True, 'mapUpdateTime': False, 'sourceTypes': set()}
 
 def _processPersonMetadata(person, parameters):
   metadata = person.get(PEOPLE_METADATA, None)
@@ -20374,6 +20374,21 @@ def _processPersonMetadata(person, parameters):
       sources = person[PEOPLE_METADATA].get('sources', [])
       if sources and sources[0].get(PEOPLE_UPDATE_TIME, None) is not None:
         person[PEOPLE_UPDATE_TIME] = formatLocalTime(sources[0][PEOPLE_UPDATE_TIME])
+  if parameters['sourceTypes']:
+    stripKeys = []
+    for k, v in iter(person.items()):
+      if isinstance(v, list):
+        person[k] = []
+        for entry in v:
+          if isinstance(entry, dict):
+            if entry.get('metadata', {}).get('source', {}).get('type', None) in parameters['sourceTypes']:
+              person[k].append(entry)
+          else:
+            person[k].append(entry)
+        if not person[k]:
+          stripKeys.append(k)
+    for k in stripKeys:
+      person.pop(k, None)
   if parameters['strip']:
     person.pop(PEOPLE_METADATA, None)
     for _, v in iter(person.items()):
@@ -21089,11 +21104,22 @@ def doPrintShowDomainPeopleProfiles():
 def doPrintShowDomainPeopleContacts():
   _printShowPeople('domaincontact')
 
+PEOPLE_PROFILE_SOURCETYPE_CHOICE_MAP = {
+  'account': 'ACCOUNT',
+  'accounts': 'ACCOUNT',
+  'domain': 'DOMAIN_PROFILE',
+  'domains': 'DOMAIN_PROFILE',
+  'profile': 'PROFILE',
+  'profiles': 'PROFILE',
+  }
+
 # gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
 #	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[sources <PeopleProfileSourceNameList>]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show peopleprofile
 #	[allfields|(fields <PeopleFieldNameList>)] [showmetadata]
+#	[sources <PeopleProfileSourceNameList>]
 #	[formatjson]
 def printShowUserPeopleProfiles(users):
   entityType = Ent.USER
@@ -21111,6 +21137,12 @@ def printShowUserPeopleProfiles(users):
       fieldsList = None
     elif getPersonFieldsList(myarg, PEOPLE_FIELDS_CHOICE_MAP, fieldsList):
       pass
+    elif myarg in {'source', 'sources'}:
+      for field in _getFieldsList():
+        if field in PEOPLE_PROFILE_SOURCETYPE_CHOICE_MAP:
+          parameters['sourceTypes'].add(PEOPLE_PROFILE_SOURCETYPE_CHOICE_MAP[field])
+        else:
+          invalidChoiceExit(field, PEOPLE_PROFILE_SOURCETYPE_CHOICE_MAP, True)
     elif myarg == 'showmetadata':
       parameters['strip'] = False
     elif myarg == 'peoplelookupuser':
@@ -53616,6 +53648,172 @@ def copyDriveFile(users):
   if csvPF:
     csvPF.writeCSVfile('Copied Files-Folders')
 
+def _updateMoveFilePermissions(drive, user, i, count,
+                               entityType, fileId, fileTitle,
+                               statistics, stat, copyMoveOptions):
+  def getPermissions(fid):
+    permissions = {}
+    try:
+      result = callGAPIpages(drive.permissions(), 'list', 'permissions',
+                             throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
+                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+                             fileId=fid,
+                             fields='nextPageToken,permissions(allowFileDiscovery,domain,emailAddress,expirationTime,id,role,type,deleted,view,pendingOwner,permissionDetails)',
+                             useDomainAdminAccess=copyMoveOptions['useDomainAdminAccess'], supportsAllDrives=True)
+      for permission in result:
+        permission.pop('teamDrivePermissionDetails', None)
+        if not permission.pop('permissionDetails', [{'inherited': False}])[0]['inherited']:
+          permissions[permission['id']] = permission
+      return permissions
+    except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+            GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
+            GAPI.unknownError, GAPI.invalid):
+      pass
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+      _incrStatistic(statistics, stat)
+    return None
+
+  def permissionKVList(user, entityType, title, permission):
+    permstr = f"noninherited/{permission['role']}/{permission['type']}"
+    if permission['type'] in {'group', 'user'}:
+      permstr += f"/{permission['emailAddress']}"
+    elif permission['type'] == 'domain':
+      permstr += f"/{permission['domain']}"
+    return [Ent.USER, user, entityType, title, Ent.PERMISSION, permstr]
+
+  def isPermissionDeletable(kvList, permission):
+    domain = ''
+    if copyMoveOptions['excludePermissionsFromDomains'] or copyMoveOptions['includePermissionsFromDomains']:
+      if permission['type'] in {'group', 'user'}:
+        atLoc = permission.get('emailAddress', '').find('@')
+        if atLoc > 0:
+          domain = permission['emailAddress'][atLoc+1:]
+      elif permission['type'] == 'domain':
+        domain = permission.get('domain', '')
+    if domain and domain in copyMoveOptions['excludePermissionsFromDomains']:
+      notMovedMessage = f'domain {domain} excluded'
+    elif domain and copyMoveOptions['includePermissionsFromDomains'] and domain not in copyMoveOptions['includePermissionsFromDomains']:
+      notMovedMessage = f'domain {domain} not included'
+    elif permission.pop('deleted', False):
+      notMovedMessage = f"{permission['type']} {permission['emailAddress']} deleted"
+    else:
+      return False
+    deleteSourcePerms[permission['id']] = permission.copy()
+    if copyMoveOptions['showPermissionMessages']:
+      entityActionNotPerformedWarning(kvList, notMovedMessage, 0, 0)
+    return True
+
+  def mapPermissionsDomains(kvList, permission):
+    if 'emailAddress' in permission:
+      email, domain = permission['emailAddress'].lower().split('@', 1)
+      if domain in copyMoveOptions['mapPermissionsDomains']:
+        deleteSourcePerms[permission['id']] = permission.copy()
+        if copyMoveOptions['showPermissionMessages']:
+          notMovedMessage = f"domain {domain} mapped to {copyMoveOptions['mapPermissionsDomains'][domain]}"
+          entityActionNotPerformedWarning(kvList, notMovedMessage, 0, 0)
+        permission['emailAddress'] = f"{email}@{copyMoveOptions['mapPermissionsDomains'][domain]}"
+        addSourcePerms[permission['id']] = permission
+        return True
+    elif 'domain' in permission:
+      domain = permission['domain'].lower()
+      if domain in copyMoveOptions['mapPermissionsDomains']:
+        deleteSourcePerms[permission['id']] = permission.copy()
+        if copyMoveOptions['showPermissionMessages']:
+          notMovedMessage = f"domain {domain} mapped to {copyMoveOptions['mapPermissionsDomains'][domain]}"
+          entityActionNotPerformedWarning(kvList, notMovedMessage, 0, 0)
+        permission['domain'] = copyMoveOptions['mapPermissionsDomains'][domain]
+        addSourcePerms[permission['id']] = permission
+        return True
+    return False
+
+  sourcePerms = getPermissions(fileId)
+  if sourcePerms is None:
+    return
+  Ind.Increment()
+  deleteSourcePerms = {}
+  addSourcePerms = {}
+  for permissionId, permission in iter(sourcePerms.items()):
+    kvList = permissionKVList(user, entityType, fileTitle, permission)
+    if isPermissionDeletable(kvList, permission):
+      pass
+    elif copyMoveOptions['mapPermissionsDomains']:
+      mapPermissionsDomains(kvList, permission)
+  action = Act.Get()
+  kcount = len(deleteSourcePerms)
+  if kcount > 0:
+    Act.Set(Act.DELETE)
+    k = 0
+    for permissionId, permission in iter(deleteSourcePerms.items()):
+      k += 1
+      kvList = permissionKVList(user, entityType, fileTitle, permission)
+      try:
+        callGAPI(drive.permissions(), 'delete',
+                 throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_DELETE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
+                 fileId=fileId, permissionId=permissionId, useDomainAdminAccess=copyMoveOptions['useDomainAdminAccess'], supportsAllDrives=True)
+        if copyMoveOptions['showPermissionMessages']:
+          entityActionPerformed(kvList, k, kcount)
+      except (GAPI.notFound, GAPI.permissionNotFound,
+              GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.fileNeverWritable, GAPI.badRequest, GAPI.cannotRemoveOwner, GAPI.cannotModifyInheritedTeamDrivePermission,
+              GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded) as e:
+        entityActionFailedWarning(kvList, str(e), k, kcount)
+      except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+        userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+        _incrStatistic(statistics, stat)
+        Ind.Decrement()
+        Act.Set(action)
+        return
+  kcount = len(addSourcePerms)
+  if kcount > 0:
+    Act.Set(Act.CREATE)
+    k = 0
+    for permissionId, permission in iter(addSourcePerms.items()):
+      k += 1
+      kvList = permissionKVList(user, entityType, fileTitle, permission)
+      permission.pop('id')
+      if copyMoveOptions['destDriveId']:
+        permission.pop('pendingOwner', None)
+      sendNotificationEmail = False
+      while True:
+        try:
+          callGAPI(drive.permissions(), 'create',
+                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
+#                   retryReasons=[GAPI.INVALID_SHARING_REQUEST],
+                   fileId=fileId, sendNotificationEmail=sendNotificationEmail, emailMessage=None,
+                   body=permission, fields='', useDomainAdminAccess=copyMoveOptions['useDomainAdminAccess'], supportsAllDrives=True)
+          if copyMoveOptions['showPermissionMessages']:
+            entityActionPerformed(kvList, k, kcount)
+          break
+        except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+                GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
+                GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
+                GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
+                GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+                GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
+                GAPI.ownerOnTeamDriveItemNotSupported,
+                GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
+                GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
+                GAPI.fileOrganizerOnFoldersInSharedDriveOnly,
+                GAPI.fileOrganizerOnNonTeamDriveNotSupported,
+                GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
+                GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          entityActionFailedWarning(kvList, str(e), k, kcount)
+          break
+        except GAPI.invalidSharingRequest as e:
+          if not copyMoveOptions['sendEmailIfRequired'] or sendNotificationEmail or 'You are trying to invite' not in str(e):
+            entityActionFailedWarning(kvList, str(e), k, kcount)
+            break
+          sendNotificationEmail = True
+        except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+          userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
+          _incrStatistic(statistics, stat)
+          Ind.Decrement()
+          Act.Set(action)
+          return
+    Ind.Decrement()
+  Act.Set(action)
+
 # gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileName>]
 #	[summary [<Boolean>]] [showpermissionsmessages [<Boolean>]]
 #	[<DriveFileParentAttribute>]
@@ -53635,6 +53833,7 @@ def copyDriveFile(users):
 #	[synctopfoldernoniheritedpermissions [<Boolean>]] [syncsubfoldernoninheritedpermissions [<Boolean>]]
 #	[excludepermissionsfromdomains|includepermissionsfromdomains <DomainNameList>]
 #	(mappermissionsdomain <DomainName> <DomainName>)*
+#	[updatefilepermissions [<Boolean>]]
 #	[retainsourcefolders [<Boolean>]]
 #	[sendemailifrequired [<Boolean>]]
 def moveDriveFile(users):
@@ -53831,6 +54030,10 @@ def moveDriveFile(users):
   def _moveFile(drive, user, i, count, k, kcount, entityType, childId, childName, newChildName, newParentId, newParentName, removeParents, body):
     kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
     newParentNameId = f'{newParentName}({newParentId})'
+    if updateFilePermissions:
+      _updateMoveFilePermissions(drive, user, i, count,
+                                 entityType, childId, childName,
+                                 statistics, STAT_FILE_PERMISSIONS_FAILED, copyMoveOptions)
     try:
       callGAPI(drive.files(), 'update',
                throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST,
@@ -53961,12 +54164,15 @@ def moveDriveFile(users):
   copyMoveOptions = initCopyMoveOptions(False)
   newParentsSpecified = False
   movedFiles = {}
+  updateFilePermissions = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if getCopyMoveOptions(myarg, copyMoveOptions):
       pass
     elif getDriveFileParentAttribute(myarg, parentParms):
       newParentsSpecified = True
+    elif myarg == 'updatefilepermissions':
+      updateFilePermissions = getBoolean()
     else:
       unknownArgumentExit()
   i, count, users = getEntityArgument(users)
