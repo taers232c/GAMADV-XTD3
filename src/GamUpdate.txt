@@ -1,3 +1,17 @@
+6.59.07
+
+Added option `immutableous <OrgUnitEntity>` to `gam <UserTypeEntity> update user ... org <OrgUnitPath>` that
+does not update the user's OU to `<OrgUnitPath>` if `<OrgUnitPath>` appears in `<OrgUnitEntity>`. All other
+fields are updated.
+
+This can be used when a SIS outputs user data to be updated but students temporarily in special purpose
+OUs should not be updated to the SIS specified OU. `<OrgUnitEntity>` and `<OrgUnitPath>` must both
+specify OU paths, not IDs.
+```
+gam csv SISdata.csv gam update user "~primaryEmail" suspended off firstname "~First Name" lastname "~Last Name"
+        ou "~OU" immutableous "'/Students/Lower School/Restricted,'/Students/Middle School/Restricted'"
+```
+
 6.59.06
 
 Added option `sources <PeopleProfileSourceNameList>` to `gam <UserTypeEntity> print|show peopleprofile`

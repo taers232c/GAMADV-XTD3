@@ -5076,6 +5076,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
         [updateoufromgroup <FileName> [charset <CharSet>]
             [columndelimiter <Character>] [quotechar <Character>]
             [fields <FieldNameList>] [keyfield <FieldName>] [datafield <FieldName>]]
+        [immutableous <OrgUnitEntity>]|
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
         [createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*

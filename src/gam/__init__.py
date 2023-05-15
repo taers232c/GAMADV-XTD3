@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.06'
+__version__ = '6.59.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -38790,6 +38790,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     'noActionIfAlias': False,
     'notifyOnUpdate': True,
     'setChangePasswordOnCreate': False,
+    'immutableOUs': set(),
     'lic': None,
     LICENSE_PRODUCT_SKUIDS: [],
     }
@@ -38840,6 +38841,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       parameters['notifyOnUpdate'] = getBoolean()
     elif updateCmd and myarg == 'setchangepasswordoncreate':
       parameters['setChangePasswordOnCreate'] = getBoolean()
+    elif myarg in {'immutableous', 'immutableorgs', 'immutableorgunitpaths'}:
+      parameters['immutableOUs'] = set(getEntityList(Cmd.OB_ORGUNIT_ENTITY, shlexSplit=True))
     elif not updateCmd and myarg in {'license', 'licence'}:
       if parameters['lic'] is None:
         parameters['lic'] = buildGAPIObject(API.LICENSING)
@@ -39301,6 +39304,7 @@ def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
 # gam <UserTypeEntity> update user <UserAttribute>* [noactionifalias]
 #	[updateprimaryemail <RegularExpression> <EmailReplacement>]
 #	[updateoufromgroup <CSVFileInput> [keyfield <FieldName>] [datafield <FieldName>]]
+#	[immutableous <OrgUnitEntity>]|
 #	[clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]
 #	[createifnotfound] [notfoundpassword (random [<Integer>])|blocklogin|<Password>]
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
@@ -39319,6 +39323,11 @@ def updateUsers(entityList):
   ci = None
   body, notify, tagReplacements, addGroups, addAliases, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters = getUserAttributes(cd, True)
   vfe = 'primaryEmail' in body and body['primaryEmail'][:4].lower() == 'vfe@'
+  if body.get('orgUnitPath', '') and parameters['immutableOUs']:
+    ubody = body.copy()
+    checkImmutableOUs = True
+  else:
+    checkImmutableOUs = False
   i, count, entityList = getEntityArgument(entityList)
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
   for user in entityList:
@@ -39326,6 +39335,8 @@ def updateUsers(entityList):
     user = userKey = normalizeEmailAddressOrUID(user)
     if parameters['noActionIfAlias'] and not verifyPrimaryEmail(cd, user, parameters['createIfNotFound'], i, count):
       continue
+    if checkImmutableOUs:
+      body = ubody.copy()
     try:
       if vfe:
         result = callGAPI(cd.users(), 'get',
@@ -39363,6 +39374,12 @@ def updateUsers(entityList):
           entityActionNotPerformedWarning([Ent.USER, user], Msg.USER_BELONGS_TO_N_GROUPS_THAT_MAP_TO_ORGUNITS.format(jcount, ','.join(groupList)), i, count)
           continue
         body['orgUnitPath'] = orgUnit
+      if checkImmutableOUs:
+        result = callGAPI(cd.users(), 'get',
+                          throwReasons=GAPI.USER_GET_THROW_REASONS,
+                          userKey=userKey, fields='orgUnitPath')
+        if result['orgUnitPath'] in parameters['immutableOUs']:
+          body.pop('orgUnitPath')
       if body:
         if 'primaryEmail' in body and parameters['verifyNotInvitable']:
           isInvitableUser, ci = _getIsInvitableUser(ci, body['primaryEmail'])
