@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.07'
+__version__ = '6.59.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2005,14 +2005,14 @@ def getRowFilterDateOrDeltaFromNow(argstr):
     if deltaDate is None:
       return (False, DELTA_DATE_FORMAT_REQUIRED)
     argstr = ISOformatTimeStamp(deltaDate)
-  elif argstr == 'NEVER':
-    argstr = NEVER_TIME
-  elif YYYYMMDD_PATTERN.match(argstr):
+  elif argstr == 'NEVER' or YYYYMMDD_PATTERN.match(argstr):
+    if argstr == 'NEVER':
+      argstr = NEVER_DATE
     try:
       dateTime = datetime.datetime.strptime(argstr, YYYYMMDD_FORMAT)
     except ValueError:
       return (False, YYYYMMDD_FORMAT_REQUIRED)
-    argstr = ISOformatTimeStamp(dateTime.replace(tzinfo=GC.Values[GC.TIMEZONE]))
+    argstr = ISOformatTimeStamp(dateTime.replace(tzinfo=iso8601.UTC))
   try:
     iso8601.parse_date(argstr)
     return (True, argstr.replace(' ', 'T'))
@@ -7079,13 +7079,12 @@ def RowFilterMatch(row, titlesList, rowFilter, rowFilterModeAll, rowDropFilter, 
         rowTime = datetime.datetime.strptime(rowDate, YYYYMMDD_FORMAT)
       except ValueError:
         return None
-      tz = GC.Values[GC.TIMEZONE]
     else:
       try:
-        rowTime, tz = iso8601.parse_date(rowDate)
+        rowTime, _ = iso8601.parse_date(rowDate)
       except (iso8601.ParseError, OverflowError):
         return None
-    return ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=tz))
+    return ISOformatTimeStamp(datetime.datetime(rowTime.year, rowTime.month, rowTime.day, tzinfo=iso8601.UTC))
 
   def rowDateTimeFilterMatch(dateMode, op, filterDate):
     def checkMatch(rowDate):

@@ -1,3 +1,11 @@
+6.59.08
+
+Fixed bug in `csv_output_row_filter "FieldName:date<Operator>Never"` that didn't properly detect matches.
+For example, the following command would not display users that had never logged in.
+```
+gam config csv_output_row_filter "lastLoginTime:date=Never" print users lastlogintime
+```
+
 6.59.07
 
 Added option `immutableous <OrgUnitEntity>` to `gam <UserTypeEntity> update user ... org <OrgUnitPath>` that
