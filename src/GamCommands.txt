@@ -5057,6 +5057,7 @@ gam download storagefile <StorageBucketObjectName>
         <UserClearAttribute>
 
 gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
+        [verifynotinvitable]
         (groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
         [alias|aliases <EmailAddressList>]
         [license <SKUIDList> [product|productid <ProductID>]]
@@ -5067,11 +5068,12 @@ gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
             [<NotifyMessageContent>]
             (replace <Tag> <UserReplacement>)*]
         [lograndompassword <FileName>]
-        [verifynotinvitable]
+        [addnumericsuffixonduplicate <Number>]
 
 gam <UserTypeEntity> waitformailbox [retries <Number>]
 
-gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalias]
+gam update user <UserItem> [ignorenullpassword] <UserAttribute>*
+        [verifynotinvitable] [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
             [columndelimiter <Character>] [quotechar <Character>]
@@ -5089,7 +5091,6 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>* [noactionifalia
             (replace <Tag> <UserReplacement>)*]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
         [lograndompassword <FileName>]
-        [verifynotinvitable]
 gam delete user <UserItem> [noactionifalias]
 gam undelete user <UserItem> [ou|org|orgunit <OrgUnitPath>]
 gam suspend user <UserItem> [noactionifalias]
@@ -5105,7 +5106,8 @@ gam info user [<UserItem>]
         [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
         [formatjson]
 
-gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>* [noactionifalias]
+gam update users <UserTypeEntity> [ignorenullpassword] <UserAttribute>*
+        [verifynotinvitable] [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <FileName> [charset <CharSet>]
             [columndelimiter <Character>] [quotechar <Character>]
@@ -5138,7 +5140,8 @@ gam info users <UserTypeEntity>
         [(products|product <ProductIDList>)|(skus|sku <SKUIDList>)]
         [formatjson]
 
-gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>* [noactionifalias]
+gam <UserTypeEntity> update users [ignorenullpassword] <UserAttribute>*
+        [verifynotinvitable] [noactionifalias]
         [updateprimaryemail <RegularExpression> <EmailReplacement>]
         [updateoufromgroup <CSVFileInput> [keyfield <FieldName>] [datafield <FieldName>]]
         [clearschema <SchemaName>] [clearschema <SchemaName>.<FieldName>]

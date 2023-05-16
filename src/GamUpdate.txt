@@ -1,3 +1,15 @@
+6.59.09
+
+Added option `addnumericsuffixonduplicate <Number>` to `gam create user <EmailAddress>` that
+will attempt to create a unique `<EmailAddress>` when the original value is a duplicate user address.
+If `<EmailAddress>` is `<String>@<DomainName>`, up to `<Number>` attempts will be made
+to create a unique `<EmailAddress>`; `<Number>` defaults to 0.
+```
+<String>1@<DomainName>
+<String>2@<DomainName>
+...
+```
+
 6.59.08
 
 Fixed bug in `csv_output_row_filter "FieldName:date<Operator>Never"` that didn't properly detect matches.

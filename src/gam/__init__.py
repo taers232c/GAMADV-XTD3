@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.08'
+__version__ = '6.59.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2430,6 +2430,7 @@ def duplicateAliasGroupUserWarning(cd, entityValueList, i=0, count=0):
                                  Ent.FormatEntityValueList(kvList),
                                  currentCountNL(i, count)))
   setSysExitRC(ENTITY_DUPLICATE_RC)
+  return kvList[0]
 
 def entityDuplicateWarning(entityValueList, i=0, count=0):
   setSysExitRC(ENTITY_DUPLICATE_RC)
@@ -38790,6 +38791,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
     'notifyOnUpdate': True,
     'setChangePasswordOnCreate': False,
     'immutableOUs': set(),
+    'addNumericSuffixOnDuplicate': 0,
     'lic': None,
     LICENSE_PRODUCT_SKUIDS: [],
     }
@@ -38840,8 +38842,10 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       parameters['notifyOnUpdate'] = getBoolean()
     elif updateCmd and myarg == 'setchangepasswordoncreate':
       parameters['setChangePasswordOnCreate'] = getBoolean()
-    elif myarg in {'immutableous', 'immutableorgs', 'immutableorgunitpaths'}:
+    elif updateCmd and myarg in {'immutableous', 'immutableorgs', 'immutableorgunitpaths'}:
       parameters['immutableOUs'] = set(getEntityList(Cmd.OB_ORGUNIT_ENTITY, shlexSplit=True))
+    elif not updateCmd and myarg == 'addnumericsuffixonduplicate':
+      parameters['addNumericSuffixOnDuplicate'] = getInteger(minVal=0, default=0)
     elif not updateCmd and myarg in {'license', 'licence'}:
       if parameters['lic'] is None:
         parameters['lic'] = buildGAPIObject(API.LICENSING)
@@ -39233,54 +39237,66 @@ def createUserAddAliases(cd, user, aliasList, i, count):
 #	    (replace <Tag> <UserReplacement>)*]
 #	[lograndompassword <FileName>] [ignorenullpassword]
 #	[verifynotinvitable]
+#	[addnumericsuffixonduplicate <Number>]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
   body, notify, tagReplacements, addGroups, addAliases, PwdOpts, _, _, _, parameters = getUserAttributes(cd, False, noUid=True)
-  user = body['primaryEmail']
-  if parameters['verifyNotInvitable']:
-    isInvitableUser, _ = _getIsInvitableUser(None, user)
-    if isInvitableUser:
-      entityActionNotPerformedWarning([Ent.USER, user], Msg.EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT)
-      return
+  suffix = 0
+  originalEmail = body['primaryEmail']
+  atLoc = originalEmail.find('@')
   fields = '*' if tagReplacements['subs'] else 'primaryEmail,name'
-  try:
-    result = callGAPI(cd.users(), 'insert',
-                      throwReasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND,
-                                    GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN,
-                                    GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
-                                    GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
-                      body=body, fields=fields)
-    entityActionPerformed([Ent.USER, user])
-    if PwdOpts.filename and PwdOpts.password:
-      writeFile(PwdOpts.filename, f'{user},{PwdOpts.password}\n', mode='a', continueOnError=True)
-    if addGroups:
-      createUserAddToGroups(cd, result['primaryEmail'], addGroups, 0, 0)
-    if addAliases:
-      createUserAddAliases(cd, result['primaryEmail'], addAliases, 0, 0)
-    if notify.get('recipients'):
-      sendCreateUpdateUserNotification(result, notify, tagReplacements)
-    for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
-      productId = productSku[0]
-      skuId = productSku[1]
-      try:
-        callGAPI(parameters['lic'].licenseAssignments(), 'insert',
-                 throwReasons=[GAPI.INTERNAL_ERROR, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
-                               GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
-                 retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                 productId=productId, skuId=skuId, body={'userId': user}, fields='')
-        entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)])
-      except (GAPI.internalError, GAPI.duplicate, GAPI.conditionNotMet, GAPI.invalid,
-              GAPI.userNotFound, GAPI.forbidden, GAPI.backendError, GAPI.serviceNotAvailable) as e:
-        entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], str(e))
-  except GAPI.duplicate:
-    duplicateAliasGroupUserWarning(cd, [Ent.USER, user])
-  except GAPI.invalidSchemaValue:
-    entityActionFailedWarning([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE)
-  except GAPI.invalidOrgunit:
-    entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT)
-  except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-          GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter) as e:
-    entityActionFailedWarning([Ent.USER, user], str(e))
+  while True:
+    user = body['primaryEmail']
+    if parameters['verifyNotInvitable']:
+      isInvitableUser, _ = _getIsInvitableUser(None, user)
+      if isInvitableUser:
+        entityActionNotPerformedWarning([Ent.USER, user], Msg.EMAIL_ADDRESS_IS_UNMANAGED_ACCOUNT)
+        return
+    try:
+      result = callGAPI(cd.users(), 'insert',
+                        throwReasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND,
+                                      GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN,
+                                      GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
+                                      GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+                        body=body, fields=fields)
+      entityActionPerformed([Ent.USER, user])
+      break
+    except GAPI.duplicate:
+      if duplicateAliasGroupUserWarning(cd, [Ent.USER, user]) == Ent.USER and parameters['addNumericSuffixOnDuplicate'] > 0:
+        parameters['addNumericSuffixOnDuplicate'] -= 1
+        suffix +=1
+        body['primaryEmail'] = originalEmail[0:atLoc]+str(suffix)+originalEmail[atLoc:]
+        setSysExitRC(0)
+        continue
+      return
+    except GAPI.invalidSchemaValue:
+      entityActionFailedExit([Ent.USER, user], Msg.INVALID_SCHEMA_VALUE)
+    except GAPI.invalidOrgunit:
+      entityActionFailedExit([Ent.USER, user], Msg.INVALID_ORGUNIT)
+    except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+            GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter) as e:
+      entityActionFailedExit([Ent.USER, user], str(e))
+  if PwdOpts.filename and PwdOpts.password:
+    writeFile(PwdOpts.filename, f'{user},{PwdOpts.password}\n', mode='a', continueOnError=True)
+  if addGroups:
+    createUserAddToGroups(cd, result['primaryEmail'], addGroups, 0, 0)
+  if addAliases:
+    createUserAddAliases(cd, result['primaryEmail'], addAliases, 0, 0)
+  if notify.get('recipients'):
+    sendCreateUpdateUserNotification(result, notify, tagReplacements)
+  for productSku in parameters[LICENSE_PRODUCT_SKUIDS]:
+    productId = productSku[0]
+    skuId = productSku[1]
+    try:
+      callGAPI(parameters['lic'].licenseAssignments(), 'insert',
+               throwReasons=[GAPI.INTERNAL_ERROR, GAPI.DUPLICATE, GAPI.CONDITION_NOT_MET, GAPI.INVALID,
+                             GAPI.USER_NOT_FOUND, GAPI.FORBIDDEN, GAPI.BACKEND_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+               retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
+               productId=productId, skuId=skuId, body={'userId': user}, fields='')
+      entityActionPerformed([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)])
+    except (GAPI.internalError, GAPI.duplicate, GAPI.conditionNotMet, GAPI.invalid,
+            GAPI.userNotFound, GAPI.forbidden, GAPI.backendError, GAPI.serviceNotAvailable) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], str(e))
 
 def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
   try:
