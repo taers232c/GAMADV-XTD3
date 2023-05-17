@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.59.09
+  GAMVERSION: 6.59.10
   OPENSSL_CONFIG_OPTS: no-fips --api=3.0.0
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl

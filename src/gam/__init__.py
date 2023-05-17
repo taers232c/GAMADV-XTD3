@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.09'
+__version__ = '6.59.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24929,14 +24929,14 @@ def doPrintShowChromePolicies():
     if not namespaces:
       namespaces = ['chrome.users.apps',
                     'chrome.devices.kiosk.apps',
-                    'chrome.devices.managedGuest.apps',
+                    'chrome.devices.managedguest.apps',
                     ]
   elif not namespaces:
     namespaces = ['chrome.users',
                   'chrome.users.apps',
                   'chrome.devices',
                   'chrome.devices.kiosk',
-                  'chrome.devices.managedGuest',
+                  'chrome.devices.managedguest',
                  ]
   if csvPF and not FJQC.formatJSON:
     if printerId:
@@ -34641,31 +34641,33 @@ def _moveCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEnt
     calId, cal, calEventIds, jcount = _validateCalendarGetEventIDs(origUser, user, origCal, calId, i, count, calendarEventEntity)
     if jcount == 0:
       continue
+    kvList = [Ent.USER, user] if user else []
+    kvList.extend([Ent.CALENDAR, calId])
     Ind.Increment()
     j = 0
     for eventId in calEventIds:
       j += 1
+      kvListEvent = kvList+[Ent.EVENT, eventId]
+      kvListEventNewCal = kvListEvent+[Ent.CALENDAR, newCalId]
       try:
         callGAPI(cal.events(), 'move',
                  throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.REQUIRED_ACCESS_LEVEL, GAPI.INVALID,
                                                            GAPI.CANNOT_CHANGE_ORGANIZER, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
                  calendarId=calId, eventId=eventId, destination=newCalId, sendUpdates=parameters['sendUpdates'], fields='')
-        entityModifierNewValueActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, eventId], Act.MODIFIER_TO, f'{Ent.Singular(Ent.CALENDAR)}: {newCalId}', j, jcount)
+        entityModifierNewValueActionPerformed(kvListEvent, Act.MODIFIER_TO, f'{Ent.Singular(Ent.CALENDAR)}: {newCalId}', j, jcount)
       except GAPI.notFound as e:
         if not checkCalendarExists(cal, calId):
           entityUnknownWarning(Ent.CALENDAR, calId, i, count)
           break
-        entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId], Ent.TypeNameMessage(Ent.EVENT, eventId, str(e)), j, jcount)
+        entityActionFailedWarning(kvListEventNewCal, Ent.TypeNameMessage(Ent.EVENT, eventId, str(e)), j, jcount)
       except GAPI.notACalendarUser as e:
-        entityActionFailedWarning([Ent.CALENDAR, calId], str(e), i, count)
+        entityActionFailedWarning(kvList, str(e), i, count)
         break
-      except GAPI.requiredAccessLevel as e:
-# Correct "You need to have reader access to this calendar." to "You need to have writer access to both calendars."
-        entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId],
-                                  str(e).replace('reader', 'writer').replace('this calendar', 'both calendars'),
-                                  j, jcount)
+      except GAPI.requiredAccessLevel:
+# Correct "You need to have reader access to this calendar." to "Writer access required to both calendars."
+        entityActionFailedWarning(kvListEventNewCal, Msg.WRITER_ACCESS_REQUIRED_TO_BOTH_CALENDARS, j, jcount)
       except (GAPI.forbidden, GAPI.invalid, GAPI.cannotChangeOrganizer, GAPI.cannotChangeOrganizerOfInstance) as e:
-        entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, eventId, Ent.CALENDAR, newCalId], str(e), j, jcount)
+        entityActionFailedWarning(kvListEventNewCal, str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
         break

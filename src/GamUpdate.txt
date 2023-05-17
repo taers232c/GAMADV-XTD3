@@ -1,3 +1,10 @@
+6.59.10
+
+Fixed bug in `gam print|show chromepolicies` where policies in namespace `chrome.devices.managedguest`
+were not displayed unless it was specified in `namespace <NamespaceList>`.
+
+Improved error messages in `gam <UserTypeEntity> move events`.
+
 6.59.09
 
 Added option `addnumericsuffixonduplicate <Number>` to `gam create user <EmailAddress>` that
