@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.10'
+__version__ = '6.59.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24934,9 +24934,20 @@ def doPrintShowChromePolicies():
   elif not namespaces:
     namespaces = ['chrome.users',
                   'chrome.users.apps',
+                  'chrome.users.appsconfig',
                   'chrome.devices',
                   'chrome.devices.kiosk',
+                  'chrome.devices.kiosk.apps',
                   'chrome.devices.managedguest',
+                  'chrome.devices.managedguest.apps',
+                  'chrome.networks.cellular',
+                  'chrome.networks.certificates',
+                  'chrome.networks.ethernet',
+                  'chrome.networks.globalsettings',
+                  'chrome.networks.vpn',
+                  'chrome.networks.wifi',
+                  'chrome.printers',
+                  'chrome.printservers',
                  ]
   if csvPF and not FJQC.formatJSON:
     if printerId:

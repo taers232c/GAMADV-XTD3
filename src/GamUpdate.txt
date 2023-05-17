@@ -1,3 +1,27 @@
+6.59.11
+
+Updated `gam print|show chromepolicies` to query the following nameapaces when
+`namespace <NamespaceList>` is not specified. Previously, only the namespaces
+marked with a `*` were queried. `chrome.devices.managedguest` was added in 6.59.10.
+```
+chrome.users *
+chrome.users.apps *
+chrome.users.appsconfig
+chrome.devices *
+chrome.devices.kiosk *
+chrome.devices.kiosk.apps
+chrome.devices.managedguest *
+chrome.devices.managedguest.apps
+chrome.networks.cellular
+chrome.networks.certificates
+chrome.networks.ethernet
+chrome.networks.globalsettings
+chrome.networks.vpn
+chrome.networks.wifi
+chrome.printers
+chrome.printservers
+```
+
 6.59.10
 
 Fixed bug in `gam print|show chromepolicies` where policies in namespace `chrome.devices.managedguest`
