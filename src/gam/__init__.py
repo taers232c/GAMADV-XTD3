@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.11'
+__version__ = '6.59.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -39403,11 +39403,14 @@ def updateUsers(entityList):
           continue
         body['orgUnitPath'] = orgUnit
       if checkImmutableOUs:
-        result = callGAPI(cd.users(), 'get',
-                          throwReasons=GAPI.USER_GET_THROW_REASONS,
-                          userKey=userKey, fields='orgUnitPath')
-        if result['orgUnitPath'] in parameters['immutableOUs']:
-          body.pop('orgUnitPath')
+        try:
+          result = callGAPI(cd.users(), 'get',
+                            throwReasons=GAPI.USER_GET_THROW_REASONS,
+                            userKey=userKey, fields='orgUnitPath')
+          if result['orgUnitPath'] in parameters['immutableOUs']:
+            body.pop('orgUnitPath')
+        except Exception:
+          pass
       if body:
         if 'primaryEmail' in body and parameters['verifyNotInvitable']:
           isInvitableUser, ci = _getIsInvitableUser(ci, body['primaryEmail'])

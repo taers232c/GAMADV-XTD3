@@ -1,3 +1,11 @@
+6.59.12
+
+Fixed bug in `gam create user <EmailAddress> ... immutableous <OrgUnitEntity> ... createifnotfound`
+that generated the following error when the user `<EmailAddress>` did not exist and needed to be created.
+```
+User: <EmailAddress>, Service not applicable/Does not exist
+```
+
 6.59.11
 
 Updated `gam print|show chromepolicies` to query the following nameapaces when
