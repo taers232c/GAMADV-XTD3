@@ -1,3 +1,14 @@
+6.59.13
+
+Fixed bug in `gam <UserTypeEntity> print groups|grouptree|groupslist` that caused the following
+error whan an email address contained an apostrophe.
+```
+WARNING: Got 0 Groups: Invalid Member - test.o'user@domain.com
+```
+
+Fixed bug in `gam <UserTypeEntity> print|show contacts ... filtercontactgroup <PeopleContactGroupItem>` that returned
+no contatcs when neither `allfields` or `fields <PeopleFieldNameList>` was specifiecd.
+
 6.59.12
 
 Fixed bug in `gam create user <EmailAddress> ... immutableous <OrgUnitEntity> ... createifnotfound`

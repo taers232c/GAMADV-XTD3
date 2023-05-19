@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.12'
+__version__ = '6.59.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -19865,6 +19865,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
                            resourceName=contactQuery['group'], maxMembers=totalItems, groupFields='name')
         for resourceName in results.get('memberResourceNames', []):
           result = callGAPI(people.people(), 'get',
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             resourceName=resourceName, sources=sources, personFields=fields)
 
           entityList.append(result)
@@ -20144,6 +20145,7 @@ def _clearUpdatePeopleContacts(users, updateContacts):
             callGAPI(people.people(), 'deleteContact',
                      bailOnInternalError=True,
                      throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                     retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                      resourceName=resourceName)
             entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
             continue
@@ -20631,6 +20633,7 @@ def _infoPeople(users, entityType, source):
         result = callGAPI(people.people(), 'get',
                           bailOnInternalError=True,
                           throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR, GAPI.INVALID_ARGUMENT]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                           resourceName=resourceName, sources=sources, personFields=fields)
       except (GAPI.notFound, GAPI.internalError):
         entityActionFailedWarning([entityType, user, peopleEntityType, resourceName], Msg.DOES_NOT_EXIST, j, jcount)
@@ -20700,10 +20703,10 @@ def printShowUserPeopleContacts(users):
   if countsOnly:
     fieldsList = ['emailAddresses']
   if contactQuery['mainContacts']:
-    if contactQuery['contactGroupFilter'] and fieldsList and 'memberships' not in fieldsList:
-      fieldsList.append('memberships')
-      contactQuery['dropMemberships'] = True
     fields = _getPersonFields(PEOPLE_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
+    if contactQuery['contactGroupFilter'] and 'memberships' not in fields:
+      fields += ',memberships'
+      contactQuery['dropMemberships'] = True
   if contactQuery['otherContacts']:
     if not fieldsList:
       ofields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
@@ -20916,6 +20919,7 @@ def processUserPeopleOtherContacts(users):
               callGAPI(upeople.people(), 'deleteContact',
                        bailOnInternalError=True,
                        throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                       retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                        resourceName=peopleResourceName)
               entityActionPerformed([entityType, user, peopleEntityType, resourceName], j, jcount)
               break
@@ -21162,6 +21166,7 @@ def printShowUserPeopleProfiles(users):
     try:
       result = callGAPI(people.people(), 'get',
                         throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                        retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                         resourceName='people/me', sources=sources, personFields=fields)
     except GAPI.notFound:
       entityUnknownWarning(Ent.PEOPLE_PROFILE, user, i, count)
@@ -21255,6 +21260,7 @@ def _processPeopleContactPhotos(users, function):
           result = callGAPI(people.people(), 'get',
                             bailOnInternalError=True,
                             throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             resourceName=resourceName, sources=sources, personFields='emailAddresses')
         if function == 'updateContactPhoto':
           if subForContactId or subForEmail:
@@ -21273,6 +21279,7 @@ def _processPeopleContactPhotos(users, function):
           filename = os.path.join(targetFolder, filename)
           result = callGAPI(people.people(), 'get',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.INTERNAL_ERROR]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                            retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                             resourceName=resourceName, personFields='photos')
           url = None
           for photo in result.get('photos', []):
@@ -30289,6 +30296,7 @@ def doPrintGroupMembers():
     try:
       info = callGAPI(people.people(), 'get',
                       throwReasons=[GAPI.NOT_FOUND]+GAPI.PEOPLE_ACCESS_THROW_REASONS,
+                      retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                       resourceName=f'people/{memberId}', personFields='names')
       if 'names' in info:
         for sourceType in ['PROFILE', 'CONTACT']:
@@ -59772,7 +59780,7 @@ def checkUserInGroups(users):
 #	[roles <GroupRoleList>] [countsonly|nodetails]
 def printShowUserGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
+  kwargs = {}
   csvPF = CSVPrintFile(['User', 'Group', 'Role', 'Status', 'Delivery'], 'sortall') if Act.csvFormat() else None
   rolesSet = set()
   countsOnly = noDetails = False
@@ -59948,7 +59956,7 @@ def printShowGroupTree(users):
         csvPF.WriteRow(flattenJSON(crow))
 
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
+  kwargs = {}
   csvPF = CSVPrintFile(['User', 'Group', 'Name']) if Act.csvFormat() else None
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   showParentsAsList = False
@@ -60038,7 +60046,7 @@ def printShowGroupTree(users):
 #	[delimiter <Character>] [quotechar <Character>]
 def printUserGroupsList(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
+  kwargs = {}
   csvPF = CSVPrintFile(['User', 'Groups', 'GroupsList'])
   FJQC = FormatJSONQuoteChar(csvPF)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
@@ -60511,6 +60519,7 @@ def getPhoto(users, profileMode):
       else:
         result = callGAPI(people.people(), 'get',
                           throwReasons=[GAPI.NOT_FOUND],
+                          retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                           resourceName='people/me', personFields='photos')
         default = False
         url = None
