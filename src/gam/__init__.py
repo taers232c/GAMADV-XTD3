@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.13'
+__version__ = '6.59.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -59437,7 +59437,11 @@ def _getUserGroupOptionalDomainCustomerId():
 
 def _setUserGroupArgs(user, kwargs):
   if 'customer' in kwargs:
-    kwargs['query'] = f'memberKey={user}'
+    if "'" not in user:
+      kwargs['query'] = f'memberKey={user}'
+    else:
+      quser = user.replace("'", "\\'")
+      kwargs['query'] = f'memberKey={quser}'
   else:
     kwargs['userKey'] = user
 
@@ -59780,7 +59784,7 @@ def checkUserInGroups(users):
 #	[roles <GroupRoleList>] [countsonly|nodetails]
 def printShowUserGroups(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {}
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile(['User', 'Group', 'Role', 'Status', 'Delivery'], 'sortall') if Act.csvFormat() else None
   rolesSet = set()
   countsOnly = noDetails = False
@@ -59956,7 +59960,7 @@ def printShowGroupTree(users):
         csvPF.WriteRow(flattenJSON(crow))
 
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {}
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile(['User', 'Group', 'Name']) if Act.csvFormat() else None
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   showParentsAsList = False
@@ -60046,7 +60050,7 @@ def printShowGroupTree(users):
 #	[delimiter <Character>] [quotechar <Character>]
 def printUserGroupsList(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  kwargs = {}
+  kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile(['User', 'Groups', 'GroupsList'])
   FJQC = FormatJSONQuoteChar(csvPF)
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]

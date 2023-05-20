@@ -1,3 +1,7 @@
+6.59.14
+
+Improve bug fix for `gam <UserTypeEntity> print groups|grouptree|groupslist`.
+
 6.59.13
 
 Fixed bug in `gam <UserTypeEntity> print groups|grouptree|groupslist` that caused the following
