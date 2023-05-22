@@ -2406,6 +2406,21 @@ gam print chromepolicies [todrive <ToDriveAttribute>*]
         [show all|direct|inherited]
         [[formatjson [quotechar <Character>]]
 
+<ChromePolicySchemaFieldName> ::=
+        accessRestrictions|
+        additionalTargetKeyNames|
+        categoryTitle|
+        definition|
+        fieldDescriptions|
+        name|
+        notices|
+        policyApiLifecycle|
+        policyDescription|
+        schemaName|
+        supportUri|
+        validTargetResources
+<ChromePolicySchemaFieldNameList> ::= "<ChromePolicySchemaFieldName>(,<ChromePolicySchemaFieldName>)*"
+
 gam info chromeschema <SchemaName>
         <ChromePolicySchemaFieldName>* [fields <ChromePolicySchemaFieldNameList>]
         [formatjson]

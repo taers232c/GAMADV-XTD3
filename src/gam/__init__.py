@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.14'
+__version__ = '6.59.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24526,7 +24526,7 @@ def doDeleteChromePolicy():
     elif myarg == 'appid':
       app_id = getString(Cmd.OB_APP_ID)
     else:
-      schema = _getChromePolicySchema(cp, myarg, 'name')
+      schema = _getChromePolicySchema(cp, Cmd.Previous(), 'name')
       schemaName = schema['name'].split('/')[-1]
       schemaNameList.append(schemaName)
       body['requests'].append({'policySchema': schemaName})
@@ -24649,7 +24649,7 @@ def doUpdateChromePolicy():
     elif myarg == 'appid':
       app_id = getString(Cmd.OB_APP_ID)
     else:
-      schemaName, schema = simplifyChromeSchema(_getChromePolicySchema(cp, myarg, '*'))
+      schemaName, schema = simplifyChromeSchema(_getChromePolicySchema(cp, Cmd.Previous(), '*'))
       body['requests'].append({'policyValue': {'policySchema': schemaName, 'value': {}},
                                'updateMask': ''})
       while Cmd.ArgumentsRemaining():
@@ -25050,13 +25050,16 @@ def _showChromePolicySchema(schema, FJQC, i=0, count=0):
 CHROME_POLICY_SCHEMA_FIELDS_CHOICE_MAP = {
   'accessrestrictions': 'accessRestrictions',
   'additionaltargetkeynames': 'additionalTargetKeyNames',
+  'categorytitle': 'categoryTitle',
   'definition': 'definition',
   'fielddescriptions': 'fieldDescriptions',
   'name': 'name',
   'notices': 'notices',
+  'policyapilifecycle': 'policyApiLifecycle',
   'policydescription': 'policyDescription',
   'schemaname': 'schemaName',
   'supporturi': 'supportUri',
+  'validtargetresources': 'validTargetResources',
   }
 
 # gam info chromeschema <SchemaName>
@@ -25098,16 +25101,28 @@ def doPrintShowChromeSchemas():
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(row)
     elif (not csvPF.rowFilter and not csvPF.rowDropFilter) or csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'name': schema['name'],
-                              'JSON': json.dumps(cleanJSON(schema),
-                                                 ensure_ascii=False, sort_keys=True)})
+      row = {'name': schema['name']}
+      if 'policyDescription' in schema:
+        row['policyDescription'] = schema['policyDescription']
+      if 'policyApiLifecycle' in schema:
+        row['policyApiLifecycleStage'] = schema['policyApiLifecycle'].get('policyApiLifecycleStage', '')
+      row['JSON'] = json.dumps(cleanJSON(schema), ensure_ascii=False, sort_keys=True)
+      csvPF.WriteRowNoFilter(row)
 
   if checkArgumentPresent('std'):
     doShowChromeSchemasStd()
     return
   cp = buildGAPIObject(API.CHROMEPOLICY)
   parent = _getCustomersCustomerIdWithC()
-  csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['name', 'schemaName', 'policyDescription',
+                        'policyApiLifecycle.policyApiLifecycleStage',
+                        'policyApiLifecycle.description',
+                        'policyApiLifecycle.endSupport.year',
+                        'policyApiLifecycle.endSupport.month',
+                        'policyApiLifecycle.endSupport.day',
+                        'policyApiLifecycle.deprecatedInFavorOf',
+                        'policyApiLifecycle.deprecatedInFavorOf.0'],
+                        'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   pfilter = None
@@ -25121,6 +25136,14 @@ def doPrintShowChromeSchemas():
       pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if csvPF and FJQC.formatJSON:
+    jsonTitles = ['name']
+    if not fieldsList or 'policyDescription' in fieldsList:
+      jsonTitles.append('policyDescription')
+    if not fieldsList or 'policyApiLifecycle' in fieldsList:
+      jsonTitles.append('policyApiLifecycleStage')
+    jsonTitles.append('JSON')
+    csvPF.SetJSONTitles(jsonTitles)
   fields = getItemFieldsFromFieldsList('policySchemas', fieldsList)
   printGettingAllAccountEntities(Ent.CHROME_POLICY_SCHEMA, pfilter)
   pageMessage = getPageMessage()

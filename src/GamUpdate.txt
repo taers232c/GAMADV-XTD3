@@ -1,3 +1,14 @@
+6.59.15
+
+Updated error reporting in `gam delete|update chromepolicy <SchemaName>` to show the `<SchemaName>` as originally entered
+when an unknown `<SchemaName>` is specified; previously, it was shown in lowercase which could cause confusion.
+
+Updated column order in `gam print chromeschemas` to move `schemaName`, `policyDescription` and `policyApiLifecycle.*`
+to follow column `name`.
+
+Added columns `policyDescription` and `policyApiLifecycleStage` to `gam print chromeschemas formatjson`
+to follow column `name`.
+
 6.59.14
 
 Improve bug fix for `gam <UserTypeEntity> print groups|grouptree|groupslist`.
