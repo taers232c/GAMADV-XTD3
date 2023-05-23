@@ -1,3 +1,7 @@
+6.59.16
+
+Updated `<GroupSettingsAttribute> whocancontactowner` to include option `all_owners_can_contact`.
+
 6.59.15
 
 Updated error reporting in `gam delete|update chromepolicy <SchemaName>` to show the `<SchemaName>` as originally entered

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.15'
+__version__ = '6.59.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -27866,7 +27866,8 @@ GROUP_SETTINGS_ATTRIBUTES = {
                                                   'choices': {'allow': 'ALLOW', 'moderate': 'MODERATE', 'silentlymoderate': 'SILENTLY_MODERATE', 'reject': 'REJECT'}}],
   'whocancontactowner': ['whoCanContactOwner', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                                 'choices': {'anyonecancontact': 'ANYONE_CAN_CONTACT', 'allindomaincancontact': 'ALL_IN_DOMAIN_CAN_CONTACT',
-                                                            'allmemberscancontact': 'ALL_MEMBERS_CAN_CONTACT', 'allmanagerscancontact': 'ALL_MANAGERS_CAN_CONTACT'}}],
+                                                            'allmemberscancontact': 'ALL_MEMBERS_CAN_CONTACT', 'allmanagerscancontact': 'ALL_MANAGERS_CAN_CONTACT',
+                                                            'allownerscancontact': 'ALL_OWNERS_CAN_CONTACT'}}],
   'whocanjoin': ['whoCanJoin', {GC.VAR_TYPE: GC.TYPE_CHOICE,
                                 'choices': {'anyonecanjoin': 'ANYONE_CAN_JOIN', 'allindomaincanjoin': 'ALL_IN_DOMAIN_CAN_JOIN',
                                             'invitedcanjoin': 'INVITED_CAN_JOIN', 'canrequesttojoin': 'CAN_REQUEST_TO_JOIN'}}],

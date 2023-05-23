@@ -2407,18 +2407,18 @@ gam print chromepolicies [todrive <ToDriveAttribute>*]
         [[formatjson [quotechar <Character>]]
 
 <ChromePolicySchemaFieldName> ::=
-        accessRestrictions|
-        additionalTargetKeyNames|
-        categoryTitle|
+        accessrestrictions|
+        additionaltargetkeynames|
+        categorytitle|
         definition|
-        fieldDescriptions|
+        fielddescriptions|
         name|
         notices|
-        policyApiLifecycle|
-        policyDescription|
-        schemaName|
-        supportUri|
-        validTargetResources
+        policyapilifecycle|
+        policydescription|
+        schemaname|
+        supporturi|
+        validtargetresources
 <ChromePolicySchemaFieldNameList> ::= "<ChromePolicySchemaFieldName>(,<ChromePolicySchemaFieldName>)*"
 
 gam info chromeschema <SchemaName>
@@ -3318,7 +3318,7 @@ gam audit monitor list <EmailAddress>
         (sendmessagedenynotification <Boolean>)|
         (spammoderationlevel allow|moderate|silently_moderate|reject)|
         (whocanadd all_members_can_add|all_managers_can_add|all_owners_can_add|none_can_add)|
-        (whocancontactowner anyone_can_contact|all_in_domain_can_contact|all_members_can_contact|all_managers_can_contact)|
+        (whocancontactowner anyone_can_contact|all_in_domain_can_contact|all_members_can_contact|all_managers_can_contact|all_owners_can_contact)|
         (whocanjoin anyone_can_join|all_in_domain_can_join|invited_can_join|can_request_to_join)|
         (whocanleavegroup all_members_can_leave|all_managers_can_leave|all_owners_can_leave|none_can_leave)|
         (whocanpostmessage none_can_post|all_managers_can_post|all_members_can_post|all_owners_can_post|all_in_domain_can_post|anyone_can_post)|
