@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.16'
+__version__ = '6.59.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -23994,7 +23994,8 @@ def doPrintShowBrowserTokens():
       csvPF.SetSortTitles(['token'])
     csvPF.writeCSVfile('Chrome Browser Enrollment Tokens')
 
-def buildChatServiceObject(user=None):
+def buildChatServiceObject(api=API.CHAT, user=None):
+#  _, chat = buildGAPIServiceObject(api, user)
   _, chat = buildGAPIServiceObject(API.CHAT, user)
   return chat
 
@@ -24163,7 +24164,7 @@ CHAT_MEMBER_TYPE_MAP = {
 #	[notification always|less_with_new_threads|less|never}
 #	[formatjson]
 def doCreateChatMember():
-  chat = buildChatServiceObject()
+  chat = buildChatServiceObject(API.CHAT_MEMBERSHIPS)
   FJQC = FormatJSONQuoteChar()
   parent = name = None
   notificationSetting = CHAT_CREATOR_NOTIFICATION_MAP['always']
@@ -24199,7 +24200,7 @@ def doCreateChatMember():
 # gam info chatmember member <ChatMember>
 #	[formatjson]
 def doInfoChatMembers():
-  chat = buildChatServiceObject()
+  chat = buildChatServiceObject(API.CHAT_MEMBERSHIPS)
   FJQC = FormatJSONQuoteChar()
   name = None
   while Cmd.ArgumentsRemaining():
@@ -24235,7 +24236,7 @@ def doPrintShowChatMembers():
                               'JSON': json.dumps(cleanJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS),
                                                  ensure_ascii=False, sort_keys=True)})
 
-  chat = buildChatServiceObject()
+  chat = buildChatServiceObject(API.CHAT_MEMBERSHIPS)
   csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   name = None
@@ -24281,7 +24282,7 @@ def trimChatMessageIfRequired(body):
 # gam create chatmessage space <ChatSpace> [thread <ChatThread>]
 #	(text <String>)|(textfile <FileName> [charset <CharSet>])
 def doCreateChatMessage():
-  chat = buildChatServiceObject()
+  chat = buildChatServiceObject(API.CHAT_MESSAGES)
   name = None
   body = {}
   while Cmd.ArgumentsRemaining():
@@ -24314,7 +24315,7 @@ def doCreateChatMessage():
 # gam update chatmessage name <ChatMessage>
 #	(text <String>)|(textfile <FileName> [charset <CharSet>])
 def doUpdateChatMessage():
-  chat = buildChatServiceObject()
+  chat = buildChatServiceObject(API.CHAT_MESSAGES)
   name = None
   body = {}
   while Cmd.ArgumentsRemaining():
@@ -24344,7 +24345,7 @@ def doUpdateChatMessage():
 
 # gam delete chatmessage name <ChatMessage>
 def doDeleteChatMessage():
-  chat = buildChatServiceObject()
+  chat = buildChatServiceObject(API.CHAT_MESSAGES)
   name = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -24380,7 +24381,7 @@ def _showChatMessage(message, FJQC, i=0, count=0):
 # gam info chatmessage name <ChatMessage>
 #	[formatjson]
 def doInfoChatMessage():
-  chat = buildChatServiceObject()
+  chat = buildChatServiceObject(API.CHAT_MESSAGES, _getAdminEmail())
   FJQC = FormatJSONQuoteChar()
   name = None
   while Cmd.ArgumentsRemaining():
@@ -48228,15 +48229,15 @@ def showSharedDriveThemes(users):
 def doShowSharedDriveThemes():
   showSharedDriveThemes([_getAdminEmail()])
 
-def initFilePathInfo():
-  return {'ids': {}, 'allPaths': {}, 'localPaths': None}
+def initFilePathInfo(delimiter):
+  return {'ids': {}, 'allPaths': {}, 'localPaths': None, 'delimiter': delimiter}
 
 def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=False, fullpath=False, showDepth=False):
   def _getParentName(result):
     if (result['mimeType'] == MIMETYPE_GA_FOLDER) and result.get('driveId') and (result['name'] == TEAM_DRIVE):
       parentName = _getSharedDriveNameFromId(drive, result['driveId'])
       if parentName != TEAM_DRIVE:
-        return f'{SHARED_DRIVES}/{parentName}'
+        return f'{SHARED_DRIVES}{filePathInfo["delimiter"]}{parentName}'
     return result['name']
 
   def _followParent(paths, parentId):
@@ -48286,7 +48287,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
             maxDepth = depth-1
         fp.reverse()
         fp.append(name)
-        filePaths.append(os.path.join(*fp))
+        filePaths.append(filePathInfo['delimiter'].join(fp))
       else:
         maxDepth = _makeFilePaths(v, fplist, filePaths, name, maxDepth)
       fplist.pop()
@@ -48808,7 +48809,8 @@ def _formatFileDriveLabels(showLabels, labels, result, printMode, delimiter):
 
 # gam <UserTypeEntity> info drivefile <DriveFileEntity>
 #	[returnidonly]
-#	[filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
+#	[filepath|fullpath] [pathdelimiter <Character>]
+#	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[showdrivename] [showshareddrivepermissions]
 #	[(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
@@ -48816,7 +48818,8 @@ def _formatFileDriveLabels(showLabels, labels, result, printMode, delimiter):
 #	[stripcrsfromname]
 # gam <UserTypeEntity> show fileinfo <DriveFileEntity>
 #	[returnidonly]
-#	[filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
+#	[filepath|fullpath] [pathdelimiter <Character>]
+#	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)] [formatjson]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[showdrivename] [showshareddrivepermissions]
 #	[(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
@@ -48831,6 +48834,7 @@ def showFileInfo(users):
       _setSkipObjects(skipObjects, ['driveId'], DFF.fieldsList)
 
   getPermissionsForSharedDrives = filepath = fullpath = returnIdOnly = showParentsIdsAsList = showNoParents = stripCRsFromName = False
+  pathDelimiter = '/'
   showLabels = None
   simpleLists = []
   skipObjects = set()
@@ -48846,6 +48850,8 @@ def showFileInfo(users):
       simpleLists.append('parentsIds')
     elif myarg == 'fullpath':
       filepath = fullpath = True
+    elif myarg == 'pathdelimiter':
+      pathDelimiter = getCharacter()
     elif myarg == 'stripcrsfromname':
       stripCRsFromName = True
     elif myarg == 'showlabels':
@@ -48895,7 +48901,7 @@ def showFileInfo(users):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
     if filepath:
-      filePathInfo = initFilePathInfo()
+      filePathInfo = initFilePathInfo(pathDelimiter)
       if fullpath:
         fileTree, status = initFileTree(drive, fileIdEntity.get('shareddrive'), None, [], True, user, i, count)
         if not status:
@@ -50173,7 +50179,7 @@ FILECOUNT_SUMMARY_USER = 'Summary'
 #	[excludetrashed]
 #	[maxfiles <Integer>] [nodataheaders <String>]
 #	[countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
-#	[filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
+#	[filepath|fullpath [pathdelimiter <Character>] [addpathstojson] [showdepth]] [buildtree]
 #	[allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
 #	[showdrivename] [showshareddrivepermissions]
 #	(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
@@ -50392,6 +50398,7 @@ def printFileList(users):
   FJQC = FormatJSONQuoteChar(csvPF)
   addPathsToJSON = countsRowFilter = buildTree = countsOnly = filepath = fullpath = getPermissionsForSharedDrives = \
     noRecursion = oneItemPerRow = showParentsIdsAsList = showDepth = showParent = showSize = showSource = stripCRsFromName = False
+  pathDelimiter = '/'
   pmselect = True
   showLabels = None
   rootFolderId = ROOT
@@ -50440,6 +50447,8 @@ def printFileList(users):
       filepath = True
     elif myarg == 'fullpath':
       filepath = fullpath = True
+    elif myarg == 'pathdelimiter':
+      pathDelimiter = getCharacter()
     elif myarg == 'addpathstojson':
       addPathsToJSON = True
     elif myarg == 'buildtree':
@@ -50603,7 +50612,7 @@ def printFileList(users):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         continue
     if filepath:
-      filePathInfo = initFilePathInfo()
+      filePathInfo = initFilePathInfo(pathDelimiter)
     filesPrinted = set()
     mimeTypeCounts = {}
     if buildTree:
@@ -50802,16 +50811,17 @@ def printFileList(users):
 # gam <UserTypeEntity> print filepaths <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[oneitemperrow]
-#	[stripcrsfromname] [fullpath]
+#	[stripcrsfromname] [fullpath] [pathdelimiter <Character>]
 # gam <UserTypeEntity> show filepaths <DriveFileEntity>
 #	[returnpathonly]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[stripcrsfromname] [fullpath]
+#	[stripcrsfromname] [fullpath] [pathdelimiter <Character>]
 def printShowFilePaths(users):
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   csvPF = CSVPrintFile(['Owner', 'id', fileNameTitle, 'paths'], 'sortall', ['paths']) if Act.csvFormat() else None
   fileIdEntity = getDriveFileEntity()
   fullpath = oneItemPerRow = returnPathOnly = stripCRsFromName = False
+  pathDelimiter = '/'
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -50819,6 +50829,8 @@ def printShowFilePaths(users):
       csvPF.GetTodriveParameters()
     elif myarg == 'fullpath':
       fullpath = True
+    elif myarg == 'pathdelimiter':
+      pathDelimiter = getCharacter()
     elif myarg == 'stripcrsfromname':
       stripCRsFromName = True
     elif csvPF is None and myarg == 'returnpathonly':
@@ -50844,7 +50856,7 @@ def printShowFilePaths(users):
                                                   orderBy=OBY.orderBy)
     if jcount == 0:
       continue
-    filePathInfo = initFilePathInfo()
+    filePathInfo = initFilePathInfo(pathDelimiter)
     if fullpath:
       fileTree, status = initFileTree(drive, fileIdEntity.get('shareddrive'), None, [], True, user, i, count)
       if not status:
@@ -55790,7 +55802,7 @@ def getPermissionIdForEmail(user, i, count, email):
 # gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem>
 #	[<DriveFileParentAttribute>] [includetrashed] [norecursion [<Boolean>]]
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
-#	[preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
+#	[preview] [filepath] [pathdelimiter <Character>] [buildtree] [todrive <ToDriveAttribute>*]
 def transferOwnership(users):
   def _identifyFilesToTransfer(fileEntry):
     for childFileId in fileEntry['children']:
@@ -55835,6 +55847,7 @@ def transferOwnership(users):
   newOwner = getEmailAddress()
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
   changeParents = filepath = includeTrashed = noRecursion = False
+  pathDelimiter = '/'
   csvPF = fileTree = None
   addParents = ''
   parentBody = {}
@@ -55850,6 +55863,8 @@ def transferOwnership(users):
       OBY.GetChoice()
     elif myarg == 'filepath':
       filepath = True
+    elif myarg == 'pathdelimiter':
+      pathDelimiter = getCharacter()
     elif myarg == 'buildtree':
       buildTree = True
     elif myarg == 'preview':
@@ -55882,7 +55897,7 @@ def transferOwnership(users):
     if jcount == 0:
       continue
     if filepath:
-      filePathInfo = initFilePathInfo()
+      filePathInfo = initFilePathInfo(pathDelimiter)
     filesTransferred = set()
     if buildTree:
       printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count)
@@ -56041,7 +56056,8 @@ def transferOwnership(users):
 #	[skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
 #	[restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]]
 #	[keepuser | (retainrole reader|commenter|writer|editor|none)] [noretentionmessages]
-#	[preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]d
+#	[preview] [filepath] [pathdelimiter <Character>] [buildtree]
+#	[todrive <ToDriveAttribute>*]
 def claimOwnership(users):
   def _identifyFilesToClaim(fileEntry):
     for childFileId in fileEntry['children']:
@@ -56119,6 +56135,7 @@ def claimOwnership(users):
   skipusers = []
   subdomains = []
   filepath = includeTrashed = False
+  pathDelimiter = '/'
   addParents = ''
   parentBody = {}
   parentParms = initDriveFileAttributes()
@@ -56154,6 +56171,8 @@ def claimOwnership(users):
       bodyShare['writersCanShare'] = not getBoolean()
     elif myarg == 'filepath':
       filepath = True
+    elif myarg == 'pathdelimiter':
+      pathDelimiter = getCharacter()
     elif myarg == 'buildtree':
       buildTree = True
     elif myarg == 'preview':
@@ -56189,7 +56208,7 @@ def claimOwnership(users):
     if jcount == 0:
       continue
     if filepath:
-      filePathInfo = initFilePathInfo()
+      filePathInfo = initFilePathInfo(pathDelimiter)
     filesTransferred = set()
     bodyAdd = {'role': 'writer', 'type': 'user', 'emailAddress': user}
     if skipFileIdEntity['query'] or skipFileIdEntity[ROOT]:
@@ -56671,7 +56690,6 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   fileIdEntity = getDriveFileEntity()
   body = {}
-  ubody = {}
   body['type'] = getChoice(DRIVEFILE_ACL_PERMISSION_TYPES)
   if body['type'] != 'anyone':
     if body['type'] != 'domain':
@@ -56693,14 +56711,13 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
       body['role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body['role'] == 'owner':
         sendNotificationEmail = _transferOwnership = True
-      ubody['role'] = body['role']
     elif myarg == 'enforcesingleparent':
       deprecatedArgument(myarg)
     elif myarg == 'movetonewownersroot':
       moveToNewOwnersRoot = getBoolean()
     elif myarg in {'expiration', 'expires'}:
       expirationLocation = Cmd.Location()
-      ubody['expirationTime'] = getTimeOrDeltaFromNow()
+      body['expirationTime'] = getTimeOrDeltaFromNow()
     elif myarg == 'sendemail':
       sendNotificationEmail = True
     elif myarg == 'emailmessage':
@@ -56764,13 +56781,6 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
                               useDomainAdminAccess=useDomainAdminAccess,
                               fileId=fileId, sendNotificationEmail=sendNotificationEmail, emailMessage=emailMessage,
                               transferOwnership=_transferOwnership, body=body, fields='*', supportsAllDrives=True)
-        if 'expirationTime' in ubody:
-          permission = callGAPI(drive.permissions(), 'update',
-                                bailOnInternalError=True,
-                                throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_UPDATE_ACL_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
-                                useDomainAdminAccess=useDomainAdminAccess,
-                                fileId=fileId, permissionId=permission['id'], removeExpiration=False,
-                                body=ubody, fields='*', supportsAllDrives=True)
         if updateSheetProtectedRanges and mimeType == MIMETYPE_GA_SPREADSHEET:
           _updateSheetProtectedRangesACLchange(sheet, user, i, count, j, jcount, fileId, fileName, True, permission)
         if csvPF:
@@ -56792,6 +56802,7 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
           if showDetails:
             _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+              GAPI.cannotSetExpiration,
               GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
@@ -56920,6 +56931,7 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
           if showDetails:
             _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+              GAPI.cannotSetExpiration,
               GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
               GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.sharingRateLimitExceeded,
               GAPI.insufficientAdministratorPrivileges,

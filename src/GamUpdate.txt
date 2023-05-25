@@ -1,3 +1,20 @@
+6.59.17
+
+Added option `pathdelimiter <Character>` to the following commands that causes GAM to separate
+components in a folder path with `<Character>` rather than the default character `/`.
+This can help avoid confusion when Google folder names contain a `/`.
+
+Previously, on Windows, path components were separated by `\\` when written to a CSV file and
+`\` when written to stdout; now, `/` or `<Character>` will be used in all cases.
+```
+gam <UserTypeEntity> info drivefile <DriveFileEntity>
+gam <UserTypeEntity> show fileinfo <DriveFileEntity>
+gam <UserTypeEntity> print filelist
+gam <UserTypeEntity> print|show filepaths <DriveFileEntity>
+gam <UserTypeEntity> transfer ownership <DriveFileEntity>
+gam <UserTypeEntity> claim ownership <DriveFileEntity>
+```
+
 6.59.16
 
 Updated `<GroupSettingsAttribute> whocancontactowner` to include option `all_owners_can_contact`.

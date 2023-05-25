@@ -27,6 +27,8 @@ CALENDAR = 'calendar'
 CALENDAR_USER_AVAILABILITY = 'calendaruseravailability'
 CBCM = 'cbcm'
 CHAT = 'chat'
+CHAT_MEMBERSHIPS = 'chatmemberships'
+CHAT_MESSAGES = 'chatmessages'
 CHROMEMANAGEMENT = 'chromemanagement'
 CHROMEMANAGEMENT_TELEMETRY = 'chromemanagementtelemetry'
 CHROMEPOLICY = 'chromepolicy'
@@ -183,6 +185,8 @@ _INFO = {
 ###  CALENDAR_USER_AVAILABILITY: {'name': 'Calendar User Availability API', 'version': 'v1', 'v2discovery': True},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
   CHAT: {'name': 'Chat API', 'version': 'v1', 'v2discovery': True},
+#  CHAT_MEMBERSHIPS: {'name': 'Chat API - Memberships', 'version': 'v1', 'v2discovery': True, 'mappedAPI': CHAT},
+#  CHAT_MESSAGES: {'name': 'Chat API - Messages', 'version': 'v1', 'v2discovery': True, 'mappedAPI': CHAT},
   CLASSROOM: {'name': 'Classroom API', 'version': 'v1', 'v2discovery': True},
   CHROMEMANAGEMENT: {'name': 'Chrome Management API', 'version': 'v1', 'v2discovery': True},
   CHROMEMANAGEMENT_TELEMETRY: {'name': 'Chrome Management API - Telemetry', 'version': 'v1', 'v2discovery': True, 'mappedAPI': CHROMEMANAGEMENT},
@@ -482,6 +486,14 @@ _SVCACCT_SCOPES = [
    'api': CALENDAR,
    'subscopes': READONLY,
    'scope': 'https://www.googleapis.com/auth/calendar'},
+#  {'name': 'Chat API - Memberships',
+#   'api': CHAT_MEMBERSHIPS,
+#   'subscopes': [],
+#   'scope': 'https://www.googleapis.com/auth/chat.memberships'},
+#  {'name': 'Chat API - Messages',
+#   'api': CHAT_MESSAGES,
+#   'subscopes': READONLY,
+#   'scope': 'https://www.googleapis.com/auth/chat.messages'},
 ###  {'name': 'Calendar User Availability API',
 ###   'api': CALENDAR_USER_AVAILABILITY,
 ###   'subscopes': [],

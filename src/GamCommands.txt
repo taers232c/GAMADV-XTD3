@@ -3990,7 +3990,7 @@ gam update printer <PrinterID> <PrinterAttribute>+
 gam delete printer
         <PrinterIDList>|
         <FileSelector>|
-	<CSVFileSelector>
+        <CSVFileSelector>
 gam info printer <PrinterID>
         [fields <PrinterFieldNameList>]
         [formatjson]
@@ -5857,7 +5857,8 @@ gam <UserTypeEntity> untrash drivefile <DriveFileEntity>
 
 gam <UserTypeEntity> info drivefile <DriveFileEntity>
         [returnidonly]
-        [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+        [filepath|fullpath] [pathdelimiter <Character>]
+        [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [showdrivename] [showshareddrivepermissions]
         [(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
@@ -6031,14 +6032,16 @@ gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttr
 gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem>
         [<DriveFileParentAttribute>] [includetrashed] [norecursion [<Boolean>]]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
+        [preview] [filepath] [pathdelimiter <Character>] [buildtree]
+        [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> claim ownership <DriveFileEntity>
         [<DriveFileParentAttribute>] [includetrashed]
         [skipids <DriveFileEntity>] [skipusers <UserTypeEntity>] [subdomains <DomainNameEntity>]
         [restricted [<Boolean>]] [writerscanshare|writerscantshare [<Boolean>]]
         [keepuser | (retainrole commenter|reader|writer|editor|fileorganizer|none)] [noretentionmessages]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [preview] [filepath] [buildtree] [todrive <ToDriveAttribute>*]
+        [preview] [filepath] [pathdelimiter <Character>] [buildtree]
+        [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> transfer drive <UserItem> [select <DriveFileEntity>]
         [(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)]
@@ -6296,7 +6299,8 @@ gam <UserTypeEntity> collect orphans
 
 gam <UserTypeEntity> show fileinfo <DriveFileEntity>
         [returnidonly]
-        [filepath|fullpath] [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
+        [filepath|fullpath] [pathdelimiter <Character>]
+        [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [showdrivename] [showshareddrivepermissions]
         [(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
@@ -6307,10 +6311,10 @@ gam <UserTypeEntity> show fileinfo <DriveFileEntity>
 gam <UserTypeEntity> show filepath <DriveFileEntity>
         [returnidonly]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [stripcrsfromname] [fullpath]
+        [stripcrsfromname] [fullpath] [pathdelimiter <Character>]
 gam <UserTypeEntity> print filepath <DriveFileEntity> [todrive <ToDriveAttribute>*]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
-        [stripcrsfromname] [fullpath]
+        [stripcrsfromname] [fullpath] [pathdelimiter <Character>]
         [oneitemperrow]
 
 gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
@@ -6393,7 +6397,7 @@ gam <UserTypeEntity> print filelist [todrive <ToDriveAttribute>*]
         [excludetrashed]
         [maxfiles <Integer>] [nodataheaders <String>]
         [countsonly [summary none|only|plus] [summaryuser <String>] [showsource] [showsize]] [countsrowfilter]
-        [filepath|fullpath [addpathstojson] [showdepth]] [buildtree]
+        [filepath|fullpath [pathdelimiter <Character>] [addpathstojson] [showdepth]] [buildtree]
         [allfields|<DriveFieldName>*|(fields <DriveFieldNameList>)]
         [showdrivename] [showshareddrivepermissions]
         [(showlabels details|ids)|(includelabels <DriveLabelIDList>)]
@@ -7125,11 +7129,11 @@ gam <UserTypeEntity> print contactgroups [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> show peopleprofile
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-	[sources <PeopleProfileSourceNameList>]
+        [sources <PeopleProfileSourceNameList>]
         [formatjson]
 gam <UserTypeEntity> print peopleprofile [todrive <ToDriveAttribute>*]
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
-	[sources <PeopleProfileSourceNameList>]
+        [sources <PeopleProfileSourceNameList>]
         [formatjson [quotechar <Character>]]
 
 # Users - Photo
