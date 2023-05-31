@@ -1,3 +1,10 @@
+6.59.18
+
+Updated `gam <UserTypeEntity> update drivefile <DriveFileEntity>` to handle the following error:
+```
+ERROR: 403: fileWriterTeamDriveMoveInDisabled - The domain administrator has not allowed writers to move items into a shared drive.
+```
+
 6.59.17
 
 Added option `pathdelimiter <Character>` to the following commands that causes GAM to separate

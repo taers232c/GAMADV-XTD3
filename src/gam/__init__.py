@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.17'
+__version__ = '6.59.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52266,7 +52266,8 @@ def updateDriveFile(users):
                                                                             GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
                                                                             GAPI.CROSS_DOMAIN_MOVE_RESTRICTION, GAPI.UPLOAD_TOO_LARGE,
                                                                             GAPI.TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED,
-                                                                            GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN],
+                                                                            GAPI.FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN,
+                                                                            GAPI.FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED],
                               fileId=fileId,
                               ocrLanguage=parameters[DFA_OCRLANGUAGE],
                               keepRevisionForever=parameters[DFA_KEEP_REVISION_FOREVER],
@@ -52294,7 +52295,7 @@ def updateDriveFile(users):
                 GAPI.teamDrivesParentLimit, GAPI.teamDrivesFolderMoveInNotSupported,
                 GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.crossDomainMoveRestriction,
                 GAPI.uploadTooLarge, GAPI.teamDrivesShortcutFileNotSupported,
-                GAPI.fileOwnerNotMemberOfWriterDomain) as e:
+                GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.fileWriterTeamDriveMoveInDisabled) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
           userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
