@@ -789,6 +789,7 @@ class GamCLArgs():
   OB_CHAR_SET = 'CharacterSet'
   OB_CHAT_MEMBER = 'ChatMember'
   OB_CHAT_MESSAGE = 'ChatMessage'
+  OB_CHAT_MESSAGE_ID = 'ChatMessageID'
   OB_CHAT_SPACE = 'ChatSpace'
   OB_CHAT_THREAD = 'ChatThread'
   OB_CHROME_VERSION = 'ChromeVersion'

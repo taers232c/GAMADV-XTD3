@@ -1,3 +1,13 @@
+6.60.00
+
+Added initial support for user chat spaces. This is a work in progress, test and report any problems.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Chat
+
+Improved performance of `gam <UserTypeEntity> delete|move|update othercontacts`.
+
+Upgraded to OpenSSL 3.1.1 where possible.
+
 6.59.18
 
 Updated `gam <UserTypeEntity> update drivefile <DriveFileEntity>` to handle the following error:

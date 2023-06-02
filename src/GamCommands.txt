@@ -1908,15 +1908,20 @@ gam print browsertokens [todrive <ToDriveAttribute>*]
         [sortheaders]
         [formatjson [quotechar <Character>]]
 
-# Chat
+# Chat Bot
+
+<ChatContent> ::=
+        ((text <String>)|
+         (textfile <FileName> [charset <CharSet>])|
+         (gdoc <UserGoogleDoc>)|
+         (gcsdoc <StorageBucketObjectName>))
+
+<ChatMember> ::= spaces/<String>/members/<String>
+<ChatMessage> ::= spaces/<String>/messages/<String>
+<ChatSpace> ::= spaces/<String> | <String>
+<ChatThread> ::= spaces/<String>/threads/<String>
 
 gam setup chat
-
-gam create chatspace
-        [displayname <String>]
-        [type chat|group_chat|direct_message|dm]
-        [notification always|less_with_new_threads|less|never}
-        [formatjson]
 
 gam info chatspace space <ChatSpace>
         [formatjson]
@@ -1925,20 +1930,19 @@ gam show chatspaces
 gam print chatspaces [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
 
-gam create chatmember space <ChatSpace> user <UserItem>
-        [type human|bot]
-        [notification always|less_with_new_threads|less|never}
-        [formatjson]
-
 gam info chatmember member <ChatMember>
         [formatjson]
 gam show chatmembers space <ChatSpace>
+        [showinvited [<Boolean>]] [filter <String>]
         [formatjson]
 gam print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+        [showinvited [<Boolean>]] [filter <String>]
         [formatjson [quotechar <Character>]]
 
-gam create chatmessage space <ChatSpace> [thread <ChatThread>]
+gam create chatmessage space <ChatSpace>
         <ChatContent>
+        [messageId <ChatMessageID>]
+        [(thread <ChatThread>)|(threadkey <String>) [replyoption fail|fallbacktonew]]
 gam update chatmessage name <ChatMessage>
         <ChatContent>
 gam delete chatmessage name <ChatMessage>
@@ -5587,6 +5591,79 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
         (replacestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress> <EmailAddress>)*
         (updatestatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddress>)*
         (updateentitystatus [<AttendeeAttendance>] [<AttendeeStatus>] <EmailAddressEntity>)*
+
+# Users Chat
+
+<ChatContent> ::=
+        ((text <String>)|
+         (textfile <FileName> [charset <CharSet>])|
+         (gdoc <UserGoogleDoc>)|
+         (gcsdoc <StorageBucketObjectName>))
+
+<ChatMember> ::= spaces/<String>/members/<String>
+<ChatMessage> ::= spaces/<String>/messages/<String>
+<ChatSpace> ::= spaces/<String> | <String>
+<ChatThread> ::= spaces/<String>/threads/<String>
+<ChatSpaceType> ::=
+        space|
+        groupchat|
+        directmessage
+<ChatSpaceTypeList> ::= "<ChatSpaceType>(,<ChatSpaceType>)*"
+<ChatMessageID> ::= client-<String>
+        <String> must contain only lowercase letters, numbers, and hyphens up to 56 characters in length.
+
+gam <UserTypeEntity> create chatspace
+        [displayname <String>]
+        [type <ChatSpaceType>]
+        [description <String>] [guidelines <String>]
+        [history <Boolean>]
+        [formatjson]
+gam <UserTypeEntity> update chatspace space <ChatSpace>
+        [displayname <String>]
+        [type space]
+        [description <String>] [guidelines <String>]
+        [history <Boolean>]
+        [formatjson]
+gam <UserTypeEntity> delete chatspace space <ChatSpace>
+
+gam <UserTypeEntity> info chatspace space <ChatSpace>
+        [formatjson]
+gam <UserTypeEntity> show chatspaces
+        [types <ChatSpaceTypeList>]
+        [formatjson]
+gam <UserTypeEntity> print chatspaces [todrive <ToDriveAttribute>*]
+        [types <ChatSpaceTypeList>]
+        [formatjson [quotechar <Character>]]
+
+gam <UserTypeEntity> create chatmember space <ChatSpace>
+        (user <UserItem> [type human|bot])|(group <GroupItem>)
+        [formatjson]
+gam <UserTypeEntity> delete chatmember member <ChatMember>
+
+gam <UserTypeEntity> info chatmember member <ChatMember>
+        [formatjson]
+gam <UserTypeEntity> show chatmembers space <ChatSpace>
+        [formatjson]
+gam <UserTypeEntity> print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+        [formatjson [quotechar <Character>]]
+
+gam <UserTypeEntity> create chatmessage space <ChatSpace>
+        <ChatContent>
+        <ChatContent>
+        [messageId <ChatMessageID>] [(thread <ChatThread>)|(threadkey <String>)]
+        [replyoption fail|fallback]
+gam <UserTypeEntity> update chatmessage name <ChatMessage>
+        <ChatContent>
+gam <UserTypeEntity> delete chatmessage name <ChatMessage>
+
+gam <UserTypeEntity> info chatmessage name <ChatMessage>
+        [formatjson]
+gam <UserTypeEntity> show chatmessages space <ChatSpace>
+        [filter <String>]
+        [formatjson]
+gam <UserTypeEntity> print chatmessages [todrive <ToDriveAttribute>*] space <ChatSpace>
+        [filter <String>]
+        [formatjson [quotechar <Character>]]
 
 # Users - Data Studuo
 

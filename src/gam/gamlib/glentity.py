@@ -80,8 +80,10 @@ class GamEntity():
   CHANNEL_OFFER = 'chof'
   CHANNEL_PRODUCT = 'chpr'
   CHANNEL_SKU = 'chsk'
+  CHAT_BOT = 'chbo'
   CHAT_MEMBER = 'chme'
   CHAT_MESSAGE = 'chms'
+  CHAT_MESSAGE_ID = 'chmi'
   CHAT_SPACE = 'chsp'
   CHAT_THREAD = 'chth'
   CHROME_APP = 'capp'
@@ -397,7 +399,9 @@ class GamEntity():
     CHANNEL_OFFER: ['Channel Offers', 'Channel Offer'],
     CHANNEL_PRODUCT: ['Channel Products', 'Channel Product'],
     CHANNEL_SKU: ['Channel SKUs', 'Channel SKU'],
+    CHAT_BOT: ['Chat BOTs', 'Chat BOT'],
     CHAT_MESSAGE: ['Chat Messages', 'Chat Message'],
+    CHAT_MESSAGE_ID: ['Chat Message IDs', 'Chat Message ID'],
     CHAT_MEMBER: ['Chat Members', 'Chat Member'],
     CHAT_SPACE: ['Chat Spaces', 'Chat Space'],
     CHAT_THREAD: ['Chat Threads', 'Chat Thread'],

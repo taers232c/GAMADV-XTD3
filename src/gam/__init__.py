@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.59.18'
+__version__ = '6.60.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -228,6 +228,7 @@ ALPHANUMERIC_CHARS = LOWERNUMERIC_CHARS+string.ascii_uppercase
 URL_SAFE_CHARS = ALPHANUMERIC_CHARS+'-._~'
 PASSWORD_SAFE_CHARS = ALPHANUMERIC_CHARS+'!#$%&()*-./:;<=>?@[\\]^_{|}~'
 FILENAME_SAFE_CHARS = ALPHANUMERIC_CHARS+'-_.() '
+CHAT_MESSAGEID_CHARS = string.ascii_lowercase+string.digits+'-'
 
 ADMIN_ACCESS_OPTIONS = {'adminaccess', 'asadmin'}
 
@@ -19810,8 +19811,8 @@ def _getPeopleOtherContacts(people, entityType, user, i=0, count=0):
                             pageMessage=getPageMessageForWhom(),
                             throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
                             retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
-                            pageSize=GC.Values[GC.PEOPLE_MAX_RESULTS],
-                            readMask='emailAddresses', fields='nextPageToken,otherContacts')
+                            pageSize=1000,
+                            readMask='emailAddresses', fields='nextPageToken,otherContacts(etag,resourceName,emailAddresses(value,type))')
     otherContacts = {}
     for contact in results:
       resourceName = contact.pop('resourceName')
@@ -19892,7 +19893,7 @@ def queryPeopleOtherContacts(people, contactQuery, fields, entityType, user, i=0
     else:
       results = callGAPI(people.otherContacts(), 'search',
                          throwReasons=GAPI.PEOPLE_ACCESS_THROW_REASONS,
-                         readMask=fields, query=contactQuery['query'])
+                         pageSize=30, readMask=fields, query=contactQuery['query'])
       entityList = [person['person'] for person in results.get('results', [])]
       totalItems = len(entityList)
       showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
@@ -21471,15 +21472,15 @@ def _normalizeContactGroupMetadata(contactGroup):
   return normalizedContactGroup
 
 def _showContactGroup(userEntityType, user, entityType, contactGroup, i, count, FJQC):
-  if not FJQC.formatJSON:
-    normalizedContactGroup = _normalizeContactGroupMetadata(contactGroup)
-    printEntity([userEntityType, user, entityType, contactGroup['resourceName']], i, count)
-    Ind.Increment()
-    showJSON(None, normalizedContactGroup, timeObjects=PEOPLE_GROUP_TIME_OBJECTS, noIndents=True)
-    Ind.Decrement()
-  else:
+  if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(contactGroup, timeObjects=PEOPLE_GROUP_TIME_OBJECTS),
                          ensure_ascii=False, sort_keys=True))
+    return
+  normalizedContactGroup = _normalizeContactGroupMetadata(contactGroup)
+  printEntity([userEntityType, user, entityType, contactGroup['resourceName']], i, count)
+  Ind.Increment()
+  showJSON(None, normalizedContactGroup, timeObjects=PEOPLE_GROUP_TIME_OBJECTS, noIndents=True)
+  Ind.Decrement()
 
 def _printContactGroup(entityTypeName, user, contactGroup, csvPF, FJQC):
   normalizedContactGroup = _normalizeContactGroupMetadata(contactGroup)
@@ -23355,14 +23356,14 @@ def doInfoPrintShowCrOSTelemetry():
     _cleanDevice(device)
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(device), ensure_ascii=False, sort_keys=True))
-    else:
-      printEntity([Ent.CROS_DEVICE, device['deviceId']], i, count)
-      Ind.Increment()
-      for up in CROS_TELEMETRY_SCALAR_FIELDS:
-        if up in device:
-          printKeyValueList([up, device[up]])
-      showJSON(None, device, skipObjects=CROS_TELEMETRY_SCALAR_FIELDS_SET, timeObjects=CROS_TELEMETRY_TIME_OBJECTS)
-      Ind.Decrement()
+      return
+    printEntity([Ent.CROS_DEVICE, device['deviceId']], i, count)
+    Ind.Increment()
+    for up in CROS_TELEMETRY_SCALAR_FIELDS:
+      if up in device:
+        printKeyValueList([up, device[up]])
+    showJSON(None, device, skipObjects=CROS_TELEMETRY_SCALAR_FIELDS_SET, timeObjects=CROS_TELEMETRY_TIME_OBJECTS)
+    Ind.Decrement()
 
   cm = buildGAPIObject(API.CHROMEMANAGEMENT)
   cd = None
@@ -23480,11 +23481,11 @@ BROWSER_TIME_OBJECTS = {'lastActivityTime', 'lastPolicyFetchTime', 'lastRegistra
 def _showBrowser(browser, FJQC, i=0, count=0):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(browser), ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.CHROME_BROWSER, browser['deviceId']], i, count)
-    Ind.Increment()
-    showJSON(None, browser, timeObjects=BROWSER_TIME_OBJECTS)
-    Ind.Decrement()
+    return
+  printEntity([Ent.CHROME_BROWSER, browser['deviceId']], i, count)
+  Ind.Increment()
+  showJSON(None, browser, timeObjects=BROWSER_TIME_OBJECTS)
+  Ind.Decrement()
 
 BROWSER_FIELDS_CHOICE_MAP = {
   'annotatedassetid': 'annotatedAssetId',
@@ -23830,11 +23831,11 @@ def doPrintShowBrowsers():
 def _showBrowserToken(browser, FJQC, i=0, count=0):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(browser), ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, browser['token']], i, count)
-    Ind.Increment()
-    showJSON(None, browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS)
-    Ind.Decrement()
+    return
+  printEntity([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, browser['token']], i, count)
+  Ind.Increment()
+  showJSON(None, browser, timeObjects=BROWSER_TOKEN_TIME_OBJECTS)
+  Ind.Decrement()
 
 # gam create browsertoken
 #	[ou|org|orgunit|browserou <OrgUnitPath>] [expire|expires <Time>]
@@ -23994,22 +23995,31 @@ def doPrintShowBrowserTokens():
       csvPF.SetSortTitles(['token'])
     csvPF.writeCSVfile('Chrome Browser Enrollment Tokens')
 
-def buildChatServiceObject(api=API.CHAT, user=None):
-#  _, chat = buildGAPIServiceObject(api, user)
-  _, chat = buildGAPIServiceObject(API.CHAT, user)
-  return chat
+def buildChatServiceObject(api=API.CHAT, user=None, i=0, count=0, entityTypeList=None):
+  if user is None:
+    _, chat = buildGAPIServiceObject(API.CHAT, user)
+    kvList = [Ent.CHAT_BOT, None]
+  else:
+    user, chat = buildGAPIServiceObject(api, user, i, count)
+    kvList = [Ent.USER, user]
+  if entityTypeList is not None:
+    kvList.extend(entityTypeList)
+  return user, chat, kvList
 
 def setupChatURL(chat):
   return f'https://console.cloud.google.com/apis/api/chat.googleapis.com/hangouts-chat?project={chat._http.credentials.project_id}'
 
-def exitIfChatNotConfigured(chat, errMsg):
-  if errMsg in {'No bot associated with this project.', 'Invalid project number.'}:
+def exitIfChatNotConfigured(chat, kvList, errMsg, i, count):
+  if (('No bot associated with this project.' in errMsg) or
+      ('Invalid project number.' in errMsg) or
+      ('Google Chat app not found.' in errMsg)):
     systemErrorExit(API_ACCESS_DENIED_RC, Msg.TO_SET_UP_GOOGLE_CHAT.format(setupChatURL(chat)))
+  entityActionFailedWarning(kvList, errMsg, i, count)
 
 # gam setup chat
 def doSetupChat():
   checkForExtraneousArguments()
-  chat = buildChatServiceObject()
+  _, chat , _ = buildChatServiceObject()
   writeStdout(Msg.TO_SET_UP_GOOGLE_CHAT.format(setupChatURL(chat)))
 
 def getChatSpace():
@@ -24018,14 +24028,36 @@ def getChatSpace():
     return chatSpace
   return 'spaces/'+chatSpace
 
+def _cleanChatSpace(space):
+  space.pop('type', None)
+  space.pop('threaded', None)
+
 def _showChatSpace(space, FJQC, i=0, count=0):
+  _cleanChatSpace(space)
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(space), ensure_ascii=False, sort_keys=True))
+    return
+  printEntity([Ent.CHAT_SPACE, space['name']], i, count)
+  Ind.Increment()
+  showJSON(None, space)
+  Ind.Decrement()
+
+def  getChatSpaceParameters(myarg, body, typeChoicesMap):
+  if myarg == 'displayname':
+    body['displayName'] = getString(Cmd.OB_STRING, minLen=0, maxLen=128)
+  elif myarg == 'type':
+    body['spaceType'] = getChoice(typeChoicesMap, mapChoice=True)
+  elif myarg == 'description':
+    body.setdefault('spaceDetails', {})
+    body['spaceDetails']['description'] = getString(Cmd.OB_STRING, minLen=0, maxLen=150)
+  elif myarg in {'guidelines', 'rules'}:
+    body.setdefault('spaceDetails', {})
+    body['spaceDetails']['guidelines'] = getString(Cmd.OB_STRING, minLen=0, maxLen=5000)
+  elif myarg == 'history':
+    body['spaceHistoryState'] = 'HISTORY_ON' if getBoolean() else 'HISTORY_OFF'
   else:
-    printEntity([Ent.CHAT_SPACE, space['name']], i, count)
-    Ind.Increment()
-    showJSON(None, space)
-    Ind.Decrement()
+    return False
+  return True
 
 CHAT_SPACE_TYPE_MAP = {
   'space': 'SPACE',
@@ -24033,52 +24065,112 @@ CHAT_SPACE_TYPE_MAP = {
   'directmessage': 'DIRECT_MESSAGE',
   'dm': 'DIRECT_MESSAGE',
   }
-CHAT_CREATOR_NOTIFICATION_MAP = {
-  'always': 'NOTIFY_ALWAYS',
-  'lesswithnewthreads': 'LESS_WITH_NEW_THREADS',
-  'less': 'NOTIFY_LESS',
-  'never': 'NOTIFY_NEVER',
-  'notifyalways': 'NOTIFY_ALWAYS',
-  'notifylesswithnewthreads': 'LESS_WITH_NEW_THREADS',
-  'notifyless': 'NOTIFY_LESS',
-  'notifynever': 'NOTIFY_NEVER',
-  }
 
 # gam create chatspace
 #	[displayname <String>]
-#       [type chat|group_chat|direct_message|dm]
-#	[notification always|less_with_new_threads|less|never}
+#       [type <ChatSpaceType>]
+#	[description <String>] [guidelines|rules <String>]
+#	[history <Boolean>]
 #	[formatjson]
-def doCreateChatSpace():
-  chat = buildChatServiceObject()
+def createChatSpace(users):
   FJQC = FormatJSONQuoteChar()
-  creatorNotificationSetting = CHAT_CREATOR_NOTIFICATION_MAP['always']
   body = {'spaceType': CHAT_SPACE_TYPE_MAP['space'], 'displayName': ''}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'displayname':
-      body['displayName'] = getString(Cmd.OB_STRING, minLen=0)
-    elif myarg == 'type':
-      body['spaceType'] = getChoice(CHAT_SPACE_TYPE_MAP, mapChoice=True)
-    elif myarg == 'notification':
-      creatorNotificationSetting = getChoice(CHAT_CREATOR_NOTIFICATION_MAP, mapChoice=True)
+    if getChatSpaceParameters(myarg, body, CHAT_SPACE_TYPE_MAP):
+      pass
     else:
       FJQC.GetFormatJSON(myarg)
-  try:
-    space = callGAPI(chat.spaces(), 'create',
-                     throwReasons=[GAPI.PERMISSION_DENIED],
-                     requestId=str(uuid.uuid4()), creatorNotificationSetting=creatorNotificationSetting,
-                     body=body)
-    _showChatSpace(space, FJQC)
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-  except GAPI.permissionDenied as e:
-    entityActionFailedWarning([Ent.CHAT_SPACE, body['name']], str(e))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_SPACES, user, i, count, [Ent.CHAT_SPACE, body['displayName']])
+    if not chat:
+      continue
+    try:
+      space = callGAPI(chat.spaces(), 'create',
+                       throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                       requestId=str(uuid.uuid4()), body=body)
+      kvList[-1] = space['name']
+      if not FJQC.formatJSON:
+        entityActionPerformed(kvList, i, count)
+      Ind.Increment()
+      _showChatSpace(space, FJQC)
+      Ind.Decrement()
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
 
-# gam info chatspace space <ChatSpace>
+CHAT_UPDATE_SPACE_TYPE_MAP = {
+  'space': 'SPACE',
+  }
+
+# gam update chatspace space <ChatSpace>
+#	[displayname <String>]
+#       [type space]
+#	[description <String>] [guidelines|rules <String>]
+#	[history <Boolean>]
 #	[formatjson]
-def doInfoChatSpaces():
-  chat = buildChatServiceObject()
+def updateChatSpace(users):
+  FJQC = FormatJSONQuoteChar()
+  name = None
+  body = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'space':
+      name = getChatSpace()
+    elif getChatSpaceParameters(myarg, body, CHAT_UPDATE_SPACE_TYPE_MAP):
+      pass
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if not name:
+    missingArgumentExit('space')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_SPACES, user, i, count, [Ent.CHAT_SPACE, name])
+    if not chat:
+      continue
+    try:
+      space = callGAPI(chat.spaces(), 'patch',
+                       throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                       name=name, updateMask=','.join(body.keys()),
+                       body=body)
+      if not FJQC.formatJSON:
+        entityActionPerformed(kvList, i, count)
+      Ind.Increment()
+      _showChatSpace(space, FJQC)
+      Ind.Decrement()
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+
+# gam <UserTypeEntity> delete chatspace space <ChatSpace>
+def deleteChatSpace(users):
+  name = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'space':
+      name = getChatSpace()
+    else:
+      unknownArgumentExit()
+  if not name:
+    missingArgumentExit('space')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_SPACES_DELETE, user, i, count, [Ent.CHAT_SPACE, name])
+    if not chat:
+      continue
+    try:
+      callGAPI(chat.spaces(), 'delete',
+               throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+               name=name)
+      entityActionPerformed(kvList, i, count)
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+
+# gam [<UserTypeEntity>] info chatspace space <ChatSpace>
+#	[formatjson]
+def infoChatSpace(users):
   FJQC = FormatJSONQuoteChar()
   name = None
   while Cmd.ArgumentsRemaining():
@@ -24089,58 +24181,117 @@ def doInfoChatSpaces():
       FJQC.GetFormatJSON(myarg)
   if not name:
     missingArgumentExit('space')
-  try:
-    space = callGAPI(chat.spaces(), 'get',
-                     throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                     name=name)
-    _showChatSpace(space, FJQC)
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
-    entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_SPACES, user, i, count, [Ent.CHAT_SPACE, name])
+    if not chat:
+      continue
+    try:
+      space = callGAPI(chat.spaces(), 'get',
+                       throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                       name=name)
+      if not FJQC.formatJSON:
+        entityPerformAction(kvList, i, count)
+      Ind.Increment()
+      _showChatSpace(space, FJQC)
+      Ind.Decrement()
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
 
-# gam show chatspaces
+def doInfoChatSpace():
+  infoChatSpace([None])
+
+def _getChatPageMessage(entityType, user, i, count, pfilter):
+  if user is not None:
+    printGettingAllEntityItemsForWhom(entityType, user, i, count, pfilter)
+    return getPageMessageForWhom()
+  printGettingAllAccountEntities(entityType, pfilter)
+  return getPageMessage()
+
+CHAT_PAGE_SIZE = 1000
+
+# gam [<UserTypeEntity>] show chatspaces
+#	[types <ChatSpaceTypeList>]
 #	[formatjson]
-# gam print chatspaces [todrive <ToDriveAttribute>*]
+# gam [<UserTypeEntity>] print chatspaces [todrive <ToDriveAttribute>*]
+#	[types <ChatSpaceTypeList>]
 #	[formatjson [quotechar <Character>]]
-def doPrintShowChatSpaces():
-  def _printChatSpace(space):
+def printShowChatSpaces(users):
+  def _printChatSpace(user, space):
+    _cleanChatSpace(space)
     row = flattenJSON(space)
+    if user is not None:
+      row['User'] = user
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(row)
     elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'name': space['name'],
-                              'JSON': json.dumps(cleanJSON(space), ensure_ascii=False, sort_keys=True)})
+      row = {'User': user} if user is not None else {}
+      row.update({'name': space['name'],
+                  'JSON': json.dumps(cleanJSON(space),
+                                     ensure_ascii=False, sort_keys=True)})
+      csvPF.WriteRowNoFilter(row)
 
-  chat = buildChatServiceObject()
-  csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  pfilter = ""
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif myarg in {'type', 'types'}:
+      for ctype in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
+        if ctype in CHAT_SPACE_TYPE_MAP:
+          if pfilter:
+            pfilter += ' OR '
+          pfilter += f'spaceType = "{CHAT_SPACE_TYPE_MAP[ctype]}"'
+        else:
+          invalidChoiceExit(ctype, CHAT_SPACE_TYPE_MAP, True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  try:
-    spaces = callGAPIpages(chat.spaces(), 'list', 'spaces',
-                           throwReasons=[GAPI.NOT_FOUND])
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-    return
-  if not csvPF:
-    count = len(spaces)
-    performActionNumItems(count, Ent.CHAT_SPACE)
-    Ind.Increment()
-    i = 0
-    for space in spaces:
-      i += 1
-      _showChatSpace(space, FJQC, i, count)
-    Ind.Decrement()
-  else:
-    for space in spaces:
-      _printChatSpace(space)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_SPACES, user, i, count)
+    if not chat:
+      continue
+    try:
+      spaces = callGAPIpages(chat.spaces(), 'list', 'spaces',
+                             pageMessage=_getChatPageMessage(Ent.CHAT_SPACE, user, i, count, pfilter),
+                             bailOnInternalError=True,
+                             throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR, GAPI.FAILED_PRECONDITION],
+                             pageSize=CHAT_PAGE_SIZE, filter=pfilter)
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.internalError, GAPI.failedPrecondition) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+      continue
+    jcount = len(spaces)
+    if jcount == 0:
+      setSysExitRC(NO_ENTITIES_FOUND_RC)
+    if not csvPF:
+      if not FJQC.formatJSON:
+        entityPerformActionNumItems(kvList, jcount, Ent.CHAT_SPACE, i, count)
+      Ind.Increment()
+      j = 0
+      for space in spaces:
+        j += 1
+        _showChatSpace(space, FJQC, j, jcount)
+      Ind.Decrement()
+    else:
+      for space in spaces:
+        _printChatSpace(user, space)
   if csvPF:
     csvPF.writeCSVfile('Chat Spaces')
+
+def doPrintShowChatSpaces():
+  printShowChatSpaces([None])
+
+def _getChatMemberEmail(cd, member):
+  if 'member' in member:
+    _, memberUid = member['member']['name'].split('/')
+    member['member']['email'], _ = convertUIDtoEmailAddressWithType(f'uid:{memberUid}', cd, emailTypes=['user'])
+  elif 'groupMember' in member:
+    _, memberUid = member['groupMember']['name'].split('/')
+    member['groupMember']['email'], _ = convertUIDtoEmailAddressWithType(f'uid:{memberUid}', cd, emailTypes=['group'])
 
 CHAT_MEMBER_TIME_OBJECTS = {'createTime'}
 
@@ -24148,59 +24299,100 @@ def _showChatMember(member, FJQC, i=0, count=0):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS),
                          ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.CHAT_MEMBER, member['name']], i, count)
-    Ind.Increment()
-    showJSON(None, member, timeObjects=CHAT_MEMBER_TIME_OBJECTS)
-    Ind.Decrement()
+    return
+  printEntity([Ent.CHAT_MEMBER, member['name']], i, count)
+  Ind.Increment()
+  showJSON(None, member, timeObjects=CHAT_MEMBER_TIME_OBJECTS)
+  Ind.Decrement()
 
 CHAT_MEMBER_TYPE_MAP = {
   'bot': 'BOT',
   'human': 'HUMAN'
   }
 
-# gam create chatmember space <ChatSpace> user <UserItem>
-#       [type human|bot]
-#	[notification always|less_with_new_threads|less|never}
+# gam <UserTypeEntity> create chatmember space <ChatSpace>
+#	(user <UserItem> [type human|bot])|(group <GroupItem>)
 #	[formatjson]
-def doCreateChatMember():
-  chat = buildChatServiceObject(API.CHAT_MEMBERSHIPS)
+def createChatMember(users):
+  cd = buildGAPIObject(API.DIRECTORY)
   FJQC = FormatJSONQuoteChar()
   parent = name = None
-  notificationSetting = CHAT_CREATOR_NOTIFICATION_MAP['always']
-  body = {'member': {'name': '', 'domainId': _getCustomerIdNoC(), 'type': CHAT_MEMBER_TYPE_MAP['human']}}
+  body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'space':
       parent = getChatSpace()
     elif myarg == 'user':
-      name = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'))
+      body.pop('groupMember', None)
+      body.setdefault('member', {'type': CHAT_MEMBER_TYPE_MAP['human']}) # 'domainId': _getCustomerIdNoC()
+      name = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'), cd, 'user')
       body['member']['name'] = f'users/{name}'
     elif myarg == 'type':
+      body.pop('groupMember', None)
+      body.setdefault('member', {})
       body['member']['type'] = getChoice(CHAT_MEMBER_TYPE_MAP, mapChoice=True)
-    elif myarg == 'notification':
-      notificationSetting = getChoice(CHAT_CREATOR_NOTIFICATION_MAP, mapChoice=True)
+    elif myarg == 'group':
+      body.pop('member', None)
+      body.setdefault('groupMember', {})
+      name = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'), cd, 'group')
+      body['groupMember']['name'] = f'groups/{name}'
     else:
       FJQC.GetFormatJSON(myarg)
   if not parent:
     missingArgumentExit('space')
   if not name:
-    missingArgumentExit('user')
-  if body['member']['type'] == 'HUMAN':
-    body['notificationSetting'] = notificationSetting
-  try:
-    member = callGAPI(chat.spaces().members(), 'create',
-                      bailOnInternalError=True,
-                      throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
-                      parent=parent, body=body)
-    _showChatMember(member, FJQC)
-  except (GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
-    entityActionFailedWarning([Ent.CHAT_SPACE, parent, Ent.CHAT_MEMBER, name], str(e))
+    missingArgumentExit('member')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count, [Ent.CHAT_SPACE, parent, Ent.CHAT_MEMBER, name])
+    if not chat:
+      continue
+    try:
+      member = callGAPI(chat.spaces().members(), 'create',
+                        bailOnInternalError=True,
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                        parent=parent, body=body)
+      _getChatMemberEmail(cd, member)
+      if not FJQC.formatJSON:
+        entityActionPerformed(kvList, i, count)
+      Ind.Increment()
+      _showChatMember(member, FJQC)
+      Ind.Decrement()
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
+      entityActionFailedWarning(kvList, str(e))
 
-# gam info chatmember member <ChatMember>
+# gam <UserTypeEntity> delete chatmember member <ChatMember>
 #	[formatjson]
-def doInfoChatMembers():
-  chat = buildChatServiceObject(API.CHAT_MEMBERSHIPS)
+def deleteChatMember(users):
+  name = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'member':
+      name = getString(Cmd.OB_CHAT_MEMBER)
+    else:
+      unknownArgumentExit()
+  if not name:
+    missingArgumentExit('member')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count, [Ent.CHAT_MEMBER, name])
+    if not chat:
+      continue
+    try:
+      callGAPI(chat.spaces().members(), 'delete',
+               bailOnInternalError=True,
+               throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+               name=name)
+      entityActionPerformed(kvList)
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+
+# gam [<UserTypeEntity>] info chatmember member <ChatMember>
+#	[formatjson]
+def infoChatMember(users):
+  cd = buildGAPIObject(API.DIRECTORY)
   FJQC = FormatJSONQuoteChar()
   name = None
   while Cmd.ArgumentsRemaining():
@@ -24211,67 +24403,105 @@ def doInfoChatMembers():
       FJQC.GetFormatJSON(myarg)
   if not name:
     missingArgumentExit('member')
-  try:
-    member = callGAPI(chat.spaces().members(), 'get',
-                      bailOnInternalError=True,
-                      throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
-                      name=name)
-    _showChatMember(member, FJQC)
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-  except (GAPI.permissionDenied, GAPI.internalError) as e:
-    entityActionFailedWarning([Ent.CHAT_MEMBER, name], str(e))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count, [Ent.CHAT_MEMBER, name])
+    if not chat:
+      continue
+    try:
+      member = callGAPI(chat.spaces().members(), 'get',
+                        bailOnInternalError=True,
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                        name=name)
+      _getChatMemberEmail(cd, member)
+      if not FJQC.formatJSON:
+        entityPerformAction(kvList, i, count)
+      Ind.Increment()
+      _showChatMember(member, FJQC)
+      Ind.Decrement()
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
 
-# gam show chatmembers space <ChatSpace>
+def doInfoChatMember():
+  infoChatMember([None])
+
+# gam [<UserTypeEntity>] show chatmembers space <ChatSpace>
+#	[showinvited [<Boolean>]] [filter <String>]
 #	[formatjson]
-# gam print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+# gam [<UserTypeEntity>] print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+#	[showinvited [<Boolean>]] [filter <String>]
 #	[formatjson [quotechar <Character>]]
-def doPrintShowChatMembers():
-  def _printChatMember(member):
+def printShowChatMembers(users):
+  def _printChatMember(user, member):
     row = flattenJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS)
+    if user is not None:
+      row['User'] = user
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(row)
     elif csvPF.CheckRowTitles(row):
-      csvPF.WriteRowNoFilter({'name': member['name'],
-                              'JSON': json.dumps(cleanJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS),
-                                                 ensure_ascii=False, sort_keys=True)})
+      row = {'User': user} if user is not None else {}
+      row.update({'name': member['name'],
+                  'JSON': json.dumps(cleanJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS),
+                                     ensure_ascii=False, sort_keys=True)})
+      csvPF.WriteRowNoFilter(row)
 
-  chat = buildChatServiceObject(API.CHAT_MEMBERSHIPS)
-  csvPF = CSVPrintFile(['name']) if Act.csvFormat() else None
+  cd = buildGAPIObject(API.DIRECTORY)
+  csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  name = None
+  parent = pfilter = None
+  showInvited = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'space':
-      name = getChatSpace()
+      parent = getChatSpace()
+    elif myarg == 'showinvited':
+      showInvited = getBoolean()
+    elif myarg =='filter':
+      pfilter = getString(Cmd.OB_STRING)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  if not name:
+  if not parent:
     missingArgumentExit('space')
-  try:
-    members = callGAPIpages(chat.spaces().members(), 'list', 'memberships',
-                            throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                            parent=name)
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-    return
-  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
-    entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
-    return
-  if not csvPF:
-    count = len(members)
-    performActionNumItems(count, Ent.CHAT_MEMBER)
-    i = 0
-    for member in members:
-      i += 1
-      _showChatMember(member, FJQC, i, count)
-  else:
-    for member in members:
-      _printChatMember(member)
+  qfilter = f'{Ent.Singular(Ent.CHAT_SPACE)}: {parent}'
+  if pfilter:
+    qfilter += f', {pfilter}'
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count, [Ent.CHAT_SPACE, parent])
+    if not chat:
+      continue
+    try:
+      members = callGAPIpages(chat.spaces().members(), 'list', 'memberships',
+                              pageMessage=_getChatPageMessage(Ent.CHAT_MEMBER, user, i, count, qfilter),
+                              throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                              pageSize=CHAT_PAGE_SIZE, parent=parent, filter=pfilter, showInvited=showInvited)
+      for member in members:
+        _getChatMemberEmail(cd, member)
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+      continue
+    if not csvPF:
+      jcount = len(members)
+      if not FJQC.formatJSON:
+        entityPerformActionNumItems(kvList, jcount, Ent.CHAT_MEMBER, i, count)
+      Ind.Increment()
+      j = 0
+      for member in members:
+        j += 1
+        _showChatMember(member, FJQC, j, jcount)
+      Ind.Decrement()
+    else:
+      for member in members:
+        _printChatMember(user, member)
   if csvPF:
     csvPF.writeCSVfile('Chat Members')
+
+def doPrintShowChatMembers():
+  printShowChatMembers([None])
 
 def trimChatMessageIfRequired(body):
   msgLen = len(body['text'])
@@ -24279,43 +24509,75 @@ def trimChatMessageIfRequired(body):
     stderrWarningMsg(Msg.TRIMMED_MESSAGE_FROM_LENGTH_TO_MAXIMUM.format(msgLen, 4096))
     body['text'] = body['text'][:4095]
 
-# gam create chatmessage space <ChatSpace> [thread <ChatThread>]
+CHAT_MESSAGE_REPLY_OPTION_MAP = {
+  'fail': 'REPLY_MESSAGE_OR_FAIL',
+  'fallbacktonew': 'REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD',
+  }
+
+# gam [<UserTypeEntityu>] create chatmessage space <ChatSpace>
 #	(text <String>)|(textfile <FileName> [charset <CharSet>])
-def doCreateChatMessage():
-  chat = buildChatServiceObject(API.CHAT_MESSAGES)
-  name = None
+#	[messageId <ChatMessageID>]
+#	[(thread <ChatThread>)|(threadkey <String>) [replyoption fail|fallbacktonew]]
+def createChatMessage(users):
+  messageId = messageReplyOption = parent = None
   body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'space':
-      name = getChatSpace()
+      parent = getChatSpace()
     elif myarg == 'thread':
-      body['thread'] = {'name': getString(Cmd.OB_CHAT_THREAD)}
+      body.setdefault('thread', {})
+      body['thread']['name'] = getString(Cmd.OB_CHAT_THREAD)
       Act.Set(Act.RESPOND)
+    elif myarg == 'threadkey':
+      body.setdefault('thread', {})
+      body['thread']['threadKey'] = getString(Cmd.OB_STRING)
+      Act.Set(Act.RESPOND)
+    elif myarg == 'replyoption':
+      messageReplyOption = getChoice(CHAT_MESSAGE_REPLY_OPTION_MAP, mapChoice=True)
     elif myarg in SORF_TEXT_ARGUMENTS:
       body['text'] = getStringOrFile(myarg, minLen=0, unescapeCRLF=True)[0]
+    elif myarg == 'messageid':
+      messageId = getString(Cmd.OB_CHAT_MESSAGE_ID, minLen=1, maxLen=63)
     else:
       unknownArgumentExit()
-  if not name:
+  if not parent:
     missingArgumentExit('space')
   if 'text' not in body:
     missingArgumentExit('text or textfile')
+  if 'thread' in body and messageReplyOption is None:
+    messageReplyOption = CHAT_MESSAGE_REPLY_OPTION_MAP['fail']
   trimChatMessageIfRequired(body)
-  try:
-    resp = callGAPI(chat.spaces().messages(), 'create',
-                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                    parent=name, body=body)
-    entityActionPerformed([Ent.CHAT_SPACE, name, Ent.CHAT_THREAD, resp['thread']['name'], Ent.CHAT_MESSAGE, resp['name']])
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-    entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
-  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
-    entityActionFailedWarning([Ent.CHAT_SPACE, name], str(e))
+  action = Act.Get()
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MESSAGES, user, i, count, [Ent.CHAT_SPACE, parent])
+    if not chat:
+      continue
+    try:
+      resp = callGAPI(chat.spaces().messages(), 'create',
+                      throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                      parent=parent, requestId=str(uuid.uuid4()),
+                      messageReplyOption=messageReplyOption, messageId=messageId, body=body)
 
-# gam update chatmessage name <ChatMessage>
+      kvList.extend([Ent.CHAT_MESSAGE, resp['name']])
+      if 'clientAssignedMessageId' in resp:
+        kvList.extend([Ent.CHAT_MESSAGE_ID, resp['clientAssignedMessageId']])
+      kvList.extend([Ent.CHAT_THREAD, resp['thread']['name']])
+      if (action == Act.RESPOND) and not resp.get('threadReply', False):
+        Act.Set(Act.CREATE)
+      entityActionPerformed(kvList, i, count)
+      Act.Set(action)
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+
+def doCreateChatMessage():
+  createChatMessage([None])
+
+# gam [<UserTypeMessage>] update chatmessage name <ChatMessage>
 #	(text <String>)|(textfile <FileName> [charset <CharSet>])
-def doUpdateChatMessage():
-  chat = buildChatServiceObject(API.CHAT_MESSAGES)
+def updateChatMessage(users):
   name = None
   body = {}
   while Cmd.ArgumentsRemaining():
@@ -24331,21 +24593,26 @@ def doUpdateChatMessage():
   if 'text' not in body:
     missingArgumentExit('text or textfile')
   trimChatMessageIfRequired(body)
-  try:
-    resp = callGAPI(chat.spaces().messages(), 'update',
-                    throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                    name=name, updateMask='text', body=body)
-    entityActionPerformed([Ent.CHAT_SPACE, resp['space']['name'], Ent.CHAT_THREAD, resp['thread']['name'],
-                           Ent.CHAT_MESSAGE, resp['name']])
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
-  except (GAPI.invalidArgument, GAPI.permissionDenied) as e:
-    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MESSAGES, user, i, count, [Ent.CHAT_MESSAGE, name])
+    if not chat:
+      continue
+    try:
+      resp = callGAPI(chat.spaces().messages(), 'patch',
+                      throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                      name=name, updateMask='text', body=body)
+      kvList.extend([Ent.CHAT_THREAD, resp['thread']['name']])
+      entityActionPerformed(kvList, i, count)
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
 
-# gam delete chatmessage name <ChatMessage>
-def doDeleteChatMessage():
-  chat = buildChatServiceObject(API.CHAT_MESSAGES)
+def doUpdateChatMessage():
+  updateChatMessage([None])
+
+# gam [<UserTypeEntity>] delete chatmessage name <ChatMessage>
+def deleteChatMessage(users):
   name = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -24355,33 +24622,42 @@ def doDeleteChatMessage():
       unknownArgumentExit()
   if not name:
     missingArgumentExit('name')
-  try:
-    callGAPI(chat.spaces().messages(), 'delete',
-             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
-             name=name)
-    entityActionPerformed([Ent.CHAT_MESSAGE, name])
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
-  except GAPI.permissionDenied as e:
-    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MESSAGES, user, i, count, [Ent.CHAT_MESSAGE, name])
+    if not chat:
+      continue
+    try:
+      callGAPI(chat.spaces().messages(), 'delete',
+               throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+               name=name)
+      entityActionPerformed(kvList, i, count)
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+
+def doDeleteChatMessage():
+  deleteChatMessage([None])
+
+def _cleanChatMessage(message):
+  message.pop('cards', None)
 
 CHAT_MESSAGE_TIME_OBJECTS = {'createTime'}
 
 def _showChatMessage(message, FJQC, i=0, count=0):
+  _cleanChatMessage(message)
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(message, timeObjects=CHAT_MESSAGE_TIME_OBJECTS),
                          ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.CHAT_MESSAGE, message['name']], i, count)
-    Ind.Increment()
-    showJSON(None, message, timeObjects=CHAT_MESSAGE_TIME_OBJECTS)
-    Ind.Decrement()
+    return
+  printEntity([Ent.CHAT_MESSAGE, message['name']], i, count)
+  Ind.Increment()
+  showJSON(None, message, timeObjects=CHAT_MESSAGE_TIME_OBJECTS)
+  Ind.Decrement()
 
-# gam info chatmessage name <ChatMessage>
+# gam [<UserTypeEntity>] info chatmessage name <ChatMessage>
 #	[formatjson]
-def doInfoChatMessage():
-  chat = buildChatServiceObject(API.CHAT_MESSAGES, _getAdminEmail())
+def infoChatMessage(users):
   FJQC = FormatJSONQuoteChar()
   name = None
   while Cmd.ArgumentsRemaining():
@@ -24392,16 +24668,95 @@ def doInfoChatMessage():
       FJQC.GetFormatJSON(myarg)
   if not name:
     missingArgumentExit('name')
-  try:
-    message = callGAPI(chat.spaces().messages(), 'get',
-                       throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
-                       name=name)
-    _showChatMessage(message, FJQC)
-  except GAPI.notFound as e:
-    exitIfChatNotConfigured(chat, str(e))
-    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
-  except GAPI.permissionDenied as e:
-    entityActionFailedWarning([Ent.CHAT_MESSAGE, name], str(e))
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MESSAGES, user, i, count, [Ent.CHAT_MESSAGE, name])
+    if not chat:
+      continue
+    try:
+      message = callGAPI(chat.spaces().messages(), 'get',
+                         throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                         name=name)
+      if not FJQC.formatJSON:
+        entityPerformAction(kvList, i, count)
+      Ind.Increment()
+      _showChatMessage(message, FJQC)
+      Ind.Decrement()
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+
+def doInfoChatMessage():
+  infoChatMessage([None])
+
+# gam <UserTypeEntity> show chatmessages space <ChatSpace>
+#	[filter <String>]
+#	[formatjson]
+# gam <UserTypeEntity> print chatmessages [todrive <ToDriveAttribute>*] space <ChatSpace>
+#	[filter <String>]
+#	[formatjson [quotechar <Character>]]
+def printShowChatMessages(users):
+  def _printChatMessage(user, message):
+    _cleanChatMessage(message)
+    row = flattenJSON(message, timeObjects=CHAT_MESSAGE_TIME_OBJECTS)
+    if user is not None:
+      row['User'] = user
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      row = {'User': user} if user is not None else {}
+      row.update({'name': message['name'],
+                  'JSON': json.dumps(cleanJSON(message, timeObjects=CHAT_MESSAGE_TIME_OBJECTS),
+                                     ensure_ascii=False, sort_keys=True)})
+      csvPF.WriteRowNoFilter(row)
+
+  csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+  parent = pfilter = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'space':
+      parent = getChatSpace()
+    elif myarg =='filter':
+      pfilter = getString(Cmd.OB_STRING)
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if not parent:
+    missingArgumentExit('space')
+  qfilter = f'{Ent.Singular(Ent.CHAT_SPACE)}: {parent}'
+  if pfilter:
+    qfilter += f', {pfilter}'
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MESSAGES, user, i, count, [Ent.CHAT_SPACE, parent])
+    if not chat:
+      continue
+    try:
+      messages = callGAPIpages(chat.spaces().messages(), 'list', 'messages',
+                               pageMessage=_getChatPageMessage(Ent.CHAT_MESSAGE, user, i, count, qfilter),
+                               throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                               pageSize=CHAT_PAGE_SIZE, parent=parent, filter=pfilter)
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+      continue
+    if not csvPF:
+      jcount = len(messages)
+      if not FJQC.formatJSON:
+        entityPerformActionNumItems(kvList, jcount, Ent.CHAT_MESSAGE, i, count)
+      Ind.Increment()
+      j = 0
+      for message in messages:
+        j += 1
+        _showChatMessage(message, FJQC, j, jcount)
+      Ind.Decrement()
+    else:
+      for message in messages:
+        _printChatMessage(user, message)
+  if csvPF:
+    csvPF.writeCSVfile('Chat Messages')
 
 def _getOrgunitsOrgUnitIdPath(orgUnit):
   if orgUnit.startswith('orgunits/'):
@@ -24875,11 +25230,11 @@ def doPrintShowChromePolicies():
     if showPolicies in (CHROME_POLICY_SHOW_ALL, policy['direct']):
       if FJQC.formatJSON:
         printLine(json.dumps(cleanJSON(policy), ensure_ascii=False, sort_keys=True))
-      else:
-        printKeyValueListWithCount([policy['name']], j, jcount)
-        Ind.Increment()
-        showJSON(None, policy, sortDictKeys=False)
-        Ind.Decrement()
+        return
+      printKeyValueListWithCount([policy['name']], j, jcount)
+      Ind.Increment()
+      showJSON(None, policy, sortDictKeys=False)
+      Ind.Decrement()
 
   def _printPolicy(policy):
     policy = normalizedPolicy(policy)
@@ -25042,11 +25397,11 @@ def doCreateChromePolicyImage():
 def _showChromePolicySchema(schema, FJQC, i=0, count=0):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(schema), ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.CHROME_POLICY_SCHEMA, schema['name']], i, count)
-    Ind.Increment()
-    showJSON(None, schema)
-    Ind.Decrement()
+    return
+  printEntity([Ent.CHROME_POLICY_SCHEMA, schema['name']], i, count)
+  Ind.Increment()
+  showJSON(None, schema)
+  Ind.Decrement()
 
 CHROME_POLICY_SCHEMA_FIELDS_CHOICE_MAP = {
   'accessrestrictions': 'accessRestrictions',
@@ -26237,11 +26592,11 @@ def _showPrinter(cd, printer, FJQC, orgUnitId=None, showInherited=False, i=0, co
     return False
   if FJQC is not None and FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(printer, timeObjects=PRINTER_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.PRINTER, printer['id']], i, count)
-    Ind.Increment()
-    showJSON(None, printer, timeObjects=PRINTER_TIME_OBJECTS)
-    Ind.Decrement()
+    return
+  printEntity([Ent.PRINTER, printer['id']], i, count)
+  Ind.Increment()
+  showJSON(None, printer, timeObjects=PRINTER_TIME_OBJECTS)
+  Ind.Decrement()
 
 # gam create printer <PrinterAttribute>+ [nodetails]
 def doCreatePrinter():
@@ -26445,12 +26800,12 @@ def doPrintShowPrinterModels():
   def _showPrinterModel(model, FJQC, i, count):
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(model), ensure_ascii=False, sort_keys=True))
-    else:
-      printEntity([Ent.PRINTER_MODEL, model['manufacturer']], i, count)
-      Ind.Increment()
-      for field in ['displayName', 'makeAndModel']:
-        printKeyValueList([field, model[field]])
-      Ind.Decrement()
+      return
+    printEntity([Ent.PRINTER_MODEL, model['manufacturer']], i, count)
+    Ind.Increment()
+    for field in ['displayName', 'makeAndModel']:
+      printKeyValueList([field, model[field]])
+    Ind.Decrement()
 
   def _printPrinterModel(model):
     row = flattenJSON(model)
@@ -26558,11 +26913,11 @@ def doPrintShowChromeApps():
       app['orgUnitPath'] = orgUnitPath
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(app), ensure_ascii=False, sort_keys=True))
-    else:
-      printEntity([Ent.CHROME_APP, app['appId']], i, count)
-      Ind.Increment()
-      showJSON(None, app)
-      Ind.Decrement()
+      return
+    printEntity([Ent.CHROME_APP, app['appId']], i, count)
+    Ind.Increment()
+    showJSON(None, app)
+    Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
   cm = buildGAPIObject(API.CHROMEMANAGEMENT)
@@ -26688,11 +27043,11 @@ def doPrintShowChromeAppDevices():
       device['orgUnitPath'] = orgUnitPath
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(device), ensure_ascii=False, sort_keys=True))
-    else:
-      printEntity([Ent.CHROME_APP, device['appId']], i, count)
-      Ind.Increment()
-      showJSON(None, device)
-      Ind.Decrement()
+      return
+    printEntity([Ent.CHROME_APP, device['appId']], i, count)
+    Ind.Increment()
+    showJSON(None, device)
+    Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
   cm = buildGAPIObject(API.CHROMEMANAGEMENT)
@@ -26819,11 +27174,11 @@ def doPrintShowChromeAues():
       aue['orgUnitPath'] = orgUnitPath
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(aue), ensure_ascii=False, sort_keys=True))
-    else:
-      printEntity([Ent.CHROME_MODEL, aue['model']], i, count)
-      Ind.Increment()
-      showJSON(None, aue)
-      Ind.Decrement()
+      return
+    printEntity([Ent.CHROME_MODEL, aue['model']], i, count)
+    Ind.Increment()
+    showJSON(None, aue)
+    Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
   cm = buildGAPIObject(API.CHROMEMANAGEMENT)
@@ -26933,12 +27288,12 @@ def doPrintShowChromeNeedsAttn():
       needsattn['orgUnitPath'] = orgUnitPath
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(needsattn), ensure_ascii=False, sort_keys=True))
-    else:
-      if showOrgUnit:
-        printEntity([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], i, count)
-      Ind.Increment()
-      showJSON(None, needsattn)
-      Ind.Decrement()
+      return
+    if showOrgUnit:
+      printEntity([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], i, count)
+    Ind.Increment()
+    showJSON(None, needsattn)
+    Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
   cm = buildGAPIObject(API.CHROMEMANAGEMENT)
@@ -27048,11 +27403,11 @@ def doPrintShowChromeVersions():
       version['version'] = UNKNOWN
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(version), ensure_ascii=False, sort_keys=True))
-    else:
-      printEntity([Ent.CHROME_VERSION, version['version']], i, count)
-      Ind.Increment()
-      showJSON(None, version)
-      Ind.Decrement()
+      return
+    printEntity([Ent.CHROME_VERSION, version['version']], i, count)
+    Ind.Increment()
+    showJSON(None, version)
+    Ind.Decrement()
 
   cd = buildGAPIObject(API.DIRECTORY)
   cm = buildGAPIObject(API.CHROMEMANAGEMENT)
@@ -27313,14 +27668,14 @@ def doPrintShowChromeHistory():
     keyField = CHROME_VERSIONHISTORY_TITLES[entityType][0]
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(citem), ensure_ascii=False, sort_keys=True))
-    else:
-      printEntity([entityType, citem[keyField]], i, count)
-      Ind.Increment()
-      citem = flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType])
-      for field in CHROME_VERSIONHISTORY_TITLES[entityType]:
-        if field in citem:
-          printKeyValueList([field, citem[field]])
-      Ind.Decrement()
+      return
+    printEntity([entityType, citem[keyField]], i, count)
+    Ind.Increment()
+    citem = flattenJSON(citem, timeObjects=CHROME_VERSIONHISTORY_TIMEOBJECTS[entityType])
+    for field in CHROME_VERSIONHISTORY_TITLES[entityType]:
+      if field in citem:
+        printKeyValueList([field, citem[field]])
+    Ind.Decrement()
 
   cv = buildGAPIObjectNoAuthentication(API.CHROMEVERSIONHISTORY)
   entityType = getChoice(CHROME_HISTORY_ENTITY_CHOICE_MAP, mapChoice=True)
@@ -40943,11 +41298,11 @@ def _showUserInvitation(invitation, FJQC, i=0, count=0):
   if FJQC is not None and FJQC.formatJSON:
     invitation['email'] = isolateCIUserInvitatonsEmail(invitation['name'])
     printLine(json.dumps(cleanJSON(invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.USER_INVITATION, isolateCIUserInvitatonsEmail(invitation['name'])], i, count)
-    Ind.Increment()
-    showJSON(None, invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS)
-    Ind.Decrement()
+    return
+  printEntity([Ent.USER_INVITATION, isolateCIUserInvitatonsEmail(invitation['name'])], i, count)
+  Ind.Increment()
+  showJSON(None, invitation, timeObjects=CI_USERINVITATION_TIME_OBJECTS)
+  Ind.Decrement()
 
 # gam check userinvitation|isinvitable <EmailAddress>
 def doCheckCIUserInvitations():
@@ -41152,11 +41507,11 @@ def _getInboundSSOProfileArguments(body):
 def _showInboundSSOProfile(profile, FJQC, i=0, count=0):
   if FJQC is not None and FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(profile), ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.INBOUND_SSO_PROFILE, profile['name']], i, count)
-    Ind.Increment()
-    showJSON(None, profile)
-    Ind.Decrement()
+    return
+  printEntity([Ent.INBOUND_SSO_PROFILE, profile['name']], i, count)
+  Ind.Increment()
+  showJSON(None, profile)
+  Ind.Decrement()
 
 def _processInboundSSOProfileResult(result, returnNameOnly, kvlist, function):
   if result['done']:
@@ -41322,11 +41677,11 @@ def _showInboundSSOCredentials(credentials, FJQC, i=0, count=0):
   if FJQC is not None and FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(credentials, timeObjects=INBOUNDSSO_CREDENTIALS_TIME_OBJECTS),
                          ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.INBOUND_SSO_CREDENTIALS, credentials['name']], i, count)
-    Ind.Increment()
-    showJSON(None, credentials, timeObjects=INBOUNDSSO_CREDENTIALS_TIME_OBJECTS)
-    Ind.Decrement()
+    return
+  printEntity([Ent.INBOUND_SSO_CREDENTIALS, credentials['name']], i, count)
+  Ind.Increment()
+  showJSON(None, credentials, timeObjects=INBOUNDSSO_CREDENTIALS_TIME_OBJECTS)
+  Ind.Decrement()
 
 def _processInboundSSOCredentialsResult(result, kvlist, function):
   if result['done']:
@@ -41590,12 +41945,12 @@ def _updateInboundAssignmentTargetNames(ci, cd, assignment):
 def _showInboundSSOAssignment(assignment, FJQC, ci, cd, i=0, count=0):
   if FJQC is not None and FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(assignment), ensure_ascii=False, sort_keys=True))
-  else:
-    printEntity([Ent.INBOUND_SSO_ASSIGNMENT, assignment['name']], i, count)
-    _updateInboundAssignmentTargetNames(ci, cd, assignment)
-    Ind.Increment()
-    showJSON(None, assignment)
-    Ind.Decrement()
+    return
+  printEntity([Ent.INBOUND_SSO_ASSIGNMENT, assignment['name']], i, count)
+  _updateInboundAssignmentTargetNames(ci, cd, assignment)
+  Ind.Increment()
+  showJSON(None, assignment)
+  Ind.Decrement()
 
 def _processInboundSSOAssignmentResult(result, kvlist, ci, cd, function):
   if result['done']:
@@ -58563,13 +58918,13 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
     user, drive = buildGAPIServiceObject(API.DRIVE3, user, i, count)
     if not drive:
       continue
+    if useDomainAdminAccess:
+      printGettingAllAccountEntities(Ent.SHAREDDRIVE, query)
+      pageMessage = getPageMessage()
+    else:
+      printGettingAllEntityItemsForWhom(Ent.SHAREDDRIVE, user, i, count, query)
+      pageMessage = getPageMessageForWhom()
     try:
-      if useDomainAdminAccess:
-        printGettingAllAccountEntities(Ent.SHAREDDRIVE, query)
-        pageMessage = getPageMessage()
-      else:
-        printGettingAllEntityItemsForWhom(Ent.SHAREDDRIVE, user, i, count, query)
-        pageMessage = getPageMessageForWhom()
       feed = callGAPIpages(drive.drives(), 'list', 'drives',
                            pageMessage=pageMessage,
                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
@@ -58864,13 +59219,13 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
           pass
     if feed is None:
+      if useDomainAdminAccess:
+        printGettingAllAccountEntities(Ent.SHAREDDRIVE, query)
+        pageMessage = getPageMessage()
+      else:
+        printGettingAllEntityItemsForWhom(Ent.SHAREDDRIVE, user, i, count, query)
+        pageMessage = getPageMessageForWhom()
       try:
-        if useDomainAdminAccess:
-          printGettingAllAccountEntities(Ent.SHAREDDRIVE, query)
-          pageMessage = getPageMessage()
-        else:
-          printGettingAllEntityItemsForWhom(Ent.SHAREDDRIVE, user, i, count, query)
-          pageMessage = getPageMessageForWhom()
         feed = callGAPIpages(drive.drives(), 'list', 'drives',
                              pageMessage=pageMessage,
                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID_QUERY, GAPI.INVALID,
@@ -59098,11 +59453,11 @@ def printShowDataStudioAssets(users):
       asset['title'] = _stripControlCharsFromName(asset['title'])
     if FJQC.formatJSON:
       printLine(json.dumps(cleanJSON(asset, timeObjects=DATASTUDIO_ASSETS_TIME_OBJECTS), ensure_ascii=False, sort_keys=False))
-    else:
-      printEntity([Ent.DATASTUDIO_ASSET, asset['title']], j, jcount)
-      Ind.Increment()
-      showJSON(None, asset, timeObjects=DATASTUDIO_ASSETS_TIME_OBJECTS)
-      Ind.Decrement()
+      return
+    printEntity([Ent.DATASTUDIO_ASSET, asset['title']], j, jcount)
+    Ind.Increment()
+    showJSON(None, asset, timeObjects=DATASTUDIO_ASSETS_TIME_OBJECTS)
+    Ind.Decrement()
 
   csvPF = CSVPrintFile(['User', 'title']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
@@ -59160,18 +59515,18 @@ def _showDataStudioPermissions(user, asset, permissions, j, jcount, FJQC):
     permissions['User'] = user
     permissions['assetId'] = asset['name']
     printLine(json.dumps(cleanJSON(permissions), ensure_ascii=False, sort_keys=False))
-  else:
-    permissions = permissions['permissions']
-    if permissions:
-      printEntity([Ent.DATASTUDIO_ASSET, asset['title'], Ent.DATASTUDIO_PERMISSION, ''], j, jcount)
-    for role in ['OWNER', 'EDITOR', 'VIEWER']:
-      members = permissions.get(role, {}).get('members', [])
-      if members:
-        lrole = role.lower()
-        Ind.Increment()
-        for member in members:
-          printKeyValueList([lrole, member])
-        Ind.Decrement()
+    return
+  permissions = permissions['permissions']
+  if permissions:
+    printEntity([Ent.DATASTUDIO_ASSET, asset['title'], Ent.DATASTUDIO_PERMISSION, ''], j, jcount)
+  for role in ['OWNER', 'EDITOR', 'VIEWER']:
+    members = permissions.get(role, {}).get('members', [])
+    if members:
+      lrole = role.lower()
+      Ind.Increment()
+      for member in members:
+        printKeyValueList([lrole, member])
+      Ind.Decrement()
 
 DATASTUDIO_VIEW_PERMISSION_ROLE_CHOICE_MAP = {
   'editor': 'EDITOR',
@@ -67594,9 +67949,7 @@ MAIN_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_BROWSERTOKEN:		doCreateBrowserToken,
   Cmd.ARG_BUILDING:		doCreateBuilding,
   Cmd.ARG_CAALEVEL:		doCreateCAALevel,
-  Cmd.ARG_CHATMEMBER:		doCreateChatMember,
   Cmd.ARG_CHATMESSAGE:		doCreateChatMessage,
-  Cmd.ARG_CHATSPACE:		doCreateChatSpace,
   Cmd.ARG_CHROMENETWORK:	doCreateChromeNetwork,
   Cmd.ARG_CHROMEPOLICYIMAGE:	doCreateChromePolicyImage,
   Cmd.ARG_CIGROUP:		doCreateCIGroup,
@@ -67780,9 +68133,9 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ALIAS:		doInfoAliases,
       Cmd.ARG_BUILDING:		doInfoBuilding,
       Cmd.ARG_BROWSER:		doInfoBrowsers,
-      Cmd.ARG_CHATMEMBER:	doInfoChatMembers,
+      Cmd.ARG_CHATMEMBER:	doInfoChatMember,
       Cmd.ARG_CHATMESSAGE:	doInfoChatMessage,
-      Cmd.ARG_CHATSPACE:	doInfoChatSpaces,
+      Cmd.ARG_CHATSPACE:	doInfoChatSpace,
       Cmd.ARG_CHROMESCHEMA:	doInfoChromePolicySchemas,
       Cmd.ARG_CIGROUP:		doInfoCIGroups,
       Cmd.ARG_CIGROUPMEMBERS:	doInfoCIGroupMembers,
@@ -68582,6 +68935,9 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_CALENDAR:		addCreateCalendars,
   Cmd.ARG_GROUP:		addUserToGroups,
   Cmd.ARG_CALENDARACL:		createCalendarACLs,
+  Cmd.ARG_CHATMEMBER:		createChatMember,
+  Cmd.ARG_CHATMESSAGE:		createChatMessage,
+  Cmd.ARG_CHATSPACE:		createChatSpace,
   Cmd.ARG_CLASSROOMINVITATION:	createClassroomInvitations,
   Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
   Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
@@ -68688,6 +69044,9 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_BACKUPCODE:	deleteBackupCodes,
       Cmd.ARG_CALENDAR:		deleteCalendars,
       Cmd.ARG_CALENDARACL:	deleteCalendarACLs,
+      Cmd.ARG_CHATMEMBER:	deleteChatMember,
+      Cmd.ARG_CHATMESSAGE:	deleteChatMessage,
+      Cmd.ARG_CHATSPACE:	deleteChatSpace,
       Cmd.ARG_CLASSROOMINVITATION:	deleteClassroomInvitations,
       Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
       Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
@@ -68768,6 +69127,9 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.INFO,
      {Cmd.ARG_CALENDAR:		infoCalendars,
       Cmd.ARG_CALENDARACL:	infoCalendarACLs,
+      Cmd.ARG_CHATMEMBER:	infoChatMember,
+      Cmd.ARG_CHATMESSAGE:	infoChatMessage,
+      Cmd.ARG_CHATSPACE:	infoChatSpace,
       Cmd.ARG_CIGROUPMEMBERS:	infoCIGroupMembers,
       Cmd.ARG_DRIVEFILE:	showFileInfo,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,
@@ -68825,6 +69187,9 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDAR:		printShowCalendars,
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,
+      Cmd.ARG_CHATMEMBER:	printShowChatMembers,
+      Cmd.ARG_CHATMESSAGE:	printShowChatMessages,
+      Cmd.ARG_CHATSPACE:	printShowChatSpaces,
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
       Cmd.ARG_CLASSROOMPROFILE:	printShowClassroomProfile,
       Cmd.ARG_CONTACTDELEGATE:	printShowContactDelegates,
@@ -68909,6 +69274,9 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALENDAR:		printShowCalendars,
       Cmd.ARG_CALENDARACL:	printShowCalendarACLs,
       Cmd.ARG_CALSETTINGS:	printShowCalSettings,
+      Cmd.ARG_CHATMEMBER:	printShowChatMembers,
+      Cmd.ARG_CHATMESSAGE:	printShowChatMessages,
+      Cmd.ARG_CHATSPACE:	printShowChatSpaces,
       Cmd.ARG_CLASSROOMINVITATION:	printShowClassroomInvitations,
       Cmd.ARG_CLASSROOMPROFILE:	printShowClassroomProfile,
       Cmd.ARG_CONTACTDELEGATE:	printShowContactDelegates,
@@ -69027,6 +69395,8 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CALATTENDEES:	updateCalendarAttendees,
       Cmd.ARG_CALENDAR:		updateCalendars,
       Cmd.ARG_CALENDARACL:	updateCalendarACLs,
+      Cmd.ARG_CHATMESSAGE:	updateChatMessage,
+      Cmd.ARG_CHATSPACE:	updateChatSpace,
       Cmd.ARG_DATASTUDIOPERMISSION:	processDataStudioPermissions,
       Cmd.ARG_DELEGATE:		updateDelegates,
       Cmd.ARG_DRIVEFILE:	updateDriveFile,
@@ -69093,6 +69463,9 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_CALENDARS:		Cmd.ARG_CALENDAR,
   Cmd.ARG_CALENDARACLS:		Cmd.ARG_CALENDARACL,
   Cmd.ARG_CLASSROOMINVITATIONS:	Cmd.ARG_CLASSROOMINVITATION,
+  Cmd.ARG_CHATMEMBERS:		Cmd.ARG_CHATMEMBER,
+  Cmd.ARG_CHATMESSAGES:		Cmd.ARG_CHATMESSAGE,
+  Cmd.ARG_CHATSPACES:		Cmd.ARG_CHATSPACE,
   Cmd.ARG_CIMEMBER:		Cmd.ARG_CIGROUPMEMBERS,
   Cmd.ARG_CIMEMBERS:		Cmd.ARG_CIGROUPMEMBERS,
   Cmd.ARG_CONTACT:		Cmd.ARG_PEOPLECONTACT,
