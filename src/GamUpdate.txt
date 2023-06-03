@@ -1,3 +1,8 @@
+6.60.01
+
+Updated `gam <UserTypeEntity> create chatspace` to support chatspace types `GROUP_CHAT` and `DIRECT_MESSAGE`
+and to allow specification of members.
+
 6.60.00
 
 Added initial support for user chat spaces. This is a work in progress, test and report any problems.

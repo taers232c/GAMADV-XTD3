@@ -1943,6 +1943,7 @@ gam create chatmessage space <ChatSpace>
         <ChatContent>
         [messageId <ChatMessageID>]
         [(thread <ChatThread>)|(threadkey <String>) [replyoption fail|fallbacktonew]]
+        [returnidonly]
 gam update chatmessage name <ChatMessage>
         <ChatContent>
 gam delete chatmessage name <ChatMessage>
@@ -5613,14 +5614,15 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
         <String> must contain only lowercase letters, numbers, and hyphens up to 56 characters in length.
 
 gam <UserTypeEntity> create chatspace
-        [displayname <String>]
         [type <ChatSpaceType>]
+        [members <UserTypeEntity>]
+        [displayname <String>]
         [description <String>] [guidelines <String>]
         [history <Boolean>]
-        [formatjson]
+        [formatjson|returnidonly]
 gam <UserTypeEntity> update chatspace space <ChatSpace>
-        [displayname <String>]
         [type space]
+        [displayname <String>]
         [description <String>] [guidelines <String>]
         [history <Boolean>]
         [formatjson]
@@ -5637,7 +5639,7 @@ gam <UserTypeEntity> print chatspaces [todrive <ToDriveAttribute>*]
 
 gam <UserTypeEntity> create chatmember space <ChatSpace>
         (user <UserItem> [type human|bot])|(group <GroupItem>)
-        [formatjson]
+        [formatjson|returnidonly]
 gam <UserTypeEntity> delete chatmember member <ChatMember>
 
 gam <UserTypeEntity> info chatmember member <ChatMember>
@@ -5649,9 +5651,9 @@ gam <UserTypeEntity> print chatmembers [todrive <ToDriveAttribute>*] space <Chat
 
 gam <UserTypeEntity> create chatmessage space <ChatSpace>
         <ChatContent>
-        <ChatContent>
         [messageId <ChatMessageID>] [(thread <ChatThread>)|(threadkey <String>)]
         [replyoption fail|fallback]
+        [returnidonly]
 gam <UserTypeEntity> update chatmessage name <ChatMessage>
         <ChatContent>
 gam <UserTypeEntity> delete chatmessage name <ChatMessage>
