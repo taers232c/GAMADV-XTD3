@@ -5619,6 +5619,7 @@ gam <UserTypeEntity> create chatspace
         [displayname <String>]
         [description <String>] [guidelines <String>]
         [history <Boolean>]
+        [<ChatContent>]
         [formatjson|returnidonly]
 gam <UserTypeEntity> update chatspace space <ChatSpace>
         [type space]

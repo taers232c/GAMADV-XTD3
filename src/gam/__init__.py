@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.01'
+__version__ = '6.60.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24076,8 +24076,8 @@ CHAT_SPACE_MIN_MAX_MEMBERS = {
 #	[displayname <String>]
 #	[description <String>] [guidelines|rules <String>]
 #	[history <Boolean>]
-#	[returnidonly]
-#	[formatjson]
+#	[<ChatContent>]
+#	[formatjson|returnidonly]
 def createChatSpace(users):
   cd = buildGAPIObject(API.DIRECTORY)
   FJQC = FormatJSONQuoteChar()
@@ -24085,6 +24085,7 @@ def createChatSpace(users):
           'requestId': str(uuid.uuid4()),
           'memberships': []}
   members = []
+  tbody = {}
   returnIdOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -24095,6 +24096,8 @@ def createChatSpace(users):
 
     elif myarg == 'returnidonly':
       returnIdOnly = True
+    elif myarg in SORF_TEXT_ARGUMENTS:
+      tbody['text'] = getStringOrFile(myarg, minLen=0, unescapeCRLF=True)[0]
     else:
       FJQC.GetFormatJSON(myarg)
   spaceType = body['space']['spaceType']
@@ -24119,6 +24122,8 @@ def createChatSpace(users):
     body['space'].pop('displayName', None)
     body['space'].pop('spaceDetails', None)
     body['space']['singleUserBotDm'] = False
+  if tbody:
+    trimChatMessageIfRequired(tbody)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -24141,6 +24146,24 @@ def createChatSpace(users):
         writeStdout(f'{space["name"]}\n')
     except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+      continue
+    if tbody:
+      parent = space['name']
+      _, chat, kvList = buildChatServiceObject(API.CHAT_MESSAGES, user, i, count,
+                                               [Ent.CHAT_SPACE, body['space'].get('displayName', parent)])
+      if not chat:
+        continue
+      try:
+        resp = callGAPI(chat.spaces().messages(), 'create',
+                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
+                        parent=parent, requestId=str(uuid.uuid4()), body=tbody)
+        if not returnIdOnly:
+          kvList.extend([Ent.CHAT_MESSAGE, resp['name']])
+          entityActionPerformed(kvList, i, count)
+        else:
+          writeStdout(f'{resp["name"]}\n')
+      except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
+        exitIfChatNotConfigured(chat, kvList, str(e), i, count)
 
 CHAT_UPDATE_SPACE_TYPE_MAP = {
   'space': 'SPACE',
@@ -24354,8 +24377,7 @@ CHAT_MEMBER_TYPE_MAP = {
 
 # gam <UserTypeEntity> create chatmember space <ChatSpace>
 #	(user <UserItem> [type human|bot])|(group <GroupItem>)
-#	[returnidonly]
-#	[formatjson]
+#	[formatjson|returnidonly]
 def createChatMember(users):
   cd = buildGAPIObject(API.DIRECTORY)
   FJQC = FormatJSONQuoteChar()
@@ -24564,6 +24586,7 @@ CHAT_MESSAGE_REPLY_OPTION_MAP = {
   }
 
 # gam [<UserTypeEntityu>] create chatmessage space <ChatSpace>
+#	<ChatContent>
 #	(text <String>)|(textfile <FileName> [charset <CharSet>])
 #	[messageId <ChatMessageID>]
 #	[(thread <ChatThread>)|(threadkey <String>) [replyoption fail|fallbacktonew]]
@@ -24613,7 +24636,6 @@ def createChatMessage(users):
                       throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                       parent=parent, requestId=str(uuid.uuid4()),
                       messageReplyOption=messageReplyOption, messageId=messageId, body=body)
-
       if not returnIdOnly:
         kvList.extend([Ent.CHAT_MESSAGE, resp['name']])
         if 'clientAssignedMessageId' in resp:
@@ -24632,7 +24654,7 @@ def doCreateChatMessage():
   createChatMessage([None])
 
 # gam [<UserTypeMessage>] update chatmessage name <ChatMessage>
-#	(text <String>)|(textfile <FileName> [charset <CharSet>])
+#	<ChatContent>
 def updateChatMessage(users):
   name = None
   body = {}

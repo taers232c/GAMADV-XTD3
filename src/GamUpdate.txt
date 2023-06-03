@@ -1,3 +1,8 @@
+6.60.02
+
+Added option `<ChatContent>` to `gam <UserTypeEntity> create chatspace` to allow sending an initial message
+to the newly created chatspace.
+
 6.60.01
 
 Updated `gam <UserTypeEntity> create chatspace` to support chatspace types `GROUP_CHAT` and `DIRECT_MESSAGE`
