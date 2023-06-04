@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.02'
+__version__ = '6.60.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24093,7 +24093,6 @@ def createChatSpace(users):
       pass
     elif myarg == 'members':
       _, members = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
-
     elif myarg == 'returnidonly':
       returnIdOnly = True
     elif myarg in SORF_TEXT_ARGUMENTS:
@@ -24376,123 +24375,177 @@ CHAT_MEMBER_TYPE_MAP = {
   }
 
 # gam <UserTypeEntity> create chatmember space <ChatSpace>
-#	(user <UserItem> [type human|bot])|(group <GroupItem>)
+#	[type human|bot]
+#	(user <UserItem>)* (members <UserTypeEntity>)*
 #	[formatjson|returnidonly]
 def createChatMember(users):
+  def addMembers(members, field, entityType, i, count):
+    jcount = len(members)
+    entityPerformActionNumItems(kvList, jcount, entityType, i, count)
+    if jcount == 0:
+      return
+    Ind.Increment()
+    j = 0
+    for body in members:
+      kvList[-1] = body[field]['name']
+      try:
+        member = callGAPI(chat.spaces().members(), 'create',
+                          bailOnInternalError=True,
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                          parent=parent, body=body)
+        if not returnIdOnly:
+          kvList[-1] = member['name']
+          _getChatMemberEmail(cd, member)
+          if not FJQC.formatJSON:
+            entityActionPerformed(kvList, j, jcount)
+          Ind.Increment()
+          _showChatMember(member, FJQC)
+          Ind.Decrement()
+        else:
+          writeStdout(f'{member["name"]}\n')
+      except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
+        entityActionFailedWarning(kvList, str(e))
+  Ind.Decrement()
+
   cd = buildGAPIObject(API.DIRECTORY)
   FJQC = FormatJSONQuoteChar()
-  parent = name = None
-  body = {}
+  parent = None
+  mtype = CHAT_MEMBER_TYPE_MAP['human']
+  userList = []
   returnIdOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'space':
       parent = getChatSpace()
     elif myarg == 'user':
-      body.pop('groupMember', None)
-      body.setdefault('member', {'type': CHAT_MEMBER_TYPE_MAP['human']}) # 'domainId': _getCustomerIdNoC()
-      name = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'), cd, 'user')
-      body['member']['name'] = f'users/{name}'
+      userList.append(getEmailAddress(returnUIDprefix='uid:'))
+    elif myarg == 'members':
+      _, members = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+      userList.extend(members)
     elif myarg == 'type':
-      body.pop('groupMember', None)
-      body.setdefault('member', {})
-      body['member']['type'] = getChoice(CHAT_MEMBER_TYPE_MAP, mapChoice=True)
-    elif myarg == 'group':
-      body.pop('member', None)
-      body.setdefault('groupMember', {})
-      name = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'), cd, 'group')
-      body['groupMember']['name'] = f'groups/{name}'
+      mtype = getChoice(CHAT_MEMBER_TYPE_MAP, mapChoice=True)
     elif myarg == 'returnidonly':
       returnIdOnly = True
     else:
       FJQC.GetFormatJSON(myarg)
   if not parent:
     missingArgumentExit('space')
-  if not name:
-    missingArgumentExit('member')
+  if not userList:
+    missingArgumentExit('user|members')
+  userMembers = []
+  for user in userList:
+    name = convertEmailAddressToUID(user, cd, 'user')
+    userMembers.append({'member': {'name': f'users/{name}', 'type': mtype}})
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count, [Ent.CHAT_SPACE, parent, Ent.CHAT_MEMBER, name])
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count, [Ent.CHAT_SPACE, parent, Ent.CHAT_MEMBER, ''])
     if not chat:
       continue
-    try:
-      member = callGAPI(chat.spaces().members(), 'create',
-                        bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
-                        parent=parent, body=body)
-      if not returnIdOnly:
-        _getChatMemberEmail(cd, member)
-        if not FJQC.formatJSON:
-          entityActionPerformed(kvList, i, count)
-        Ind.Increment()
-        _showChatMember(member, FJQC)
-        Ind.Decrement()
-      else:
-        writeStdout(f'{member["name"]}\n')
-    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
-      entityActionFailedWarning(kvList, str(e))
+    addMembers(userMembers, 'member', Ent.USER, i, count)
 
-# gam <UserTypeEntity> delete chatmember member <ChatMember>
-#	[formatjson]
+# gam <UserTypeEntity> delete chatmember space <ChatSpace>
+#	((user <UserItem>)|(members <UserTypeEntity>))+
+# gam <UserTypeEntity> remove chatmember members <ChatMemberList>
 def deleteChatMember(users):
-  name = None
+  cd = buildGAPIObject(API.DIRECTORY)
+  action = Act.Get()
+  parent = None
+  memberNames = []
+  userList = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'member':
-      name = getString(Cmd.OB_CHAT_MEMBER)
-    else:
-      unknownArgumentExit()
-  if not name:
-    missingArgumentExit('member')
+    if action == Act.REMOVE:
+      if myarg in {'member', 'members'}:
+        memberNames.extend(getString(Cmd.OB_CHAT_MEMBER).replace(',', ' ').split())
+      else:
+        unknownArgumentExit()
+    else: # Act.DELETE
+      if myarg == 'space':
+        parent = getChatSpace()
+      elif myarg == 'user':
+        userList.append(getEmailAddress(returnUIDprefix='uid:'))
+      elif myarg == 'members':
+        _, members = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS)
+        userList.extend(members)
+      else:
+        unknownArgumentExit()
+  if action == Act.REMOVE:
+    if not memberNames:
+      missingArgumentExit('members')
+  else: # Act.DELETE
+    if not parent:
+      missingArgumentExit('space')
+    if not userList:
+      missingArgumentExit('user|members')
+    for user in userList:
+      name = convertEmailAddressToUID(user, cd, 'user')
+      memberNames.append(f'{parent}/members/{name}')
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count, [Ent.CHAT_MEMBER, name])
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count)
     if not chat:
       continue
-    try:
-      callGAPI(chat.spaces().members(), 'delete',
-               bailOnInternalError=True,
-               throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
-               name=name)
-      entityActionPerformed(kvList)
-    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
-      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+    jcount = len(memberNames)
+    entityPerformActionNumItems(kvList, jcount, Ent.CHAT_MEMBER, i, count)
+    kvList.extend([Ent.CHAT_MEMBER, ''])
+    Ind.Increment()
+    j = 0
+    for name in memberNames:
+      j += 1
+      kvList[-1] = name
+      try:
+        callGAPI(chat.spaces().members(), 'delete',
+                 bailOnInternalError=True,
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                 name=name)
+        entityActionPerformed(kvList, j, jcount)
+      except GAPI.notFound as e:
+        entityActionFailedWarning(kvList, str(e), j, jcount)
+      except (GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
+        exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+    Ind.Decrement()
 
-# gam [<UserTypeEntity>] info chatmember member <ChatMember>
+# gam [<UserTypeEntity>] info chatmember members <ChatMemberList>
 #	[formatjson]
 def infoChatMember(users):
   cd = buildGAPIObject(API.DIRECTORY)
   FJQC = FormatJSONQuoteChar()
-  name = None
+  memberNames = []
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'member':
-      name = getString(Cmd.OB_CHAT_MEMBER)
+    if myarg in {'member', 'members'}:
+      memberNames.extend(getString(Cmd.OB_CHAT_MEMBER).replace(',', ' ').split())
     else:
       FJQC.GetFormatJSON(myarg)
-  if not name:
-    missingArgumentExit('member')
+  if not memberNames:
+    missingArgumentExit('members')
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count, [Ent.CHAT_MEMBER, name])
+    user, chat, kvList = buildChatServiceObject(API.CHAT_MEMBERSHIPS, user, i, count)
     if not chat:
       continue
-    try:
-      member = callGAPI(chat.spaces().members(), 'get',
-                        bailOnInternalError=True,
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
-                        name=name)
-      _getChatMemberEmail(cd, member)
-      if not FJQC.formatJSON:
-        entityPerformAction(kvList, i, count)
-      Ind.Increment()
-      _showChatMember(member, FJQC)
-      Ind.Decrement()
-    except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
-      exitIfChatNotConfigured(chat, kvList, str(e), i, count)
+    jcount = len(memberNames)
+    if not FJQC.formatJSON:
+      entityPerformActionNumItems(kvList, jcount, Ent.CHAT_MEMBER, i, count)
+    kvList.extend([Ent.CHAT_MEMBER, ''])
+    j = 0
+    for name in memberNames:
+      j += 1
+      kvList[-1] = name
+      try:
+        member = callGAPI(chat.spaces().members(), 'get',
+                          bailOnInternalError=True,
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
+                          name=name)
+        _getChatMemberEmail(cd, member)
+        Ind.Increment()
+        _showChatMember(member, FJQC, j, jcount)
+        Ind.Decrement()
+      except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied, GAPI.internalError) as e:
+        exitIfChatNotConfigured(chat, kvList, str(e), i, count)
 
 def doInfoChatMember():
   infoChatMember([None])
@@ -69335,6 +69388,7 @@ USER_COMMANDS_WITH_OBJECTS = {
   'remove':
     (Act.REMOVE,
      {Cmd.ARG_CALENDAR:		removeCalendars,
+      Cmd.ARG_CHATMEMBER:	deleteChatMember,
      }
     ),
   'replacedomain':

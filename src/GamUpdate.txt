@@ -1,3 +1,14 @@
+6.60.03
+
+Updated commands to delete chatmembers; `delete chatmembers` now deletes members by
+specifying a chat space and user email addresses; `remove chatmembers` deletes members by
+specifying chatmember names.
+```
+gam <UserTypeEntity> delete chatmember space <ChatSpace>
+        ((user <UserItem>)|(members <UserTypeEntity>))+
+gam <UserTypeEntity> remove chatmember members <ChatMemberList>
+```
+
 6.60.02
 
 Added option `<ChatContent>` to `gam <UserTypeEntity> create chatspace` to allow sending an initial message

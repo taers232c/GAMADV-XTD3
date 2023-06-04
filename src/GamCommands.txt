@@ -5602,6 +5602,7 @@ gam <UserTypeEntity> update calattendees <UserCalendarEntity> <EventEntity> [any
          (gcsdoc <StorageBucketObjectName>))
 
 <ChatMember> ::= spaces/<String>/members/<String>
+<ChatMemberList> ::= "<ChatMember>(,<ChatMember>)*"
 <ChatMessage> ::= spaces/<String>/messages/<String>
 <ChatSpace> ::= spaces/<String> | <String>
 <ChatThread> ::= spaces/<String>/threads/<String>
@@ -5639,11 +5640,14 @@ gam <UserTypeEntity> print chatspaces [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
 
 gam <UserTypeEntity> create chatmember space <ChatSpace>
-        (user <UserItem> [type human|bot])|(group <GroupItem>)
+        [type human|bot]
+        ((user <UserItem>)|(members <UserTypeEntity>))*
         [formatjson|returnidonly]
-gam <UserTypeEntity> delete chatmember member <ChatMember>
+gam <UserTypeEntity> delete chatmember space <ChatSpace>
+        ((user <UserItem>)|(members <UserTypeEntity>))+
+gam <UserTypeEntity> remove chatmember members <ChatMemberList>
 
-gam <UserTypeEntity> info chatmember member <ChatMember>
+gam <UserTypeEntity> info chatmember members <ChatMemberList>
         [formatjson]
 gam <UserTypeEntity> show chatmembers space <ChatSpace>
         [formatjson]
