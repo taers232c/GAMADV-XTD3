@@ -24298,7 +24298,7 @@ def printShowChatSpaces(users):
 
   csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  pfilter = None
+  pfilter = ''
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -24313,6 +24313,8 @@ def printShowChatSpaces(users):
           invalidChoiceExit(ctype, CHAT_SPACE_TYPE_MAP, True)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if not pfilter:
+    pfilter = None
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
