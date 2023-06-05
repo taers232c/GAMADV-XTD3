@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.03'
+__version__ = '6.60.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24298,7 +24298,7 @@ def printShowChatSpaces(users):
 
   csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  pfilter = ""
+  pfilter = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -54117,6 +54117,10 @@ def copyDriveFile(users):
         if sourceMimeType == MIMETYPE_GA_FOLDER:
           kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId]
           copiedTargetFiles.add(newParentId) # Don't recopy folder copied into a sub-folder
+          if fileId == newParentId:
+            entityActionNotPerformedWarning(kvList, Msg.NOT_COPYABLE_INTO_ITSELF, j, jcount)
+            _incrStatistic(statistics, STAT_FOLDER_FAILED)
+            continue
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):
               entityActionNotPerformedWarning(kvList, Msg.NOT_COPYABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)
@@ -54835,9 +54839,14 @@ def moveDriveFile(users):
             continue
 # Move folder
         if sourceMimeType == MIMETYPE_GA_FOLDER:
+          kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId]
+          if fileId == newParentId:
+            entityActionNotPerformedWarning(kvList, Msg.NOT_MOVABLE_INTO_ITSELF, j, jcount)
+            _incrStatistic(statistics, STAT_FOLDER_FAILED)
+            continue
           if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
             if _identicalSourceTarget(fileId, targetChildren):
-              entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId], Msg.NOT_MOVABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)
+              entityActionNotPerformedWarning(kvList, Msg.NOT_MOVABLE_SAME_NAME_CURRENT_FOLDER_MERGE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_FAILED)
               continue
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_UNIQUE_NAME:
@@ -54845,7 +54854,7 @@ def moveDriveFile(users):
           elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_SKIP:
             targetChild = _targetFilenameExists(destName, sourceMimeType, targetChildren)
             if targetChild is not None:
-              entityModifierItemValueListActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, sourceNameId], Act.MODIFIER_TO,
+              entityModifierItemValueListActionNotPerformedWarning(kvList, Act.MODIFIER_TO,
                                                                    [Ent.DRIVE_FOLDER, newParentNameId, Ent.DRIVE_FOLDER, f"{destName}({targetChild['id']})"],
                                                                    Msg.DUPLICATE, j, jcount)
               _incrStatistic(statistics, STAT_FOLDER_DUPLICATE)

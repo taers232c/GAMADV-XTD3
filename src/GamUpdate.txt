@@ -1,3 +1,8 @@
+6.60.04
+
+Updated `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>` to disallow copying/moving
+a folder into itself.
+
 6.60.03
 
 Updated commands to delete chatmembers; `delete chatmembers` now deletes members by
