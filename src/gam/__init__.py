@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.05'
+__version__ = '6.60.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -17134,9 +17134,9 @@ def doPrintAliases():
       for alias in target.get('aliases', []):
         if aliasMatchPattern.match(alias):
           row = {'Alias': alias, 'Target': targetEmail, 'TargetType': targetType}
-        if addCSVData:
-          row.update(addCSVData)
-        csvPF.WriteRow(row)
+          if addCSVData:
+            row.update(addCSVData)
+          csvPF.WriteRow(row)
       if showNonEditable:
         for alias in target.get('nonEditableAliases', []):
           if aliasMatchPattern.match(alias):

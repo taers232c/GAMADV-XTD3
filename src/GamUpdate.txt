@@ -1,3 +1,7 @@
+6.60.06
+
+Fixed bug in `gam print aliases` that caused a trap.
+
 6.60.05
 
 Updated Chrome Policy commands to handle the following error:
