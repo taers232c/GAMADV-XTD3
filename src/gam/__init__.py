@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.04'
+__version__ = '6.60.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -25036,11 +25036,12 @@ def doDeleteChromePolicy():
   kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_POLICY, ','.join(schemaNameList)]
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchInherit',
-             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
+             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
+                           GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE, GAPI.QUOTA_EXCEEDED],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
     entityActionPerformed(kvList)
-  except (GAPI.invalidArgument, GAPI.notFound, GAPI.serviceNotAvailable) as e:
+  except (GAPI.notFound, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.serviceNotAvailable, GAPI.quotaExceeded) as e:
     entityActionFailedWarning(kvList, str(e))
 
 CHROME_SCHEMA_TYPE_MESSAGE = {
@@ -25280,12 +25281,12 @@ def doUpdateChromePolicy():
   updatePolicyRequests(body, orgUnit, printer_id, app_id)
   try:
     callGAPI(cp.customers().policies().orgunits(), 'batchModify',
-             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
+             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT,
                            GAPI.SERVICE_NOT_AVAILABLE, GAPI.QUOTA_EXCEEDED],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
     entityActionPerformed(kvList)
-  except (GAPI.invalidArgument, GAPI.notFound, GAPI.permissionDenied, GAPI.serviceNotAvailable, GAPI.quotaExceeded) as e:
+  except (GAPI.notFound, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.serviceNotAvailable, GAPI.quotaExceeded) as e:
     entityActionFailedWarning(kvList, str(e))
 
 CHROME_POLICY_SORT_TITLES = ['name', 'orgUnitPath', 'parentOrgUnitPath', 'direct']
@@ -25458,9 +25459,10 @@ def doPrintShowChromePolicies():
     try:
       policies.extend(callGAPIpages(cp.customers().policies(), 'resolve', 'resolvedPolicies',
                                     pageMessage=getPageMessageForWhom(),
-                                    throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
+                                    throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT,
+                                                  GAPI.SERVICE_NOT_AVAILABLE, GAPI.QUOTA_EXCEEDED],
                                     customer=customer, body=body, pageArgsInBody=True))
-    except GAPI.notFound as e:
+    except (GAPI.notFound, GAPI.permissionDenied, GAPI.quotaExceeded) as e:
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], str(e))
       continue
     except (GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
@@ -25715,11 +25717,13 @@ def doCreateChromeNetwork():
   try:
     result = callGAPI(cp.customers().policies().networks(), 'defineNetwork',
                       bailOnInternalError=True,
-                      throwReasons=[GAPI.ALREADY_EXISTS, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
+                      throwReasons=[GAPI.ALREADY_EXISTS, GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT,
+                                    GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
                       retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
                       customer=customer, body=body)
     entityActionPerformed(kvList+[Ent.CHROME_NETWORK_ID, result['networkId']])
-  except (GAPI.alreadyExists, GAPI.invalidArgument, GAPI.internalError, GAPI.serviceNotAvailable) as e:
+  except (GAPI.alreadyExists, GAPI.permissionDenied, GAPI.invalidArgument,
+          GAPI.internalError, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning(kvList, str(e))
 
 # gam delete chromenetwork
@@ -25734,11 +25738,12 @@ def doDeleteChromeNetwork():
   kvList = [Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CHROME_NETWORK_ID, body['networkId']]
   try:
     callGAPI(cp.customers().policies().networks(), 'removeNetwork',
-             throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.SERVICE_NOT_AVAILABLE],
+             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED,
+                           GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE],
              retryReasons=[GAPI.SERVICE_NOT_AVAILABLE],
              customer=customer, body=body)
     entityActionPerformed(kvList)
-  except (GAPI.invalidArgument, GAPI.notFound, GAPI.serviceNotAvailable) as e:
+  except (GAPI.notFound, GAPI.permissionDenied, GAPI.invalidArgument, GAPI.serviceNotAvailable) as e:
     entityActionFailedWarning(kvList, str(e))
 
 # Device command utilities

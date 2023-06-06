@@ -1,3 +1,10 @@
+6.60.05
+
+Updated Chrome Policy commands to handle the following error:
+```
+ERROR: 403: permissionDenied - The caller does not have permission.
+```
+
 6.60.04
 
 Updated `gam <UserTypeEntity> copy|move drivefile <DriveFileEntity>` to disallow copying/moving
