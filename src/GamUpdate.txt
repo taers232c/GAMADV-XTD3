@@ -1,3 +1,13 @@
+6.60.07
+
+Simplified specifying a Chat space name; previously, the `space` keyword was required;
+now, it can be omittted and you can just enter `spaces/<String>`.
+```
+<ChatSpace> ::= spaces/<String> | space <String> | space spaces/<String>
+```
+
+Upgraded to Python 3.11.4 where possible.
+
 6.60.06
 
 Fixed bug in `gam print aliases` that caused a trap.

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.06'
+__version__ = '6.60.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24022,11 +24022,13 @@ def doSetupChat():
   _, chat , _ = buildChatServiceObject()
   writeStdout(Msg.TO_SET_UP_GOOGLE_CHAT.format(setupChatURL(chat)))
 
-def getChatSpace():
-  chatSpace = getString(Cmd.OB_CHAT_SPACE)
-  if chatSpace.startswith('spaces/'):
-    return chatSpace
-  return 'spaces/'+chatSpace
+def getChatSpace(myarg):
+  if myarg == 'space':
+    chatSpace = getString(Cmd.OB_CHAT_SPACE)
+    if chatSpace.startswith('spaces/'):
+      return chatSpace
+    return 'spaces/'+chatSpace
+  return Cmd.Previous() # /spaces/xxx
 
 def _cleanChatSpace(space):
   space.pop('type', None)
@@ -24168,7 +24170,7 @@ CHAT_UPDATE_SPACE_TYPE_MAP = {
   'space': 'SPACE',
   }
 
-# gam <UserTypeEntity> update chatspace space <ChatSpace>
+# gam <UserTypeEntity> update chatspace <ChatSpace>
 #	[displayname <String>]
 #       [type space]
 #	[description <String>] [guidelines|rules <String>]
@@ -24180,8 +24182,8 @@ def updateChatSpace(users):
   body = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'space':
-      name = getChatSpace()
+    if myarg == 'space' or myarg.startswith('spaces/'):
+      name = getChatSpace(myarg)
     elif getChatSpaceParameters(myarg, body, CHAT_UPDATE_SPACE_TYPE_MAP):
       pass
     else:
@@ -24207,13 +24209,13 @@ def updateChatSpace(users):
     except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       exitIfChatNotConfigured(chat, kvList, str(e), i, count)
 
-# gam <UserTypeEntity> delete chatspace space <ChatSpace>
+# gam <UserTypeEntity> delete chatspace <ChatSpace>
 def deleteChatSpace(users):
   name = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'space':
-      name = getChatSpace()
+    if myarg == 'space' or myarg.startswith('spaces/'):
+      name = getChatSpace(myarg)
     else:
       unknownArgumentExit()
   if not name:
@@ -24232,15 +24234,15 @@ def deleteChatSpace(users):
     except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       exitIfChatNotConfigured(chat, kvList, str(e), i, count)
 
-# gam [<UserTypeEntity>] info chatspace space <ChatSpace>
+# gam [<UserTypeEntity>] info chatspace <ChatSpace>
 #	[formatjson]
 def infoChatSpace(users):
   FJQC = FormatJSONQuoteChar()
   name = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'space':
-      name = getChatSpace()
+    if myarg == 'space' or myarg.startswith('spaces/'):
+      name = getChatSpace(myarg)
     else:
       FJQC.GetFormatJSON(myarg)
   if not name:
@@ -24376,7 +24378,7 @@ CHAT_MEMBER_TYPE_MAP = {
   'human': 'HUMAN'
   }
 
-# gam <UserTypeEntity> create chatmember space <ChatSpace>
+# gam <UserTypeEntity> create chatmember <ChatSpace>
 #	[type human|bot]
 #	(user <UserItem>)* (members <UserTypeEntity>)*
 #	[formatjson|returnidonly]
@@ -24417,8 +24419,8 @@ def createChatMember(users):
   returnIdOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'space':
-      parent = getChatSpace()
+    if myarg == 'space' or myarg.startswith('spaces/'):
+      parent = getChatSpace(myarg)
     elif myarg == 'user':
       userList.append(getEmailAddress(returnUIDprefix='uid:'))
     elif myarg == 'members':
@@ -24446,7 +24448,7 @@ def createChatMember(users):
       continue
     addMembers(userMembers, 'member', Ent.USER, i, count)
 
-# gam <UserTypeEntity> delete chatmember space <ChatSpace>
+# gam <UserTypeEntity> delete chatmember <ChatSpace>
 #	((user <UserItem>)|(members <UserTypeEntity>))+
 # gam <UserTypeEntity> remove chatmember members <ChatMemberList>
 def deleteChatMember(users):
@@ -24463,8 +24465,8 @@ def deleteChatMember(users):
       else:
         unknownArgumentExit()
     else: # Act.DELETE
-      if myarg == 'space':
-        parent = getChatSpace()
+      if myarg == 'space' or myarg.startswith('spaces/'):
+        parent = getChatSpace(myarg)
       elif myarg == 'user':
         userList.append(getEmailAddress(returnUIDprefix='uid:'))
       elif myarg == 'members':
@@ -24552,10 +24554,10 @@ def infoChatMember(users):
 def doInfoChatMember():
   infoChatMember([None])
 
-# gam [<UserTypeEntity>] show chatmembers space <ChatSpace>
+# gam [<UserTypeEntity>] show chatmembers <ChatSpace>
 #	[showinvited [<Boolean>]] [filter <String>]
 #	[formatjson]
-# gam [<UserTypeEntity>] print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+# gam [<UserTypeEntity>] print chatmembers [todrive <ToDriveAttribute>*] <ChatSpace>
 #	[showinvited [<Boolean>]] [filter <String>]
 #	[formatjson [quotechar <Character>]]
 def printShowChatMembers(users):
@@ -24581,8 +24583,8 @@ def printShowChatMembers(users):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'space':
-      parent = getChatSpace()
+    elif myarg == 'space' or myarg.startswith('spaces/'):
+      parent = getChatSpace(myarg)
     elif myarg == 'showinvited':
       showInvited = getBoolean()
     elif myarg =='filter':
@@ -24640,7 +24642,7 @@ CHAT_MESSAGE_REPLY_OPTION_MAP = {
   'fallbacktonew': 'REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD',
   }
 
-# gam [<UserTypeEntityu>] create chatmessage space <ChatSpace>
+# gam [<UserTypeEntityu>] create chatmessage <ChatSpace>
 #	<ChatContent>
 #	(text <String>)|(textfile <FileName> [charset <CharSet>])
 #	[messageId <ChatMessageID>]
@@ -24652,8 +24654,8 @@ def createChatMessage(users):
   returnIdOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'space':
-      parent = getChatSpace()
+    if myarg == 'space' or myarg.startswith('spaces/'):
+      parent = getChatSpace(myarg)
     elif myarg == 'thread':
       body.setdefault('thread', {})
       body['thread']['name'] = getString(Cmd.OB_CHAT_THREAD)
@@ -24822,10 +24824,10 @@ def infoChatMessage(users):
 def doInfoChatMessage():
   infoChatMessage([None])
 
-# gam <UserTypeEntity> show chatmessages space <ChatSpace>
+# gam <UserTypeEntity> show chatmessages <ChatSpace>
 #	[filter <String>]
 #	[formatjson]
-# gam <UserTypeEntity> print chatmessages [todrive <ToDriveAttribute>*] space <ChatSpace>
+# gam <UserTypeEntity> print chatmessages [todrive <ToDriveAttribute>*] <ChatSpace>i
 #	[filter <String>]
 #	[formatjson [quotechar <Character>]]
 def printShowChatMessages(users):
@@ -24850,8 +24852,8 @@ def printShowChatMessages(users):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg == 'space':
-      parent = getChatSpace()
+    elif myarg == 'space' or myarg.startswith('spaces/'):
+      parent = getChatSpace(myarg)
     elif myarg =='filter':
       pfilter = getString(Cmd.OB_STRING)
     else:

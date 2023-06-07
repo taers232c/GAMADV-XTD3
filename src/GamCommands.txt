@@ -356,7 +356,7 @@ If an item contains spaces, it should be surrounded by ".
 <ChannelCustomerID> ::= <String>
 <ChatMember> ::= spaces/<String>/members/<String>
 <ChatMessage> ::= spaces/<String>/messages/<String>
-<ChatSpace> ::= spaces/<String> | <String>
+<ChatSpace> ::= spaces/<String> | space <String> | space spaces/<String>
 <ChatThread> ::= spaces/<String>/threads/<String>
 <ClassroomInvitationID> ::= <String>
 <ClientID> ::= <String>
@@ -628,7 +628,6 @@ If an item contains spaces, it should be surrounded by ".
 <AssetTagList> ::= "<AssetTag>(,<AssetTag>)*"
 <CalendarACLScopeList> ::= "<CalendarACLScope>(,<CalendarACLScope>)*"
 <CalendarList> ::= "<CalendarItem>(,<CalendarItem>)*"
-<ChatSpaceList> ::= "<ChatSpace>(,<ChatSpace>)*"
 <CIGroupAliasList> ::= "<CIGroupAlias>(,<CIGroupAlias>)*"
 <CIGroupTypeList> ::= "<CIGroupType>(,<CIGroupType>)*"
 <ClassroomInvitationIDList> ::= "<ClassroomInvitationID>(,<ClassroomInvitationID>)*"
@@ -1918,12 +1917,12 @@ gam print browsertokens [todrive <ToDriveAttribute>*]
 
 <ChatMember> ::= spaces/<String>/members/<String>
 <ChatMessage> ::= spaces/<String>/messages/<String>
-<ChatSpace> ::= spaces/<String> | <String>
+<ChatSpace> ::= spaces/<String> | space <String> | space spaces/<String>
 <ChatThread> ::= spaces/<String>/threads/<String>
 
 gam setup chat
 
-gam info chatspace space <ChatSpace>
+gam info chatspace <ChatSpace>
         [formatjson]
 gam show chatspaces
         [formatjson]
@@ -1932,14 +1931,14 @@ gam print chatspaces [todrive <ToDriveAttribute>*]
 
 gam info chatmember member <ChatMember>
         [formatjson]
-gam show chatmembers space <ChatSpace>
+gam show chatmembers <ChatSpace>
         [showinvited [<Boolean>]] [filter <String>]
         [formatjson]
-gam print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+gam print chatmembers [todrive <ToDriveAttribute>*] <ChatSpace>
         [showinvited [<Boolean>]] [filter <String>]
         [formatjson [quotechar <Character>]]
 
-gam create chatmessage space <ChatSpace>
+gam create chatmessage <ChatSpace>
         <ChatContent>
         [messageId <ChatMessageID>]
         [(thread <ChatThread>)|(threadkey <String>) [replyoption fail|fallbacktonew]]
@@ -5622,15 +5621,15 @@ gam <UserTypeEntity> create chatspace
         [history <Boolean>]
         [<ChatContent>]
         [formatjson|returnidonly]
-gam <UserTypeEntity> update chatspace space <ChatSpace>
+gam <UserTypeEntity> update chatspace <ChatSpace>
         [type space]
         [displayname <String>]
         [description <String>] [guidelines <String>]
         [history <Boolean>]
         [formatjson]
-gam <UserTypeEntity> delete chatspace space <ChatSpace>
+gam <UserTypeEntity> delete chatspace <ChatSpace>
 
-gam <UserTypeEntity> info chatspace space <ChatSpace>
+gam <UserTypeEntity> info chatspace <ChatSpace>
         [formatjson]
 gam <UserTypeEntity> show chatspaces
         [types <ChatSpaceTypeList>]
@@ -5639,22 +5638,22 @@ gam <UserTypeEntity> print chatspaces [todrive <ToDriveAttribute>*]
         [types <ChatSpaceTypeList>]
         [formatjson [quotechar <Character>]]
 
-gam <UserTypeEntity> create chatmember space <ChatSpace>
+gam <UserTypeEntity> create chatmember <ChatSpace>
         [type human|bot]
         ((user <UserItem>)|(members <UserTypeEntity>))*
         [formatjson|returnidonly]
-gam <UserTypeEntity> delete chatmember space <ChatSpace>
+gam <UserTypeEntity> delete chatmember <ChatSpace>
         ((user <UserItem>)|(members <UserTypeEntity>))+
 gam <UserTypeEntity> remove chatmember members <ChatMemberList>
 
 gam <UserTypeEntity> info chatmember members <ChatMemberList>
         [formatjson]
-gam <UserTypeEntity> show chatmembers space <ChatSpace>
+gam <UserTypeEntity> show chatmembers <ChatSpace>
         [formatjson]
-gam <UserTypeEntity> print chatmembers [todrive <ToDriveAttribute>*] space <ChatSpace>
+gam <UserTypeEntity> print chatmembers [todrive <ToDriveAttribute>*] <ChatSpace>
         [formatjson [quotechar <Character>]]
 
-gam <UserTypeEntity> create chatmessage space <ChatSpace>
+gam <UserTypeEntity> create chatmessage <ChatSpace>
         <ChatContent>
         [messageId <ChatMessageID>] [(thread <ChatThread>)|(threadkey <String>)]
         [replyoption fail|fallback]
@@ -5665,10 +5664,10 @@ gam <UserTypeEntity> delete chatmessage name <ChatMessage>
 
 gam <UserTypeEntity> info chatmessage name <ChatMessage>
         [formatjson]
-gam <UserTypeEntity> show chatmessages space <ChatSpace>
+gam <UserTypeEntity> show chatmessages <ChatSpace>
         [filter <String>]
         [formatjson]
-gam <UserTypeEntity> print chatmessages [todrive <ToDriveAttribute>*] space <ChatSpace>
+gam <UserTypeEntity> print chatmessages [todrive <ToDriveAttribute>*] <ChatSpace>
         [filter <String>]
         [formatjson [quotechar <Character>]]
 
