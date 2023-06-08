@@ -1,3 +1,7 @@
+6.60.08
+
+Upgraded to Python 3.11.4 where possible.
+
 6.60.07
 
 Simplified specifying a Chat space name; previously, the `space` keyword was required;

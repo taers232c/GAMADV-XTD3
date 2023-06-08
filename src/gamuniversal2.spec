@@ -17,8 +17,8 @@ extra_files += [('contactdelegation-v1.json', '.')]
 extra_files += [('datastudio-v1.json', '.')]
 extra_files += [('cacerts.pem', '.')]
 hidden_imports = [
-     'gam.gamlib.yubikey',
-     ]
+    'gam.gamlib.yubikey',
+    ]
 a = Analysis(
     ['gam/__main__.py'],
     pathex=['./gam'],
