@@ -418,6 +418,8 @@ class GamCLArgs():
   ARG_ANALYTICACCOUNTS = 'analyticaccounts'
   ARG_ANALYTICACCOUNTSUMMARY = 'analyticaccountsummary'
   ARG_ANALYTICACCOUNTSUMMARIES = 'analyticaccountsummaries'
+  ARG_ANALYTICDATASTREAM = 'analyticdatastream'
+  ARG_ANALYTICDATASTREAMS = 'analyticdatastreams'
   ARG_ANALYTICPROPERTY = 'analyticproperty'
   ARG_ANALYTICPROPERTIES = 'analyticproperties'
   ARG_API = 'api'

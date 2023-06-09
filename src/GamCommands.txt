@@ -1482,6 +1482,15 @@ gam <UserTypeEntity> show analyticproperties
         [maxresults <Number>] [showdeleted [<Boolean>]]
         [formatjson]
 
+gam <UserTypeEntity> print analyticdatastreams [todrive <ToDriveAttribute>*]
+        parent <String>
+        [maxresults <Number>]
+        [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> show analyticdatastreams
+        parent <String>
+        [maxresults <Number>]
+        [formatjson]
+
 # Calendars
 
 <CalendarEntity> ::=
@@ -1628,8 +1637,14 @@ The following attributes are equivalent:
         sendnotifications true - sendupdates all
 
 gam calendar|calendars <CalendarEntity> create|add event [id <String>] <EventAttribute>+ [<EventNotificationAttribute>]
+        [showdayofweek]
+        [csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 gam calendar|calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttribute>+
+        [showdayofweek]
+        [csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 gam calendar|calendars <CalendarEntity> update events [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
+        [showdayofweek]
+        [csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 gam calendar|calendars <CalendarEntity> delete events [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> purge events [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam calendar|calendars <CalendarEntity> wipe events
@@ -1747,11 +1762,16 @@ gam calendar|calendars <CalendarEntity> print events [<EventEntity>] <EventDispl
         [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
 gam calendar <CalendarEntity> addevent <EventAttribute>+ [<EventNotificationAttribute>]
-gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [<EventNotificationAttribute>]
-gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [<EventNotificationAttribute>]
+        [showdayofweek]
+        [csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 gam calendar <CalendarEntity> updateevent <EventID> [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
+gam calendar <CalendarEntity> deleteevent (id|eventid <EventID>)+ [doit] [<EventNotificationAttribute>]
+        [showdayofweek]
+        [csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
+gam calendar <CalendarEntity> moveevent (id|eventid <EventID>)+ destination <CalendarItem> [<EventNotificationAttribute>]
 gam calendar <CalendarEntity> wipe
 gam calendar <CalendarEntity> printevents <EventSelectProperty>* <EventDisplayProperty>* [fields <EventFieldNameList>]
+        [fields <EventFieldNameList>] [showdayofweek]
         [countsonly]
         [formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 
@@ -3401,6 +3421,7 @@ gam update group|groups <GroupEntity> sync [<GroupRole>]
         [removedomainnostatusmembers]
         [[delivery] <DeliverySetting>]
         [preview] [actioncsv]
+        (additionalmembers [<GroupRole>] <EmailAddressEntity>)*
         <UserItem>|<UserTypeEntity>
 gam update group|groups <GroupEntity> update [<GroupRole>]
         [usersonly|groupsonly]
@@ -5551,8 +5572,14 @@ The following attributes are equivalent:
 Add update and delete events in any calendar for which a user has access
 
 gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventAttribute>+ [<EventNotificationAttribute>]
+        [showdayofweek]
+        [csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 gam <UserTypeEntity> import event <UserCalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
+        [showdayofweek]
+        [csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 gam <UserTypeEntity> update events <UserCalendarEntity> [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
+        [showdayofweek]
+        [csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 gam <UserTypeEntity> delete events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam <UserTypeEntity> purge events <UserCalendarEntity> [<EventEntity>] [doit] [<EventNotificationAttribute>]
 gam <UserTypeEntity> wipe events <UserCalendarEntity>

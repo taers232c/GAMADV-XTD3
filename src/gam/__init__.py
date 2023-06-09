@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.08'
+__version__ = '6.60.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14716,6 +14716,14 @@ ANALYTIC_ENTITY_MAP = {
      'pageSize': 50,
      'maxPageSize': 200,
      },
+  Ent.ANALYTIC_DATASTREAM:
+    {'titles': ['User', 'name', 'displayName', 'type', 'createTime', 'updateTime'],
+     'JSONtitles': ['User', 'name', 'displayName', 'type', 'JSON'],
+     'timeObjects': ['createTime', 'updateTime'],
+     'items': 'dataStreams',
+     'pageSize': 50,
+     'maxPageSize': 200,
+     },
   Ent.ANALYTIC_PROPERTY:
     {'titles': ['User', 'name', 'displayName', 'createTime', 'updateTime', 'propertyType', 'parent'],
      'JSONtitles': ['User', 'name', 'displayName', 'propertyType', 'parent', 'JSON'],
@@ -14743,10 +14751,14 @@ def printShowAnalyticItems(users, entityType):
       kwargs['showDeleted'] = getBoolean()
     elif entityType == Ent.ANALYTIC_PROPERTY and myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING)
+    elif entityType == Ent.ANALYTIC_DATASTREAM and myarg == 'parent':
+      kwargs['parent'] = getString(Cmd.OB_STRING)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if entityType == Ent.ANALYTIC_PROPERTY and 'filter' not in kwargs:
     missingArgumentExit('filter')
+  if entityType == Ent.ANALYTIC_DATASTREAM and 'parent' not in kwargs:
+    missingArgumentExit('parent')
   if csvPF and FJQC.formatJSON:
     csvPF.SetJSONTitles(analyticEntityMap['JSONtitles'])
   i, count, users = getEntityArgument(users)
@@ -14759,6 +14771,8 @@ def printShowAnalyticItems(users, entityType):
       service = analytics.accounts()
     elif entityType == Ent.ANALYTIC_ACCOUNT_SUMMARY:
       service = analytics.accountSummaries()
+    elif entityType == Ent.ANALYTIC_DATASTREAM:
+      service = analytics.properties().dataStreams()
     else: #Ent.ANALYTIC_ACCOUNT_SUMMARY:
       service = analytics.properties()
     if csvPF:
@@ -14838,6 +14852,17 @@ def printShowAnalyticAccountSummaries(users):
 #	[formatjson]
 def printShowAnalyticProperties(users):
   printShowAnalyticItems(users, Ent.ANALYTIC_PROPERTY)
+
+# gam <UserTypeEntity> print analyticdatastreams [todrive <ToDriveAttribute>*]
+#	parent <String>
+#	[maxresults <Integer>]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show analyticdatastreams
+#	parent <String>
+#	[maxresults <Integer>]
+#	[formatjson]
+def printShowAnalyticDatastreams(users):
+  printShowAnalyticItems(users, Ent.ANALYTIC_DATASTREAM)
 
 # gam create domainalias|aliasdomain <DomainAlias> <DomainName>
 def doCreateDomainAlias():
@@ -28658,6 +28683,7 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 #	[notsuspended|suspended] [notarchived|archived]
 #	[removedomainnostatusmembers]
 #	[delivery <DeliverySetting>] [preview] [actioncsv]
+#	(additionalmembers <EmailAddressEntity>)*
 #	<UserTypeEntity>
 # gam update groups <GroupEntity> update [<GroupRole>]
 #	[usersonly|groupsonly]
@@ -29237,6 +29263,11 @@ def doUpdateGroups():
     removeDomainNoStatusMembers = checkArgumentPresent('removedomainnostatusmembers')
     delivery_settings = getDeliverySettings()
     preview, csvPF = _getPreviewActionCSV()
+    additionalMembers = {}
+    while checkArgumentPresent('additionalmembers'):
+      additionalRole = getChoice(GROUP_ROLES_MAP, defaultChoice=baseRole, mapChoice=True)
+      additionalMembers.setdefault(additionalRole, [])
+      additionalMembers[additionalRole].extend(getEntityList(Cmd.OB_EMAIL_ADDRESS_ENTITY))
     _, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                        isSuspended=isSuspended, isArchived=isArchived, groupMemberType=groupMemberType)
     groupMemberLists = syncMembers if isinstance(syncMembers, dict) else None
@@ -29250,6 +29281,9 @@ def doUpdateGroups():
       syncMembersSets[baseRole] = set()
       syncMembersMaps[baseRole] = {}
       for member in syncMembers:
+        syncMembersSets[baseRole].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                                                     checkForCustomerId=True), syncMembersMaps[baseRole]))
+      for member in additionalMembers.get(baseRole, []):
         syncMembersSets[baseRole].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
                                                                                      checkForCustomerId=True), syncMembersMaps[baseRole]))
     checkForExtraneousArguments()
@@ -29288,6 +29322,9 @@ def doUpdateGroups():
               continue
             rolesSet.add(role)
           for member in syncMembers:
+            syncMembersSets[role].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
+                                                                                     checkForCustomerId=True), syncMembersMaps[role]))
+          for member in additionalMembers.get(role, []):
             syncMembersSets[role].add(_cleanConsumerAddress(convertUIDtoEmailAddress(member, cd=cd, emailTypes='any',
                                                                                      checkForCustomerId=True), syncMembersMaps[role]))
       if not rolesSet:
@@ -34928,17 +34965,25 @@ def _validateCalendarGetEvents(origUser, user, origCal, calId, j, jcount, calend
     entityServiceNotApplicableWarning(Ent.CALENDAR, calId, j, jcount)
   return (calId, cal, [], 0)
 
-def _getCalendarCreateImportUpdateEventOptions(function, calendarEventEntity=None):
+def _getCalendarCreateImportUpdateEventOptions(function, entityType):
   body = {}
   parameters = {'clearAttendees': False, 'replaceMode': False,
                 'attendees': [], 'removeAttendees': set(),
-                'replaceDescription': [], 'sendUpdates': 'none'}
+                'replaceDescription': [], 'sendUpdates': 'none',
+                'csvPF': None, 'FJQC': FormatJSONQuoteChar(None), 'showDayOfWeek': False}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if calendarEventEntity and myarg in {'id', 'eventid'}:
-      calendarEventEntity['list'].append(getString(Cmd.OB_EVENT_ID))
-    elif not _getCalendarEventAttribute(myarg, body, parameters, function):
-      unknownArgumentExit()
+    if myarg == 'csv':
+      parameters['csvPF'] = CSVPrintFile(['primaryEmail', 'calendarId', 'id'] if entityType == Ent.USER else ['calendarId', 'id'], 'sortall', indexedTitles=EVENT_INDEXED_TITLES)
+      parameters['FJQC'].SetCsvPF(parameters['csvPF'])
+    elif parameters['csvPF'] and myarg == 'todrive':
+      parameters['csvPF'].GetTodriveParameters()
+    elif myarg == 'showdayofweek':
+      parameters['showDayOfWeek'] = True
+    elif _getCalendarEventAttribute(myarg, body, parameters, function):
+      pass
+    else:
+      parameters['FJQC'].GetFormatJSONQuoteChar(myarg, True)
   return (body, parameters)
 
 def _setEventRecurrenceTimeZone(cal, calId, body, parameters, i, count):
@@ -34964,6 +35009,7 @@ def _setEventRecurrenceTimeZone(cal, calId, body, parameters, i, count):
 def _createCalendarEvents(user, origCal, function, calIds, count, body, parameters):
   if parameters['attendees']:
     body['attendees'] = parameters.pop('attendees')
+  fields = 'id' if parameters['csvPF'] is None else '*'
   i = 0
   for calId in calIds:
     i += 1
@@ -34981,14 +35027,19 @@ def _createCalendarEvents(user, origCal, function, calIds, count, body, paramete
         event = callGAPI(cal.events(), 'insert',
                          throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.EVENT_DURATION_EXCEEDS_LIMIT,
                                                                    GAPI.REQUIRED_ACCESS_LEVEL, GAPI.DUPLICATE, GAPI.FORBIDDEN],
-                         calendarId=calId, conferenceDataVersion=1, sendUpdates=parameters['sendUpdates'], supportsAttachments=True, body=body, fields='id')
+                         calendarId=calId, conferenceDataVersion=1, sendUpdates=parameters['sendUpdates'], supportsAttachments=True, body=body, fields=fields)
       else:
         event = callGAPI(cal.events(), 'import_',
                          throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.EVENT_DURATION_EXCEEDS_LIMIT,
                                                                    GAPI.REQUIRED_ACCESS_LEVEL, GAPI.DUPLICATE, GAPI.FORBIDDEN,
                                                                    GAPI.PARTICIPANT_IS_NEITHER_ORGANIZER_NOR_ATTENDEE],
-                         calendarId=calId, conferenceDataVersion=1, supportsAttachments=True, body=body, fields='id')
-      entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, event['id']], i, count)
+                         calendarId=calId, conferenceDataVersion=1, supportsAttachments=True, body=body, fields=fields)
+      if parameters['csvPF'] is None:
+        entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, event['id']], i, count)
+      else:
+        if parameters['showDayOfWeek']:
+          _getEventDaysOfWeek(event)
+        _printCalendarEvent(user, calId, event, parameters['csvPF'], parameters['FJQC'])
     except (GAPI.invalid, GAPI.required, GAPI.timeRangeEmpty, GAPI.eventDurationExceedsLimit,
             GAPI.requiredAccessLevel, GAPI.participantIsNeitherOrganizerNorAttendee) as e:
       entityActionFailedWarning([Ent.CALENDAR, calId, Ent.EVENT, event['id']], str(e), i, count)
@@ -35000,16 +35051,24 @@ def _createCalendarEvents(user, origCal, function, calIds, count, body, paramete
     except (GAPI.serviceNotAvailable, GAPI.authError):
       entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
       break
+  if parameters['csvPF']:
+    parameters['csvPF'].writeCSVfile('Calendar Created Events')
 
 # gam calendars <CalendarEntity> create|add event [id <String>] <EventAddAttribute>+
+#	[showdayofweek]
+#	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 # gam calendar <UserItem> addevent [id <String>] <EventAddAttribute>+
+#	[showdayofweek]
+#	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 def doCalendarsCreateEvent(calIds):
-  body, parameters = _getCalendarCreateImportUpdateEventOptions('insert')
+  body, parameters = _getCalendarCreateImportUpdateEventOptions('insert', Ent.CALENDAR)
   _createCalendarEvents(None, None, 'insert', calIds, len(calIds), body, parameters)
 
 # gam calendars <CalendarEntity> import event icaluid <iCalUID> <EventImportAttribute>+
+#	[showdayofweek]
+#	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 def doCalendarsImportEvent(calIds):
-  body, parameters = _getCalendarCreateImportUpdateEventOptions('import')
+  body, parameters = _getCalendarCreateImportUpdateEventOptions('import', Ent.CALENDAR)
   _createCalendarEvents(None, None, 'import', calIds, len(calIds), body, parameters)
 
 def _updateCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEntity, body, parameters):
@@ -35024,6 +35083,7 @@ def _updateCalendarEvents(origUser, user, origCal, calIds, count, calendarEventE
       body['attendees'] = parameters.pop('attendees')
     elif parameters['clearAttendees']:
       body['attendees'] = []
+  pfields = '' if parameters['csvPF'] is None else '*'
   i = 0
   for calId in calIds:
     i += 1
@@ -35064,13 +35124,18 @@ def _updateCalendarEvents(origUser, user, origCal, calIds, count, calendarEventE
               body['attendees'] = []
             if parameters['removeAttendees']:
               body['attendees'] = [attendee for attendee in body['attendees'] if attendee['email'].lower() not in parameters['removeAttendees']]
-        callGAPI(cal.events(), 'patch',
-                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN,
-                                                           GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.EVENT_DURATION_EXCEEDS_LIMIT,
-                                                           GAPI.REQUIRED_ACCESS_LEVEL, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
-                 calendarId=calId, eventId=eventId, conferenceDataVersion=1, sendUpdates=parameters['sendUpdates'], supportsAttachments=True,
-                 body=body, fields='')
-        entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, eventId], j, jcount)
+        event = callGAPI(cal.events(), 'patch',
+                         throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.DELETED, GAPI.FORBIDDEN,
+                                                                   GAPI.INVALID, GAPI.REQUIRED, GAPI.TIME_RANGE_EMPTY, GAPI.EVENT_DURATION_EXCEEDS_LIMIT,
+                                                                   GAPI.REQUIRED_ACCESS_LEVEL, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
+                         calendarId=calId, eventId=eventId, conferenceDataVersion=1, sendUpdates=parameters['sendUpdates'], supportsAttachments=True,
+                         body=body, fields=pfields)
+        if parameters['csvPF'] is None:
+          entityActionPerformed([Ent.CALENDAR, calId, Ent.EVENT, eventId], j, jcount)
+        else:
+          if parameters['showDayOfWeek']:
+            _getEventDaysOfWeek(event)
+          _printCalendarEvent(user, calId, event, parameters['csvPF'], parameters['FJQC'])
       except (GAPI.notFound, GAPI.deleted) as e:
         if not checkCalendarExists(cal, calId):
           entityUnknownWarning(Ent.CALENDAR, calId, j, jcount)
@@ -35086,18 +35151,24 @@ def _updateCalendarEvents(origUser, user, origCal, calIds, count, calendarEventE
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
         break
     Ind.Decrement()
+  if parameters['csvPF']:
+    parameters['csvPF'].writeCSVfile('Calendar Updated Events')
 
 # gam calendars <CalendarEntity> update events [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
+#	[showdayofweek]
+#	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 def doCalendarsUpdateEvents(calIds):
   calendarEventEntity = getCalendarEventEntity()
-  body, parameters = _getCalendarCreateImportUpdateEventOptions('update')
+  body, parameters = _getCalendarCreateImportUpdateEventOptions('update', Ent.CALENDAR)
   _updateCalendarEvents(None, None, None, calIds, len(calIds), calendarEventEntity, body, parameters)
 
 # gam calendar <CalendarEntity> updateevent <EventID> [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
+#	[showdayofweek]
+#	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 def doCalendarsUpdateEventsOld(calIds):
   calendarEventEntity = initCalendarEventEntity()
   calendarEventEntity['list'].append(getString(Cmd.OB_EVENT_ID))
-  body, parameters = _getCalendarCreateImportUpdateEventOptions('update')
+  body, parameters = _getCalendarCreateImportUpdateEventOptions('update', Ent.CALENDAR)
   _updateCalendarEvents(None, None, None, calIds, len(calIds), calendarEventEntity, body, parameters)
 
 def _getCalendarDeleteEventOptions(calendarEventEntity=None):
@@ -35605,6 +35676,21 @@ def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, F
   showJSON(None, event, skipObjects)
   Ind.Decrement()
 
+def _printCalendarEvent(user, calId, event, csvPF, FJQC):
+  row = {'calendarId': calId, 'id': event['id']}
+  if user:
+    row['primaryEmail'] = user
+  flattenJSON(event, flattened=row, timeObjects=EVENT_TIME_OBJECTS)
+  if not FJQC.formatJSON:
+    csvPF.WriteRowTitles(row)
+  elif csvPF.CheckRowTitles(row):
+    row = {'calendarId': calId, 'id': event['id'],
+           'JSON': json.dumps(cleanJSON(event, timeObjects=EVENT_TIME_OBJECTS),
+                              ensure_ascii=False, sort_keys=False)}
+    if user:
+      row['primaryEmail'] = user
+    csvPF.WriteRowNoFilter(row)
+
 def _printShowCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEntity,
                              csvPF, FJQC, fieldsList):
   i = 0
@@ -35630,21 +35716,9 @@ def _printShowCalendarEvents(origUser, user, origCal, calIds, count, calendarEve
       if not calendarEventEntity['countsOnly']:
         if events:
           for event in events:
-            row = {'calendarId': calId, 'id': event['id']}
-            if user:
-              row['primaryEmail'] = user
             if calendarEventEntity['showDayOfWeek']:
               _getEventDaysOfWeek(event)
-            flattenJSON(event, flattened=row, timeObjects=EVENT_TIME_OBJECTS)
-            if not FJQC.formatJSON:
-              csvPF.WriteRowTitles(row)
-            elif csvPF.CheckRowTitles(row):
-              row = {'calendarId': calId, 'id': event['id'],
-                     'JSON': json.dumps(cleanJSON(event, timeObjects=EVENT_TIME_OBJECTS),
-                                        ensure_ascii=False, sort_keys=False)}
-              if user:
-                row['primaryEmail'] = user
-              csvPF.WriteRowNoFilter(row)
+            _printCalendarEvent(user, calId, event, csvPF, FJQC)
         elif GC.Values[GC.CSV_OUTPUT_USERS_AUDIT] and user:
           csvPF.WriteRowNoFilter({'calendarId': calId, 'primaryEmail': user, 'id': ''})
       else:
@@ -46826,7 +46900,7 @@ def transferCalendars(users):
 
 def _createImportCalendarEvent(users, function):
   calendarEntity = getUserCalendarEntity()
-  body, parameters = _getCalendarCreateImportUpdateEventOptions(function)
+  body, parameters = _getCalendarCreateImportUpdateEventOptions(function, Ent.USER)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -46838,18 +46912,24 @@ def _createImportCalendarEvent(users, function):
     Ind.Decrement()
 
 # gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventAddAttribute>+
+#	[showdayofweek]
+#	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 def createCalendarEvent(users):
   _createImportCalendarEvent(users, 'insert')
 
 # gam <UserTypeEntity> import event <UserCalendarEntity> icaluid <iCalUID> <EventImportAttribute>+
+#	[showdayofweek]
+#	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 def importCalendarEvent(users):
   _createImportCalendarEvent(users, 'import')
 
 # gam <UserTypeEntity> update events <UserCalendarEntity> [<EventEntity>] [replacemode] <EventUpdateAttribute>+ [<EventNotificationAttribute>]
+#	[showdayofweek]
+#	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 def updateCalendarEvents(users):
   calendarEntity = getUserCalendarEntity()
   calendarEventEntity = getCalendarEventEntity()
-  body, parameters = _getCalendarCreateImportUpdateEventOptions('update')
+  body, parameters = _getCalendarCreateImportUpdateEventOptions('update', Ent.USER)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -69330,6 +69410,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.PRINT,
      {Cmd.ARG_ANALYTICACCOUNT:	printShowAnalyticAccounts,
       Cmd.ARG_ANALYTICACCOUNTSUMMARY:	printShowAnalyticAccountSummaries,
+      Cmd.ARG_ANALYTICDATASTREAM:	printShowAnalyticDatastreams,
       Cmd.ARG_ANALYTICPROPERTY:	printShowAnalyticProperties,
       Cmd.ARG_ASP:		printShowASPs,
       Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
@@ -69418,6 +69499,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.SHOW,
      {Cmd.ARG_ANALYTICACCOUNT:	printShowAnalyticAccounts,
       Cmd.ARG_ANALYTICACCOUNTSUMMARY:	printShowAnalyticAccountSummaries,
+      Cmd.ARG_ANALYTICDATASTREAM:	printShowAnalyticDatastreams,
       Cmd.ARG_ANALYTICPROPERTY:	printShowAnalyticProperties,
       Cmd.ARG_ASP:		printShowASPs,
       Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
@@ -69607,6 +69689,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_APPLICATIONSPECIFICPASSWORDS:	Cmd.ARG_ASP,
   Cmd.ARG_ANALYTICACCOUNTS:	Cmd.ARG_ANALYTICACCOUNT,
   Cmd.ARG_ANALYTICACCOUNTSUMMARIES:	Cmd.ARG_ANALYTICACCOUNTSUMMARY,
+  Cmd.ARG_ANALYTICDATASTREAMS:	Cmd.ARG_ANALYTICDATASTREAM,
   Cmd.ARG_ANALYTICPROPERTIES:	Cmd.ARG_ANALYTICPROPERTY,
   Cmd.ARG_ASPS:			Cmd.ARG_ASP,
   Cmd.ARG_BACKUPCODES:		Cmd.ARG_BACKUPCODE,

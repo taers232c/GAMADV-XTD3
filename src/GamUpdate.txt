@@ -1,3 +1,22 @@
+6.60.09
+
+Added option `csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]`
+to these commands so that event details are displayed in CSV format.
+```
+gam calendar|calendars <CalendarEntity> create|import|update event
+gam <UserTypeEntity> create|import|update event <UserCalendarEntity>
+```
+
+Added option `additionalmembers [<GroupRole>] <EmailAddressEntity>` to `gam update group|groups <GroupEntity> sync`
+can be used to specify members in addition to those specified with `<UserTypeEntity>`.
+```
+gam update group teachers@domain.com sync member additionalmembers counselor@domain.com ou /Teachers
+```
+
+Added commands to display Analytic account/property/datastream information.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Analytics-Admin
+
 6.60.08
 
 Upgraded to Python 3.11.4 where possible.
