@@ -4062,6 +4062,7 @@ gam report usage customer [todrive <ToDriveAttribute>*]
         contextawareaccess|
         currents|gplus|google+|
         datastudio|
+        devices|mobile|
         domain|
         drive|doc|docs|
         gcp|
@@ -4071,7 +4072,7 @@ gam report usage customer [todrive <ToDriveAttribute>*]
         keep|
         login|logins|
         meet|hangoutsmeet|
-        mobile|
+        mobile|devices|
         rules|
         saml|
         token|tokens|oauthtoken|
@@ -5657,6 +5658,8 @@ gam <UserTypeEntity> update chatspace <ChatSpace>
 gam <UserTypeEntity> delete chatspace <ChatSpace>
 
 gam <UserTypeEntity> info chatspace <ChatSpace>
+        [formatjson]
+gam <UserTypeEntity> info chatspacedm <UserItem>
         [formatjson]
 gam <UserTypeEntity> show chatspaces
         [types <ChatSpaceTypeList>]

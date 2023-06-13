@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.09'
+__version__ = '6.60.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8722,8 +8722,9 @@ def getLocalGoogleTimeOffset(testLocation=GOOGLE_TIMECHECK_LOCATION):
   httpObj = getHttpObj()
   for prot in ['http', 'https']:
     try:
-      googleUTC = datetime.datetime.strptime(httpObj.request(f'{prot}://'+testLocation, 'HEAD')[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
-    except (httplib2.HttpLib2Error, RuntimeError, ValueError) as e:
+      headerData = httpObj.request(f'{prot}://'+testLocation, 'HEAD')
+      googleUTC = datetime.datetime.strptime(headerData[0]['date'], '%a, %d %b %Y %H:%M:%S %Z').replace(tzinfo=iso8601.UTC)
+    except (httplib2.HttpLib2Error, RuntimeError) as e:
       handleServerError(e)
     except httplib2.socks.HTTPError as e:
       # If user has specified an HTTPS proxy, the http request will probably fail as httplib2
@@ -8731,6 +8732,10 @@ def getLocalGoogleTimeOffset(testLocation=GOOGLE_TIMECHECK_LOCATION):
       if prot == 'http':
         continue
       handleServerError(e)
+    except (ValueError, KeyError):
+      if prot == 'http':
+        continue
+      systemErrorExit(NETWORK_ERROR_RC, Msg.INVALID_HTTP_HEADER.format(str(headerData)))
     offset = remainder = int(abs((datetime.datetime.now(iso8601.UTC)-googleUTC).total_seconds()))
     if offset < MAX_LOCAL_GOOGLE_TIME_OFFSET and prot == 'http':
       continue
@@ -12666,6 +12671,7 @@ REPORT_CHOICE_MAP = {
   'customer': 'customer',
   'customers': 'customer',
   'datastudio': 'data_studio',
+  'devices': 'mobile',
   'doc': 'drive',
   'docs': 'drive',
   'domain': 'customer',
@@ -24261,16 +24267,16 @@ def deleteChatSpace(users):
 
 # gam [<UserTypeEntity>] info chatspace <ChatSpace>
 #	[formatjson]
-def infoChatSpace(users):
+def infoChatSpace(users, name=None):
   FJQC = FormatJSONQuoteChar()
-  name = None
+  function = 'get' if name is None else 'findDirectMessage'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'space' or myarg.startswith('spaces/'):
+    if function == 'get' and (myarg == 'space' or myarg.startswith('spaces/')):
       name = getChatSpace(myarg)
     else:
       FJQC.GetFormatJSON(myarg)
-  if not name:
+  if function == 'get' and not name:
     missingArgumentExit('space')
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -24279,7 +24285,7 @@ def infoChatSpace(users):
     if not chat:
       continue
     try:
-      space = callGAPI(chat.spaces(), 'get',
+      space = callGAPI(chat.spaces(), function,
                        throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                        name=name)
       if not FJQC.formatJSON:
@@ -24292,6 +24298,13 @@ def infoChatSpace(users):
 
 def doInfoChatSpace():
   infoChatSpace([None])
+
+# gam [<UserTypeEntity>] info chatspacedm <UserItem>
+#	[formatjson]
+def infoChatSpaceDM(users):
+  cd = buildGAPIObject(API.DIRECTORY)
+  name = convertEmailAddressToUID(getEmailAddress(returnUIDprefix='uid:'), cd, 'user')
+  infoChatSpace(users, f'users/{name}')
 
 def _getChatPageMessage(entityType, user, i, count, pfilter):
   if user is not None:
@@ -69359,6 +69372,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CHATMEMBER:	infoChatMember,
       Cmd.ARG_CHATMESSAGE:	infoChatMessage,
       Cmd.ARG_CHATSPACE:	infoChatSpace,
+      Cmd.ARG_CHATSPACEDM:	infoChatSpaceDM,
       Cmd.ARG_CIGROUPMEMBERS:	infoCIGroupMembers,
       Cmd.ARG_DRIVEFILE:	showFileInfo,
       Cmd.ARG_DRIVEFILEACL:	infoDriveFileACLs,
