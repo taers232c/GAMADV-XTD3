@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.60.10
+  GAMVERSION: 6.60.11
   OPENSSL_CONFIG_OPTS: no-fips --api=3.0.0
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -48,11 +48,11 @@ jobs:
             goal: build
             arch: Win64
             openssl_archs: VC-WIN64A
-          - os: windows-2022
-            jid: 6
-            goal: build
-            arch: Win32
-            openssl_archs: VC-WIN32
+          # - os: windows-2022
+          #   jid: 6
+          #   goal: build
+          #   arch: Win32
+          #   openssl_archs: VC-WIN32
 
     steps:
 

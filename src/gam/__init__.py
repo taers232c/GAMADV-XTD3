@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.10'
+__version__ = '6.60.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -17328,8 +17328,8 @@ def doPrintAddresses():
   kwargs = {'customer': GC.Values[GC.CUSTOMER_ID]}
   csvPF = CSVPrintFile()
   titlesList = ['Type', 'Email', 'Target']
-  userFields = ['primaryEmail', 'aliases', 'suspended']
-  groupFields = ['email', 'aliases']
+  userFields = ['primaryEmail', 'aliases', 'nonEditableAliases', 'suspended']
+  groupFields = ['email', 'aliases', 'nonEditableAliases']
   domainFields = ['domainName', 'isPrimary', 'domainAliases']
   resourceFields = ['resourceEmail']
   while Cmd.ArgumentsRemaining():
