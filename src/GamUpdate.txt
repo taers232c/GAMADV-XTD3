@@ -1,3 +1,8 @@
+6.60.12
+
+Added option `tdretaintitle [<Boolean>]` that, when `True` (the default) and used with `tdfileid <DriveFileID>`,
+causes GAM to not modify the CSV filename.
+
 6.60.11
 
 Fixed bug in `gam print addresses` where non-editable user/group aliases were not displayed.

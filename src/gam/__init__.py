@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.11'
+__version__ = '6.60.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7677,7 +7677,7 @@ class CSVPrintFile():
                     'daysoffset': None, 'hoursoffset': None,
                     'sheettimestamp': GC.Values[GC.TODRIVE_SHEET_TIMESTAMP], 'sheettimeformat': GC.Values[GC.TODRIVE_SHEET_TIMEFORMAT],
                     'sheetdaysoffset': None, 'sheethoursoffset': None,
-                    'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT],
+                    'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT], 'retaintitle': False,
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'uploadnodata': GC.Values[GC.TODRIVE_UPLOAD_NODATA],
                     'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER], 'noemail': GC.Values[GC.TODRIVE_NOEMAIL],
                     'share': {}}
@@ -7736,6 +7736,8 @@ class CSVPrintFile():
       elif myarg == 'tdfileid':
         self.todrive['fileId'] = getString(Cmd.OB_DRIVE_FILE_ID)
         tdfileidLocation = Cmd.Location()
+      elif myarg == 'tdretaintitle':
+        self.todrive['retaintitle'] = getBoolean()
       elif myarg == 'tdparent':
         self.todrive['parent'] = escapeDriveFileName(getString(Cmd.OB_DRIVE_FOLDER_NAME, minLen=0))
         tdparentLocation = Cmd.Location()
@@ -8209,9 +8211,11 @@ class CSVPrintFile():
             if numRows*numColumns > MAX_GOOGLE_SHEET_CELLS or importSize > int(result['maxImportSizes'][MIMETYPE_GA_SPREADSHEET]):
               todriveCSVErrorExit([Ent.USER, user], Msg.RESULTS_TOO_LARGE_FOR_GOOGLE_SPREADSHEET)
             fields = ','.join(['id', 'mimeType', 'webViewLink', 'name', 'capabilities(canEdit)'])
-            body = {'name': title, 'description': self.todrive['description']}
+            body = {'description': self.todrive['description']}
             if body['description'] is None:
               body['description'] = Cmd.QuotedArgumentList(Cmd.AllArguments())
+            if not self.todrive['retaintitle']:
+              body['name'] = title, 
             result = callGAPI(drive.files(), 'update',
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INSUFFICIENT_PARENT_PERMISSIONS,
                                                                           GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
@@ -8305,9 +8309,11 @@ class CSVPrintFile():
             else:
               mimeType = 'text/csv'
             fields = ','.join(['id', 'mimeType', 'webViewLink'])
-            body = {'name': title, 'description': self.todrive['description'], 'mimeType': mimeType}
+            body = {'description': self.todrive['description'], 'mimeType': mimeType}
             if body['description'] is None:
               body['description'] = Cmd.QuotedArgumentList(Cmd.AllArguments())
+            if not self.todrive['fileId'] or not self.todrive['retaintitle']:
+              body['name'] = title, 
             try:
               if not self.todrive['fileId']:
                 Act.Set(Act.CREATE)
@@ -40658,7 +40664,7 @@ def infoUsers(entityList):
   if fieldsList:
     fieldsList.append('primaryEmail')
     if getAliases:
-      fieldsList.append('aliases')
+      fieldsList.extend(['aliases', 'nonEditableAliases'])
   fields = getFieldsFromFieldsList(fieldsList)
   if getLicenses:
     lic = buildGAPIObject(API.LICENSING)

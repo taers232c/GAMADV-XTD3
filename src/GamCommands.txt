@@ -599,6 +599,7 @@ If an item contains spaces, it should be surrounded by ".
         (tdnobrowser [<Boolean>])|
         (tdnoemail [<Boolean>])|
         (tdparent (id:<DriveFolderID>)|<DriveFolderName>)|
+        (tdretaintitle [<Boolean>])|
         (tdshare <EmailAddress> commenter|reader|writer)|
         (tdsheet (id:<Number>)|<String>)|
         (tdsheettimestamp [<Boolean>] [tdsheettimeformat <String>])
@@ -1335,26 +1336,26 @@ gam create sakey
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         ((localkeysize 1024|2048|4096 [validityhours <Number>])|
         (localkeysize 1024|2048|4096)|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION|SIGNATURE
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 gam rotate sakey|sakeys retain_existing
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         ((localkeysize 1024|2048|4096 [validityhours <Number>])|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION|SIGNATURE
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 
 gam update sakey
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         ((localkeysize 1024|2048|4096 [validityhours <Number>])|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION|SIGNATURE
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 gam rotate sakey|sakeys replace_current
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         ((localkeysize 1024|2048|4096 [validityhours <Number>])|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION|SIGNATURE
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 
@@ -1362,13 +1363,13 @@ gam replace sakeys
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         ((localkeysize 1024|2048|4096 [validityhours <Number>])|
         (localkeysize 1024|2048|4096)|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION|SIGNATURE
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 gam rotate sakey|sakeys retain_none
         (algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
         ((localkeysize 1024|2048|4096 [validityhours <Number>])|
-        (yubikey yubikey_pin yubikey_slot AUTHENTICATION
+        (yubikey yubikey_pin yubikey_slot AUTHENTICATION|SIGNATURE
          yubikey_serialnumber <Number>
          [localkeysize 1024|2048|4096])
 
@@ -1376,7 +1377,7 @@ gam delete sakeys <ServiceAccountKeyList>+ [doit]
 gam show sakeys [all|system|user]
 
 gam yubikey resetpvi [yubikey_serialnumber <Number>]
-gam rotate sakey yubikey yubikey_pin yubikey_slot AUTHENTICATION yubikey_serialnumber <Number>
+gam rotate sakey yubikey yubikey_pin yubikey_slot AUTHENTICATION|SIGNATURE yubikey_serialnumber <Number>
 
 gam create [gcpserviceaccount|signjwtserviceaccount]
 gam enable apis [auto|manual]
