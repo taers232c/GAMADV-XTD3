@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.12'
+__version__ = '6.60.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8215,7 +8215,7 @@ class CSVPrintFile():
             if body['description'] is None:
               body['description'] = Cmd.QuotedArgumentList(Cmd.AllArguments())
             if not self.todrive['retaintitle']:
-              body['name'] = title, 
+              body['name'] = title
             result = callGAPI(drive.files(), 'update',
                               throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INSUFFICIENT_PARENT_PERMISSIONS,
                                                                           GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR],
@@ -8313,7 +8313,7 @@ class CSVPrintFile():
             if body['description'] is None:
               body['description'] = Cmd.QuotedArgumentList(Cmd.AllArguments())
             if not self.todrive['fileId'] or not self.todrive['retaintitle']:
-              body['name'] = title, 
+              body['name'] = title
             try:
               if not self.todrive['fileId']:
                 Act.Set(Act.CREATE)
@@ -11352,7 +11352,7 @@ def doInfoCurrentProjectId():
   checkForExtraneousArguments()
   printEntity([Ent.PROJECT_ID, _getCurrentProjectId()])
 
-# gam create|add svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
+# gam create svcacct [[admin] <EmailAddress>] [<ProjectIDEntity>]
 #	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>>] [sadescription <ServiceAccountDescription>]
 def doCreateSvcAcct():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON]])
@@ -24371,9 +24371,11 @@ def printShowChatSpaces(users):
       spaces = callGAPIpages(chat.spaces(), 'list', 'spaces',
                              pageMessage=_getChatPageMessage(Ent.CHAT_SPACE, user, i, count, pfilter),
                              bailOnInternalError=True,
-                             throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR, GAPI.FAILED_PRECONDITION],
+                             throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.INTERNAL_ERROR,
+                                           GAPI.PERMISSION_DENIED, GAPI.FAILED_PRECONDITION],
                              pageSize=CHAT_PAGE_SIZE, filter=pfilter)
-    except (GAPI.notFound, GAPI.invalidArgument, GAPI.internalError, GAPI.failedPrecondition) as e:
+    except (GAPI.notFound, GAPI.invalidArgument, GAPI.internalError,
+            GAPI.permissionDenied, GAPI.failedPrecondition) as e:
       exitIfChatNotConfigured(chat, kvList, str(e), i, count)
       continue
     jcount = len(spaces)
@@ -28686,7 +28688,7 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 #	[security|makesecuritygroup]
 #	[admincreated <Boolean>]
 #	[verifynotinvitable]
-# gam update groups <GroupEntity> create|add [<GroupRole>]
+# gam update groups <GroupEntity> create [<GroupRole>]
 #	[usersonly|groupsonly]
 #	[notsuspended|suspended] [notarchived|archived]
 #	[delivery <DeliverySetting>]
@@ -31305,7 +31307,7 @@ def doCreateCIGroup():
 #	[security|makesecuritygroup|dynamicsecurity|makedynamicsecuritygroup]
 #	[dynamic <QueryDynamicGroup>]
 #	[memberrestrictions <QueryMemberRestrictions>]
-# gam update cigroups <GroupEntity> create|add [<GroupRole>]
+# gam update cigroups <GroupEntity> create [<GroupRole>]
 #	[usersonly|groupsonly]
 #	[notsuspended|suspended] [notarchived|archived]
 #	[expire|expires <Time>] [preview] [actioncsv]
@@ -33301,7 +33303,7 @@ def _getBuildingAttributes(body):
       unknownArgumentExit()
   return body
 
-# gam create|add building <Name> <BuildingAttribute>*
+# gam create building <Name> <BuildingAttribute>*
 def doCreateBuilding():
   cd = buildGAPIObject(API.DIRECTORY)
   body = _getBuildingAttributes({'buildingId': str(uuid.uuid4()),
@@ -33557,7 +33559,7 @@ def _getFeatureAttributes(body):
       unknownArgumentExit()
   return body
 
-# gam create|add feature <Name>
+# gam create feature <Name>
 def doCreateFeature():
   cd = buildGAPIObject(API.DIRECTORY)
   body = _getFeatureAttributes({})
@@ -33708,7 +33710,7 @@ def _getResourceCalendarAttributes(cd, body, updateMode):
     return body
   return body, featureChanges
 
-# gam create|add resource <ResourceID> <Name> <ResourceAttribute>*
+# gam create resource <ResourceID> <Name> <ResourceAttribute>*
 def doCreateResourceCalendar():
   cd = buildGAPIObject(API.DIRECTORY)
   body = _getResourceCalendarAttributes(cd, {'resourceId': getString(Cmd.OB_RESOURCE_ID), 'resourceName': getString(Cmd.OB_NAME)}, False)
@@ -34262,12 +34264,12 @@ def _doCalendarsCreateACLs(origUser, user, origCal, calIds, count, role, ACLScop
       continue
     _createCalendarACLs(cal, Ent.CALENDAR, calId, i, count, role, ruleIds, jcount, sendNotifications)
 
-# gam calendar <CalendarEntity> create|add <CalendarACLRole> <CalendarACLScope> [sendnotifications <Boolean>]
+# gam calendar <CalendarEntity> create <CalendarACLRole> <CalendarACLScope> [sendnotifications <Boolean>]
 def doCalendarsCreateACL(calIds):
   role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(False)
   _doCalendarsCreateACLs(None, None, None, calIds, len(calIds), role, ACLScopeEntity, sendNotifications)
 
-# gam calendars <CalendarEntity> create|add acls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+# gam calendars <CalendarEntity> create acls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def doCalendarsCreateACLs(calIds):
   role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
   _doCalendarsCreateACLs(None, None, None, calIds, len(calIds), role, ACLScopeEntity, sendNotifications)
@@ -34301,12 +34303,12 @@ def doCalendarsUpdateACLs(calIds):
   role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
   _doUpdateDeleteCalendarACLs(None, None, None, 'patch', calIds, len(calIds), ACLScopeEntity, role, sendNotifications)
 
-# gam calendar <CalendarEntity> del|delete [<CalendarACLRole>] <CalendarACLScope>
+# gam calendar <CalendarEntity> delete [<CalendarACLRole>] <CalendarACLScope>
 def doCalendarsDeleteACL(calIds):
   role, ACLScopeEntity = getCalendarDeleteACLsOptions(False)
   _doUpdateDeleteCalendarACLs(None, None, None, 'delete', calIds, len(calIds), ACLScopeEntity, role, False)
 
-# gam calendars <CalendarEntity> del|delete acls <CalendarACLScopeEntity>
+# gam calendars <CalendarEntity> delete acls <CalendarACLScopeEntity>
 def doCalendarsDeleteACLs(calIds):
   role, ACLScopeEntity = getCalendarDeleteACLsOptions(True)
   _doUpdateDeleteCalendarACLs(None, None, None, 'delete', calIds, len(calIds), ACLScopeEntity, role, False)
@@ -35073,7 +35075,7 @@ def _createCalendarEvents(user, origCal, function, calIds, count, body, paramete
   if parameters['csvPF']:
     parameters['csvPF'].writeCSVfile('Calendar Created Events')
 
-# gam calendars <CalendarEntity> create|add event [id <String>] <EventAddAttribute>+
+# gam calendars <CalendarEntity> create event [id <String>] <EventAddAttribute>+
 #	[showdayofweek]
 #	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 # gam calendar <UserItem> addevent [id <String>] <EventAddAttribute>+
@@ -35909,8 +35911,8 @@ def _normalizeResourceIdGetRuleIds(resourceId, i, count, ACLScopeEntity, showAct
     setSysExitRC(NO_ENTITIES_FOUND_RC)
   return (calId, ruleIds, jcount)
 
-# gam resource <ResourceID> create|add calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
-# gam resources <ResourceEntity> create|add calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+# gam resource <ResourceID> create calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+# gam resources <ResourceEntity> create calendaracls <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def doResourceCreateCalendarACLs(entityList):
   cal = buildGAPIObject(API.CALENDAR)
   role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
@@ -38982,7 +38984,7 @@ def _processSiteACLs(users, entityType):
   if csvPF:
     csvPF.writeCSVfile('Site ACLs')
 
-# gam [<UserTypeEntity>] create|add siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
+# gam [<UserTypeEntity>] create siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
 # gam [<UserTypeEntity>] update siteacls <SiteEntity> <SiteACLRole> <SiteACLScopeEntity>
 # gam [<UserTypeEntity>] delete siteacls <SiteEntity> <SiteACLScopeEntity>
 # gam [<UserTypeEntity>] info siteacls <SiteEntity> <SiteACLScopeEntity>
@@ -44681,14 +44683,14 @@ PARTICIPANT_EN_MAP = {
   Ent.TEACHER: Cmd.ENTITY_TEACHERS,
   }
 
-# gam courses <CourseEntity> create|add alias <CourseAliasEntity>
-# gam course <CourseID> create|add alias <CourseAlias>
-# gam courses <CourseEntity> create|add topic <CourseTopicEntity>
-# gam course <CourseID> create|add topic <CourseTopic>
-# gam courses <CourseEntity> create|add students <UserTypeEntity>
-# gam course <CourseID> create|add student <EmailAddress>
-# gam courses <CourseEntity> create|add teachers [makefirstteacherowner] <UserTypeEntity>
-# gam course <CourseID> create|add teacher [makefirstteacherowner] <EmailAddress>
+# gam courses <CourseEntity> create alias <CourseAliasEntity>
+# gam course <CourseID> create alias <CourseAlias>
+# gam courses <CourseEntity> create topic <CourseTopicEntity>
+# gam course <CourseID> create topic <CourseTopic>
+# gam courses <CourseEntity> create students <UserTypeEntity>
+# gam course <CourseID> create student <EmailAddress>
+# gam courses <CourseEntity> create teachers [makefirstteacherowner] <UserTypeEntity>
+# gam course <CourseID> create teacher [makefirstteacherowner] <EmailAddress>
 def doCourseAddItems(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(ADD_REMOVE_PARTICIPANT_TYPES_MAP, mapChoice=True)
@@ -46703,7 +46705,7 @@ def printShowCalSettings(users):
   if csvPF:
     csvPF.writeCSVfile('Calendar Settings')
 
-# gam <UserTypeEntity> create|add calendaracls <UserCalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
+# gam <UserTypeEntity> create calendaracls <UserCalendarEntity> <CalendarACLRole> <CalendarACLScopeEntity> [sendnotifications <Boolean>]
 def createCalendarACLs(users):
   calendarEntity = getUserCalendarEntity()
   role, ACLScopeEntity, sendNotifications = getCalendarCreateUpdateACLsOptions(True)
@@ -46930,7 +46932,7 @@ def _createImportCalendarEvent(users, function):
     _createCalendarEvents(user, cal, function, calIds, jcount, body, parameters)
     Ind.Decrement()
 
-# gam <UserTypeEntity> create|add event <UserCalendarEntity> [id <String>] <EventAddAttribute>+
+# gam <UserTypeEntity> create event <UserCalendarEntity> [id <String>] <EventAddAttribute>+
 #	[showdayofweek]
 #	[csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]]
 def createCalendarEvent(users):
@@ -47340,6 +47342,205 @@ def printShowCalendarEvents(users):
     Ind.Decrement()
   if csvPF:
     csvPF.writeCSVfile('Calendar Events')
+
+def getWorkingLocationDate(dateType, dateList):
+  firstDate = getYYYYMMDD(minLen=1, returnDateTime=True)
+  if dateType == 'range':
+    lastDate = getYYYYMMDD(minLen=1, returnDateTime=True)
+  deltaDay = datetime.timedelta(days=1)
+  deltaWeek = datetime.timedelta(weeks=1)
+  if dateType == 'date':
+    dateList.append({'first': firstDate, 'last': firstDate+deltaDay,
+                     'udelta': deltaDay, 'pdelta': deltaDay})
+  elif dateType == 'range':
+    dateList.append({'first': firstDate, 'last': lastDate+deltaDay,
+                     'udelta': deltaDay, 'pdelta': datetime.timedelta(days=(lastDate-firstDate).days+1)})
+  elif dateType == 'daily':
+    argRepeat = getInteger(minVal=1, maxVal=366)
+    dateList.append({'first': firstDate, 'last': firstDate+datetime.timedelta(days=argRepeat),
+                     'udelta': deltaDay, 'pdelta': deltaDay})
+  else: #weekly
+    argRepeat = getInteger(minVal=1, maxVal=52)
+    dateList.append({'first': firstDate, 'last': firstDate+datetime.timedelta(weeks=argRepeat),
+                     'udelta': deltaWeek, 'pdelta': deltaWeek})
+
+WORKING_LOCATION_DATE_CHOICES = {'date', 'range', 'daily', 'weekly'}
+WORKING_LOCATION_CHOICE_MAP = {
+  'custom': 'customLocation',
+  'home': 'homeOffice',
+  'office': 'officeLocation',
+  }
+
+def _showCalendarWorkingLocation(primaryEmail, calId, eventEntityType, event, k, kcount, FJQC):
+  if FJQC.formatJSON:
+    printLine(json.dumps(cleanJSON({'primaryEmail': primaryEmail, 'calendarId': calId, 'event': event},
+                                   timeObjects=EVENT_TIME_OBJECTS), ensure_ascii=False, sort_keys=True))
+    return
+  printEntity([eventEntityType, event['id']], k, kcount)
+  skipObjects = {'id'}
+  Ind.Increment()
+  showJSON(None, event, skipObjects)
+  Ind.Decrement()
+
+# gam <UserTypeEntity> update workinglocation
+#	home|
+#	custom <String>
+#	office <String> [building|buildingid <String>] [floor|floorname <String>]
+#			[section|floorsection <String>] [desk|deskcode <String>]
+#	((date yyyy-mm-dd)|
+#	 (range yyyy-mm-dd yyyy-mm-dd)|
+#	 (daily yyyy-mm-dd N)|
+#	 (weekly yyyy-mm-dd N))+
+def updateWorkingLocation(users):
+  body = {'start': {'date': None}, 'end': {'date': None}, 'eventType': 'workingLocation', 'visibility': 'public', 'transparency': 'transparent',
+          'workingLocationProperties': {'type': None}}
+  calId = 'primary'
+  dateList = []
+  location = getChoice(WORKING_LOCATION_CHOICE_MAP, mapChoice=True)
+  body['workingLocationProperties']['type'] = location
+  if location == 'homeOffice':
+    pass
+  elif location == 'customLocation':
+    body['workingLocationProperties'][location] = {'label': getString(Cmd.OB_STRING)}
+  else: #officeLocation
+    body['workingLocationProperties'][location] = {'label': getString(Cmd.OB_STRING)}
+    entry = body['workingLocationProperties'][location]
+    while Cmd.ArgumentsRemaining():
+      argument = getArgument()
+      if argument in {'building', 'buildingid'}:
+        entry['buildingId'] = _getBuildingByNameOrId(None)
+      elif argument in {'floor', 'floorname'}:
+        entry['floorId'] = getString(Cmd.OB_STRING, minLen=0)
+      elif argument in {'section', 'floorsection'}:
+        entry['floorSectionId'] = getString(Cmd.OB_STRING, minLen=0)
+      elif argument in {'desk', 'deskcode'}:
+        entry['deskId'] = getString(Cmd.OB_STRING, minLen=0)
+      elif argument == 'endlocation':
+        break
+      else:
+        Cmd.Backup()
+        break
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in WORKING_LOCATION_DATE_CHOICES:
+      getWorkingLocationDate(myarg, dateList)
+    elif myarg == 'json':
+      body.update(getJSON([]))
+    else:
+      unknownArgumentExit()
+  if not dateList:
+    missingChoiceExit(WORKING_LOCATION_DATE_CHOICES)
+  kvlist = [Ent.USER, '', Ent.DATE, '', Ent.LOCATION, f"{body['workingLocationProperties'].get(location, {}).get('label', location)}"]
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, cal = buildGAPIServiceObject(API.CALENDAR, user, i, count)
+    if not cal:
+      continue
+    kvlist[1] = user
+    jcount = len(dateList)
+    j = 0
+    for wlDate in dateList:
+      j += 1
+      first = wlDate['first']
+      last = wlDate['last']
+      kvlist[3] = first.strftime(YYYYMMDD_FORMAT)
+      while first <= last:
+        body['start']['date'] = first.strftime(YYYYMMDD_FORMAT)
+        body['end']['date'] = (first+datetime.timedelta(days=1)).strftime(YYYYMMDD_FORMAT)
+        try:
+          callGAPI(cal.events(), 'insert',
+                   throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+                   calendarId=calId, body=body)
+        except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
+          entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+          break
+        except (GAPI.serviceNotAvailable, GAPI.authError):
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+          break
+        entityActionPerformed(kvlist, j, jcount)
+        first += wlDate['udelta']
+
+# gam <UserTypeEntity> show workinglocation
+#	((date yyyy-mm-dd)|
+#	 (range yyyy-mm-dd yyyy-mm-dd)|
+#	 (daily yyyy-mm-dd N)|
+#	 (weekly yyyy-mm-dd N))+
+#	[showdayofweek]
+#	[formatjson]
+# gam <UserTypeEntity> print workinglocation
+#	((date yyyy-mm-dd)|
+#	 (range yyyy-mm-dd yyyy-mm-dd)|
+#	 (daily yyyy-mm-dd N)|
+#	 (weekly yyyy-mm-dd N))+
+#	[showdayofweek]
+#	[formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
+def printShowWorkingLocation(users):
+  csvPF = CSVPrintFile(['User', 'type'], 'sortall') if Act.csvFormat() else None
+  FJQC = FormatJSONQuoteChar(csvPF)
+#  kwargs = {'eventTypes': ['workingLocation'], 'showDeleted': False, 'singleEvents': True,
+  kwargs = {'showDeleted': False, 'singleEvents': True,
+            'timeMax': None, 'timeMin': None}
+  calId = 'primary'
+  showDayOfWeek = False
+  dateList = []
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg in WORKING_LOCATION_DATE_CHOICES:
+      getWorkingLocationDate(myarg, dateList)
+    elif myarg == 'showdayofweek':
+      showDayOfWeek = True
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if not dateList:
+    missingChoiceExit(WORKING_LOCATION_DATE_CHOICES)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, cal = buildGAPIServiceObject(API.CALENDAR, user, i, count)
+    if not cal:
+      continue
+    jcount = len(dateList)
+    if not csvPF and not FJQC.formatJSON:
+      entityPerformActionNumItems([Ent.USER, user], jcount, Ent.DATE, i, count)
+    j = 0
+    for wlDate in dateList:
+      j += 1
+      first = wlDate['first']
+      last = wlDate['last']
+      while first <= last:
+        kwargs['timeMin'] = first.strftime(YYYYMMDDTHHMMSSZ_FORMAT)
+        kwargs['timeMax'] = last.strftime(YYYYMMDDTHHMMSSZ_FORMAT)
+        try:
+          events = callGAPIpages(cal.events(), 'list', 'items',
+                                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+                                 calendarId=calId, fields='nextPageToken,items(id,start,workingLocationProperties)', **kwargs)
+        except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden, GAPI.invalid) as e:
+          entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+          break
+        except (GAPI.serviceNotAvailable, GAPI.authError):
+          entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+          break
+        if not csvPF:
+          jcount = len(events)
+          Ind.Increment()
+          j = 0
+          for event in events:
+            j += 1
+            if showDayOfWeek:
+              _getEventDaysOfWeek(event)
+            _showCalendarWorkingLocation(user, calId, Ent.EVENT, event, j, jcount, FJQC)
+          Ind.Decrement()
+        else:
+          for event in events:
+            if showDayOfWeek:
+              _getEventDaysOfWeek(event)
+            _printCalendarEvent(user, calId, event, csvPF, FJQC)
+        first += wlDate['pdelta']
+  if csvPF:
+    csvPF.writeCSVfile('Calendar Working Locations')
 
 def _getEntityMimeType(fileEntry):
   if fileEntry['mimeType'] == MIMETYPE_GA_FOLDER:
@@ -52167,7 +52368,7 @@ createReturnItemMap = {
   'returneditlinkonly': 'editLink'
   }
 
-# gam <UserTypeEntity> create|add drivefile
+# gam <UserTypeEntity> create drivefile
 #	[(localfile <FileName>|-)|(url <URL>)]
 #	[(drivefilename|newfilename <DriveFileName>) | (replacefilename <RegularExpression> <String>)*]
 #	[stripnameprefix <String>]
@@ -52288,7 +52489,7 @@ def createDriveFile(users):
   if csvPF:
     csvPF.writeCSVfile('Files')
 
-# gam <UserTypeEntity> create|add drivefolderpath
+# gam <UserTypeEntity> create drivefolderpath
 #	((fullpath <DriveFolderPath) |
 #	 (path <DriveFolderPath [<DriveFileParentAttribute>]) |
 #	 (list <DriveFolderNameList>) [<DriveFileParentAttribute>]))
@@ -52422,7 +52623,7 @@ def createDriveFolderPath(users):
   if csvPF:
     csvPF.writeCSVfile('Folders')
 
-# gam <UserTypeEntity> create|add drivefileshortcut <DriveFileEntity> [shortcutname <String>]
+# gam <UserTypeEntity> create drivefileshortcut <DriveFileEntity> [shortcutname <String>]
 #	[<DriveFileParentAttribute>|convertparents]
 #	[(csv [todrive <ToDriveAttribute>*]) | returnidonly]
 def createDriveFileShortcut(users):
@@ -57276,7 +57477,7 @@ def _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess):
     Cmd.SetLocation(fileIdEntity['location'])
     usageErrorExit(Msg.INVALID_FILE_SELECTION_WITH_ADMIN_ACCESS)
 
-# gam [<UserTypeEntity>] create|add drivefileacl <DriveFileEntity> [adminaccess|asadmin]
+# gam [<UserTypeEntity>] create drivefileacl <DriveFileEntity> [adminaccess|asadmin]
 #	anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)  (role <DriveFileACLRole>)]
 #	[withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>]
 #	[moveToNewOwnersRoot [<Boolean>]]
@@ -57588,7 +57789,7 @@ def getJSONPermissionSkips(myarg, skips):
     return False
   return True
 
-# gam [<UserTypeEntity>] create|add permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin]
+# gam [<UserTypeEntity>] create permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin]
 #	[expiration <Time>] [sendmail] [emailmessage <String>]
 #	[moveToNewOwnersRoot [<Boolean>]]
 #	<PermissionMatch>* [<PermissionMatchAction>]
@@ -58698,7 +58899,7 @@ def _moveSharedDriveToOU(orgUnit, orgUnitId, driveId, user, i, count, ci=None):
   Act.Set(action)
   return ci
 
-# gam <UserTypeEntity> create|add shareddrive <Name> [adminaccess|asadmin]
+# gam <UserTypeEntity> create shareddrive <Name> [adminaccess|asadmin]
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<SharedDriveRestrictionsFieldName> <Boolean>)*
 #	[hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
@@ -58841,7 +59042,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
   if csvPF:
     csvPF.writeCSVfile('SharedDrives')
 
-# gam create|add shareddrive <Name>
+# gam create shareddrive <Name>
 #	[(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
 #	(<SharedDriveRestrictionsFieldName> <Boolean>)*
 #	[hide|hidden <Boolean>]
@@ -60855,7 +61056,7 @@ def _createLicenses(lic, productId, skuId, parameters, jcount, users, i, count, 
   if returnDoneSet:
     return doneSet
 
-# gam <UserTypeEntity> create|add license <SKUIDList> [product|productid <ProductID>] [preview] [actioncsv]
+# gam <UserTypeEntity> create license <SKUIDList> [product|productid <ProductID>] [preview] [actioncsv]
 def createLicense(users):
   lic, parameters = getLicenseParameters('insert')
   _, jcount, users = getEntityArgument(users)
@@ -62446,7 +62647,7 @@ def createLabels(users, labelEntity):
         buildLabelPath(gmail, user, i, count, body, label, labelSet, l, lcount)
     Ind.Decrement()
 
-# gam <UserTypeEntity> [create|add] label|labels <String>
+# gam <UserTypeEntity> [create] label|labels <String>
 #	[messagelistvisibility hide|show] [labellistvisibility hide|show|showifunread]
 #	[backgroundcolor <LabelColorHex>] [textcolor <LabelColorHex>]
 #	[buildpath [<Boolean>]]
@@ -62948,8 +63149,12 @@ def _convertLabelNamesToIds(gmail, bodyLabels, labelNameMap, addLabelIfMissing):
       continue
     if not addLabelIfMissing:
       continue
-    results = callGAPI(gmail.users().labels(), 'create',
-                       userId='me', body={'labelListVisibility': 'labelShow', 'messageListVisibility': 'show', 'name': label}, fields='id')
+    try:
+      results = callGAPI(gmail.users().labels(), 'create',
+                         throwReasons=[GAPI.INVALID],
+                         userId='me', body={'labelListVisibility': 'labelShow', 'messageListVisibility': 'show', 'name': label}, fields='id')
+    except GAPI.invalid as e:
+      entityActionFailedExit([Ent.LABEL, label], str(e))
     labelNameMap[label] = labelNameMap[label.upper()] = results['id']
     labelIds.append(results['id'])
     if label.find('/') != -1:
@@ -64599,7 +64804,7 @@ def printShowMessages(users):
 def printShowThreads(users):
   printShowMessagesThreads(users, Ent.THREAD)
 
-# gam <UserTypeEntity> create|add delegate|delegates [convertalias] <UserEntity>
+# gam <UserTypeEntity> create delegate|delegates [convertalias] <UserEntity>
 # gam <UserTypeEntity> delete delegate|delegates [convertalias] <UserEntity>
 def processDelegates(users):
   cd = buildGAPIObject(API.DIRECTORY)
@@ -64906,7 +65111,7 @@ FILTER_ACTION_LABEL_MAP = {
   'trash': 'TRASH',
   }
 
-# gam <UserTypeEntity> [create|add]
+# gam <UserTypeEntity> [create]
 #	(filter <FilterCriteria>+ <FilterAction>+) |
 #	((json [charset <Charset>] <String>) |
 #	 (json file <FileName> [charset <Charset>]))
@@ -65631,7 +65836,7 @@ def _processForwardingAddress(user, i, count, emailAddress, j, jcount, gmail, fu
     userDefined = False
   return userDefined
 
-# gam <UserTypeEntity> create|add forwardingaddresses <EmailAddressEntity>
+# gam <UserTypeEntity> create forwardingaddresses <EmailAddressEntity>
 def createForwardingAddresses(users):
   emailAddressEntity = getUserObjectEntity(Cmd.OB_EMAIL_ADDRESS_ENTITY, Ent.FORWARDING_ADDRESS)
   checkForExtraneousArguments()
@@ -65993,7 +66198,7 @@ SMTPMSA_PORTS = ['25', '465', '587']
 SMTPMSA_SECURITY_MODES = ['none', 'ssl', 'starttls']
 SMTPMSA_REQUIRED_FIELDS = ['host', 'port', 'username', 'password']
 
-# gam <UserTypeEntity> [create|add] sendas <EmailAddress> [name] <String>
+# gam <UserTypeEntity> [create] sendas <EmailAddress> [name] <String>
 #	[<SendAsContent> (replace <Tag> <UserReplacement>)*]
 #	[html [<Boolean>]] [replyto <EmailAddress>] [default] [treatasalias <Boolean>]
 #	[smtpmsa.host <SMTPHostName> smtpmsa.port 25|465|587
@@ -66232,7 +66437,7 @@ def printShowSignature(users):
   if csvPF:
     csvPF.writeCSVfile('Signature')
 
-# gam <UserTypeEntity> create|add smime file <FileName> [password <Password>]
+# gam <UserTypeEntity> create smime file <FileName> [password <Password>]
 #	[sendas|sendasemail <EmailAddress>] [default]
 def createSmime(users):
   sendAsEmailBase = None
@@ -66656,7 +66861,7 @@ def printShowVacation(users):
     elif enabled:
       row['startdate'] = VACATION_START_STARTED
     if 'endTime' in result:
-      row['enddate'] = formatLocalDatestamp(result['endTime'])
+      row['enddate'] = (result['endTime'])
     elif enabled:
       row['enddate'] = VACATION_END_NOT_SPECIFIED
     row['subject'] = result.get('responseSubject', 'None')
@@ -67589,7 +67794,7 @@ def printShowTasks(users):
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
-    elif myarg in {'tasklist', 'taskslists'}:
+    elif myarg in {'tasklist', 'tasklists'}:
       tasklistEntity = getUserObjectEntity(Cmd.OB_TASKLIST_ID_ENTITY, Ent.TASKLIST)
     elif myarg in TASK_QUERY_TIME_MAP:
       kwargs[TASK_QUERY_TIME_MAP[myarg]] = getTimeOrDeltaFromNow()
@@ -67639,8 +67844,8 @@ def printShowTasks(users):
       if jcount == 0:
         continue
     taskCount = 0
-    if not csvPF and not FJQC.formatJSON:
-      entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TASKLIST, i, count)
+#    if not csvPF and not FJQC.formatJSON:
+#      entityPerformActionNumItems([Ent.USER, user], jcount, Ent.TASKLIST, i, count)
     Ind.Increment()
     j = 0
     for tasklist in tasklists:
@@ -67868,6 +68073,56 @@ def printShowTasklists(users):
   if csvPF:
     csvPF.writeCSVfile(CSVTitle)
 
+# gam <UserTypeEntity> import tasklist <Filename> [charset <Charset>]))
+def importTasklist(users):
+  filename = getString(Cmd.OB_FILE_NAME)
+  encoding = getCharSet()
+  try:
+    jsonData = json.loads(readFile(filename, encoding=encoding))
+  except (IndexError, KeyError, SyntaxError, TypeError, ValueError) as e:
+    Cmd.Backup()
+    usageErrorExit(f'{str(e)}: {filename}')
+  if jsonData.get('kind', '') != 'tasks#taskLists':
+    Cmd.Backup()
+    usageErrorExit(f'{"Not a Tasks takeout JSON file"}: {filename}')
+  parentIdMap = {}
+  cleanData = {'items': []}
+  for tasklist in jsonData.get('items', []):
+    cleanTasklist = {'title': tasklist['title'], 'items': []}
+    for task in tasklist.get('items', []):
+      cleanTask = {}
+      for field in ['id', 'parent', 'title', 'notes', 'status', 'due', 'completed', 'deleted']:
+        if field in task:
+          cleanTask[field] = task[field]
+        parentIdMap[task['id']] = None
+      cleanTasklist['items'].append(cleanTask.copy())
+    cleanData['items'].append(cleanTasklist.copy())
+  if not cleanData['items']:
+    print('No tasks to import')
+    return
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, svc = buildGAPIServiceObject(API.TASKS, user, i, count)
+    if not svc:
+      continue
+    for tasklist in cleanData['items']:
+      body = {'title': tasklist['title']}
+      result = callGAPI(svc.tasklists(), 'insert',
+                        throwReasons=GAPI.TASK_THROW_REASONS,
+                        body=body)
+      tasklistId = result['id']
+      for task in tasklist['items']:
+        taskId = task.pop('id')
+        if 'parent' in task:
+          parent = parentIdMap[task.pop('parent')]
+        else:
+          parent = None
+        result = callGAPI(svc.tasks(), 'insert',
+                          throwReasons=GAPI.TASK_THROW_REASONS,
+                          tasklist=tasklistId, parent=parent, body=task)
+        parentIdMap[taskId] = result['id']
+        
 def getCRMOrgId():
   setTrueCustomerId()
   _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER, None)
@@ -69369,6 +69624,7 @@ USER_COMMANDS_WITH_OBJECTS = {
     (Act.IMPORT,
      {Cmd.ARG_EVENT:		importCalendarEvent,
       Cmd.ARG_MESSAGE:		importMessage,
+      Cmd.ARG_TASKLIST:		importTasklist,
      }
     ),
   'info':
@@ -69497,6 +69753,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_USERLIST:		doPrintUserList,
       Cmd.ARG_VACATION:		printShowVacation,
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
+      Cmd.ARG_WORKINGLOCATION:	printShowWorkingLocation,
      }
     ),
   'process':
@@ -69584,6 +69841,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TOKEN:		printShowTokens,
       Cmd.ARG_VAULTHOLD:	printShowUserVaultHolds,
       Cmd.ARG_VACATION:		printShowVacation,
+      Cmd.ARG_WORKINGLOCATION:	printShowWorkingLocation,
      }
     ),
   'spam':
@@ -69676,6 +69934,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_TASK:		processTasks,
       Cmd.ARG_TASKLIST:		processTasklists,
       Cmd.ARG_USER:		updateUsers,
+      Cmd.ARG_WORKINGLOCATION:	updateWorkingLocation,
      }
     ),
   'watch':

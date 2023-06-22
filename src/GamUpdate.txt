@@ -1,6 +1,13 @@
+6.60.13
+
+Updated `gam <UserTypeEntity> print|show chatspaces` to handle the following error:
+```
+Error: 403: permissionDenied - Permission denied to perform the requested action on the specified resource
+```
+
 6.60.12
 
-Added option `tdretaintitle [<Boolean>]` that, when `True` (the default) and used with `tdfileid <DriveFileID>`,
+Added option `tdretaintitle [<Boolean>]` that, when `True` and used with `tdfileid <DriveFileID>`,
 causes GAM to not modify the CSV filename.
 
 6.60.11

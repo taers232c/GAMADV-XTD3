@@ -24,7 +24,6 @@ ACCESSCONTEXTMANAGER = 'accesscontextmanager'
 ALERTCENTER = 'alertcenter'
 ANALYTICS_ADMIN = 'analyticsadmin'
 CALENDAR = 'calendar'
-CALENDAR_USER_AVAILABILITY = 'calendaruseravailability'
 CBCM = 'cbcm'
 CHAT = 'chat'
 CHAT_MEMBERSHIPS = 'chatmemberships'
@@ -147,7 +146,6 @@ PROJECT_APIS = [
   'analyticsadmin.googleapis.com',
   'audit.googleapis.com',
   'calendar-json.googleapis.com',
-###  'calendaruseravailability.googleapis.com',
   'chat.googleapis.com',
   'chromemanagement.googleapis.com',
   'chromepolicy.googleapis.com',
@@ -184,7 +182,6 @@ _INFO = {
   ALERTCENTER: {'name': 'AlertCenter API', 'version': 'v1beta1', 'v2discovery': True},
   ANALYTICS_ADMIN: {'name': 'Analytics Admin API', 'version': 'v1beta', 'v2discovery': True},
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': True, 'mappedAPI': 'calendar-json'},
-###  CALENDAR_USER_AVAILABILITY: {'name': 'Calendar User Availability API', 'version': 'v1', 'v2discovery': True},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
   CHAT: {'name': 'Chat API', 'version': 'v1', 'v2discovery': True},
   CHAT_MEMBERSHIPS: {'name': 'Chat API - Memberships', 'version': 'v1', 'v2discovery': True, 'mappedAPI': CHAT},
@@ -506,10 +503,6 @@ _SVCACCT_SCOPES = [
    'api': CHAT_SPACES_DELETE,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/chat.delete'},
-###  {'name': 'Calendar User Availability API',
-###   'api': CALENDAR_USER_AVAILABILITY,
-###   'subscopes': [],
-###   'scope': 'https://www.googleapis.com/auth/calendar.useravailability'},
   {'name': 'Classroom API - Course Announcements',
    'api': CLASSROOM,
    'subscopes': READONLY,
