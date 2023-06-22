@@ -1124,6 +1124,8 @@ Specify a collection of items by directly specifying them; the item type is dete
         <ResourceIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
 <SchemaEntity> ::=
         <SchemaNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector>
+<SerialNumberEntity> ::=
+        <SerialNumberList> | <FileSelector> | <CSVFileSelector>
 <SharedDriveIDEntity> ::=
         <DriveFileItem> |
         (teamdriveid <DriveFileItem>) | (teamdriveid:<DriveFileItem>)
@@ -2507,6 +2509,10 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
         [start <Date>] [end <Date>]
         [formatjson [quotechar <Character>]]
 
+gam print chromesnvalidity [todrive <ToDriveAttribute>*]
+        cros_sn <SerialNumberEntity> [listlimit <Number>]
+        [delimiter <Character>]
+	
 # Context Aware Access
 
 <QueryCEL> ::= <String>

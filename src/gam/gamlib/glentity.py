@@ -144,6 +144,7 @@ class GamEntity():
   CREDENTIALS = 'cred'
   CRITERIA = 'crit'
   CROS_DEVICE = 'cros'
+  CROS_SERIAL_NUMBER = 'crsn'
   CUSTOMER_DOMAIN = 'cudo'
   CUSTOMER_ID = 'cuid'
   DATASTUDIO_ASSET = 'dsas'
@@ -464,6 +465,7 @@ class GamEntity():
     CREDENTIALS: ['Credentials', 'Credentials'],
     CRITERIA: ['Criteria', 'Criteria'],
     CROS_DEVICE: ['CrOS Devices', 'CrOS Device'],
+    CROS_SERIAL_NUMBER: ['CrOS Serial Numbers', 'CrOS Serial Numbers'],
     CUSTOMER_DOMAIN: ['Customer Domains', 'Customer Domain'],
     CUSTOMER_ID: ['Customer IDs', 'Customer ID'],
     DATASTUDIO_ASSET: ['Data Studio Assets', 'Data Studio Asset'],

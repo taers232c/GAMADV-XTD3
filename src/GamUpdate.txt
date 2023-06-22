@@ -1,3 +1,12 @@
+6.60.14
+
+Added command to help verify Chrome device serial number validity.
+```
+gam print chromesnvalidity [todrive <ToDriveAttribute>*]
+        cros_sn <SerialNumberEntity> [listlimit <Number>]
+        [delimiter <Character>]
+```
+
 6.60.13
 
 Updated `gam <UserTypeEntity> print|show chatspaces` to handle the following error:

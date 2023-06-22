@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.13'
+__version__ = '6.60.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -27935,6 +27935,63 @@ def doPrintShowChromeHistory():
       _printItem(citem)
   if csvPF:
     csvPF.writeCSVfile(Ent.Plural(entityType))
+
+# gam print chromesnvalidity [todrive <ToDriveAttribute>*]
+#	cros_sn <SerialNumberEntity> [listlimit <Number>]
+#	[delimiter <Character>]
+def doPrintChromeSnValidity():
+  cd = buildGAPIObject(API.DIRECTORY)
+  csvPF = CSVPrintFile(['serialNumber', 'exactMatches', 'exactMatchDeviceIds', 'prefixMatches', 'prefixMatchDeviceIds'])
+  delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  serialNumberList = []
+  listLimit = 0
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'crossn':
+      serialNumberList = getEntityList(Cmd.OB_STRING_LIST)
+    elif myarg == 'listlimit':
+      listLimit = getInteger(minVal=0)
+    elif myarg == 'delimiter':
+      delimiter = getCharacter()
+    else:
+      unknownArgumentExit()
+  if not serialNumberList:
+    actionNotPerformedNumItemsWarning(0, Ent.CROS_SERIAL_NUMBER, Msg.NO_SERIAL_NUMBERS_SPECIFIED)
+    return
+  for serialNumber in serialNumberList:
+    query = f'id:{serialNumber}'
+    printGettingAllAccountEntities(Ent.CROS_DEVICE, query)
+    try:
+      devices = callGAPIpages(cd.chromeosdevices(), 'list', 'chromeosdevices',
+                              pageMessage=getPageMessage(),
+                              throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                              customerId=GC.Values[GC.CUSTOMER_ID],
+                              query=query, fields='nextPageToken,chromeosdevices(deviceId,serialNumber)',
+                              orderBy='serialNumber', maxResults=GC.Values[GC.DEVICE_MAX_RESULTS])
+    except (GAPI.invalidInput, GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
+      accessErrorExit(cd)
+    exactMatches = prefixMatches = 0
+    exactMatchDeviceIds = []
+    prefixMatchDeviceIds = []
+    for device in devices:
+      if device['serialNumber'] == serialNumber:
+        exactMatches += 1
+        if not listLimit or exactMatches <= listLimit:
+          exactMatchDeviceIds.append(device['deviceId'])
+      else:
+        prefixMatches += 1
+        if not listLimit or prefixMatches <= listLimit:
+          prefixMatchDeviceIds.append(device['deviceId'])
+    row = {'serialNumber': serialNumber,
+           'exactMatches': exactMatches,
+           'exactMatchDeviceIds': delimiter.join(exactMatchDeviceIds),
+           'prefixMatches': prefixMatches,
+           'prefixMatchDeviceIds': delimiter.join(prefixMatchDeviceIds)}
+    csvPF.WriteRow(row)
+  if csvPF:
+    csvPF.writeCSVfile('Chrome Serial Number Validity')
 
 # Mobile command utilities
 MOBILE_ACTION_CHOICE_MAP = {
@@ -68725,6 +68782,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CHROMENEEDSATTN:	doPrintShowChromeNeedsAttn,
       Cmd.ARG_CHROMEPOLICY:	doPrintShowChromePolicies,
       Cmd.ARG_CHROMESCHEMA:	doPrintShowChromeSchemas,
+      Cmd.ARG_CHROMESNVALIDITY:	doPrintChromeSnValidity,
       Cmd.ARG_CHROMEVERSIONS:	doPrintShowChromeVersions,
       Cmd.ARG_CIGROUP:		doPrintCIGroups,
       Cmd.ARG_CIGROUPMEMBERS:	doPrintCIGroupMembers,
