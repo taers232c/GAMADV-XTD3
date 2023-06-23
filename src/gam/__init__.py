@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.14'
+__version__ = '6.60.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -27975,8 +27975,9 @@ def doPrintChromeSnValidity():
     exactMatches = prefixMatches = 0
     exactMatchDeviceIds = []
     prefixMatchDeviceIds = []
+    serialNumberLower = serialNumber.lower()
     for device in devices:
-      if device['serialNumber'] == serialNumber:
+      if device['serialNumber'].lower() == serialNumberLower:
         exactMatches += 1
         if not listLimit or exactMatches <= listLimit:
           exactMatchDeviceIds.append(device['deviceId'])
@@ -47535,8 +47536,8 @@ def updateWorkingLocation(users):
 def printShowWorkingLocation(users):
   csvPF = CSVPrintFile(['User', 'type'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-#  kwargs = {'eventTypes': ['workingLocation'], 'showDeleted': False, 'singleEvents': True,
-  kwargs = {'showDeleted': False, 'singleEvents': True,
+  kwargs = {'eventTypes': ['workingLocation'], 'showDeleted': False, 'singleEvents': True,
+#  kwargs = {'showDeleted': False, 'singleEvents': True,
             'timeMax': None, 'timeMin': None}
   calId = 'primary'
   showDayOfWeek = False

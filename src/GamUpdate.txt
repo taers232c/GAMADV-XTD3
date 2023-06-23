@@ -1,3 +1,7 @@
+6.60.15
+
+Updated `gam print chromesnvalidity` to do case insenstitive serial number comparisons.
+
 6.60.14
 
 Added command to help verify Chrome device serial number validity.
@@ -6,6 +10,7 @@ gam print chromesnvalidity [todrive <ToDriveAttribute>*]
         cros_sn <SerialNumberEntity> [listlimit <Number>]
         [delimiter <Character>]
 ```
+See: https://github.com/taers232c/GAMADV-XTD3/wiki/ChromeOS-Devices#check-chromeos-device-serial-number-validity
 
 6.60.13
 
