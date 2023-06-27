@@ -1089,7 +1089,7 @@ Specify a collection of items by directly specifying them; the item type is dete
 <EventIDEntity> ::=
         (id|eventid <EventId>) |
         (event|events <EventIdList> |
-        <EventIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+        <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVSubkeySelector> | <CSVDataSelector>)
 <GroupEntity> ::=
         <GroupList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <GuardianEntity> ::=

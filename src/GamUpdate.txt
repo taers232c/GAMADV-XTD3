@@ -1,3 +1,10 @@
+6.60.16
+
+Updated commands that create files to handle the following error:
+```
+403: storageQuotaExceeded - The user's Drive storage quota has been exceeded.
+```
+
 6.60.15
 
 Updated `gam print chromesnvalidity` to do case insenstitive serial number comparisons.
