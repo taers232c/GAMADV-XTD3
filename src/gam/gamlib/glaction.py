@@ -41,6 +41,7 @@ class GamAction():
   COLLECT = 'collect'
   COMMENT = 'comment'
   COPY = 'copy'
+  COPY_MERGE = 'copm'
   CREATE = 'crea'
   CREATE_PREVIEW = 'crep'
   CREATE_SHORTCUT = 'crsc'
@@ -72,6 +73,7 @@ class GamAction():
   MERGE = 'merg'
   MODIFY = 'modi'
   MOVE = 'move'
+  MOVE_MERGE = 'movm'
   NOACTION = 'noac'
   NOACTION_PREVIEW = 'noap'
   PERFORM = 'perf'
@@ -155,6 +157,7 @@ class GamAction():
     COLLECT: ['Collected', 'Collect'],
     COMMENT: ['Commented', 'Comment'],
     COPY: ['Copied', 'Copy'],
+    COPY_MERGE: ['Copied(Merge)', 'Copy(Merge)'],
     CREATE: ['Created', 'Create'],
     CREATE_PREVIEW: ['Created (Preview)', 'Create (Preview)'],
     CREATE_SHORTCUT: ['Created Shortcut', 'Create SHORTCUT'],
@@ -185,6 +188,7 @@ class GamAction():
     MERGE: ['Merged', 'Merge'],
     MODIFY: ['Modified', 'Modify'],
     MOVE: ['Moved', 'Move'],
+    MOVE_MERGE: ['Moved(Merge)', 'Move(Merge)'],
     NOACTION: ['No Action', 'No Action'],
     NOACTION_PREVIEW: ['No Action (Preview)', 'No Action (Preview)'],
     PERFORM: ['Action Performed', 'Perform Action'],

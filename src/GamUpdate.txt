@@ -1,3 +1,9 @@
+6.60.17
+
+Fixed bug in `gam <UserTypeEntity> move drivefile` that caused an error when moving the contents
+of a source Shared Drive to a target Shared Drive when `mergewithparents` was not specified or was
+explicitly set False.
+
 6.60.16
 
 Updated commands that create files to handle the following error:

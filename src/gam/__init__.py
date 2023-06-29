@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.16'
+__version__ = '6.60.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -53319,6 +53319,7 @@ def initCopyMoveOptions(copyCmd):
     'mergeWithParent': False,
     'mergeWithParentRetain': False,
     'retainSourceFolders': False,
+    'sourceIsMyDriveSharedDrive': False,
     'showPermissionMessages': False,
     'sendEmailIfRequired': False,
     'useDomainAdminAccess': False,
@@ -54032,7 +54033,7 @@ def copyDriveFile(users):
 # Merge top parent folder
     if atTop and copyMoveOptions['mergeWithParent']:
       action = Act.Get()
-      Act.Set(Act.MERGE)
+      Act.Set(Act.COPY_MERGE)
       if not csvPF:
         entityPerformActionModifierItemValueList(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, newParentNameId], j, jcount)
       else:
@@ -54061,7 +54062,7 @@ def copyDriveFile(users):
           if target['capabilities']['canAddChildren']:
             newFolderId = target['id']
             action = Act.Get()
-            Act.Set(Act.MERGE)
+            Act.Set(Act.COPY_MERGE)
             if not csvPF:
               entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'], j, jcount)
             else:
@@ -54412,11 +54413,11 @@ def copyDriveFile(users):
                             'description,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare',
                           supportsAllDrives=True)
 # Source at root of My Drive or Shared Drive?
-        if source['mimeType'] == MIMETYPE_GA_FOLDER and source.get('driveId') and source['name'] == TEAM_DRIVE and not source.get('parents', []):
+        sourceMimeType = source['mimeType']
+        if sourceMimeType == MIMETYPE_GA_FOLDER and source.get('driveId') and source['name'] == TEAM_DRIVE and not source.get('parents', []):
           source['name'] = _getSharedDriveNameFromId(drive, source['driveId'])
         sourceName = source['name']
         sourceNameId = f"{sourceName}({source['id']})"
-        sourceMimeType = source['mimeType']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
         trashed = source.pop('trashed', False)
         if excludeTrashed and trashed:
@@ -54800,7 +54801,7 @@ def moveDriveFile(users):
 # Merge top parent folder
     if atTop and (copyMoveOptions['mergeWithParent'] or copyMoveOptions['mergeWithParentRetain']):
       action = Act.Get()
-      Act.Set(Act.MERGE)
+      Act.Set(Act.MOVE_MERGE)
       entityPerformActionModifierItemValueList(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, newParentNameId], j, jcount)
       Act.Set(action)
       _incrStatistic(statistics, STAT_FOLDER_MERGED)
@@ -54819,7 +54820,9 @@ def moveDriveFile(users):
       source.pop('oldparents', None)
       return (newParentId, newParentName, True)
 # Merge parent folders
-    if copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
+    if atTop and copyMoveOptions['sourceIsMyDriveSharedDrive']:
+      pass
+    elif copyMoveOptions['duplicateFolders'] == DUPLICATE_FOLDER_MERGE:
       newFolderNameLower = newFolderName.lower()
       for target in targetChildren:
         if not target.get('processed', False) and newFolderNameLower == target['name'].lower() and sourceMimeType == target['mimeType']:
@@ -54827,7 +54830,7 @@ def moveDriveFile(users):
           if target['capabilities']['canAddChildren']:
             newFolderId = target['id']
             action = Act.Get()
-            Act.Set(Act.MERGE)
+            Act.Set(Act.MOVE_MERGE)
             entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_CONTENTS_WITH, [Ent.DRIVE_FOLDER, f'{newFolderName}({newFolderId})'], j, jcount)
             Act.Set(action)
             _incrStatistic(statistics, STAT_FOLDER_MERGED)
@@ -54860,7 +54863,9 @@ def moveDriveFile(users):
         copyMoveOptions['retainSourceFolders'] = True
         return (None, None, False)
 # Update parents on: not retain and MD->MD, SD->MD, SD->SD
-    if (not copyMoveOptions['retainSourceFolders'] and (copyMoveOptions['sourceDriveId'] or not copyMoveOptions['destDriveId'])):
+    if atTop and copyMoveOptions['sourceIsMyDriveSharedDrive']:
+      pass
+    elif (not copyMoveOptions['retainSourceFolders'] and (copyMoveOptions['sourceDriveId'] or not copyMoveOptions['destDriveId'])):
       if newFolderName != folderName:
         body = {'name': newFolderName}
       else:
@@ -55082,12 +55087,13 @@ def moveDriveFile(users):
           removeParents = ','.join(childParents)
           _moveFile(drive, user, i, count, k, kcount, Ent.DRIVE_FILE, childId, childName, childName, newFolderId, newFolderName, removeParents, body)
       Ind.Decrement()
-    if (atTop and copyMoveOptions['mergeWithParentRetain']) or copyMoveOptions['retainSourceFolders'] or source['name'] in [MY_DRIVE, TEAM_DRIVE]:
+    sourceName = source['name']
+    if (atTop and (copyMoveOptions['mergeWithParentRetain'] or copyMoveOptions['sourceIsMyDriveSharedDrive'])) or copyMoveOptions['retainSourceFolders']:
       Act.Set(Act.RETAIN)
-      entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, f"{source['name']}({folderId})"], i, count)
+      entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, f"{sourceName}({folderId})"], i, count)
     else:
       Act.Set(Act.DELETE)
-      kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, f"{source['name']}({folderId})"]
+      kvList = [Ent.USER, user, Ent.DRIVE_FOLDER, f"{sourceName}({folderId})"]
       try:
         callGAPI(drive.files(), 'delete',
                  throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.FILE_NEVER_WRITABLE],
@@ -55146,9 +55152,13 @@ def moveDriveFile(users):
                           fields='id,name,parents,appProperties,capabilities,contentHints,copyRequiresWriterPermission,'\
                             'description,mimeType,modifiedTime,properties,starred,driveId,trashed,viewedByMeTime,writersCanShare',
                           supportsAllDrives=True)
+        sourceMimeType = source['mimeType']
+        if sourceMimeType == MIMETYPE_GA_FOLDER and source['name'] in [MY_DRIVE, TEAM_DRIVE] and not source.get('parents', []):
+          copyMoveOptions['sourceIsMyDriveSharedDrive'] = True
+          if source.get('driveId'):
+            source['name'] = _getSharedDriveNameFromId(drive, source['driveId'])
         sourceName = source['name']
         sourceNameId = f"{sourceName}({source['id']})"
-        sourceMimeType = source['mimeType']
         copyMoveOptions['sourceDriveId'] = source.get('driveId')
         if copyMoveOptions['sourceDriveId']:
 # If moving from a Shared Drive, user has to be an organizer
@@ -68183,7 +68193,7 @@ def importTasklist(users):
                           throwReasons=GAPI.TASK_THROW_REASONS,
                           tasklist=tasklistId, parent=parent, body=task)
         parentIdMap[taskId] = result['id']
-        
+
 def getCRMOrgId():
   setTrueCustomerId()
   _, crm = buildGAPIServiceObject(API.CLOUDRESOURCEMANAGER, None)
