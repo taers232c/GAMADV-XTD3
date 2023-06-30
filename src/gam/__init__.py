@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.18'
+__version__ = '6.60.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -63404,13 +63404,13 @@ def archiveMessages(users):
         stream.write(base64.urlsafe_b64decode(str(message['raw'])))
         try:
           callGAPI(gm.archive(), 'insert',
-                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID],
+                   throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID, GAPI.FAILED_PRECONDITION],
                    groupId=group, media_body=googleapiclient.http.MediaIoBaseUpload(stream, mimetype='message/rfc822', resumable=True))
           entityActionPerformed([Ent.USER, user, entityType, messageId], j, jcount)
         except GAPI.serviceNotAvailable:
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
           break
-        except (GAPI.badRequest, GAPI.invalid) as e:
+        except (GAPI.badRequest, GAPI.invalid, GAPI.failedPrecondition) as e:
           entityActionFailedWarning([Ent.USER, user, entityType, messageId], str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         entityServiceNotApplicableWarning(Ent.USER, user, i, count)

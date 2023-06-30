@@ -1,3 +1,10 @@
+6.60.19
+
+Updated `gam <UserTypeEntity> archive messages` to handle the following error:
+```
+ERROR: 400: failedPrecondition - Precondition check failed.
+```
+
 6.60.18
 
 Updated `gam <UserTypeEntity> print|show tokens` to handle the following error that occurs
