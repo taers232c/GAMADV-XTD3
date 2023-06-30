@@ -1,3 +1,11 @@
+6.60.18
+
+Updated `gam <UserTypeEntity> print|show tokens` to handle the following error that occurs
+when a group email address is specified rather than a user email address.
+```
+ERROR: 400: badRequest - Type not supported: userKey
+```
+
 6.60.17
 
 Fixed bug in `gam <UserTypeEntity> move drivefile` that caused an error when moving the contents

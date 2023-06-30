@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.17'
+__version__ = '6.60.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -62224,13 +62224,13 @@ def _printShowTokens(entityType, users):
       if clientId:
         results = [callGAPI(cd.tokens(), 'get',
                             throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                          GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN,
+                                          GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.BAD_REQUEST,
                                           GAPI.NOT_FOUND, GAPI.RESOURCE_NOT_FOUND],
                             userKey=user, clientId=clientId, fields=fields)]
       else:
         results = callGAPIitems(cd.tokens(), 'list', 'items',
                                 throwReasons=[GAPI.USER_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND,
-                                              GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN],
+                                              GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN, GAPI.BAD_REQUEST],
                                 userKey=user, fields=f'items({fields})')
       if not aggregateUsersBy:
         jcount = len(results)
@@ -62268,7 +62268,7 @@ def _printShowTokens(entityType, users):
               tokenNameIdMap[tokname].add(tokcid)
     except (GAPI.notFound, GAPI.resourceNotFound) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.ACCESS_TOKEN, clientId], str(e), i, count)
-    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden):
+    except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest):
       entityUnknownWarning(Ent.USER, user, i, count)
   if aggregateUsersBy == 'clientId':
     if not csvPF:
