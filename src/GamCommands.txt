@@ -2512,7 +2512,7 @@ gam print chromeversions [todrive <ToDriveAttribute>*]
 gam print chromesnvalidity [todrive <ToDriveAttribute>*]
         cros_sn <SerialNumberEntity> [listlimit <Number>]
         [delimiter <Character>]
-	
+
 # Context Aware Access
 
 <QueryCEL> ::= <String>
@@ -5964,11 +5964,13 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
 
 gam <UserTypeEntity> get document <DriveFileEntity>
         [viewmode default|suggestions_inline|preview_suggestions_accepted|preview_without_suggestions]
-        [targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+        [targetfolder <FilePath>] [targetname <FileName>]
+        [donotfollowshortcuts [<Boolean>]] [overwrite [<Boolean>]]
 
 gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>]
         [(format <FileFormatList>)|(gsheet|csvsheet <SheetEntity>)] [exportsheetaspdf <String>]
-        [targetfolder <FilePath>] [targetname <FileName>|-] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
+        [targetfolder <FilePath>] [targetname <FileName>|-]
+        [donotfollowshortcuts [<Boolean>]] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 
 gam <UserTypeEntity> delete drivefile <DriveFileEntity> [purge|untrash|trash]
 gam <UserTypeEntity> purge drivefile <DriveFileEntity>

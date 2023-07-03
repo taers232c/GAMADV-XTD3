@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.19'
+__version__ = '6.60.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -55336,7 +55336,7 @@ def trashDriveFile(users):
 def untrashDriveFile(users):
   deleteDriveFile(users, 'untrash')
 
-NON_DOWNLOADABLE_MIMETYPES = [MIMETYPE_GA_FORM, MIMETYPE_GA_FUSIONTABLE, MIMETYPE_GA_MAP]
+NON_DOWNLOADABLE_MIMETYPES = [MIMETYPE_GA_FORM, MIMETYPE_GA_FUSIONTABLE, MIMETYPE_GA_MAP, MIMETYPE_GA_FOLDER, MIMETYPE_GA_SHORTCUT]
 
 GOOGLEDOC_VALID_EXTENSIONS_MAP = {
   MIMETYPE_GA_DRAWING: ['.jpeg', '.jpg', '.pdf', '.png', '.svg'],
@@ -55438,7 +55438,8 @@ HTTP_ERROR_PATTERN = re.compile(r'^.*returned "(.*)">$')
 
 # gam <UserTypeEntity> get drivefile <DriveFileEntity> [revision <DriveFileRevisionID>]
 #	[(format <FileFormatList>)|(gsheet|csvsheet <SheetEntity>)] [exportsheetaspdf <String>]
-#	[targetfolder <FilePath>] [targetname -|<FileName>] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
+#	[targetfolder <FilePath>] [targetname -|<FileName>]
+#	[donotfollowshortcuts [<Boolean>]] [overwrite [<Boolean>]] [showprogress [<Boolean>]]
 def getDriveFile(users):
   def closeRemoveTargetFile(f):
     if f and not targetStdout:
@@ -55454,7 +55455,7 @@ def getDriveFile(users):
   defaultFormats = True
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   targetNamePattern = None
-  acknowledgeAbuse = overwrite = showProgress = suppressStdoutMsgs = targetStdout = False
+  acknowledgeAbuse = donotFollowShortcuts = overwrite = showProgress = suppressStdoutMsgs = targetStdout = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'format':
@@ -55476,6 +55477,8 @@ def getDriveFile(users):
       targetNamePattern = getString(Cmd.OB_FILE_NAME)
       targetStdout = targetNamePattern == '-'
       suppressStdoutMsgs = False if not targetStdout else GM.Globals[GM.STDOUT][GM.REDIRECT_STD]
+    elif myarg == 'donotfollowshortcuts':
+      donotFollowShortcuts = getBoolean()
     elif myarg == 'overwrite':
       overwrite = getBoolean()
     elif myarg == 'revision':
@@ -55526,20 +55529,23 @@ def getDriveFile(users):
       try:
         result = callGAPI(drive.files(), 'get',
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
-                          fileId=fileId, fields='name,fullFileExtension,mimeType,size', supportsAllDrives=True)
+                          fileId=fileId, fields='name,fullFileExtension,mimeType,size,shortcutDetails', supportsAllDrives=True)
+        mimeType = result['mimeType']
+        if (mimeType == MIMETYPE_GA_SHORTCUT) and not donotFollowShortcuts:
+          fileId = result['shortcutDetails']['targetId']
+          result = callGAPI(drive.files(), 'get',
+                            throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                            fileId=fileId, fields='name,fullFileExtension,mimeType,size', supportsAllDrives=True)
+          mimeType = result['mimeType']
+        entityValueList = [Ent.USER, user, _getEntityMimeType(result), result['name']]
+        if mimeType in NON_DOWNLOADABLE_MIMETYPES:
+          entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_DOWNLOADABLE, j, jcount)
+          continue
         if revisionId:
           callGAPI(drive.revisions(), 'get',
                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS+[GAPI.REVISION_NOT_FOUND],
                    fileId=fileId, revisionId=revisionId, fields='id')
         fileExtension = result.get('fullFileExtension')
-        mimeType = result['mimeType']
-        if mimeType == MIMETYPE_GA_FOLDER:
-          entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FOLDER, result['name']], Msg.CAN_NOT_BE_DOWNLOADED, j, jcount)
-          continue
-        entityValueList = [Ent.USER, user, Ent.DRIVE_FILE, result['name']]
-        if mimeType in NON_DOWNLOADABLE_MIMETYPES:
-          entityActionNotPerformedWarning(entityValueList, Msg.FORMAT_NOT_DOWNLOADABLE, j, jcount)
-          continue
         googleDocExtensions = GOOGLEDOC_VALID_EXTENSIONS_MAP.get(mimeType)
         if googleDocExtensions:
           my_line = ['Type', 'Google Doc']
@@ -55658,13 +55664,14 @@ SUGGESTIONS_VIEW_MODE_CHOICE_MAP = {
 
 # gam <UserTypeEntity> get document <DriveFileEntity>
 #	[viewmode default|suggestions_inline|preview_suggestions_accepted|preview_without_suggestions]
-#	[targetfolder <FilePath>] [targetname <FileName>] [overwrite [<Boolean>]]
+#	[targetfolder <FilePath>] [targetname <FileName>]
+#	[donotfollowshortcuts [<Boolean>]] [overwrite [<Boolean>]]
 def getGoogleDocument(users):
   fileIdEntity = getDriveFileEntity()
   suggestionsViewMode = SUGGESTIONS_VIEW_MODE_CHOICE_MAP['default']
   targetFolderPattern = GC.Values[GC.DRIVE_DIR]
   targetNamePattern = None
-  overwrite = False
+  donotFollowShortcuts = overwrite = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'viewmode':
@@ -55673,6 +55680,8 @@ def getGoogleDocument(users):
       targetFolderPattern = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
     elif myarg == 'targetname':
       targetNamePattern = getString(Cmd.OB_FILE_NAME)
+    elif myarg == 'donotfollowshortcuts':
+      donotFollowShortcuts = getBoolean()
     elif myarg == 'overwrite':
       overwrite = getBoolean()
     else:
@@ -55698,11 +55707,18 @@ def getGoogleDocument(users):
       try:
         result = callGAPI(drive.files(), 'get',
                           throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
-                          fileId=fileId, fields='name,mimeType', supportsAllDrives=True)
+                          fileId=fileId, fields='name,mimeType,shortcutDetails', supportsAllDrives=True)
+        mimeType = result['mimeType']
+        if (mimeType == MIMETYPE_GA_SHORTCUT) and not donotFollowShortcuts:
+          fileId = result['shortcutDetails']['targetId']
+          result = callGAPI(drive.files(), 'get',
+                            throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                            fileId=fileId, fields='name,mimeType', supportsAllDrives=True)
+          mimeType = result['mimeType']
         docName = result['name']
-        if result['mimeType'] != MIMETYPE_GA_DOCUMENT:
+        if mimeType != MIMETYPE_GA_DOCUMENT:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, docName],
-                                          Msg.INVALID_MIMETYPE.format(result['mimeType'], MIMETYPE_GA_DOCUMENT), j, jcount)
+                                          Msg.INVALID_MIMETYPE.format(mimeType], MIMETYPE_GA_DOCUMENT), j, jcount)
           continue
         filename, _ = uniqueFilename(targetFolder, targetName or cleanFilename(docName), overwrite)
         result = callGAPI(docs.documents(), 'get',

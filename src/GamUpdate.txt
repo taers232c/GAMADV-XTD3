@@ -1,3 +1,9 @@
+6.60.20
+
+Updated `gam <UserTypeEntity> get document|drivefile <DriveFileEntity>` to handle shortcuts by downloading
+the file that the shortcut references as the shortcut itself is not downloadable. If you do not want
+this behavior and want GAM to report an error, use the option `donotfollowshortcuts`.
+
 6.60.19
 
 Updated `gam <UserTypeEntity> archive messages` to handle the following error:
@@ -5038,7 +5044,7 @@ Updated `gam showsections` to display section names in sorted order.
 5.31.22
 
 Updated `gam <UserTypeEntity> get document|drivefile <DriveFileEntity>` to add `*|~` to the list
-of characters in Google Drive file names that are changed to `_`; the copmplete list is now `\/:*|~`.
+of characters in Google Drive file names that are changed to `_`; the complete list is now `\/:*|~`.
 This is to prevent local file system errors.
 
 5.31.21

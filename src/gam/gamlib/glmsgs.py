@@ -166,7 +166,6 @@ BATCH_CSV_WAIT_N_PROCESSES = '{0},0/{1},Waiting for {2} running {3} to finish be
 BATCH_CSV_PROCESSING_COMPLETE = '{0},0/{1},Processing complete\n'
 BATCH_NOT_PROCESSED_ERRORS = '{0}batch file: {1}, not processed, {2} {3}\n'
 CAN_NOT_DELETE_USER_WITH_VAULT_HOLD = '{0}: The user may be (or have recently been) on Google Vault Hold and thus not eligible for deletion. You can check holds with "gam user {1} show vaultholds".'
-CAN_NOT_BE_DOWNLOADED = 'Can not be downloaded'
 CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE = 'Argument {0} can not be specified more than once'
 CHROME_TARGET_VERSION_FORMAT = r'^([a-z]+)-(\d+)$ or ^(\d{1,4}\.){1,4}$'
 COLUMN_DOES_NOT_MATCH_ANY_INPUT_COLUMNS = '{0} column "{1}" does not match any input columns'
