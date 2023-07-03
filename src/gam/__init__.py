@@ -55718,7 +55718,7 @@ def getGoogleDocument(users):
         docName = result['name']
         if mimeType != MIMETYPE_GA_DOCUMENT:
           entityActionNotPerformedWarning([Ent.USER, user, Ent.DRIVE_FILE, docName],
-                                          Msg.INVALID_MIMETYPE.format(mimeType], MIMETYPE_GA_DOCUMENT), j, jcount)
+                                          Msg.INVALID_MIMETYPE.format(mimeType, MIMETYPE_GA_DOCUMENT), j, jcount)
           continue
         filename, _ = uniqueFilename(targetFolder, targetName or cleanFilename(docName), overwrite)
         result = callGAPI(docs.documents(), 'get',
