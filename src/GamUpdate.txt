@@ -1,3 +1,14 @@
+6.60.21
+
+Fixed bug in `gam <UserTypeEntity> copy|create|update drivefile` where processing the following `<DriveFileAttribute>` attributes
+was not correct. Previously, if multiple properties of the same visibility were specified, only the first was processed;
+now, all values are processed.
+```
+privateproperty <PropertyKey> <PropertyValue>
+publicproperty <PropertyKey> <PropertyValue>
+property <PropertyKey> <PropertyValue> [private|public]
+```
+
 6.60.20
 
 Updated `gam <UserTypeEntity> get document|drivefile <DriveFileEntity>` to handle shortcuts by downloading

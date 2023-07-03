@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.20'
+__version__ = '6.60.21'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -48542,16 +48542,16 @@ def getDriveFileCopyAttribute(myarg, body, parameters):
           usageErrorExit(Msg.REASON_ONLY_VALID_WITH_CONTENTRESTRICTIONS_READONLY_TRUE)
   elif myarg == 'property':
     driveprop = getDriveFileProperty()
-    body.setdefault(driveprop['visibility'], [])
-    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
+    body.setdefault(driveprop['visibility'], {})
+    body[driveprop['visibility']][driveprop['key']] = driveprop['value']
   elif myarg == 'privateproperty':
     driveprop = getDriveFileProperty('appProperties')
-    body.setdefault(driveprop['visibility'], [])
-    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
+    body.setdefault(driveprop['visibility'], {})
+    body[driveprop['visibility']][driveprop['key']] = driveprop['value']
   elif myarg == 'publicproperty':
     driveprop = getDriveFileProperty('properties')
-    body.setdefault(driveprop['visibility'], [])
-    body[driveprop['visibility']].append({driveprop['key']: driveprop['value']})
+    body.setdefault(driveprop['visibility'], {})
+    body[driveprop['visibility']][driveprop['key']] = driveprop['value']
   else:
     return False
   return True
