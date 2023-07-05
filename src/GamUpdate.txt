@@ -1,3 +1,8 @@
+6.60.23
+
+Fixed bug in `config csv_input_row_filter|csv_output_row_filter` where "field:date<today" was being processed
+as "field:date<=today" and "field:date>=today" was being processeed as "field:date>today".
+
 6.60.22
 
 Added option `pathdelimiter <Character>` to `gam <UserTypeEntity> create drivefolderpath` to simplify

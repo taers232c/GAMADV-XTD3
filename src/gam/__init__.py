@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.22'
+__version__ = '6.60.23'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2005,7 +2005,7 @@ def getRowFilterDateOrDeltaFromNow(argstr):
     deltaDate = getDelta(argstr, DELTA_DATE_PATTERN)
     if deltaDate is None:
       return (False, DELTA_DATE_FORMAT_REQUIRED)
-    argstr = ISOformatTimeStamp(deltaDate)
+    argstr = ISOformatTimeStamp(deltaDate.replace(tzinfo=iso8601.UTC))
   elif argstr == 'NEVER' or YYYYMMDD_PATTERN.match(argstr):
     if argstr == 'NEVER':
       argstr = NEVER_DATE
