@@ -1,3 +1,12 @@
+6.60.22
+
+Added option `pathdelimiter <Character>` to `gam <UserTypeEntity> create drivefolderpath` to simplify
+specifying folder paths where a folder name contains a `/`. In the example, some folder has a '/' in it's name
+so specifying `pathdelimiter "|"` allows `fullpath` to be properly processed. `pathdelimiter` defaults to '/'.
+```
+gam user user@domain.com create drivefolderpath pathdelimiter "|" fullpath "My Drive|Top Folder|Middle/Folder|Bottom Folder"
+```
+
 6.60.21
 
 Fixed bug in `gam <UserTypeEntity> copy|create|update drivefile` where processing the following `<DriveFileAttribute>` attributes

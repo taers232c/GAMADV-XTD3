@@ -5989,6 +5989,7 @@ gam <UserTypeEntity> info drivefile <DriveFileEntity>
         [formatjson]
 
 gam <UserTypeEntity> create|add drivefolderpath
+        [pathdelimiter <Character>]
         ((fullpath <DriveFolderPath>) |
          (path <DriveFolderPath> [<DriveFileParentAttribute>]) |
          (list <DriveFolderNameList> [<DriveFileParentAttribute>]))

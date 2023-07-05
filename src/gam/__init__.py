@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.21'
+__version__ = '6.60.22'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52548,6 +52548,7 @@ def createDriveFile(users):
     csvPF.writeCSVfile('Files')
 
 # gam <UserTypeEntity> create drivefolderpath
+#	[pathdelimiter <Character>]
 #	((fullpath <DriveFolderPath) |
 #	 (path <DriveFolderPath [<DriveFileParentAttribute>]) |
 #	 (list <DriveFolderNameList>) [<DriveFileParentAttribute>]))
@@ -52560,11 +52561,14 @@ def createDriveFolderPath(users):
   parentBody = {}
   parentParms = initDriveFileAttributes()
   driveFolderNameList = []
+  pathDelimiter = '/'
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
-    if myarg == 'fullpath':
+    if myarg == 'pathdelimiter':
+      pathDelimiter = getCharacter()
+    elif myarg == 'fullpath':
       folderPathLocation = Cmd.Location()
-      driveFolderNameList = getString(Cmd.OB_DRIVE_FOLDER_PATH).lstrip('/').strip(' ').split('/')
+      driveFolderNameList = getString(Cmd.OB_DRIVE_FOLDER_PATH).lstrip(pathDelimiter).strip(' ').split(pathDelimiter)
       if len(driveFolderNameList) > 0:
         if driveFolderNameList[0].lower() == MY_DRIVE.lower():
           parentParms[DFA_PARENTID] = ROOT
@@ -52573,11 +52577,11 @@ def createDriveFolderPath(users):
           parentParms[DFA_SHAREDDRIVE_PARENT] = driveFolderNameList[1]
           driveFolderNameList = driveFolderNameList[2:]
         else:
-          usageErrorExit(Msg.FULL_PATH_MUST_START_WITH_DRIVE.format(MY_DRIVE, f'{SHARED_DRIVES}/<SharedDriveName>'))
+          usageErrorExit(Msg.FULL_PATH_MUST_START_WITH_DRIVE.format(MY_DRIVE, f'{SHARED_DRIVES}{pathDelimiter}<SharedDriveName>'))
         fullPath = True
     elif myarg == 'path':
       folderPathLocation = Cmd.Location()
-      driveFolderNameList = getString(Cmd.OB_DRIVE_FOLDER_PATH).strip(' ').split('/')
+      driveFolderNameList = getString(Cmd.OB_DRIVE_FOLDER_PATH).strip(' ').split(pathDelimiter)
     elif myarg == 'list':
       folderPathLocation = Cmd.Location()
       driveFolderNameList = shlexSplitList(getString(Cmd.OB_DRIVE_FOLDER_NAME_LIST), dataDelimiter=',')
@@ -52622,7 +52626,8 @@ def createDriveFolderPath(users):
       query = MY_NON_TRASHED_FOLDER_NAME_WITH_PARENTS
     errors = False
     createOnly = False
-    entityPerformAction([Ent.USER, user, Ent.DRIVE_FOLDER_PATH, ''], i, count)
+    if not returnIdOnly and not csvPF:
+      entityPerformAction([Ent.USER, user, Ent.DRIVE_FOLDER_PATH, ''], i, count)
     jcount = len(driveFolderNameList)
     Ind.Increment()
     j = 0
