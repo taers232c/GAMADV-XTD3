@@ -1,3 +1,8 @@
+6.60.24
+
+Updated `gam <UserTypeEntity> info|show|print chatmessages` to show the sender email address
+when the sender is a human.
+
 6.60.23
 
 Fixed bug in `config csv_input_row_filter|csv_output_row_filter` where "field:date<today" was being processed

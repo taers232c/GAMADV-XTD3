@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.23'
+__version__ = '6.60.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24401,8 +24401,9 @@ def doPrintShowChatSpaces():
 
 def _getChatMemberEmail(cd, member):
   if 'member' in member:
-    _, memberUid = member['member']['name'].split('/')
-    member['member']['email'], _ = convertUIDtoEmailAddressWithType(f'uid:{memberUid}', cd, emailTypes=['user'])
+    if member['member']['type'] == 'HUMAN':
+      _, memberUid = member['member']['name'].split('/')
+      member['member']['email'], _ = convertUIDtoEmailAddressWithType(f'uid:{memberUid}', cd, emailTypes=['user'])
   elif 'groupMember' in member:
     _, memberUid = member['groupMember']['name'].split('/')
     member['groupMember']['email'], _ = convertUIDtoEmailAddressWithType(f'uid:{memberUid}', cd, emailTypes=['group'])
@@ -24677,6 +24678,11 @@ def printShowChatMembers(users):
 def doPrintShowChatMembers():
   printShowChatMembers([None])
 
+def _getChatSenderEmail(cd, sender):
+  if sender['type'] == 'HUMAN':
+    _, senderUid = sender['name'].split('/')
+    sender['email'], _ = convertUIDtoEmailAddressWithType(f'uid:{senderUid}', cd, emailTypes=['user'])
+
 def trimChatMessageIfRequired(body):
   msgLen = len(body['text'])
   if msgLen > 4096:
@@ -24839,6 +24845,7 @@ def _showChatMessage(message, FJQC, i=0, count=0):
 # gam [<UserTypeEntity>] info chatmessage name <ChatMessage>
 #	[formatjson]
 def infoChatMessage(users):
+  cd = buildGAPIObject(API.DIRECTORY)
   FJQC = FormatJSONQuoteChar()
   name = None
   while Cmd.ArgumentsRemaining():
@@ -24859,6 +24866,7 @@ def infoChatMessage(users):
       message = callGAPI(chat.spaces().messages(), 'get',
                          throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                          name=name)
+      _getChatSenderEmail(cd, message['sender'])
       if not FJQC.formatJSON:
         entityPerformAction(kvList, i, count)
       Ind.Increment()
@@ -24891,6 +24899,7 @@ def printShowChatMessages(users):
                                      ensure_ascii=False, sort_keys=True)})
       csvPF.WriteRowNoFilter(row)
 
+  cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   parent = pfilter = None
@@ -24920,6 +24929,8 @@ def printShowChatMessages(users):
                                pageMessage=_getChatPageMessage(Ent.CHAT_MESSAGE, user, i, count, qfilter),
                                throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                                pageSize=CHAT_PAGE_SIZE, parent=parent, filter=pfilter)
+      for message in messages:
+        _getChatSenderEmail(cd, message['sender'])
     except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       exitIfChatNotConfigured(chat, kvList, str(e), i, count)
       continue
