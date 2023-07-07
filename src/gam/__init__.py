@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.24'
+__version__ = '6.60.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -102,6 +102,26 @@ from filelock import FileLock
 
 from pathvalidate import sanitize_filename, sanitize_filepath
 
+import googleapiclient
+import googleapiclient.discovery
+import googleapiclient.errors
+import googleapiclient.http
+import google.oauth2.credentials
+import google.oauth2.id_token
+import google.auth
+from google.auth.jwt import Credentials as JWTCredentials
+import google.oauth2.service_account
+import google_auth_oauthlib.flow
+import google_auth_httplib2
+import httplib2
+
+httplib2.RETRIES = 5
+
+from passlib.hash import sha512_crypt
+
+if platform.system() == 'Linux':
+  import distro
+
 from gamlib import glaction
 from gamlib import glapi as API
 from gamlib import glcfg as GC
@@ -125,26 +145,6 @@ import gdata.apps.contacts.service
 import gdata.apps.sites
 import gdata.apps.sites.service
 from iso8601 import iso8601
-
-import googleapiclient
-import googleapiclient.discovery
-import googleapiclient.errors
-import googleapiclient.http
-import google.oauth2.credentials
-import google.oauth2.id_token
-import google.auth
-from google.auth.jwt import Credentials as JWTCredentials
-import google.oauth2.service_account
-import google_auth_oauthlib.flow
-import google_auth_httplib2
-import httplib2
-
-httplib2.RETRIES = 5
-
-from passlib.hash import sha512_crypt
-
-if platform.system() == 'Linux':
-  import distro
 
 IS08601_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S%z'
 RFC2822_TIME_FORMAT = '%a, %d %b %Y %H:%M:%S %z'
@@ -3629,7 +3629,7 @@ def SetGlobalVariables():
   def _verifyValues(sectionName, inputFilterSectionName, outputFilterSectionName):
     printKeyValueList([Ent.Singular(Ent.SECTION), sectionName]) # Do not use printEntity
     Ind.Increment()
-    for itemName in sorted(GC.VAR_INFO):
+    for itemName, itemEntry in iter(GC.VAR_INFO.items()):
       sectName = sectionName
       if itemName in GC.CSV_INPUT_ROW_FILTER_ITEMS:
         if inputFilterSectionName:
@@ -3638,9 +3638,9 @@ def SetGlobalVariables():
         if outputFilterSectionName:
           sectName = outputFilterSectionName
       cfgValue = GM.Globals[GM.PARSER].get(sectName, itemName)
-      varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+      varType = itemEntry[GC.VAR_TYPE]
       if varType == GC.TYPE_CHOICE:
-        for choice, value in iter(GC.VAR_INFO[itemName][GC.VAR_CHOICES].items()):
+        for choice, value in iter(itemEntry[GC.VAR_CHOICES].items()):
           if cfgValue == value:
             cfgValue = choice
             break
@@ -3660,8 +3660,8 @@ def SetGlobalVariables():
     Ind.Decrement()
 
   def _chkCfgDirectories(sectionName):
-    for itemName in GC.VAR_INFO:
-      if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_DIRECTORY:
+    for itemName, itemEntry in iter(GC.VAR_INFO.items()):
+      if itemEntry[GC.VAR_TYPE] == GC.TYPE_DIRECTORY:
         dirPath = GC.Values[itemName]
         if (itemName != GC.CACHE_DIR or not GC.Values[GC.NO_CACHE]) and not os.path.isdir(dirPath):
           writeStderr(formatKeyValueList(WARNING_PREFIX,
@@ -3673,8 +3673,8 @@ def SetGlobalVariables():
                                          '\n'))
 
   def _chkCfgFiles(sectionName):
-    for itemName in GC.VAR_INFO:
-      if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_FILE:
+    for itemName, itemEntry in iter(GC.VAR_INFO.items()):
+      if itemEntry[GC.VAR_TYPE] == GC.TYPE_FILE:
         fileName = GC.Values[itemName]
         if (not fileName) and (itemName in {GC.EXTRA_ARGS, GC.CMDLOG}):
           continue
@@ -3692,10 +3692,10 @@ def SetGlobalVariables():
                                          '\n'))
           if itemName == GC.CACERTS_PEM:
             status['errors'] = True
-        elif not os.access(fileName, GC.VAR_INFO[itemName][GC.VAR_ACCESS]):
-          if GC.VAR_INFO[itemName][GC.VAR_ACCESS] == os.R_OK | os.W_OK:
+        elif not os.access(fileName, itemEntry[GC.VAR_ACCESS]):
+          if itemEntry[GC.VAR_ACCESS] == os.R_OK | os.W_OK:
             accessMsg = Msg.NEED_READ_WRITE_ACCESS
-          elif GC.VAR_INFO[itemName][GC.VAR_ACCESS] == os.R_OK:
+          elif itemEntry[GC.VAR_ACCESS] == os.R_OK:
             accessMsg = Msg.NEED_READ_ACCESS
           else:
             accessMsg = Msg.NEED_WRITE_ACCESS
@@ -3797,8 +3797,8 @@ def SetGlobalVariables():
       _checkMakeDir(GC.CONFIG_DIR)
       _checkMakeDir(GC.CACHE_DIR)
       _checkMakeDir(GC.DRIVE_DIR)
-      for itemName in GC.VAR_INFO:
-        if GC.VAR_INFO[itemName][GC.VAR_TYPE] == GC.TYPE_FILE:
+      for itemName, itemEntry in iter(GC.VAR_INFO.items()):
+        if itemEntry[GC.VAR_TYPE] == GC.TYPE_FILE:
           srcFile = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, itemName)))
           _copyCfgFile(srcFile, GC.CONFIG_DIR, oldGamPath)
       _writeGamCfgFile(GM.Globals[GM.PARSER], GM.Globals[GM.GAM_CFG_FILE], Act.INITIALIZE)
@@ -3874,46 +3874,47 @@ def SetGlobalVariables():
         itemName = getChoice(GC.VAR_INFO, defaultChoice=None)
         if itemName is None:
           break
+        itemEntry = GC.VAR_INFO[itemName]
         checkArgumentPresent('=')
-        varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+        varType = itemEntry[GC.VAR_TYPE]
         if varType == GC.TYPE_BOOLEAN:
           value = TRUE if getBoolean(None) else FALSE
         elif varType == GC.TYPE_CHARACTER:
           value = getCharacter()
         elif varType == GC.TYPE_CHOICE:
-          value = getChoice(GC.VAR_INFO[itemName][GC.VAR_CHOICES])
+          value = getChoice(itemEntry[GC.VAR_CHOICES])
         elif varType == GC.TYPE_INTEGER:
-          minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
+          minVal, maxVal = itemEntry[GC.VAR_LIMITS]
           value = str(getInteger(minVal=minVal, maxVal=maxVal))
         elif varType == GC.TYPE_FLOAT:
-          minVal, maxVal = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
+          minVal, maxVal = itemEntry[GC.VAR_LIMITS]
           value = str(getFloat(minVal=minVal, maxVal=maxVal))
         elif varType == GC.TYPE_LOCALE:
           value = getLanguageCode(LOCALE_CODES_MAP)
         elif varType == GC.TYPE_PASSWORD:
-          minLen, maxLen = GC.VAR_INFO[itemName][GC.VAR_LIMITS]
+          minLen, maxLen = itemEntry[GC.VAR_LIMITS]
           value = getString(Cmd.OB_STRING, checkBlank=True, minLen=minLen, maxLen=maxLen)
           if value and value.startswith("b'") and value.endswith("'"):
             value = bytes(value[2:-1], UTF8)
         elif varType == GC.TYPE_TIMEZONE:
           value = getString(Cmd.OB_STRING, checkBlank=True)
         else:
-          minLen, maxLen = GC.VAR_INFO[itemName].get(GC.VAR_LIMITS, (0, None))
+          minLen, maxLen = itemEntry.get(GC.VAR_LIMITS, (0, None))
           value = _quoteStringIfLeadingTrailingBlanks(getString(Cmd.OB_STRING, minLen=minLen, maxLen=maxLen))
         GM.Globals[GM.PARSER].set(sectionName, itemName, value)
   prevExtraArgsTxt = GC.Values.get(GC.EXTRA_ARGS, None)
   prevOauth2serviceJson = GC.Values.get(GC.OAUTH2SERVICE_JSON, None)
 # Assign global variables, directories, timezone first as other variables depend on them
-  for itemName in sorted(GC.VAR_INFO):
-    varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+  for itemName, itemEntry in sorted(iter(GC.VAR_INFO.items())):
+    varType = itemEntry[GC.VAR_TYPE]
     if varType == GC.TYPE_DIRECTORY:
       GC.Values[itemName] = _getCfgDirectory(sectionName, itemName)
     elif varType == GC.TYPE_TIMEZONE:
       GC.Values[itemName] = _getCfgTimezone(sectionName, itemName)
   GM.Globals[GM.DATETIME_NOW] = datetime.datetime.now(GC.Values[GC.TIMEZONE])
 # Everything else except row filters
-  for itemName in sorted(GC.VAR_INFO):
-    varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+  for itemName, itemEntry in sorted(iter(GC.VAR_INFO.items())):
+    varType = itemEntry[GC.VAR_TYPE]
     if varType == GC.TYPE_BOOLEAN:
       GC.Values[itemName] = _getCfgBoolean(sectionName, itemName)
     elif varType == GC.TYPE_CHARACTER:
@@ -3935,8 +3936,8 @@ def SetGlobalVariables():
     elif varType == GC.TYPE_FILE:
       GC.Values[itemName] = _getCfgFile(sectionName, itemName)
 # Row filters
-  for itemName in sorted(GC.VAR_INFO):
-    varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+  for itemName, itemEntry in sorted(iter(GC.VAR_INFO.items())):
+    varType = itemEntry[GC.VAR_TYPE]
     if varType == GC.TYPE_ROWFILTER:
       GC.Values[itemName] = _getCfgRowFilter(sectionName, itemName)
 # Process selectfilter|selectoutputfilter|selectinputfilter
@@ -4061,8 +4062,8 @@ def SetGlobalVariables():
 # Clear input row filters/limit from parser, children can define but shouldn't inherit global value
 # Clear output header/row filters/limit from parser, children can define or they will inherit global value if not defined
   if GM.Globals[GM.PID] == 0:
-    for itemName in sorted(GC.VAR_INFO):
-      varType = GC.VAR_INFO[itemName][GC.VAR_TYPE]
+    for itemName, itemEntry in sorted(iter(GC.VAR_INFO.items())):
+      varType = itemEntry[GC.VAR_TYPE]
       if varType in {GC.TYPE_HEADERFILTER, GC.TYPE_HEADERFORCE, GC.TYPE_ROWFILTER}:
         GM.Globals[GM.PARSER].set(sectionName, itemName, '')
       elif (varType == GC.TYPE_INTEGER) and itemName in {GC.CSV_INPUT_ROW_LIMIT, GC.CSV_OUTPUT_ROW_LIMIT}:
@@ -17308,7 +17309,7 @@ def doPrintAliases():
     except GAPI.domainNotFound as e :
       entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, kwargs['domain']], str(e))
       return
-    except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
+    except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
       accessErrorExit(cd)
   count = len(groups)
   i = 0
@@ -52245,8 +52246,8 @@ def printShowFileTree(users):
   fieldsList = ['driveId', 'id', 'name', 'parents', 'mimeType', 'ownedByMe', 'owners(emailAddress)',
                 'shared', 'size', 'explicitlyTrashed', 'trashed']
   showFields = {}
-  for field in FILETREE_FIELDS_CHOICE_MAP:
-    showFields[FILETREE_FIELDS_CHOICE_MAP[field]] = False
+  for field, mappedField in FILETREE_FIELDS_CHOICE_MAP.items():
+    showFields[mappedField] = False
   buildTree = noindent = stripCRsFromName = False
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   OBY = OrderBy(DRIVEFILE_ORDERBY_CHOICE_MAP)
@@ -53710,8 +53711,7 @@ def _copyPermissions(drive, user, i, count, j, jcount,
               GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
               GAPI.fileOrganizerOnFoldersInSharedDriveOnly,
               GAPI.fileOrganizerOnNonTeamDriveNotSupported,
-              GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
-              GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+              GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility) as e:
         entityActionFailedWarning(kvList, str(e), k, kcount)
         break
       except GAPI.invalidSharingRequest as e:
@@ -54764,8 +54764,7 @@ def _updateMoveFilePermissions(drive, user, i, count,
                 GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
                 GAPI.fileOrganizerOnFoldersInSharedDriveOnly,
                 GAPI.fileOrganizerOnNonTeamDriveNotSupported,
-                GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
-                GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+                GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility) as e:
           entityActionFailedWarning(kvList, str(e), k, kcount)
           break
         except GAPI.invalidSharingRequest as e:
@@ -59675,6 +59674,7 @@ SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP = {
 # gam [<UserTypeEntity>] print shareddriveacls [todrive <ToDriveAttribute>*]
 #	[adminaccess|asadmin]
 #	[shareddriveadminquery|query <QuerySharedDrive>] [matchname <RegularExpression>]
+#	[orgunit|org|ou <OrgUnitPath>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -59683,6 +59683,7 @@ SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP = {
 # gam [<UserTypeEntity>] show shareddriveacls
 #	[adminaccess|asadmin]
 #	[shareddriveadminquery|query <QuerySharedDrive>] [matchname <RegularExpression>]
+#	[orgunit|org|ou <OrgUnitPath>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -59695,7 +59696,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
   checkGroups = oneItemPerRow = pmselect = False
   showNoPermissionsDrives = SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP['false']
   fieldsList = []
-  emailAddress = query = matchPattern = permtype = None
+  emailAddress = orgUnitId = query = matchPattern = permtype = None
   PM = PermissionMatch()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -59708,6 +59709,10 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
         query = mapQueryRelativeTimes(query, ['createdTime'])
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
+    elif myarg in {'ou', 'org', 'orgunit'}:
+      cd = buildGAPIObject(API.DIRECTORY)
+      _, orgUnitId = getOrgUnitId(cd)
+      orgUnitId = orgUnitId[3:]
     elif myarg in {'user', 'group'}:
       permtype = myarg
       emailAddress = getEmailAddress(noUid=True)
@@ -59767,7 +59772,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
         try:
           feed = callGAPIpages(userdrive.drives(), 'list', 'drives',
                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
-                               fields='nextPageToken,drives(id,name,createdTime)', pageSize=100)
+                               fields='nextPageToken,drives(id,name,createdTime,orgUnitId)', pageSize=100)
         except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy):
           pass
     if feed is None:
@@ -59784,7 +59789,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
                                                                          GAPI.QUERY_REQUIRES_ADMIN_CREDENTIALS,
                                                                          GAPI.NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE],
                              q=query, useDomainAdminAccess=useDomainAdminAccess,
-                             fields='nextPageToken,drives(id,name,createdTime)', pageSize=100)
+                             fields='nextPageToken,drives(id,name,createdTime,orgUnitId)', pageSize=100)
       except (GAPI.invalidQuery, GAPI.invalid, GAPI.queryRequiresAdminCredentials, GAPI.noListTeamDrivesAdministratorPrivilege) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE, None], str(e), i, count)
         continue
@@ -59797,6 +59802,8 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
     for shareddrive in feed:
       j += 1
       if matchPattern is not None and matchPattern.match(shareddrive['name']) is None:
+        continue
+      if orgUnitId is not None and orgUnitId != shareddrive.get('orgUnitId'):
         continue
       printGettingAllEntityItemsForWhom(Ent.PERMISSION, shareddrive['name'], j, jcount)
       shareddrive['createdTime'] = formatLocalTime(shareddrive['createdTime'])
@@ -67933,7 +67940,7 @@ def printShowTasks(users):
                                 **tlkwargs)
       except GAPI.notFound:
         results = []
-      except (GAPI.badRequest, GAPI.invalid, GAPI.notFound) as e:
+      except (GAPI.badRequest, GAPI.invalid) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.TASKLIST, None], str(e), i, count)
         continue
       except GAPI.serviceNotAvailable:

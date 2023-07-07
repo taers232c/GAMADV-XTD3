@@ -1,3 +1,8 @@
+6.60.25
+
+Added option `orgunit|org|ou <OrgUnitPath>` to `gam print|show teamdriveacls` to display permissions
+only for Shared Drives in the specified OrgUnit.
+
 6.60.24
 
 Updated `gam <UserTypeEntity> info|show|print chatmessages` to show the sender email address
