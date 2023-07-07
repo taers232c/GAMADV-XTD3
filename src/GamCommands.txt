@@ -4451,12 +4451,12 @@ gam show teamdriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
         [formatjson]
 gam print teamdrives [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>]
-        [matchname <RegularExpression>]
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
         [fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
         [formatjson [quotechar <Character>]]
 gam show teamdrives
         [teamdriveadminquery|query <QueryTeamDrive>]
-        [matchname <RegularExpression>]
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
         [fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
         [formatjson] [noorgunits [<Boolean>]]
 
@@ -4482,12 +4482,14 @@ gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> adminaccess [fields 
         [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
         adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
-        [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
+        (role|roles <SharedDriveACLRoleList>)*
         [fields <SharedDriveFieldNameList>]
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdrives
         adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
-        [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
+        (role|roles <SharedDriveACLRoleList>)*
         [fields <SharedDriveFieldNameList>]
         [formatjson]
 
@@ -4605,13 +4607,15 @@ gam sync teamdriveacls <SharedDriveEntity> with <SharedDriveEntity>
         (mappermissionsdomain <DomainName> <DomainName>)*
 
 gam print teamdriveacls [todrive <ToDriveAttribute>*]
-        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+        [teamdriveadminquery|query <QueryTeamDrive>]
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [formatjson [quotechar <Character>]]
 gam show teamdriveacls
-        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
+        [teamdriveadminquery|query <QueryTeamDrive>]
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -4631,18 +4635,16 @@ gam <UserTypeEntity> sync teamdriveacls <SharedDriveEntity> with <SharedDriveEnt
         (mappermissionsdomain <DomainName> <DomainName>)*
 
 gam <UserTypeEntity> print teamdriveacls [todrive <ToDriveAttribute>*]
-        [adminaccess|asadmin]
-        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [orgunit|org|ou <OrgUnitPath>]
+        [adminaccess|asadmin] [teamdriveadminquery|query <QueryTeamDrive>]
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
         [shownopermissionsdrives false|true|only]
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdriveacls
-        [adminaccess|asadmin]
-        [teamdriveadminquery|query <QueryTeamDrive>] [matchname <RegularExpression>]
-        [orgunit|org|ou <OrgUnitPath>]
+        [adminaccess|asadmin] [teamdriveadminquery|query <QueryTeamDrive>]
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
         [user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
         <PermissionMatch>* [<PermissionMatchAction>] [pmselect]
         [oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -7373,12 +7375,14 @@ gam <UserTypeEntity> show teamdriveinfo <SharedDriveEntity> [fields <SharedDrive
         [formatjson]
 gam <UserTypeEntity> print teamdrives [todrive <ToDriveAttribute>*]
         [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
-        [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
+        (role|roles <SharedDriveACLRoleList>)*
         [fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show teamdrives
         [adminaccess|asadmin [teamdriveadminquery|query <QueryTeamDrive>]]
-        [matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
+        (role|roles <SharedDriveACLRoleList>)*
         [fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
         [formatjson]
 

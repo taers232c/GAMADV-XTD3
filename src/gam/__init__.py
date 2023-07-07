@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.25'
+__version__ = '6.60.26'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -16599,8 +16599,9 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
         orgUnit.pop('parentOrgUnitId', None)
   return orgUnits
 
-def getOrgUnitIdToPathMap():
-  cd = buildGAPIObject(API.DIRECTORY)
+def getOrgUnitIdToPathMap(cd=None):
+  if cd is None:
+    cd = buildGAPIObject(API.DIRECTORY)
   orgUnits = _getOrgUnits(cd, '/', ['orgUnitPath', 'orgUnitId'], 'all', True, False)
   return {ou['orgUnitId']:ou['orgUnitPath'] for ou in orgUnits}
 
@@ -57862,35 +57863,6 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
 def doUpdateDriveFileACLs():
   updateDriveFileACLs([_getAdminEmail()], True)
 
-def getJSONPermissionSkips(myarg, skips):
-  if myarg in {'jsonskiprole', 'jsonskiproles'}:
-    roleList = getString(Cmd.OB_DRIVE_FILE_ACL_ROLE_LIST, minLen=0).lower().replace(',', ' ').split()
-    if not roleList:
-      skips['role'] = set()
-    else:
-      for role in roleList:
-        if role == 'none':
-          skips['role'] = set()
-        elif role in DRIVEFILE_ACL_ROLES_MAP:
-          skips['role'].add(DRIVEFILE_ACL_ROLES_MAP[role])
-        else:
-          invalidChoiceExit(role, DRIVEFILE_ACL_ROLES_MAP, True)
-  elif myarg in {'jsonskiptype', 'jsonskiptypes'}:
-    typeList = getString(Cmd.OB_DRIVE_FILE_ACL_TYPE_LIST, minLen=0).lower().replace(',', ' ').split()
-    if not typeList:
-      skips['type'] = set()
-    else:
-      for ptype in typeList:
-        if ptype == 'none':
-          skips['type'] = set()
-        elif ptype in DRIVEFILE_ACL_PERMISSION_TYPES:
-          skips['type'].add(ptype)
-        else:
-          invalidChoiceExit(ptype, DRIVEFILE_ACL_PERMISSION_TYPES, True)
-  else:
-    return False
-  return True
-
 # gam [<UserTypeEntity>] create permissions <DriveFileEntity> <DriveFilePermissionsEntity> [adminaccess|asadmin]
 #	[expiration <Time>] [sendmail] [emailmessage <String>]
 #	[moveToNewOwnersRoot [<Boolean>]]
@@ -59396,12 +59368,14 @@ SHAREDDRIVE_ROLES_CAPABILITIES_MAP = {
 
 # gam <UserTypeEntity> print shareddrives [todrive <ToDriveAttribute>*]
 #	[adminaccess|asadmin [shareddriveadminquery|query <QuerySharedDrive>]]
-#	[matchname <RegularExpression>] (role|roles <SharedDriveACLRoleList>)*
+#	[matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
+#	(role|roles <SharedDriveACLRoleList>)*
 #	[fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show shareddrives
 #	[adminaccess|asadmin [shareddriveadminquery|query <QuerySharedDrive>]]
-#	[matchname <RegularExpression>] (role|roles <SharedDriveACLRoleLIst>)*
+#	[matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
+#	(role|roles <SharedDriveACLRoleLIst>)*
 #	[fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
 #	[formatjson]
 def printShowSharedDrives(users, useDomainAdminAccess=False):
@@ -59421,7 +59395,7 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
   csvPF = CSVPrintFile(['User', 'id', 'name'], ['User', 'id', 'name', 'role']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   roles = set()
-  query = matchPattern = None
+  cd = orgUnitId = query = matchPattern = None
   showFields = set()
   fieldsList = []
   SHAREDDRIVE_FIELDS_CHOICE_MAP.update(SHAREDDRIVE_LIST_FIELDS_CHOICE_MAP)
@@ -59438,6 +59412,11 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
         query = mapQueryRelativeTimes(query, ['createdTime'])
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
+    elif myarg in {'ou', 'org', 'orgunit'}:
+      if cd is None:
+        cd = buildGAPIObject(API.DIRECTORY)
+      _, orgUnitId = getOrgUnitId(cd)
+      orgUnitId = orgUnitId[3:]
     elif myarg in {'role', 'roles'}:
       roles |= getACLRoles(SHAREDDRIVE_ACL_ROLES_MAP)
     elif myarg == 'checkgroups':
@@ -59460,7 +59439,7 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
       showFields.add('role')
     csvPF.AddTitle('role')
   if showOrgUnitPaths and useDomainAdminAccess and ((not showFields) or ('orgUnitId' in showFields)):
-    orgUnitIdToPathMap = getOrgUnitIdToPathMap()
+    orgUnitIdToPathMap = getOrgUnitIdToPathMap(cd)
     if showFields:
       showFields.add('orgUnit')
   i, count, users = getEntityArgument(users)
@@ -59509,10 +59488,12 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
         if not roles or role in roles:
           shareddrive['role'] = role
           matchedFeed.append(shareddrive)
-    elif matchPattern is not None:
+    elif matchPattern is not None or orgUnitId is not None:
       for shareddrive in feed:
-        if matchPattern.match(shareddrive['name']) is not None:
-          matchedFeed.append(shareddrive)
+        if ((matchPattern is not None and matchPattern.match(shareddrive['name']) is None) or
+            (orgUnitId is not None and orgUnitId != shareddrive.get('orgUnitId'))):
+          continue
+        matchedFeed.append(shareddrive)
     else:
       matchedFeed = feed
     jcount = len(matchedFeed)
@@ -59672,18 +59653,16 @@ SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP = {
   }
 
 # gam [<UserTypeEntity>] print shareddriveacls [todrive <ToDriveAttribute>*]
-#	[adminaccess|asadmin]
-#	[shareddriveadminquery|query <QuerySharedDrive>] [matchname <RegularExpression>]
-#	[orgunit|org|ou <OrgUnitPath>]
+#	[adminaccess|asadmin] [shareddriveadminquery|query <QuerySharedDrive>]
+#	[matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
 #	[shownopermissionsdrives false|true|only]
 #	[formatjson [quotechar <Character>]]
 # gam [<UserTypeEntity>] show shareddriveacls
-#	[adminaccess|asadmin]
-#	[shareddriveadminquery|query <QuerySharedDrive>] [matchname <RegularExpression>]
-#	[orgunit|org|ou <OrgUnitPath>]
+#	[adminaccess|asadmin] [shareddriveadminquery|query <QuerySharedDrive>]
+#	[matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
 #	[user|group <EmailAddress> [checkgroups]] (role|roles <SharedDriveACLRoleList>)*
 #	<PermissionMatch>* [<PermissionMatchAction>] [pmselect]
 #	[oneitemperrow] [<DrivePermissionsFieldName>*|(fields <DrivePermissionsFieldNameList>)]
@@ -59696,7 +59675,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
   checkGroups = oneItemPerRow = pmselect = False
   showNoPermissionsDrives = SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP['false']
   fieldsList = []
-  emailAddress = orgUnitId = query = matchPattern = permtype = None
+  cd = emailAddress = orgUnitId = query = matchPattern = permtype = None
   PM = PermissionMatch()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -59710,7 +59689,8 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
     elif myarg in {'ou', 'org', 'orgunit'}:
-      cd = buildGAPIObject(API.DIRECTORY)
+      if cd is None:
+        cd = buildGAPIObject(API.DIRECTORY)
       _, orgUnitId = getOrgUnitId(cd)
       orgUnitId = orgUnitId[3:]
     elif myarg in {'user', 'group'}:
@@ -59801,9 +59781,8 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
     j = 0
     for shareddrive in feed:
       j += 1
-      if matchPattern is not None and matchPattern.match(shareddrive['name']) is None:
-        continue
-      if orgUnitId is not None and orgUnitId != shareddrive.get('orgUnitId'):
+      if ((matchPattern is not None and matchPattern.match(shareddrive['name']) is None) or
+          (orgUnitId is not None and orgUnitId != shareddrive.get('orgUnitId'))):
         continue
       printGettingAllEntityItemsForWhom(Ent.PERMISSION, shareddrive['name'], j, jcount)
       shareddrive['createdTime'] = formatLocalTime(shareddrive['createdTime'])

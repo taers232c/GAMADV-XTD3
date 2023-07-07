@@ -1,7 +1,12 @@
+6.60.26
+
+Added option `orgunit|org|ou <OrgUnitPath>` to `gam print|show teamdrives` that limits the display
+to Shared Drives in the specified Org Unit.
+
 6.60.25
 
-Added option `orgunit|org|ou <OrgUnitPath>` to `gam print|show teamdriveacls` to display permissions
-only for Shared Drives in the specified OrgUnit.
+Added option `orgunit|org|ou <OrgUnitPath>` to `gam print|show teamdriveacls` that limits the display
+of permissions to Shared Drives in the specified Org Unit.
 
 6.60.24
 
