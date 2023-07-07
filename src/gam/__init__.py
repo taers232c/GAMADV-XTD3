@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.26'
+__version__ = '6.60.27'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51250,6 +51250,8 @@ def printFileList(users):
       row['Name'] = sourceName
     if showSize:
       row['Size'] = sizeTotal
+    if addCSVData:
+      row.update(addCSVData)
     row.update(mimeTypeCounts)
     if not countsRowFilter:
       csvPFco.WriteRowTitlesNoFilter(row)
@@ -51444,7 +51446,14 @@ def printFileList(users):
       selectSubQuery = selectSubQuery.replace(f'#{queryTimeName}#', queryTimeValue)
     selectSubQuery = _mapDrive2QueryToDrive3(selectSubQuery)
   if addCSVData:
-    csvPF.AddTitles(sorted(addCSVData.keys()))
+    if not countsOnly:
+      csvPF.AddTitles(sorted(addCSVData.keys()))
+    else:
+      csvPFco.AddTitles(sorted(addCSVData.keys()))
+      if showSize:
+        csvPFco.MoveTitlesToEnd(['Size'])
+      csvPFco.MoveTitlesToEnd(['Total'])
+      csvPFco.SetSortAllTitles()
   i, count, users = getEntityArgument(users)
   sizeTotals = {'User': 0, 'Summary': 0}
   for user in users:

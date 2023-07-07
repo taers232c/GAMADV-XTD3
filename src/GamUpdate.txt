@@ -1,3 +1,8 @@
+6.60.27
+
+Updated `gam <UserTypeEntity> print filelist countsonly` to process `addcsvdata <FieldName> <String>`.
+Additional fields are added before `Size` if present, otherwise `Total`.
+
 6.60.26
 
 Added option `orgunit|org|ou <OrgUnitPath>` to `gam print|show teamdrives` that limits the display
