@@ -389,6 +389,7 @@ click the Allow button, paste "Unable to connect" URL from other computer (only 
 ON_CURRENT_PRIVATE_KEY = ' on current key'
 ON_VAULT_HOLD = 'On Google Vault Hold'
 ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES = 'Only administrators can perform Shared Drive queries'
+ONLY_ADMINISTRATORS_CAN_SPECIFY_SHARED_DRIVE_ORGUNIT = 'Only administrators can specify Shared Drive Org Unit'
 ONLY_ONE_DEVICE_SELECTION_ALLOWED = 'Only one device selection allowed, filter = "{0}"'
 ONLY_ONE_JSON_RANGE_ALLOWED = 'Only one range/json allowed'
 ONLY_ONE_OWNER_ALLOWED = 'Only one owner allowed'

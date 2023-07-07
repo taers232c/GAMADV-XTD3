@@ -59413,6 +59413,7 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
     elif myarg in {'ou', 'org', 'orgunit'}:
+      orgLocation = Cmd.Location()
       if cd is None:
         cd = buildGAPIObject(API.DIRECTORY)
       _, orgUnitId = getOrgUnitId(cd)
@@ -59432,6 +59433,9 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
   if query and not useDomainAdminAccess:
     Cmd.SetLocation(queryLocation-1)
     usageErrorExit(Msg.ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES)
+  if orgUnitId is not None and not useDomainAdminAccess:
+    Cmd.SetLocation(orgLocation-1)
+    usageErrorExit(Msg.ONLY_ADMINISTRATORS_CAN_SPECIFY_SHARED_DRIVE_ORGUNIT)
   if fieldsList:
     showFields = set(fieldsList)
   if csvPF and not useDomainAdminAccess:
@@ -59689,6 +59693,7 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
     elif myarg == 'matchname':
       matchPattern = getREPattern(re.IGNORECASE)
     elif myarg in {'ou', 'org', 'orgunit'}:
+      orgLocation = Cmd.Location()
       if cd is None:
         cd = buildGAPIObject(API.DIRECTORY)
       _, orgUnitId = getOrgUnitId(cd)
@@ -59717,6 +59722,9 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
   if query and not useDomainAdminAccess:
     Cmd.SetLocation(queryLocation-1)
     usageErrorExit(Msg.ONLY_ADMINISTRATORS_CAN_PERFORM_SHARED_DRIVE_QUERIES)
+  if orgUnitId is not None and not useDomainAdminAccess:
+    Cmd.SetLocation(orgLocation-1)
+    usageErrorExit(Msg.ONLY_ADMINISTRATORS_CAN_SPECIFY_SHARED_DRIVE_ORGUNIT)
   if fieldsList:
     if permtype is not None:
       fieldsList.extend(['type', 'emailAddress'])
