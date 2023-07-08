@@ -49172,7 +49172,7 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
   else:
     if (fullpath and initialResult['mimeType'] == MIMETYPE_GA_FOLDER and
         ((initialResult['name'] == MY_DRIVE) or
-         (initialResult['driveId'] and initialResult['name'].startswith(SHARED_DRIVES)))):
+         (initialResult.get('driveId') and initialResult['name'].startswith(SHARED_DRIVES)))):
       filePaths.append(initialResult['name'])
     maxDepth = 0
   return (_getEntityMimeType(initialResult), filePaths, maxDepth)
