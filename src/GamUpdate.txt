@@ -1,3 +1,8 @@
+6.60.28
+
+Fixed bug in `gam <UserTypeEntity> print filelist countsonly showsource stripcrsfromname` where
+carriage returns, linefeeds and nulls were not stripped from file names.
+
 6.60.27
 
 Updated `gam <UserTypeEntity> print filelist countsonly` to process `addcsvdata <FieldName> <String>`.

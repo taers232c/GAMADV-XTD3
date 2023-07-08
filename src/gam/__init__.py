@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.27'
+__version__ = '6.60.28'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -49170,8 +49170,10 @@ def getFilePaths(drive, fileTree, initialResult, filePathInfo, addParentsToTree=
     fplist = []
     maxDepth = _makeFilePaths(filePathInfo['localPaths'], fplist, filePaths, initialResult['name'], -1)
   else:
-    if fullpath and initialResult['mimeType'] == MIMETYPE_GA_FOLDER and initialResult['name'] == MY_DRIVE:
-      filePaths.append(MY_DRIVE)
+    if (fullpath and initialResult['mimeType'] == MIMETYPE_GA_FOLDER and
+        ((initialResult['name'] == MY_DRIVE) or
+         (initialResult['driveId'] and initialResult['name'].startswith(SHARED_DRIVES)))):
+      filePaths.append(initialResult['name'])
     maxDepth = 0
   return (_getEntityMimeType(initialResult), filePaths, maxDepth)
 
@@ -51422,7 +51424,7 @@ def printFileList(users):
     DFF.SetAllParentsSubFields()
     skipObjects = skipObjects.union(DEFAULT_SKIP_OBJECTS)
   if stripCRsFromName:
-    if countsOnly or (fields != '*' and 'name' not in DFF.fieldsList):
+    if (countsOnly and not showSource) or (fields != '*' and 'name' not in DFF.fieldsList):
       stripCRsFromName = False
   shareddriveFields = []
   for field in ['capabilities', 'createdTime']:
