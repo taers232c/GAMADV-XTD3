@@ -5117,6 +5117,7 @@ gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
             [subject <String>]
             [notifypassword <String>]
             [from <EmailAaddress>]
+            [reply <EmailAaddress>]
             [<NotifyMessageContent>]
             (replace <Tag> <UserReplacement>)*]
         [lograndompassword <FileName>]
@@ -5139,6 +5140,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>*
             [subject <String>]
             [notifypassword <String>]
             [from <EmailAaddress>]
+            [reply <EmailAaddress>]
             [<NotifyMessageContent>]
             (replace <Tag> <UserReplacement>)*]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
@@ -6582,9 +6584,14 @@ gam <UserTypeEntity> print drivesettings [todrive <ToDriveAttribute>*] [allfield
 gam <UserTypeEntity> show drivesettings [allfields|<DriveSettingsFieldName>*|(fields <DriveSettingsFieldNameList>)] [delimiter <Character>]
 
 gam <UserTypeEntity> print emptydrivefolders [todrive <ToDriveAttribute>*]
-        [select <SharedDriveEntity>]
-gam <UserTypeEntity> print emptydrivefolders [<SharedDriveEntity>]
+        [select <DriveFileEntity>]
+        [pathdelimiter <Character>]
+gam <UserTypeEntity> delete emptydrivefolders
+        [select <DriveFileEntity>]
+        [<SharedDriveEntity>]
+        [pathdelimiter <Character>]
 gam <UserTypeEntity> delete emptydrivefolders [<SharedDriveEntity>]
+
 gam <UserTypeEntity> empty drivetrash [<SharedDriveEntity>]
 
 # Users - Deprovision

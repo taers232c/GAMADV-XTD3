@@ -1,3 +1,9 @@
+6.60.29
+
+Updated `gam <UserTypeEntity> delete|print emptydrivefolders` to show the path to the deleted folder
+rather than just its name. Added an option to allow a starting point other that the root of My Drive or a Shared Drive.
+Improved the commands performance.
+
 6.60.28
 
 Fixed bug in `gam <UserTypeEntity> print filelist countsonly showsource stripcrsfromname` where
