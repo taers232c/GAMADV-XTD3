@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.29'
+__version__ = '6.60.30'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -65740,10 +65740,10 @@ FORM_RESPONSE_TIME_OBJECTS = {'createTime', 'lastSubmittedTime'}
 
 # gam <UserTypeEntity> print formresponses <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	[filtertime.* <Time>] [filter <String>]
-#	[formatjson [quotechar <Character>]]
+#	[countsonly|(formatjson [quotechar <Character>])]
 # gam <UserTypeEntity> show formresponses <DriveFileEntity>
 #	[filtertime.* <Time>] [filter <String>]
-#	[formatjson]
+#	[countsonly|formatjson]
 def printShowFormResponses(users):
   csvPF = CSVPrintFile(['User', 'formId', 'responseId', 'createTime', 'lastSubmittedTime', 'respondentEmail', 'totalScore'],
                        'sortall', indexedTitles=['answers']) if Act.csvFormat() else None
@@ -65751,6 +65751,7 @@ def printShowFormResponses(users):
   frfilter = None
   filterTimes = {}
   fileIdEntity = getDriveFileEntity()
+  countsOnly = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -65759,11 +65760,15 @@ def printShowFormResponses(users):
       filterTimes[myarg] = getTimeOrDeltaFromNow()
     elif myarg in {'filter', 'filters'}:
       frfilter = getString(Cmd.OB_STRING)
+    elif myarg == 'countsonly':
+      countsOnly = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if filterTimes and filter is not None:
     for filterTimeName, filterTimeValue in iter(filterTimes.items()):
       frfilter = frfilter.replace(f'#{filterTimeName}#', filterTimeValue)
+  if countsOnly and csvPF:
+    csvPF.SetTitles(['User', 'formId', 'responses'])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -65783,6 +65788,12 @@ def printShowFormResponses(users):
                                 throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
                                 filter=frfilter, formId=formId)
         kcount = len(results)
+        if countsOnly:
+          if not csvPF:
+            printEntityKVList([Ent.FORM, formId], [Ent.Plural(Ent.FORM_RESPONSE), kcount], j, jcount)
+          else:
+            csvPF.WriteRowTitles({'User': user, 'formId': formId, 'responses': kcount})
+          continue
         if not csvPF:
           if not FJQC.formatJSON:
             entityPerformActionNumItems([Ent.FORM, formId], kcount, Ent.FORM_RESPONSE, j, jcount)

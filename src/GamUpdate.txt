@@ -1,3 +1,8 @@
+6.60.30
+
+Added option `countsonly` to `gam <UserTypeEntity> print|show formresponses` that causes GAM to display
+the number of responses to a form rather than displaying the response details.
+
 6.60.29
 
 Updated `gam <UserTypeEntity> delete|print emptydrivefolders` to show the path to the deleted folder

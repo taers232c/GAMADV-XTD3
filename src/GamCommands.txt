@@ -5117,7 +5117,7 @@ gam create|add user <EmailAddress> [ignorenullpassword] <UserAttribute>*
             [subject <String>]
             [notifypassword <String>]
             [from <EmailAaddress>]
-            [reply <EmailAaddress>]
+            [replyto <EmailAaddress>]
             [<NotifyMessageContent>]
             (replace <Tag> <UserReplacement>)*]
         [lograndompassword <FileName>]
@@ -5140,7 +5140,7 @@ gam update user <UserItem> [ignorenullpassword] <UserAttribute>*
             [subject <String>]
             [notifypassword <String>]
             [from <EmailAaddress>]
-            [reply <EmailAaddress>]
+            [replyto <EmailAaddress>]
             [<NotifyMessageContent>]
             (replace <Tag> <UserReplacement>)*]
         [notifyonupdate [<Boolean>]] [setchangepasswordoncreate [<Boolean>]]
@@ -6663,10 +6663,10 @@ gam <UserTypeEntity> show forms <DriveFileEntity>
 
 gam <UserTypeEntity> print formresponses <DriveFileEntity> [todrive <ToDriveAttribute>*]
         [filtertime.* <Time>] [filter <String>]
-        [formatjson [quotechar <Character>]]
+        [countsonly|(formatjson [quotechar <Character>])]
 gam <UserTypeEntity> show formresponses <DriveFileEntity>
         [filtertime.* <Time>] [filter <String>]
-        [formatjson]
+        [countsonly|formatjson]
 
 # Users - Gmail - Forwarding
 
