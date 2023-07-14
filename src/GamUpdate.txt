@@ -1,3 +1,12 @@
+6.60.31
+
+Added option `addcsvdata <FieldName> <String>` to `gam print forms|formresponses`. This adds additional columns of data to the CSV file output.
+This can be used to combine form information from several GAM commands.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Forms#combine-form-information
+
+Following Jay's lead, projects can now be created with consumer accounts.
+
 6.60.30
 
 Added option `countsonly` to `gam <UserTypeEntity> print|show formresponses` that causes GAM to display

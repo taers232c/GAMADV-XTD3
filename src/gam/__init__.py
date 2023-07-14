@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.30'
+__version__ = '6.60.31'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5010,6 +5010,8 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
     elif http_status == 409:
       if status == 'ALREADY_EXISTS' or 'requested entity already exists' in lmessage:
         error = makeErrorDict(http_status, GAPI.ALREADY_EXISTS, message)
+      else:
+        error = makeErrorDict(http_status, GAPI.GENERIC_409, message)
     elif http_status == 412:
       if 'insufficient archived user licenses' in lmessage:
         error = makeErrorDict(http_status, GAPI.INSUFFICIENT_ARCHIVED_USER_LICENSES, message)
@@ -10704,14 +10706,10 @@ def setGAMProjectConsentScreen(httpObj, projectId, appInfo):
   iap = getAPIService(API.IAP, httpObj)
   try:
     callGAPI(iap.projects().brands(), 'create',
-             throwReasons=[GAPI.ALREADY_EXISTS, GAPI.INVALID_ARGUMENT],
+             throwReasons=[GAPI.ALREADY_EXISTS, GAPI.INVALID_ARGUMENT, GAPI.GENERIC_409],
              parent=f'projects/{projectId}', body=appInfo)
-  except GAPI.invalidArgument as e:
-    entityActionFailedWarning([Ent.PROJECT, projectId, Ent.APP_NAME, appInfo['applicationTitle'], Ent.EMAIL, appInfo['supportEmail']], str(e))
-    return False
-  except GAPI.alreadyExists:
+  except (GAPI.invalidArgument, GAPI.alreadyExists, GAPI.generic409):
     pass
-  return True
 
 def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo, svcAcctInfo):
 
@@ -10743,8 +10741,8 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
 
   if not enableGAMProjectAPIs(httpObj, projectInfo['projectId'], login_hint, False):
     return
-  if appInfo and not setGAMProjectConsentScreen(httpObj, projectInfo['projectId'], appInfo):
-    return
+  if appInfo:
+    setGAMProjectConsentScreen(httpObj, projectInfo['projectId'], appInfo)
   if not _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
     return
   console_url = f'https://console.cloud.google.com/apis/credentials/oauthclient?project={projectInfo["projectId"]}&authuser={login_hint}'
@@ -27776,7 +27774,7 @@ CHROME_VERSIONHISTORY_TITLES = {
                        'major_version', 'minor_version', 'build', 'patch'],
   Ent.CHROME_RELEASE: ['version', 'channel', 'platform',
                        'major_version', 'minor_version', 'build', 'patch',
-                       'fraction', 'serving.startTime', 'serving.endTime']
+                       'fraction', 'fractionGroup', 'serving.startTime', 'serving.endTime']
 
   }
 CHROME_VERSIONHISTORY_ITEMS = {
@@ -37591,7 +37589,7 @@ def doInfoVaultHold():
   except (GAPI.notFound, GAPI.badRequest, GAPI.forbidden) as e:
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId, Ent.VAULT_HOLD, holdNameId], str(e))
 
-PRINT_VAULT_HOLDS_TITLES = ['matterId', 'matterName', 'holdId', 'name']
+PRINT_VAULT_HOLDS_TITLES = ['matterId', 'matterName', 'holdId', 'name', 'updateTime']
 
 # gam print vaultholds|holds [todrive <ToDriveAttribute>*] [matters <MatterItemList>]
 #	[fields <VaultHoldFieldNameList>] [shownames]
@@ -38184,7 +38182,7 @@ def doInfoVaultMatter():
     entityActionFailedWarning([Ent.VAULT_MATTER, matterNameId], str(e))
 
 VAULT_MATTER_STATE_MAP = {'open': 'OPEN', 'closed': 'CLOSED', 'deleted': 'DELETED'}
-PRINT_VAULT_MATTERS_TITLES = ['matterId', 'name']
+PRINT_VAULT_MATTERS_TITLES = ['matterId', 'name', 'description', 'state']
 
 # gam print vaultmatters|matters [todrive <ToDriveAttribute>*] [matterstate <MatterStateList>]
 #	[basic|full|(fields <VaultMatterFieldNameList>)]
@@ -65680,6 +65678,7 @@ def updateForm(users):
     Ind.Decrement()
 
 # gam <UserTypeEntity> print forms <DriveFileEntity> [todrive <ToDriveAttribute>*]
+#	(addcsvdata <FieldName> <String>)*
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show forms <DriveFileEntity>
 #	[formatjson]
@@ -65687,12 +65686,22 @@ def printShowForms(users):
   csvPF = CSVPrintFile(['User', 'formId', 'name', 'title', 'description'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fileIdEntity = getDriveFileEntity()
+  addCSVData = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
+  if csvPF and addCSVData:
+    csvPF.AddTitles(sorted(addCSVData.keys()))
+    if FJQC.formatJSON:
+      csvPF.AddJSONTitles(sorted(addCSVData.keys()))
+      csvPF.MoveJSONTitlesToEnd(['JSON'])
+    csvPF.SetSortAllTitles()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -65723,6 +65732,8 @@ def printShowForms(users):
           info = result.pop('info')
           baserow = {'User': user, 'formId': formId, 'name': info['documentTitle'],
                      'title': info.get('title', ''), 'description': info.get('description', '')}
+          if addCSVData:
+            baserow.update(addCSVData)
           row = flattenJSON(result, flattened=baserow.copy())
           if not FJQC.formatJSON:
             csvPF.WriteRowTitles(row)
@@ -65740,6 +65751,7 @@ FORM_RESPONSE_TIME_OBJECTS = {'createTime', 'lastSubmittedTime'}
 
 # gam <UserTypeEntity> print formresponses <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	[filtertime.* <Time>] [filter <String>]
+#	(addcsvdata <FieldName> <String>)*
 #	[countsonly|(formatjson [quotechar <Character>])]
 # gam <UserTypeEntity> show formresponses <DriveFileEntity>
 #	[filtertime.* <Time>] [filter <String>]
@@ -65752,6 +65764,7 @@ def printShowFormResponses(users):
   filterTimes = {}
   fileIdEntity = getDriveFileEntity()
   countsOnly = False
+  addCSVData = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -65762,13 +65775,23 @@ def printShowFormResponses(users):
       frfilter = getString(Cmd.OB_STRING)
     elif myarg == 'countsonly':
       countsOnly = True
+    elif myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if filterTimes and filter is not None:
     for filterTimeName, filterTimeValue in iter(filterTimes.items()):
       frfilter = frfilter.replace(f'#{filterTimeName}#', filterTimeValue)
-  if countsOnly and csvPF:
-    csvPF.SetTitles(['User', 'formId', 'responses'])
+  if csvPF:
+    if countsOnly:
+      csvPF.SetTitles(['User', 'formId', 'responses'])
+    if addCSVData:
+      csvPF.AddTitles(sorted(addCSVData.keys()))
+      if FJQC.formatJSON:
+        csvPF.AddJSONTitles(sorted(addCSVData.keys()))
+        csvPF.MoveJSONTitlesToEnd(['JSON'])
+    csvPF.SetSortAllTitles()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -65792,7 +65815,10 @@ def printShowFormResponses(users):
           if not csvPF:
             printEntityKVList([Ent.FORM, formId], [Ent.Plural(Ent.FORM_RESPONSE), kcount], j, jcount)
           else:
-            csvPF.WriteRowTitles({'User': user, 'formId': formId, 'responses': kcount})
+            row = {'User': user, 'formId': formId, 'responses': kcount}
+            if addCSVData:
+              row.update(addCSVData)
+            csvPF.WriteRowTitles(row)
           continue
         if not csvPF:
           if not FJQC.formatJSON:
@@ -65811,18 +65837,23 @@ def printShowFormResponses(users):
                                    ensure_ascii=False, sort_keys=True))
           Ind.Decrement()
         else:
+          baserow = {'User': user, 'formId': formId}
+          if addCSVData:
+            baserow.update(addCSVData)
           for response in results:
-            row = flattenJSON(response, flattened={'User': user, 'formId': formId}, timeObjects=FORM_RESPONSE_TIME_OBJECTS)
+            row = flattenJSON(response, flattened=baserow.copy())
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(row)
             elif csvPF.CheckRowTitles(row):
-              csvPF.WriteRowNoFilter({'User': user, 'formId': formId, 'responseId': response['responseId'],
-                                      'createTime': response['createTime'],
-                                      'lastSubmittedTime': response['lastSubmittedTime'],
-                                      'respondentEmail': response.get('respondentEmail', ''),
-                                      'totalScore': response.get('totalScore', ''),
-                                      'JSON': json.dumps(cleanJSON(response, timeObjects=FORM_RESPONSE_TIME_OBJECTS)
-                                                         , ensure_ascii=False, sort_keys=True)})
+              row = baserow.copy()
+              row.update({'responseId': response['responseId'],
+                          'createTime': response['createTime'],
+                          'lastSubmittedTime': response['lastSubmittedTime'],
+                          'respondentEmail': response.get('respondentEmail', ''),
+                          'totalScore': response.get('totalScore', ''),
+                          'JSON': json.dumps(cleanJSON(response, timeObjects=FORM_RESPONSE_TIME_OBJECTS),
+                                             ensure_ascii=False, sort_keys=True)})
+              csvPF.WriteRowNoFilter(row)
       except GAPI.notFound as e:
         entityActionFailedWarning([Ent.USER, user, Ent.FORM, formId], str(e), j, jcount)
     Ind.Decrement()

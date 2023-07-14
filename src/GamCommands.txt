@@ -6657,11 +6657,13 @@ gam <UserTypeEntity> update form <DriveFileEntity>
         [title <String>] [description <String>] [isquiz [<Boolean>]
 
 gam <UserTypeEntity> print forms <DriveFileEntity> [todrive <ToDriveAttribute>*]
+        (addcsvdata <FieldName> <String>)*
         [formatjson [quotechar <Character>]]
 gam <UserTypeEntity> show forms <DriveFileEntity>
         [formatjson]
 
 gam <UserTypeEntity> print formresponses <DriveFileEntity> [todrive <ToDriveAttribute>*]
+        (addcsvdata <FieldName> <String>)*
         [filtertime.* <Time>] [filter <String>]
         [countsonly|(formatjson [quotechar <Character>])]
 gam <UserTypeEntity> show formresponses <DriveFileEntity>
