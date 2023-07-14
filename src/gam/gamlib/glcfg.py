@@ -176,6 +176,8 @@ NEVER_TIME = 'never_time'
 NO_BROWSER = 'no_browser'
 # Disable GAM API caching
 NO_CACHE = 'no_cache'
+# Do noit use URL shortner for authentication URLs
+NO_SHORT_URLS = 'no_short_urls'
 # Disable GAM update check
 NO_UPDATE_CHECK = 'no_update_check'
 # Disable SSL certificate validation
@@ -342,6 +344,7 @@ Defaults = {
   NEVER_TIME: NEVER,
   NO_BROWSER: FALSE,
   NO_CACHE: FALSE,
+  NO_SHORT_URLS: TRUE,
   NO_UPDATE_CHECK: TRUE,
   NO_VERIFY_SSL: FALSE,
   NUM_TBATCH_THREADS: '2',
@@ -484,6 +487,7 @@ VAR_INFO = {
   NEVER_TIME: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   NO_BROWSER: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'nobrowser.txt', VAR_SFFT: (FALSE, TRUE)},
   NO_CACHE: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'nocache.txt', VAR_SFFT: (FALSE, TRUE)},
+  NO_SHORT_URLS: {VAR_TYPE: TYPE_BOOLEAN, VAR_SIGFILE: 'noshorturls.txt', VAR_SFFT: (FALSE, TRUE)},
   NO_UPDATE_CHECK: {VAR_TYPE: TYPE_BOOLEAN},
   NO_VERIFY_SSL: {VAR_TYPE: TYPE_BOOLEAN},
   NUM_TBATCH_THREADS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 1000)},

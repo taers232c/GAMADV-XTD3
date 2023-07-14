@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.60.31'
+__version__ = '6.61.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4434,6 +4434,29 @@ def writeClientCredentials(creds, filename):
     writeFile(filename, json.dumps(creds_data, indent=2, sort_keys=True)+'\n')
   else:
     writeStdout(json.dumps(creds_data, ensure_ascii=False, sort_keys=True, indent=2)+'\n')
+
+URL_SHORTENER_ENDPOINT = 'https://gam-shortn.appspot.com/create'
+
+def shortenURL(long_url):
+  if GC.Values[GC.NO_SHORT_URLS]:
+    return long_url
+  httpObj = getHttpObj(timeout=10)
+  try:
+    payload = json.dumps({'long_url': long_url})
+    resp, content = httpObj.request(URL_SHORTENER_ENDPOINT, 'POST',
+                                    payload,
+                                    headers={'Content-Type': 'application/json',
+                                             'User-Agent': GAM_USER_AGENT})
+  except:
+    return long_url
+  if resp.status != 200:
+    return long_url
+  try:
+    if isinstance(content, bytes):
+      content = content.decode()
+    return json.loads(content).get('short_url', long_url)
+  except:
+    return long_url
 
 def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, api=None, noDASA=False, refreshOnly=False, noScopes=False):
   """Gets OAuth2 credentials which are guaranteed to be fresh and valid.
@@ -10088,6 +10111,7 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
       time.sleep(0.1)
     self.redirect_uri = d['redirect_uri']
     d['auth_url'], _ = super().authorization_url(**kwargs)
+    d['auth_url'] = shortenURL(d['auth_url'])
     print(Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(url=d['auth_url']))
     userInputProcess.start()
     userInput = False
@@ -11449,7 +11473,8 @@ def checkServiceAccount(users):
     if GC.Values[GC.DOMAIN]:
       long_url += f'&dn={GC.Values[GC.DOMAIN]}'
     long_url += f'&authuser={_getAdminEmail()}'
-    printLine(message.format('', long_url))
+    short_url = shortenURL(long_url)
+    printLine(message.format('', short_url))
 
   credentials = getSvcAcctCredentials([API.USERINFO_EMAIL_SCOPE], None, forceOauth=True)
   allScopes = API.getSvcAcctScopes(GC.Values[GC.USER_SERVICE_ACCOUNT_ACCESS_ONLY], Act.Get() == Act.UPDATE)

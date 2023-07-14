@@ -1,3 +1,11 @@
+6.61.00
+
+Following Jay's lead, added `no_short_urls` variable to `gam.cfg`. When false, the long scopes URLs in `gam oauth create` and
+`gam <UserTypeEntity> check|update serviceaccount` will be shortened at the site `https://gam-shortn.appspot.com`; the shortened
+URL redirects to the long URL. For existing configurations, `no_short_urls` defaults to true; the long URLs are used as is.
+For new configurations the `no_short_urls` defaults to false unless there is a file named `noshorturls.txt` in the folder
+specified by the environment variable `OLDGAMPATH`.
+
 6.60.31
 
 Added option `addcsvdata <FieldName> <String>` to `gam print forms|formresponses`. This adds additional columns of data to the CSV file output.
