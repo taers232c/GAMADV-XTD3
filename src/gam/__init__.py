@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.00'
+__version__ = '6.61.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -29609,7 +29609,22 @@ def doUpdateGroups():
   if csvPF:
     csvPF.writeCSVfile('Group Updates')
 
-# gam delete groups <GroupEntity>
+def verifyGroupPrimaryEmail(cd, group, i, count):
+  try:
+    result = callGAPI(cd.groups(), 'get',
+                      throwReasons=GAPI.GROUP_GET_THROW_REASONS,
+                      groupKey=group, fields='id,email')
+    if (result['email'].lower() == group) or (result['id'] == group):
+      return True
+    entityActionNotPerformedWarning([Ent.GROUP, group], Msg.NOT_A_PRIMARY_EMAIL_ADDRESS, i, count)
+    return False
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
+          GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+    pass
+  entityUnknownWarning(Ent.GROUP, group, i, count)
+  return False
+
+# gam delete groups <GroupEntity> [noactionifalias]
 def doDeleteGroups(ciGroupsAPI=False):
   if not ciGroupsAPI:
     cd = buildGAPIObject(API.DIRECTORY)
@@ -29618,6 +29633,8 @@ def doDeleteGroups(ciGroupsAPI=False):
     ci = buildGAPIObject(API.CLOUDIDENTITY_GROUPS)
   entityType = GROUP_CIGROUP_ENTITYTYPE_MAP[ciGroupsAPI]
   entityList = getEntityList(Cmd.OB_GROUP_ENTITY)
+  if not ciGroupsAPI:
+    noActionIfAlias = checkArgumentPresent('noactionifalias')
   checkForExtraneousArguments()
   i = 0
   count = len(entityList)
@@ -29626,6 +29643,8 @@ def doDeleteGroups(ciGroupsAPI=False):
     try:
       if not ciGroupsAPI:
         ci, _, groupKey = convertGroupCloudIDToEmail(ci, group, i, count)
+        if noActionIfAlias and not verifyGroupPrimaryEmail(cd, groupKey, i, count):
+          continue
         callGAPI(cd.groups(), 'delete',
                  throwReasons=[GAPI.GROUP_NOT_FOUND, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
                  groupKey=groupKey)
@@ -40032,7 +40051,7 @@ def doCreateUser():
             GAPI.userNotFound, GAPI.forbidden, GAPI.backendError, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.LICENSE, SKU.formatSKUIdDisplayName(skuId)], str(e))
 
-def verifyPrimaryEmail(cd, user, createIfNotFound, i, count):
+def verifyUserPrimaryEmail(cd, user, createIfNotFound, i, count):
   try:
     result = callGAPI(cd.users(), 'get',
                       throwReasons=GAPI.USER_GET_THROW_REASONS,
@@ -40083,7 +40102,7 @@ def updateUsers(entityList):
   for user in entityList:
     i += 1
     user = userKey = normalizeEmailAddressOrUID(user)
-    if parameters['noActionIfAlias'] and not verifyPrimaryEmail(cd, user, parameters['createIfNotFound'], i, count):
+    if parameters['noActionIfAlias'] and not verifyUserPrimaryEmail(cd, user, parameters['createIfNotFound'], i, count):
       continue
     if checkImmutableOUs:
       body = ubody.copy()
@@ -40216,7 +40235,7 @@ def deleteUsers(entityList):
   for user in entityList:
     i += 1
     user = normalizeEmailAddressOrUID(user)
-    if noActionIfAlias and not verifyPrimaryEmail(cd, user, False, i, count):
+    if noActionIfAlias and not verifyUserPrimaryEmail(cd, user, False, i, count):
       continue
     try:
       callGAPI(cd.users(), 'delete',
@@ -40332,7 +40351,7 @@ def suspendUnsuspendUsers(entityList):
   for user in entityList:
     i += 1
     user = normalizeEmailAddressOrUID(user)
-    if noActionIfAlias and not verifyPrimaryEmail(cd, user, False, i, count):
+    if noActionIfAlias and not verifyUserPrimaryEmail(cd, user, False, i, count):
       continue
     try:
       callGAPI(cd.users(), 'update',

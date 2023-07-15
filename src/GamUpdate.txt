@@ -1,3 +1,8 @@
+6.61.01
+
+Added option `noactionifalias` to `gam delete groups <GroupEntity>` that prevents GAM from deleting a
+group if `<GroupEntity>` specifies an alias rather than a primary email address.
+
 6.61.00
 
 Following Jay's lead, added `no_short_urls` variable to `gam.cfg`. When false, the long scopes URLs in `gam oauth create` and

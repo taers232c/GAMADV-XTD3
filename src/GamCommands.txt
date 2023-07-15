@@ -3443,7 +3443,7 @@ gam update group|groups <GroupEntity> clear [member] [manager] [owner]
         [emailclearpattern|emailretainpattern <RegularExpression>]
         [removedomainnostatusmembers]
         [preview] [actioncsv]
-gam delete group|groups <GroupEntity>
+gam delete group|groups <GroupEntity> [noactionifalias]
 
 <GroupFieldName> ::=
         admincreated|
