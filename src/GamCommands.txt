@@ -5054,7 +5054,7 @@ gam download storagefile <StorageBucketObjectName>
                 [country <String>] [countrycode <String>]
                 notprimary|primary)|
         (employeeid <String>)|
-        (externalid account|customer|login_id|network|organization|<String> <String>)|
+        (externalid account|customer|login_id|network|organization|(custom <String>)|<String> <String>)|
         (im type home|other|work|(custom <String>)
                 protocol aim|gtalk|icq|jabber|msn|net_meeting|qq|
                 skype|yahoo|(custom_protocol <String>) <String>

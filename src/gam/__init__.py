@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.02'
+__version__ = '6.61.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -39446,6 +39446,8 @@ USER_JSON_SKIP_FIELDS = ['agreedToTerms', 'aliases', 'creationTime', 'customerId
                          'lastLoginTime', 'licenses', 'primaryEmail', 'thumbnailPhotoEtag', 'thumbnailPhotoUrl',
                          'ipWhiteListed', 'posixAccounts', 'suspensionReason', 'nonEditableAliases']
 
+ALLOW_EMPTY_CUSTOM_TYPE = 'allowEmptyCustomType'
+
 def getUserAttributes(cd, updateCmd, noUid=False):
   def getKeywordAttribute(keywords, attrdict, **opts):
     if Cmd.ArgumentsRemaining():
@@ -39458,7 +39460,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           return
         if Cmd.ArgumentsRemaining():
           customType = Cmd.Current().strip()
-          if customType:
+          if customType or opts.get(ALLOW_EMPTY_CUSTOM_TYPE, False):
             Cmd.Advance()
             if keywords[UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]:
               attrdict[keywords[UProp.PTKW_ATTR_TYPE_KEYWORD]] = keywords[UProp.PTKW_ATTR_TYPE_CUSTOM_VALUE]
@@ -39891,7 +39893,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
           continue
         entry = {}
         getChoice([clTypeKeyword], defaultChoice=None)
-        getKeywordAttribute(typeKeywords, entry)
+        getKeywordAttribute(typeKeywords, entry, allowEmptyCustomType=True)
         entry['value'] = getString(Cmd.OB_STRING, minLen=0)
         appendItemToBodyList(body, up, entry, 'value')
       elif up == 'websites':

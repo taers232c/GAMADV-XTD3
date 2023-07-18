@@ -1,6 +1,18 @@
+6.61.03
+
+Updated processing of `<UserMultiAttribute> externalid` to allow an empty `custom` type.
+```
+externalid account|customer|login_id|network|organization|(custom <String>)|<String> <String>
+```
+These are equivalent ways of expressing an empty custom type:
+```
+externalid "" "Value"
+externalid custom "" "Value"
+```
+
 6.61.02
 
-Fixed bug in `gam update groups <GroupEntity> sync` introduced in 6.60.01 that caused this error:
+Fixed bug in `gam update groups <GroupEntity> sync` introduced in 6.60.31 that caused this error:
 ```
 ERROR: 409: generic409 - Member already exists.
 ```
