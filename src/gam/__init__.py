@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.01'
+__version__ = '6.61.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5033,8 +5033,6 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
     elif http_status == 409:
       if status == 'ALREADY_EXISTS' or 'requested entity already exists' in lmessage:
         error = makeErrorDict(http_status, GAPI.ALREADY_EXISTS, message)
-      else:
-        error = makeErrorDict(http_status, GAPI.GENERIC_409, message)
     elif http_status == 412:
       if 'insufficient archived user licenses' in lmessage:
         error = makeErrorDict(http_status, GAPI.INSUFFICIENT_ARCHIVED_USER_LICENSES, message)
@@ -10730,9 +10728,9 @@ def setGAMProjectConsentScreen(httpObj, projectId, appInfo):
   iap = getAPIService(API.IAP, httpObj)
   try:
     callGAPI(iap.projects().brands(), 'create',
-             throwReasons=[GAPI.ALREADY_EXISTS, GAPI.INVALID_ARGUMENT, GAPI.GENERIC_409],
+             throwReasons=[GAPI.ALREADY_EXISTS, GAPI.INVALID_ARGUMENT],
              parent=f'projects/{projectId}', body=appInfo)
-  except (GAPI.invalidArgument, GAPI.alreadyExists, GAPI.generic409):
+  except (GAPI.invalidArgument, GAPI.alreadyExists):
     pass
 
 def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo, svcAcctInfo):

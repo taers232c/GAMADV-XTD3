@@ -78,7 +78,6 @@ FILE_OWNER_NOT_MEMBER_OF_TEAMDRIVE = 'fileOwnerNotMemberOfTeamDrive'
 FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN = 'fileOwnerNotMemberOfWriterDomain'
 FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED = 'fileWriterTeamDriveMoveInDisabled'
 FORBIDDEN = 'forbidden'
-GENERIC_409 = 'generic409'
 GATEWAY_TIMEOUT = 'gatewayTimeout'
 GROUP_NOT_FOUND = 'groupNotFound'
 ILLEGAL_ACCESS_ROLE_FOR_DEFAULT = 'illegalAccessRoleForDefault'
@@ -438,8 +437,6 @@ class fileWriterTeamDriveMoveInDisabled(Exception):
   pass
 class forbidden(Exception):
   pass
-class generic409(Exception):
-  pass
 class groupNotFound(Exception):
   pass
 class illegalAccessRoleForDefault(Exception):
@@ -672,7 +669,6 @@ REASON_EXCEPTION_MAP = {
   FILE_OWNER_NOT_MEMBER_OF_WRITER_DOMAIN: fileOwnerNotMemberOfWriterDomain,
   FILE_WRITER_TEAMDRIVE_MOVE_IN_DISABLED: fileWriterTeamDriveMoveInDisabled,
   FORBIDDEN: forbidden,
-  GENERIC_409: generic409,
   GROUP_NOT_FOUND: groupNotFound,
   ILLEGAL_ACCESS_ROLE_FOR_DEFAULT: illegalAccessRoleForDefault,
   INSUFFICIENT_ADMINISTRATOR_PRIVILEGES: insufficientAdministratorPrivileges,
