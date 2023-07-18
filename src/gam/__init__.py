@@ -48755,7 +48755,7 @@ def printDriveActivity(users):
                           userKey=userId, fields='primaryEmail,name.fullName')
         entry = (result['primaryEmail'], result['name']['fullName'])
       except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-              GAPI.badRequest, GAPI.backendError, GAPI.systemError):
+              GAPI.badRequest, GAPI.backendError, GAPI.systemError, GAPI.invalidInput):
         entry = (f'uid:{userId}', UNKNOWN)
       userInfo[userId] = entry
     return entry
