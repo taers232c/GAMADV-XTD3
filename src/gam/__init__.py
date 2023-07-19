@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.03'
+__version__ = '6.61.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14782,7 +14782,7 @@ def printShowAnalyticItems(users, entityType):
       csvPF.GetTodriveParameters()
     elif myarg == 'maxresults':
       kwargs['pageSize'] = getInteger(minVal=1, maxVal=analyticEntityMap['maxPageSize'])
-    elif entityType == Ent.ANALYTIC_ACCOUNT and myarg == 'showdeleted':
+    elif entityType in {Ent.ANALYTIC_ACCOUNT, Ent.ANALYTIC_PROPERTY} and myarg == 'showdeleted':
       kwargs['showDeleted'] = getBoolean()
     elif entityType == Ent.ANALYTIC_PROPERTY and myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING)
@@ -16847,7 +16847,7 @@ def doCreateUpdateAliases():
         callGAPI(cd.users(), 'get',
                  throwReasons=GAPI.USER_GET_THROW_REASONS,
                  userKey=targetEmail, fields='primaryEmail')
-        return'user'
+        return 'user'
       except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
               GAPI.badRequest, GAPI.backendError, GAPI.systemError):
         if targetType == 'user':
@@ -48751,7 +48751,7 @@ def printDriveActivity(users):
     if entry is None:
       try:
         result = callGAPI(cd.users(), 'get',
-                          throwReasons=GAPI.USER_GET_THROW_REASONS,
+                          throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.INVALID_INPUT],
                           userKey=userId, fields='primaryEmail,name.fullName')
         entry = (result['primaryEmail'], result['name']['fullName'])
       except (GAPI.userNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
@@ -59065,6 +59065,10 @@ def _moveSharedDriveToOU(orgUnit, orgUnitId, driveId, user, i, count, ci=None):
 #	[hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 #	[(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
 def createSharedDrive(users, useDomainAdminAccess=False):
+  def waitingForCreationToComplete(sleep_time):
+    writeStdout(Ind.Spaces()+Msg.WAITING_FOR_SHARED_DRIVE_CREATION_TO_COMPLETE_SLEEPING.format(sleep_time))
+    time.sleep(sleep_time)
+    
   requestId = str(uuid.uuid4())
   body = {'name': getString(Cmd.OB_NAME, checkBlank=True)}
   updateBody = {}
@@ -59147,6 +59151,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
     if doUpdate and (updateBody or hide or orgUnit):
+      waitingForCreationToComplete(30)
       try:
         if updateBody:
           Act.Set(Act.UPDATE)
@@ -59167,7 +59172,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
               if retry > 3:
                 entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
                 break
-              time.sleep(retry*retry)
+              waitingForCreationToComplete(retry*15)
             except (GAPI.badRequest, GAPI.internalError) as e:
               entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], str(e), i, count)
               break

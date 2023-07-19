@@ -1,3 +1,11 @@
+6.61.04
+
+Updated `gam create shareddrive <Name>` to wait longer between creating the Drive
+and updating any attributes that could not be specified as part of the creation; i.e.,
+`<SharedDriveRestrictionsFieldName>`, `hidden`, `customtheme` and `color`.
+The initial wait is 30 seconds. Previously, GAM was not waiting long enough;
+the Drive would be created but the update would fail; the attributes were not set.
+
 6.61.03
 
 Updated processing of `<UserMultiAttribute> externalid` to allow an empty `custom` type.
