@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.05'
+__version__ = '6.61.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10086,8 +10086,11 @@ def _waitForHttpClient(d):
   if d['open_browser']:
     webbrowser.open(d['auth_url'], new=1, autoraise=True)
   local_server.handle_request()
-  authorization_response = wsgi_app.last_request_uri.replace("http", "https")
-  d['code'] = authorization_response
+  try:
+    authorization_response = wsgi_app.last_request_uri.replace("http", "https")
+    d['code'] = authorization_response
+  except:
+    pass
   local_server.server_close()
 
 def _waitForUserInput(d):
@@ -60720,7 +60723,7 @@ def _getUserGroupDomainCustomerId(myarg, kwargs):
   return True
 
 # gam <UserTypeEntity> check group|groups
-#	[roles <GroupRoleList>] [includederivedmembership] <GroupEntity>
+#	[roles <GroupRoleList>] [includederivedmembership] [csv] <GroupEntity>
 def checkUserInGroups(users):
   def _setCheckError():
     sysRC['sysRC'] = CHECK_USER_GROUPS_ERROR_RC
@@ -60728,32 +60731,45 @@ def checkUserInGroups(users):
   def _checkMember(result):
     role = result.get('role', Ent.MEMBER)
     if role in rolesSet:
-      printEntity([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], j, jcount)
+      if not csvPF:
+        printEntity([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], j, jcount)
+      else:
+        csvPF.WriteRow({'user': user, 'group': groupEmail, 'role': role})
     else:
-      entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], Msg.ROLE_NOT_IN_SET.format(rolesSet), j, jcount)
+      if not csvPF:
+        entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail, Ent.ROLE, role], Msg.ROLE_NOT_IN_SET.format(rolesSet), j, jcount)
+      else:
+        csvPF.WriteRow({'user': user, 'group': groupEmail, 'role': notMemberOrRole})
       _setCheckError()
 
   cd = buildGAPIObject(API.DIRECTORY)
+  csvPF = None
   groupKeys = None
   checkGroupsSet = set()
   rolesSet = set()
   includeDerivedMembership = False
   sysRC = {'sysRC' : 0}
-  if checkArgumentPresent(['role', 'roles']):
-    for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
-      if role in GROUP_ROLES_MAP:
-        rolesSet.add(GROUP_ROLES_MAP[role])
-      else:
-        invalidChoiceExit(role, GROUP_ROLES_MAP, True)
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in {'role', 'roles'}:
+      for role in getString(Cmd.OB_GROUP_ROLE_LIST).lower().replace(',', ' ').split():
+        if role in GROUP_ROLES_MAP:
+          rolesSet.add(GROUP_ROLES_MAP[role])
+        else:
+          invalidChoiceExit(role, GROUP_ROLES_MAP, True)
+    elif myarg == 'includederivedmembership':
+      includeDerivedMembership = True
+    elif myarg == 'csv':
+      csvPF = CSVPrintFile(['user', 'group', 'role'])
+    else:
+      Cmd.Backup()
+      groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
   if not rolesSet:
     rolesSet = ALL_GROUP_ROLES
-  if checkArgumentPresent(['includederivedmembership']):
-    includeDerivedMembership = True
-  groupKeys = getEntityList(Cmd.OB_GROUP_ENTITY)
+  notMemberOrRole = Msg.NOT_AN_ENTITY.format('|'.join(rolesSet))
   userGroupLists = groupKeys if isinstance(groupKeys, dict) else None
   for group in groupKeys:
     checkGroupsSet.add(normalizeEmailAddressOrUID(group))
-  checkForExtraneousArguments()
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -60781,7 +60797,10 @@ def checkUserInGroups(users):
           entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
           _setCheckError()
         except GAPI.memberNotFound:
-          entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], Msg.NOT_A_MEMBER, j, jcount)
+          if not csvPF:
+            entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], Msg.NOT_A_MEMBER, j, jcount)
+          else:
+            csvPF.WriteRow({'user': user, 'group': groupEmail, 'role': notMemberOrRole})
           _setCheckError()
         except (GAPI.invalidMember, GAPI.conditionNotMet) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
@@ -60798,12 +60817,17 @@ def checkUserInGroups(users):
             _checkMember(member)
             break
           else:
-            entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], Msg.NOT_A_MEMBER, j, jcount)
+            if not csvPF:
+              entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], Msg.NOT_A_MEMBER, j, jcount)
+            else:
+              csvPF.WriteRow({'user': user, 'group': groupEmail, 'role': notMemberOrRole})
             _setCheckError()
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
           entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
           _setCheckError()
     Ind.Decrement()
+  if csvPF:
+    csvPF.writeCSVfile('User Check Groups')
   setSysExitRC(sysRC['sysRC'])
 
 # gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]

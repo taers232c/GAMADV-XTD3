@@ -6966,7 +6966,7 @@ gam <UserTypeEntity> sync group|groups
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 gam <UserTypeEntity> check group|groups
-        [roles <GroupRoleList>] [includederivedmembership] <GroupEntity>
+        [roles <GroupRoleList>] [includederivedmembership] [csv] <GroupEntity>
 gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [roles <GroupRoleList>] [countsonly|nodetails]

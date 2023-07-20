@@ -1,3 +1,16 @@
+6.61.06
+
+Added option `csv` to `gam <UserTypeEntity> check group|groups` that displays
+the results in CSV format.
+```
+$ gam user testuser check groups csv testgroup1,testgroup2,alladmin
+User: testuser@domain.com, Check in 3 Groups
+user,group,role
+testuser@domain.com,alladmin@domain.com,Not a MEMBER|OWNER|MANAGER
+testuser@domain.com,testgroup1@domain.com,MEMBER
+testuser@domain.com,testgroup2@domain.com,MANAGER
+```
+
 6.61.05
 
 Fixed bug in `gam print contacts` that caused a trap when `show_gettings = False` in gam.cfg.
