@@ -60744,7 +60744,7 @@ def checkUserInGroups(users):
 
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = None
-  groupKeys = None
+  groupKeys = []
   checkGroupsSet = set()
   rolesSet = set()
   includeDerivedMembership = False
