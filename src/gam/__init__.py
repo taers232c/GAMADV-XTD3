@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.04'
+__version__ = '6.61.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -19931,7 +19931,7 @@ def queryPeopleContacts(people, contactQuery, fields, sortOrder, entityType, use
                             resourceName=resourceName, sources=sources, personFields=fields)
 
           entityList.append(result)
-    if contactQuery['contactGroupSelect'] or contactQuery['contactGroupFilter'] or contactQuery['query']:
+    if pageMessage and (contactQuery['contactGroupSelect'] or contactQuery['contactGroupFilter'] or contactQuery['query']):
       showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
       writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.PEOPLE_CONTACT, totalItems))))
     return entityList
@@ -19957,8 +19957,9 @@ def queryPeopleOtherContacts(people, contactQuery, fields, entityType, user, i=0
                          pageSize=30, readMask=fields, query=contactQuery['query'])
       entityList = [person['person'] for person in results.get('results', [])]
       totalItems = len(entityList)
-      showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
-      writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.OTHER_CONTACT, totalItems))))
+      if pageMessage:
+        showMessage = pageMessage.replace(TOTAL_ITEMS_MARKER, str(totalItems))
+        writeGotMessage(showMessage.replace('{0}', str(Ent.Choose(Ent.OTHER_CONTACT, totalItems))))
     return entityList
   except (GAPI.serviceNotAvailable, GAPI.forbidden):
     entityUnknownWarning(entityType, user, i, count)
