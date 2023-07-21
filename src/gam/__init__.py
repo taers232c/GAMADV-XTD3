@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.08'
+__version__ = '6.61.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10128,19 +10128,24 @@ class _GamOauthFlow(google_auth_oauthlib.flow.InstalledAppFlow):
     print(Msg.OAUTH2_GO_TO_LINK_MESSAGE.format(url=d['auth_url']))
     userInputProcess.start()
     userInput = False
+    checkHttp = checkUser = True
     alive = 2
     while alive > 0:
       time.sleep(0.1)
-      if not httpClientProcess.is_alive():
+      if checkHttp and not httpClientProcess.is_alive():
         if 'code' in d:
-          userInputProcess.terminate()
+          if checkUser:
+            userInputProcess.terminate()
           break
+        checkHttp = False
         alive -= 1
-      if not userInputProcess.is_alive():
+      if checkUser and not userInputProcess.is_alive():
         userInput = True
         if 'code' in d:
-          httpClientProcess.terminate()
+          if checkHttp:
+            httpClientProcess.terminate()
           break
+        checkUser = False
         alive -= 1
     if 'code' not in d:
       systemErrorExit(SYSTEM_ERROR_RC, Msg.AUTHENTICATION_FLOW_FAILED)
