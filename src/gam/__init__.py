@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.06'
+__version__ = '6.61.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2446,8 +2446,15 @@ def entityActionFailedWarning(entityValueList, errMessage, i=0, count=0):
                                  currentCountNL(i, count)))
 
 def entityModifierItemValueListActionFailedWarning(entityValueList, modifier, infoTypeValueList, errMessage, i=0, count=0):
+  setSysExitRC(ACTION_FAILED_RC)
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier}', None]+Ent.FormatEntityValueList(infoTypeValueList)+[Act.Failed(), errMessage],
+                                 currentCountNL(i, count)))
+
+def entityModifierActionFailedWarning(entityValueList, modifier, errMessage, i=0, count=0):
+  setSysExitRC(ACTION_FAILED_RC)
+  writeStderr(formatKeyValueList(Ind.Spaces(),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.ToPerform()} {modifier}', Act.Failed(), errMessage],
                                  currentCountNL(i, count)))
 
 def entityModifierNewValueActionFailedWarning(entityValueList, modifier, newValue, errMessage, i=0, count=0):
@@ -2749,6 +2756,11 @@ def entityActionPerformedMessage(entityValueList, message, i=0, count=0):
 def entityNumItemsActionPerformed(entityValueList, itemCount, itemType, i=0, count=0):
   writeStdout(formatKeyValueList(Ind.Spaces(),
                                  Ent.FormatEntityValueList(entityValueList)+[f'{itemCount} {Ent.Choose(itemType, itemCount)} {Act.Performed()}'],
+                                 currentCountNL(i, count)))
+
+def entityModifierActionPerformed(entityValueList, modifier, i=0, count=0):
+  writeStdout(formatKeyValueList(Ind.Spaces(),
+                                 Ent.FormatEntityValueList(entityValueList)+[f'{Act.Performed()} {modifier}', None],
                                  currentCountNL(i, count)))
 
 def entityModifierItemValueListActionPerformed(entityValueList, modifier, infoTypeValueList, i=0, count=0):
@@ -14770,14 +14782,28 @@ ANALYTIC_ENTITY_MAP = {
      'pageSize': 50,
      'maxPageSize': 200,
      },
+  Ent.ANALYTIC_UA_PROPERTY:
+    {'titles': ['User', 'accountId', 'name', 'id', 'created', 'updated'],
+     'JSONtitles': ['User', 'accountId', 'name', 'id', 'JSON'],
+     'timeObjects': ['created', 'updated'],
+     'items': 'items',
+     'pageSize': 50,
+     'maxPageSize': 200,
+     },
   }
 
 def printShowAnalyticItems(users, entityType):
   analyticEntityMap = ANALYTIC_ENTITY_MAP[entityType]
   csvPF = CSVPrintFile(analyticEntityMap['titles'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  kwargs = {'pageSize': analyticEntityMap['pageSize']}
-  if entityType == Ent.ANALYTIC_ACCOUNT:
+  if entityType != Ent.ANALYTIC_UA_PROPERTY:
+    kwargs = {'pageSize': analyticEntityMap['pageSize']}
+    api = API.ANALYTICS_ADMIN
+  else:
+#    kwargs = {'webPropertyId': '~all'}
+    kwargs = {}
+    api = API.ANALYTICS
+  if entityType in {Ent.ANALYTIC_ACCOUNT, Ent.ANALYTIC_PROPERTY}:
     kwargs['showDeleted'] = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -14789,12 +14815,16 @@ def printShowAnalyticItems(users, entityType):
       kwargs['showDeleted'] = getBoolean()
     elif entityType == Ent.ANALYTIC_PROPERTY and myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING)
+    elif entityType == Ent.ANALYTIC_UA_PROPERTY and myarg == 'accountid':
+      kwargs['accountId'] = getString(Cmd.OB_STRING)
     elif entityType == Ent.ANALYTIC_DATASTREAM and myarg == 'parent':
       kwargs['parent'] = getString(Cmd.OB_STRING)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if entityType == Ent.ANALYTIC_PROPERTY and 'filter' not in kwargs:
     missingArgumentExit('filter')
+  if entityType == Ent.ANALYTIC_UA_PROPERTY and 'accountId' not in kwargs:
+    missingArgumentExit('accountid')
   if entityType == Ent.ANALYTIC_DATASTREAM and 'parent' not in kwargs:
     missingArgumentExit('parent')
   if csvPF and FJQC.formatJSON:
@@ -14802,7 +14832,7 @@ def printShowAnalyticItems(users, entityType):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, analytics = buildGAPIServiceObject(API.ANALYTICS_ADMIN, user, i, count)
+    user, analytics = buildGAPIServiceObject(api, user, i, count)
     if not analytics:
       continue
     if entityType == Ent.ANALYTIC_ACCOUNT:
@@ -14811,8 +14841,11 @@ def printShowAnalyticItems(users, entityType):
       service = analytics.accountSummaries()
     elif entityType == Ent.ANALYTIC_DATASTREAM:
       service = analytics.properties().dataStreams()
-    else: #Ent.ANALYTIC_ACCOUNT_SUMMARY:
+    elif entityType == Ent.ANALYTIC_PROPERTY:
       service = analytics.properties()
+    else: #Ent.ANALYTIC_UA_PROPERTY:
+      service = analytics.management().webproperties()
+#      service = analytics.management().profiles()
     if csvPF:
       printGettingAllEntityItemsForWhom(entityType, user, i, count)
       pageMessage = getPageMessageForWhom()
@@ -14853,7 +14886,10 @@ def printShowAnalyticItems(users, entityType):
         if not FJQC.formatJSON:
           csvPF.WriteRowTitles(row)
         elif csvPF.CheckRowTitles(row):
-          row = {'User': user, 'name': item['name'], 'displayName': item['displayName']}
+          if entityType != Ent.ANALYTIC_UA_PROPERTY:
+            row = {'User': user, 'name': item['name'], 'displayName': item['displayName']}
+          else:
+            row = {'User': user, 'accountId': item['accountId'], 'id': item['id'], 'name': item['name']}
           for field in analyticEntityMap['JSONtitles'][2:-1]:
             row[field] = item[field]
           row['JSON'] = json.dumps(cleanJSON(item, timeObjects=analyticEntityMap['timeObjects']),
@@ -14890,6 +14926,17 @@ def printShowAnalyticAccountSummaries(users):
 #	[formatjson]
 def printShowAnalyticProperties(users):
   printShowAnalyticItems(users, Ent.ANALYTIC_PROPERTY)
+
+# gam <UserTypeEntity> print analyticuaproperties [todrive <ToDriveAttribute>*]
+#	accountid <String>
+#	[maxresults <Integer>]
+#	[formatjson [quotechar <Character>]]
+# gam <UserTypeEntity> show analyticuaproperties
+#	accountid <String>
+#	[maxresults <Integer>]
+#	[formatjson]
+def printShowAnalyticUAProperties(users):
+  printShowAnalyticItems(users, Ent.ANALYTIC_UA_PROPERTY)
 
 # gam <UserTypeEntity> print analyticdatastreams [todrive <ToDriveAttribute>*]
 #	parent <String>
@@ -16164,21 +16211,31 @@ def checkOrgUnitPathExists(cd, orgUnitPath, i=0, count=0, showError=False):
     entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
   return (False, orgUnitPath, orgUnitPath)
 
-def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quickCrOSMove):
+def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quickCrOSMove, fromOrgUnitPath=None):
   def _callbackMoveCrOSesToOrgUnit(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      if not fromOrgUnitPath:
+        entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      else:
+        entityModifierActionPerformed([Ent.ORGANIZATIONAL_UNIT, fromOrgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM]], toOrgUnitPath, int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       if reason in [GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN]:
         checkEntityItemValueAFDNEorAccessErrorExit(cd, Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       else:
         errMsg = getHTTPError({}, http_status, reason, message)
-        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        if not fromOrgUnitPath:
+          entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+        else:
+          entityModifierActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, fromOrgUnitPath, Ent.CROS_DEVICE, ri[RI_ITEM]], toOrgUnitPath, errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   jcount = len(items)
-  entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CROS_DEVICE, i, count)
+  if not fromOrgUnitPath:
+    entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.CROS_DEVICE, i, count)
+  else:
+    toOrgUnitPath = f'{Act.MODIFIER_TO} {Ent.Singular(Ent.ORGANIZATIONAL_UNIT)}: {orgUnitPath}'
+    entityPerformActionNumItemsModifier([Ent.ORGANIZATIONAL_UNIT, fromOrgUnitPath], jcount, Ent.CROS_DEVICE, toOrgUnitPath, i, count)
   Ind.Increment()
   if not quickCrOSMove:
     svcargs = dict([('customerId', GC.Values[GC.CUSTOMER_ID]),
@@ -16234,19 +16291,29 @@ def _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quick
         bcount += kcount
   Ind.Decrement()
 
-def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items):
+def _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, items, fromOrgUnitPath=None):
   _MOVE_USER_REASON_TO_MESSAGE_MAP = {GAPI.USER_NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.DOMAIN_NOT_FOUND: Msg.SERVICE_NOT_APPLICABLE, GAPI.FORBIDDEN: Msg.SERVICE_NOT_APPLICABLE}
   def _callbackMoveUsersToOrgUnit(request_id, response, exception):
     ri = request_id.splitlines()
     if exception is None:
-      entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.USER, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      if not fromOrgUnitPath:
+        entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.USER, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      else:
+        entityModifierActionPerformed([Ent.ORGANIZATIONAL_UNIT, fromOrgUnitPath, Ent.USER, ri[RI_ITEM]], toOrgUnitPath, int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
       errMsg = getHTTPError(_MOVE_USER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
-      entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.USER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      if not fromOrgUnitPath:
+        entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.USER, ri[RI_ITEM]], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      else:
+        entityModifierActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, fromOrgUnitPath, Ent.USER, ri[RI_ITEM]], toOrgUnitPath, errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   jcount = len(items)
-  entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.USER, i, count)
+  if not fromOrgUnitPath:
+    entityPerformActionNumItems([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], jcount, Ent.USER, i, count)
+  else:
+    toOrgUnitPath = f'{Act.MODIFIER_TO} {Ent.Singular(Ent.ORGANIZATIONAL_UNIT)}: {orgUnitPath}'
+    entityPerformActionNumItemsModifier([Ent.ORGANIZATIONAL_UNIT, fromOrgUnitPath], jcount, Ent.USER, toOrgUnitPath, i, count)
   Ind.Increment()
   svcargs = dict([('userKey', None), ('body', {'orgUnitPath': orgUnitPath}), ('fields', '')]+GM.Globals[GM.EXTRA_ARGS_LIST])
   method = getattr(cd.users(), 'update')
@@ -16295,6 +16362,7 @@ def _doUpdateOrgs(entityList):
         _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, items, quickCrOSMove)
   elif checkArgumentPresent(['sync']):
     entityType, syncMembers = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS, crosAllowed=True)
+    cmdEntityType = Cmd.ENTITY_OU if entityType == Cmd.ENTITY_USERS else Cmd.ENTITY_CROS_OU
     orgItemLists = syncMembers if isinstance(syncMembers, dict) else None
     if orgItemLists is None:
       syncMembersSet = set(syncMembers)
@@ -16313,7 +16381,6 @@ def _doUpdateOrgs(entityList):
         unknownArgumentExit()
     if entityType == Cmd.ENTITY_CROS and not removeToOrgUnitId:
       _, removeToOrgUnitPath, removeToOrgUnitId = checkOrgUnitPathExists(cd, removeToOrgUnitPath)
-    Act.Set(Act.ADD)
     i = 0
     count = len(entityList)
     for orgUnitPath in entityList:
@@ -16323,13 +16390,17 @@ def _doUpdateOrgs(entityList):
       status, orgUnitPath, orgUnitId = checkOrgUnitPathExists(cd, orgUnitPath, i, count, True)
       if not status:
         continue
-      currentMembersSet = set(getItemsToModify(Cmd.ENTITY_OU, orgUnitPath))
+      currentMembersSet = set(getItemsToModify(cmdEntityType, orgUnitPath))
       if entityType == Cmd.ENTITY_USERS:
+        Act.Set(Act.ADD)
         _batchMoveUsersToOrgUnit(cd, orgUnitPath, i, count, list(syncMembersSet-currentMembersSet))
-        _batchMoveUsersToOrgUnit(cd, removeToOrgUnitPath, i, count, list(currentMembersSet-syncMembersSet))
+        Act.Set(Act.REMOVE)
+        _batchMoveUsersToOrgUnit(cd, removeToOrgUnitPath, i, count, list(currentMembersSet-syncMembersSet), orgUnitPath)
       else:
+        Act.Set(Act.ADD)
         _batchMoveCrOSesToOrgUnit(cd, orgUnitPath, orgUnitId, i, count, list(syncMembersSet-currentMembersSet), quickCrOSMove)
-        _batchMoveCrOSesToOrgUnit(cd, removeToOrgUnitPath, removeToOrgUnitId, i, count, list(currentMembersSet-syncMembersSet), quickCrOSMove)
+        Act.Set(Act.REMOVE)
+        _batchMoveCrOSesToOrgUnit(cd, removeToOrgUnitPath, removeToOrgUnitId, i, count, list(currentMembersSet-syncMembersSet), quickCrOSMove, orgUnitPath)
   else:
     body = {}
     while Cmd.ArgumentsRemaining():
@@ -59072,7 +59143,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
   def waitingForCreationToComplete(sleep_time):
     writeStdout(Ind.Spaces()+Msg.WAITING_FOR_SHARED_DRIVE_CREATION_TO_COMPLETE_SLEEPING.format(sleep_time))
     time.sleep(sleep_time)
-    
+
   requestId = str(uuid.uuid4())
   body = {'name': getString(Cmd.OB_NAME, checkBlank=True)}
   updateBody = {}
@@ -69947,6 +70018,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ANALYTICACCOUNTSUMMARY:	printShowAnalyticAccountSummaries,
       Cmd.ARG_ANALYTICDATASTREAM:	printShowAnalyticDatastreams,
       Cmd.ARG_ANALYTICPROPERTY:	printShowAnalyticProperties,
+      Cmd.ARG_ANALYTICUAPROPERTY:	printShowAnalyticUAProperties,
       Cmd.ARG_ASP:		printShowASPs,
       Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
       Cmd.ARG_CALENDAR:		printShowCalendars,
@@ -70037,6 +70109,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_ANALYTICACCOUNTSUMMARY:	printShowAnalyticAccountSummaries,
       Cmd.ARG_ANALYTICDATASTREAM:	printShowAnalyticDatastreams,
       Cmd.ARG_ANALYTICPROPERTY:	printShowAnalyticProperties,
+      Cmd.ARG_ANALYTICUAPROPERTY:	printShowAnalyticUAProperties,
       Cmd.ARG_ASP:		printShowASPs,
       Cmd.ARG_BACKUPCODE:	printShowBackupCodes,
       Cmd.ARG_CALENDAR:		printShowCalendars,
@@ -70229,6 +70302,7 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_ANALYTICACCOUNTSUMMARIES:	Cmd.ARG_ANALYTICACCOUNTSUMMARY,
   Cmd.ARG_ANALYTICDATASTREAMS:	Cmd.ARG_ANALYTICDATASTREAM,
   Cmd.ARG_ANALYTICPROPERTIES:	Cmd.ARG_ANALYTICPROPERTY,
+  Cmd.ARG_ANALYTICUAPROPERTIES:	Cmd.ARG_ANALYTICUAPROPERTY,
   Cmd.ARG_ASPS:			Cmd.ARG_ASP,
   Cmd.ARG_BACKUPCODES:		Cmd.ARG_BACKUPCODE,
   Cmd.ARG_CALENDARS:		Cmd.ARG_CALENDAR,

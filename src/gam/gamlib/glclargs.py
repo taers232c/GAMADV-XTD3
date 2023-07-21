@@ -422,6 +422,8 @@ class GamCLArgs():
   ARG_ANALYTICDATASTREAMS = 'analyticdatastreams'
   ARG_ANALYTICPROPERTY = 'analyticproperty'
   ARG_ANALYTICPROPERTIES = 'analyticproperties'
+  ARG_ANALYTICUAPROPERTY = 'analyticuaproperty'
+  ARG_ANALYTICUAPROPERTIES = 'analyticuaproperties'
   ARG_API = 'api'
   ARG_APIS = 'apis'
   ARG_APIPROJECT = 'apiproject'

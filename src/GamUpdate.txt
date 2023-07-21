@@ -1,3 +1,7 @@
+6.61.07
+
+Improved action messages in `gam update org|ou <OrgUnitItem> sync <UserTypeEntity> [removetoou <OrgUnitItem>]`.
+
 6.61.06
 
 Added option `csv` to `gam <UserTypeEntity> check group|groups` that displays

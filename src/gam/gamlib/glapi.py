@@ -22,6 +22,7 @@
 # APIs
 ACCESSCONTEXTMANAGER = 'accesscontextmanager'
 ALERTCENTER = 'alertcenter'
+ANALYTICS = 'analytics'
 ANALYTICS_ADMIN = 'analyticsadmin'
 CALENDAR = 'calendar'
 CBCM = 'cbcm'
@@ -143,6 +144,7 @@ PROJECT_APIS = [
   'accesscontextmanager.googleapis.com',
   'admin.googleapis.com',
   'alertcenter.googleapis.com',
+  'analytics.googleapis.com',
   'analyticsadmin.googleapis.com',
   'audit.googleapis.com',
   'calendar-json.googleapis.com',
@@ -180,6 +182,7 @@ PROJECT_APIS = [
 _INFO = {
   ACCESSCONTEXTMANAGER: {'name': 'Access Context Manager API', 'version': 'v1', 'v2discovery': True},
   ALERTCENTER: {'name': 'AlertCenter API', 'version': 'v1beta1', 'v2discovery': True},
+  ANALYTICS: {'name': 'Analytics API', 'version': 'v3', 'v2discovery': False},
   ANALYTICS_ADMIN: {'name': 'Analytics Admin API', 'version': 'v1beta', 'v2discovery': True},
   CALENDAR: {'name': 'Calendar API', 'version': 'v3', 'v2discovery': True, 'mappedAPI': 'calendar-json'},
   CBCM: {'name': 'Chrome Browser Cloud Management API', 'version': 'v1.1beta1', 'v2discovery': True, 'localjson': True},
@@ -479,6 +482,10 @@ _SVCACCT_SCOPES = [
    'api': ALERTCENTER,
    'subscopes': [],
    'scope': 'https://www.googleapis.com/auth/apps.alerts'},
+  {'name': 'Analytics API - read only',
+   'api': ANALYTICS,
+   'subscopes': [],
+   'scope': 'https://www.googleapis.com/auth/analytics.readonly'},
   {'name': 'Analytics Admin API - read only',
    'api': ANALYTICS_ADMIN,
    'subscopes': [],
