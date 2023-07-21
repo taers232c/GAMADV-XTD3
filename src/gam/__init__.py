@@ -10097,8 +10097,8 @@ def _waitForHttpClient(d):
     time.sleep(0.1)
   if d['open_browser']:
     webbrowser.open(d['auth_url'], new=1, autoraise=True)
-  local_server.handle_request()
   try:
+    local_server.handle_request()
     authorization_response = wsgi_app.last_request_uri.replace("http", "https")
     d['code'] = authorization_response
   except:
