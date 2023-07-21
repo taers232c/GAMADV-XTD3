@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.07'
+__version__ = '6.61.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -64589,7 +64589,7 @@ def printShowMessagesThreads(users, entityType):
     if show_size:
       printKeyValueList(['SizeEstimate', result['sizeEstimate']])
     if show_labels:
-      printKeyValueList(['Labels', ','.join(messageLabels)])
+      printKeyValueList(['Labels', delimiter.join(messageLabels)])
     if show_body:
       printKeyValueList(['Body', None])
       Ind.Increment()
@@ -64652,6 +64652,7 @@ def printShowMessagesThreads(users, entityType):
     if show_size:
       row['SizeEstimate'] = result['sizeEstimate']
     if show_labels:
+      row['LabelsCount'] = len(messageLabels)
       row['Labels'] = delimiter.join(messageLabels)
     if show_body:
       if not convertCRNL:
@@ -64842,7 +64843,7 @@ def printShowMessagesThreads(users, entityType):
       show_all_headers = headersToShow and headersToShow[0] == 'all'
     elif not showMode and myarg in {'convertcrnl', 'converttextnl', 'convertbodynl'}:
       convertCRNL = True
-    elif not showMode and myarg == 'delimiter':
+    elif myarg == 'delimiter':
       delimiter = getCharacter()
     elif myarg == 'showdate':
       show_date = True
@@ -65038,15 +65039,16 @@ def printShowMessagesThreads(users, entityType):
             csvPF.WriteRow({'User': user, 'Sender': k, parameters['listType']: v})
   if csvPF:
     if not countsOnly:
-      csvPF.RemoveTitles(['Snippet', 'SizeEstimate', 'Labels', 'Body'])
-      if show_snippet:
-        csvPF.AddTitle('Snippet')
+      csvPF.RemoveTitles(['SizeEstimate', 'LabelsCount', 'Labels', 'Snippet', 'Body'])
       if show_size:
         csvPF.AddTitle('SizeEstimate')
       if show_labels:
-        csvPF.AddTitle('Labels')
+        csvPF.AddTitles(['LabelsCount', 'Labels'])
+      if show_snippet:
+        csvPF.AddTitle('Snippet')
       if show_body:
         csvPF.AddTitle('Body')
+      csvPF.SetSortAllTitles()
       csvPF.writeCSVfile('Messages')
     else:
       csvPF.writeCSVfile('Message Counts' if not show_labels else 'Message Label Counts')

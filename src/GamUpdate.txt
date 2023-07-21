@@ -1,3 +1,14 @@
+6.61.08
+
+Updated `gam <UserTypeEntity> print messages showlabels` to include a column `LabelsCount` to
+display the number of labels a message has. Use option `useronly` to limit the labels to user labels.
+
+Updated `gam <UserTypeEntity> print messages` to display these columns, if applicable, as the
+last columns in the CSV file.
+```
+SizeEstimate, LabelsCount, Labels, Snippet, Body
+```
+
 6.61.07
 
 Improved action messages in `gam update org|ou <OrgUnitItem> sync <UserTypeEntity> [removetoou <OrgUnitItem>]`.
