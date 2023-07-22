@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.09'
+__version__ = '6.61.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -10465,6 +10465,8 @@ def doOAuthCreate():
             invalidChoiceExit(uscope, API.getClientScopesURLs(GC.Values[GC.TODRIVE_CLIENTACCESS]), True)
       else:
         unknownArgumentExit()
+    if len(scopes) == 0:
+      scopes = None
   doOAuthRequest(scopes, login_hint)
 
 def exitIfNoOauth2Txt():
@@ -47562,7 +47564,13 @@ def getWorkingLocationDate(dateType, dateList):
     dateList.append({'first': firstDate, 'last': firstDate+datetime.timedelta(weeks=argRepeat),
                      'udelta': deltaWeek, 'pdelta': deltaWeek})
 
+def getWorkingLocationTimeRange(timeList):
+  startTime = getEventTime()
+  endTime = getEventTime()
+  timeList.append({'start': startTime, 'end': endTime})
+
 WORKING_LOCATION_DATE_CHOICES = {'date', 'range', 'daily', 'weekly'}
+WORKING_LOCATION_TIME_CHOICES = {'timerange'}
 WORKING_LOCATION_CHOICE_MAP = {
   'custom': 'customLocation',
   'home': 'homeOffice',
@@ -47577,7 +47585,7 @@ def _showCalendarWorkingLocation(primaryEmail, calId, eventEntityType, event, k,
   printEntity([eventEntityType, event['id']], k, kcount)
   skipObjects = {'id'}
   Ind.Increment()
-  showJSON(None, event, skipObjects)
+  showJSON(None, event, skipObjects, EVENT_TIME_OBJECTS)
   Ind.Decrement()
 
 # gam <UserTypeEntity> update workinglocation
@@ -47589,11 +47597,13 @@ def _showCalendarWorkingLocation(primaryEmail, calId, eventEntityType, event, k,
 #	 (range yyyy-mm-dd yyyy-mm-dd)|
 #	 (daily yyyy-mm-dd N)|
 #	 (weekly yyyy-mm-dd N))+
+#	(timerange <Time> <Time>)*
 def updateWorkingLocation(users):
   body = {'start': {'date': None}, 'end': {'date': None}, 'eventType': 'workingLocation', 'visibility': 'public', 'transparency': 'transparent',
           'workingLocationProperties': {'type': None}}
   calId = 'primary'
   dateList = []
+  timeList = []
   location = getChoice(WORKING_LOCATION_CHOICE_MAP, mapChoice=True)
   body['workingLocationProperties']['type'] = location
   if location == 'homeOffice':
@@ -47622,42 +47632,79 @@ def updateWorkingLocation(users):
     myarg = getArgument()
     if myarg in WORKING_LOCATION_DATE_CHOICES:
       getWorkingLocationDate(myarg, dateList)
+    elif myarg in WORKING_LOCATION_TIME_CHOICES:
+      getWorkingLocationTimeRange(timeList)
     elif myarg == 'json':
       body.update(getJSON([]))
     else:
       unknownArgumentExit()
-  if not dateList:
-    missingChoiceExit(WORKING_LOCATION_DATE_CHOICES)
-  kvlist = [Ent.USER, '', Ent.DATE, '', Ent.LOCATION, f"{body['workingLocationProperties'].get(location, {}).get('label', location)}"]
+  if not dateList and not  timeList:
+    missingChoiceExit(WORKING_LOCATION_DATE_CHOICES|WORKING_LOCATION_TIME_CHOICES)
+  datekvList = [Ent.USER, '', Ent.DATE, '', Ent.LOCATION, f"{body['workingLocationProperties'].get(location, {}).get('label', location)}"]
+  timekvList = [Ent.USER, '', Ent.START_TIME, '', Ent.END_TIME, '', Ent.LOCATION, f"{body['workingLocationProperties'].get(location, {}).get('label', location)}"]
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
     user, cal = buildGAPIServiceObject(API.CALENDAR, user, i, count)
     if not cal:
       continue
-    kvlist[1] = user
+    datekvList[1] = user
     jcount = len(dateList)
     j = 0
     for wlDate in dateList:
       j += 1
       first = wlDate['first']
       last = wlDate['last']
-      kvlist[3] = first.strftime(YYYYMMDD_FORMAT)
+      datekvList[3] = first.strftime(YYYYMMDD_FORMAT)
       while first <= last:
         body['start']['date'] = first.strftime(YYYYMMDD_FORMAT)
         body['end']['date'] = (first+datetime.timedelta(days=1)).strftime(YYYYMMDD_FORMAT)
         try:
           callGAPI(cal.events(), 'insert',
-                   throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
+                   throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.BAD_REQUEST,
+                                                             GAPI.TIME_RANGE_EMPTY, GAPI.MALFORMED_WORKING_LOCATION_EVENT],
                    calendarId=calId, body=body)
+          entityActionPerformed(datekvList, j, jcount)
+          first += wlDate['udelta']
         except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
           entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+          break
+        except (GAPI.badRequest, GAPI.timeRangeEmpty, GAPI.malformedWorkingLocationEvent) as e:
+          entityActionFailedWarning(datekvList, str(e), j, jcount)
           break
         except (GAPI.serviceNotAvailable, GAPI.authError):
           entityServiceNotApplicableWarning(Ent.USER, user, i, count)
           break
-        entityActionPerformed(kvlist, j, jcount)
-        first += wlDate['udelta']
+    timekvList[1] = user
+    jcount = len(timeList)
+    j = 0
+    for wlTime in timeList:
+      j += 1
+      startTime = wlTime['start']
+      if 'dateTime' in startTime:
+        timekvList[3] = formatLocalTime(startTime['dateTime'])
+      else:
+        timekvList[3] = startTime['date'].strftime(YYYYMMDD_FORMAT)
+      endTime = wlTime['end']
+      if 'dateTime' in endTime:
+        timekvList[5] = formatLocalTime(endTime['dateTime'])
+      else:
+        timekvList[5] = endTime['date'].strftime(YYYYMMDD_FORMAT)
+      body.update(wlTime)
+      try:
+        callGAPI(cal.events(), 'insert',
+                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.BAD_REQUEST,
+                                                           GAPI.TIME_RANGE_EMPTY, GAPI.MALFORMED_WORKING_LOCATION_EVENT],
+                 calendarId=calId, body=body)
+        entityActionPerformed(timekvList, j, jcount)
+      except (GAPI.notACalendarUser, GAPI.forbidden, GAPI.invalid) as e:
+        entityActionFailedWarning([Ent.USER, user], str(e), i, count)
+        break
+      except (GAPI.badRequest, GAPI.timeRangeEmpty, GAPI.malformedWorkingLocationEvent) as e:
+        entityActionFailedWarning(timekvList, str(e), j, jcount)
+      except (GAPI.serviceNotAvailable, GAPI.authError):
+        entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+        break
 
 # gam <UserTypeEntity> show workinglocation
 #	((date yyyy-mm-dd)|
@@ -47713,9 +47760,9 @@ def printShowWorkingLocation(users):
         kwargs['timeMax'] = last.strftime(YYYYMMDDTHHMMSSZ_FORMAT)
         try:
           events = callGAPIpages(cal.events(), 'list', 'items',
-                                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID],
-                                 calendarId=calId, fields='nextPageToken,items(id,start,workingLocationProperties)', **kwargs)
-        except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden, GAPI.invalid) as e:
+                                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.BAD_REQUEST],
+                                 calendarId=calId, fields='nextPageToken,items(id,start,end,workingLocationProperties)', **kwargs)
+        except (GAPI.notACalendarUser, GAPI.notFound, GAPI.forbidden, GAPI.invalid, GAPI.badRequest) as e:
           entityActionFailedWarning([Ent.USER, user], str(e), i, count)
           break
         except (GAPI.serviceNotAvailable, GAPI.authError):
@@ -56059,6 +56106,7 @@ TRANSFER_DRIVEFILE_ACL_ROLES_MAP = {
 #	[(targetfolderid <DriveFolderID>)|(targetfoldername <DriveFolderName>)]
 #	[targetuserfoldername <DriveFolderName>] [targetuserorphansfoldername <DriveFolderName>]
 #	[mergewithtarget [<Boolean>]]
+#	[createshortcutsfornonmovablefiles [<Boolean>]]
 #	[skipids <DriveFileEntity>]
 #	[keepuser | (retainrole reader|commenter|writer|editor|fileorganizer|none)] [noretentionmessages]
 #	[nonowner_retainrole reader|commenter|writer|editor|fileorganizer|current|none]
@@ -56132,37 +56180,36 @@ def transferDrive(users):
   def _setUpdateRole(permission):
     return {'role': permission['role']}
 
-#  def _makeXferShortcut(drive, user, j, jcount, entityType, childId, childName, newParentId, newParentName):
-#    kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
-#    targetEntityType = Ent.DRIVE_FILE_SHORTCUT if entityType == Ent.DRIVE_FILE else Ent.DRIVE_FOLDER_SHORTCUT
-#    newParentNameId = f'{newParentName}({newParentId})'
-#    action = Act.Get()
-#    existingShortcut = _checkForExistingShortcut(drive, childId, childName, newParentId)
-#    if existingShortcut:
-#      Act.Set(Act.CREATE_SHORTCUT)
-#      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_PREVIOUSLY_IN,
-#                                                 [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({existingShortcut})"],
-#                                                 j, jcount)
-#      Act.Set(action)
-#      return
-#    body = {'name': childName, 'mimeType': MIMETYPE_GA_SHORTCUT,
-#            'parents': [newParentId], 'shortcutDetails': {'targetId': childId}}
-#    try:
-#      result = callGAPI(drive.files(), 'create',
-#                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INSUFFICIENT_PARENT_PERMISSIONS,
-#                                                                    GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
-#                                                                    GAPI.STORAGE_QUOTA_EXCEEDED, GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
-#                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.SHORTCUT_TARGET_INVALID],
-#                        body=body, fields='id', supportsAllDrives=True)
-#      Act.Set(Act.CREATE_SHORTCUT)
-#      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
-#                                                 [Ent.DRIVE_FOLDER, newParentNameId, targetEntityType, f"{childName}({result['id']})"],
-#                                                 j, jcount)
-#      Act.Set(action)
-#    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.insufficientParentPermissions, GAPI.invalid, GAPI.badRequest,
-#            GAPI.fileNotFound, GAPI.unknownError, GAPI.storageQuotaExceeded, GAPI.teamDrivesSharingRestrictionNotAllowed,
-#	     GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
-#      entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), j, jcount)
+  def _makeXferShortcut(drive, user, j, jcount, entityType, childId, childName, newParentId):
+    kvList = [Ent.USER, user, entityType, f'{childName}({childId})']
+    targetEntityType = Ent.DRIVE_FILE_SHORTCUT if entityType == Ent.DRIVE_FILE else Ent.DRIVE_FOLDER_SHORTCUT
+    action = Act.Get()
+    existingShortcut = _checkForExistingShortcut(drive, childId, childName, newParentId)
+    if existingShortcut:
+      Act.Set(Act.CREATE_SHORTCUT)
+      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_PREVIOUSLY_IN,
+                                                 [Ent.DRIVE_FOLDER, newParentId, targetEntityType, f"{childName}({existingShortcut})"],
+                                                 j, jcount)
+      Act.Set(action)
+      return
+    body = {'name': childName, 'mimeType': MIMETYPE_GA_SHORTCUT,
+            'parents': [newParentId], 'shortcutDetails': {'targetId': childId}}
+    try:
+      result = callGAPI(drive.files(), 'create',
+                        throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.FORBIDDEN, GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INSUFFICIENT_PARENT_PERMISSIONS,
+                                                                    GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND, GAPI.UNKNOWN_ERROR,
+                                                                    GAPI.STORAGE_QUOTA_EXCEEDED, GAPI.TEAMDRIVES_SHARING_RESTRICTION_NOT_ALLOWED,
+                                                                    GAPI.TEAMDRIVE_HIERARCHY_TOO_DEEP, GAPI.SHORTCUT_TARGET_INVALID],
+                        body=body, fields='id', supportsAllDrives=True)
+      Act.Set(Act.CREATE_SHORTCUT)
+      entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_IN,
+                                                 [Ent.DRIVE_FOLDER, newParentId, targetEntityType, f"{childName}({result['id']})"],
+                                                 j, jcount)
+      Act.Set(action)
+    except (GAPI.forbidden, GAPI.insufficientFilePermissions, GAPI.insufficientParentPermissions, GAPI.invalid, GAPI.badRequest,
+            GAPI.fileNotFound, GAPI.unknownError, GAPI.storageQuotaExceeded, GAPI.teamDrivesSharingRestrictionNotAllowed,
+	     GAPI.teamDriveHierarchyTooDeep, GAPI.shortcutTargetInvalid) as e:
+      entityActionFailedWarning(kvList+[Ent.DRIVE_FILE_SHORTCUT, childName], str(e), j, jcount)
 
   def _transferFile(childEntry, i, count, j, jcount, atSelectTop):
     childEntryInfo = childEntry['info']
@@ -56183,14 +56230,14 @@ def transferDrive(users):
         csvPF.WriteRow({'OldOwner': sourceUser, 'NewOwner': targetUser, 'type': Ent.Singular(childFileType), 'id': childFileId, 'name': childFileName, 'role': 'owner'})
         return
       Act.Set(Act.TRANSFER_OWNERSHIP)
-      addTargetParents = set()
+      addTargetParent = None
       removeSourceParents = set()
       removeTargetParents = set()
       childParents = childEntryInfo.get('parents', [])
       if childParents:
         for parentId in childParents:
           if parentId in parentIdMap:
-            addTargetParents.add(parentIdMap[parentId])
+            addTargetParent = parentIdMap[parentId]
             if parentId != sourceRootId:
               removeSourceParents.add(parentId)
             elif not mergeWithTarget and targetFolderId != targetRootId:
@@ -56198,7 +56245,7 @@ def transferDrive(users):
       else:
         if targetIds[TARGET_ORPHANS_PARENT_ID] is None:
           _buildTargetUserOrphansFolder()
-        addTargetParents.add(targetIds[TARGET_ORPHANS_PARENT_ID])
+        addTargetParent = targetIds[TARGET_ORPHANS_PARENT_ID]
         removeTargetParents.add(targetRootId)
       try:
         actionUser = sourceUser
@@ -56219,24 +56266,22 @@ def transferDrive(users):
                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS, retryReasons=[GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId, removeParents=','.join(removeSourceParents), fields='')
         actionUser = targetUser
-        if addTargetParents or removeTargetParents:
+        if addTargetParent or removeTargetParents:
           op = 'Add/Remove Target Parents'
           callGAPI(targetDrive.files(), 'update',
                    throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.INSUFFICIENT_PARENT_PERMISSIONS],
                    retryReasons=[GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND], retries=3,
                    fileId=childFileId,
-                   addParents=','.join(addTargetParents), removeParents=','.join(removeTargetParents), fields='')
+                   addParents=addTargetParent, removeParents=','.join(removeTargetParents), fields='')
         entityModifierNewValueItemValueListActionPerformed([Ent.USER, sourceUser, childFileType, childFileName], Act.MODIFIER_TO, None, [Ent.USER, targetUser], j, jcount)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.unknownError,
-              GAPI.badRequest, GAPI.sharingRateLimitExceeded,
-              GAPI.insufficientFilePermissions, GAPI.insufficientParentPermissions,
-              GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.crossDomainMoveRestriction) as e:
+              GAPI.badRequest, GAPI.sharingRateLimitExceeded, GAPI.insufficientParentPermissions) as e:
         entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
-#      except (GAPI.insufficientFilePermissions, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.crossDomainMoveRestriction) as e:
-#        if not createShortcutsForNonmovableFiles:
-#          entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
-#        else:
-#          _makeXferShortcut(targetDrive, targetUser, j, jcount, childFileType, childFileId, childFileName, newParentId, newParentName)
+      except (GAPI.insufficientFilePermissions, GAPI.fileOwnerNotMemberOfWriterDomain, GAPI.crossDomainMoveRestriction) as e:
+        if not createShortcutsForNonmovableFiles:
+          entityActionFailedWarning([Ent.USER, actionUser, childFileType, childFileName], f'{op}: {str(e)}', j, jcount)
+        else:
+          _makeXferShortcut(targetDrive, targetUser, j, jcount, childFileType, childFileId, childFileName, addTargetParent)
       except GAPI.permissionNotFound:
         entityDoesNotHaveItemWarning([Ent.USER, actionUser, childFileType, childFileName, Ent.PERMISSION_ID, targetPermissionId], j, jcount)
       except GAPI.invalidSharingRequest as e:
@@ -56600,7 +56645,7 @@ def transferDrive(users):
   targetUserFolderPattern = '#user# old files'
   targetUserOrphansFolderPattern = '#user# orphaned files'
   targetIds = [None, None]
-#  createShortcutsForNonmovableFiles = False
+  createShortcutsForNonmovableFiles = False
   mergeWithTarget = False
   thirdPartyOwners = {}
   skipFileIdEntity = initDriveFileEntity()
@@ -56637,8 +56682,8 @@ def transferDrive(users):
       buildTree = False
     elif myarg == 'mergewithtarget':
       mergeWithTarget = getBoolean()
-#    elif myarg == 'createshortcutsfornonmovablefiles':
-#      createShortcutsForNonmovableFiles = getBoolean()
+    elif myarg == 'createshortcutsfornonmovablefiles':
+      createShortcutsForNonmovableFiles = getBoolean()
     elif myarg == 'skipids':
       skipFileIdEntity = getDriveFileEntity()
     elif myarg == 'preview':

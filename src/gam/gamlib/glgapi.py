@@ -111,6 +111,7 @@ LABEL_MUTATION_ILLEGAL_SELECTION = 'labelMutationIllegalSelection'
 LABEL_MUTATION_UNKNOWN_FIELD = 'labelMutationUnknownField'
 LIMIT_EXCEEDED = 'limitExceeded'
 LOGIN_REQUIRED = 'loginRequired'
+MALFORMED_WORKING_LOCATION_EVENT = 'malformedWorkingLocationEvent'
 MEMBER_NOT_FOUND = 'memberNotFound'
 NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE = 'noListTeamDrivesAdministratorPrivilege'
 NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE = 'noManageTeamDriveAdministratorPrivilege'
@@ -501,6 +502,8 @@ class limitExceeded(Exception):
   pass
 class loginRequired(Exception):
   pass
+class malformedWorkingLocationEvent(Exception):
+  pass
 class memberNotFound(Exception):
   pass
 class noListTeamDrivesAdministratorPrivilege(Exception):
@@ -701,6 +704,7 @@ REASON_EXCEPTION_MAP = {
   LABEL_MUTATION_UNKNOWN_FIELD: labelMutationUnknownField,
   LIMIT_EXCEEDED: limitExceeded,
   LOGIN_REQUIRED: loginRequired,
+  MALFORMED_WORKING_LOCATION_EVENT: malformedWorkingLocationEvent,
   MEMBER_NOT_FOUND: memberNotFound,
   NO_LIST_TEAMDRIVES_ADMINISTRATOR_PRIVILEGE: noListTeamDrivesAdministratorPrivilege,
   NO_MANAGE_TEAMDRIVE_ADMINISTRATOR_PRIVILEGE: noManageTeamDriveAdministratorPrivilege,

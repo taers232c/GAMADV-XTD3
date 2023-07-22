@@ -201,6 +201,7 @@ class GamEntity():
   EMAIL = 'emai'
   EMAIL_ALIAS = 'emal'
   EMAIL_SETTINGS = 'emse'
+  END_TIME = 'endt'
   ENTITY = 'enti'
   EVENT = 'evnt'
   FEATURE = 'feat'
@@ -321,6 +322,7 @@ class GamEntity():
   SOURCE_USER = 'src'
   SPREADSHEET = 'sprd'
   SPREADSHEET_RANGE = 'ssrn'
+  START_TIME = 'strt'
   STATUS = 'stat'
   STUDENT = 'stud'
   SUBSCRIPTION = 'subs'
@@ -523,6 +525,7 @@ class GamEntity():
     EMAIL: ['Email Addresses', 'Email Address'],
     EMAIL_ALIAS: ['Email Aliases', 'Email Alias'],
     EMAIL_SETTINGS: ['Email Settings', 'Email Settings'],
+    END_TIME: ['End Times', 'End Time'],
     ENTITY: ['Entities', 'Entity'],
     EVENT: ['Events', 'Event'],
     FEATURE: ['Features', 'Feature'],
@@ -643,6 +646,7 @@ class GamEntity():
     SOURCE_USER: ['Source Users', 'Source User'],
     SPREADSHEET: ['Spreadsheets', 'Spreadsheet'],
     SPREADSHEET_RANGE: ['Spreadsheet Ranges', 'Spreadsheet Range'],
+    START_TIME: ['Start Times', 'Start Time'],
     STATUS: ['Status', 'Status'],
     STUDENT: ['Students', 'Student'],
     SUBSCRIPTION: ['Subscriptions', 'Subscription'],
