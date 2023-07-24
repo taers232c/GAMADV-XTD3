@@ -10,5 +10,5 @@ httplib2
 passlib
 python-dateutil
 pathvalidate
-lxml == 4.9.2
+lxml
 yubikey-manager>=5.0
