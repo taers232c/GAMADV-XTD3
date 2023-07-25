@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.12'
+__version__ = '6.61.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14823,7 +14823,7 @@ def printShowAnalyticItems(users, entityType):
     elif entityType == Ent.ANALYTIC_PROPERTY and myarg == 'filter':
       kwargs['filter'] = getString(Cmd.OB_STRING)
     elif entityType == Ent.ANALYTIC_UA_PROPERTY and myarg == 'accountid':
-      kwargs['accountId'] = getString(Cmd.OB_STRING)
+      kwargs['accountId'] = getString(Cmd.OB_STRING).replace('accounts/', '')
     elif entityType == Ent.ANALYTIC_DATASTREAM and myarg == 'parent':
       kwargs['parent'] = getString(Cmd.OB_STRING)
     else:
@@ -14935,11 +14935,11 @@ def printShowAnalyticProperties(users):
   printShowAnalyticItems(users, Ent.ANALYTIC_PROPERTY)
 
 # gam <UserTypeEntity> print analyticuaproperties [todrive <ToDriveAttribute>*]
-#	accountid <String>
+#	accountid [accounts/]<String>
 #	[maxresults <Integer>]
 #	[formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show analyticuaproperties
-#	accountid <String>
+#	accountid [accounts/]<String>
 #	[maxresults <Integer>]
 #	[formatjson]
 def printShowAnalyticUAProperties(users):
