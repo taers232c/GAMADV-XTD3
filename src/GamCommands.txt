@@ -245,6 +245,7 @@ If an item contains spaces, it should be surrounded by ".
         Google-Drive-storage |
         Google-Vault
 <SKUID> ::=
+1010340006 - Google Workspace Business Standard - Archived User
         nv:<String>:<String> |
         20gb | drive20gb | googledrivestorage20gb | Google-Drive-storage-20GB |
         50gb | drive50gb | googledrivestorage50gb | Google-Drive-storage-50GB |
@@ -290,14 +291,18 @@ If an item contains spaces, it should be surrounded by ".
         wsbizplus | workspacebusinessplus | 1010020025 |
         wsbizplusarchived | workspacebusinessplusarchived | 1010340003 |
         wsbizstan | workspacebusinessstandard | 1010020028 |
+        wsbizstanarchived', 'workspacebusinessstandardarchived | 1010340006 |
         wsbizstarter | workspacebusinessstarter | wsbizstart | 1010020027 |
+        wsbizstarterarchived | workspacebusinessstarterarchived | 1010340005 |
         wsentess | workspaceenterpriseessentials | 1010060003 |
         wsentplus | workspaceenterpriseplus | gae | gse | enterprise | gsuiteenterprise | 1010020020 |
         wsentstan | workspaceenterprisestandard | 1010020026 |
         wsentstanarchived | workspaceenterprisestandardarchived | 1010340004 |
         wsentstarter | workspaceenterprisestarter | 1010020029 | wes |
         wsess | workspaceesentials | gsuiteessentials | essentials | d4e | driveenterprise | drive4enterprise | 1010060001 |
-        wsflw | workspacefrontline | workspacefrontlineworker | 1010020030
+        wsessplus | workspaceessentialsplus | 1010060005 |
+        wsflw | workspacefrontline | workspacefrontlineworker | 1010020030 |
+        wsflwstan | workspacefrontlinestan | workspacefrontlineworkerstan | 1010020031
 
 ## Items built from primitives
 
