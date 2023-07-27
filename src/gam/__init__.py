@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.14'
+__version__ = '6.61.16'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24751,10 +24751,10 @@ def doInfoChatMember():
   infoChatMember([None])
 
 # gam [<UserTypeEntity>] show chatmembers <ChatSpace>
-#	[showinvited [<Boolean>]] [filter <String>]
+#	[showinvited [<Boolean>]] [showgroups [<Boolean>]] [filter <String>]
 #	[formatjson]
 # gam [<UserTypeEntity>] print chatmembers [todrive <ToDriveAttribute>*] <ChatSpace>
-#	[showinvited [<Boolean>]] [filter <String>]
+#	[showinvited [<Boolean>]] [showgroups [<Boolean>]] [filter <String>]
 #	[formatjson [quotechar <Character>]]
 def printShowChatMembers(users):
   def _printChatMember(user, member):
@@ -24773,8 +24773,8 @@ def printShowChatMembers(users):
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  parent = pfilter = None
-  showInvited = False
+  kwargs = {}
+  parent = None
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -24782,16 +24782,18 @@ def printShowChatMembers(users):
     elif myarg == 'space' or myarg.startswith('spaces/'):
       parent = getChatSpace(myarg)
     elif myarg == 'showinvited':
-      showInvited = getBoolean()
+      kwargs['showInvited'] = getBoolean()
+    elif myarg == 'showgroups':
+      kwargs['showGroups'] = getBoolean()
     elif myarg =='filter':
-      pfilter = getString(Cmd.OB_STRING)
+      kwargs['filter'] = getString(Cmd.OB_STRING)
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if not parent:
     missingArgumentExit('space')
   qfilter = f'{Ent.Singular(Ent.CHAT_SPACE)}: {parent}'
-  if pfilter:
-    qfilter += f', {pfilter}'
+  if kwargs['filter']:
+    qfilter += f', {kwargs["filter"]}'
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -24802,7 +24804,7 @@ def printShowChatMembers(users):
       members = callGAPIpages(chat.spaces().members(), 'list', 'memberships',
                               pageMessage=_getChatPageMessage(Ent.CHAT_MEMBER, user, i, count, qfilter),
                               throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                              pageSize=CHAT_PAGE_SIZE, parent=parent, filter=pfilter, showInvited=showInvited)
+                              pageSize=CHAT_PAGE_SIZE, parent=parent, **kwargs)
       for member in members:
         _getChatMemberEmail(cd, member)
     except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
@@ -48721,13 +48723,14 @@ DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP = {
 
 DRIVE_FILE_CONTENT_RESTRICTIONS_CHOICE_MAP = {
   'readonly': 'readOnly',
+  'ownerrestricted': 'ownerRestricted',
   }
 
 def getDriveFileProperty(visibility=None):
   key = getString(Cmd.OB_PROPERTY_KEY)
   value = getString(Cmd.OB_PROPERTY_VALUE, minLen=0) or None
   if visibility is None:
-    if Cmd.PeekArgumentPresent(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP):
+    if Cmd.PeekArgumentPresent(list(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP.keys())):
       visibility = getChoice(DRIVEFILE_PROPERTY_VISIBILITY_CHOICE_MAP, mapChoice=True)
     else:
       visibility = 'properties'
@@ -48798,16 +48801,17 @@ def getDriveFileCopyAttribute(myarg, body, parameters):
   elif myarg == 'writerscantshare':
     body['writersCanShare'] = not getBoolean()
   elif myarg == 'contentrestrictions':
-    body['contentRestrictions'] = [{}]
-    restriction = getChoice(DRIVE_FILE_CONTENT_RESTRICTIONS_CHOICE_MAP, mapChoice=True)
-    if restriction == 'readOnly':
+    while Cmd.PeekArgumentPresent(list(DRIVE_FILE_CONTENT_RESTRICTIONS_CHOICE_MAP.keys())):
+      body.setdefault('contentRestrictions', [{}])
+      restriction = getChoice(DRIVE_FILE_CONTENT_RESTRICTIONS_CHOICE_MAP, mapChoice=True)
       body['contentRestrictions'][0][restriction] = getBoolean()
-      if checkArgumentPresent(['reason']):
-        if body['contentRestrictions'][0][restriction]:
-          body['contentRestrictions'][0]['reason'] = getString(Cmd.OB_STRING, minLen=0)
-        else:
-          Cmd.Backup()
-          usageErrorExit(Msg.REASON_ONLY_VALID_WITH_CONTENTRESTRICTIONS_READONLY_TRUE)
+      if restriction == 'readOnly':
+        if checkArgumentPresent(['reason']):
+          if body['contentRestrictions'][0][restriction]:
+            body['contentRestrictions'][0]['reason'] = getString(Cmd.OB_STRING, minLen=0)
+          else:
+            Cmd.Backup()
+            usageErrorExit(Msg.REASON_ONLY_VALID_WITH_CONTENTRESTRICTIONS_READONLY_TRUE)
   elif myarg == 'property':
     driveprop = getDriveFileProperty()
     body.setdefault(driveprop['visibility'], {})
@@ -49699,6 +49703,7 @@ DRIVE_CAPABILITIES_SUBFIELDS_CHOICE_MAP = {
   }
 
 DRIVE_CONTENT_RESTRICTIONS_SUBFIELDS_CHOICE_MAP = {
+  'ownerrestricted': 'ownerRestricted',
   'readonly': 'readOnly',
   'reason': 'reason',
   'restrictinguser': 'restructingUser',
