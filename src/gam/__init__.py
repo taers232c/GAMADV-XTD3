@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.61.19'
+__version__ = '6.61.20'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -71,12 +71,18 @@ import shlex
 import signal
 import smtplib
 import socket
+import sqlite3
 import ssl
 import string
 import struct
 import subprocess
 import sys
 from tempfile import TemporaryFile
+try:
+  import termios
+except ImportError:
+  # termios does not exist for Windows
+  pass
 import threading
 import time
 from traceback import print_exc
@@ -4470,6 +4476,38 @@ def shortenURL(long_url):
   except:
     return long_url
 
+def runSqliteQuery(db_file, query):
+  conn = sqlite3.connect(db_file)
+  curr = conn.cursor()
+  curr.execute(query)
+  return curr.fetchone()[0]
+
+def refreshCredentialsWithReauth(credentials):
+  if 'termios' in sys.modules:
+    old_settings = termios.tcgetattr(sys.stdin)
+  # First makes sure gcloud has a valid access token and thus
+  # should also have a valid RAPT token
+  try:
+    subprocess.run(['gcloud',
+                    'auth',
+                    'print-identity-token',
+                    '--no-user-output-enabled'])
+    # now determine gcloud's config path and token file
+    gcloud_path_result = subprocess.run(['gcloud',
+                                         'info',
+                                         '--format=value(config.paths.global_config_dir)'],
+            capture_output=True)
+  except KeyboardInterrupt:
+    # avoids loss of terminal echo on *nix
+    if 'termios' in sys.modules:
+      termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    printBlankLine()
+    raise KeyboardInterrupt
+  token_path = gcloud_path_result.stdout.decode().strip()
+  token_file = f'{token_path}/access_tokens.db'
+  credentials._rapt_token = runSqliteQuery(token_file,
+          f'SELECT rapt_token FROM access_tokens WHERE account_id = "{_getAdminEmail()}"')
+
 def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, api=None, noDASA=False, refreshOnly=False, noScopes=False):
   """Gets OAuth2 credentials which are guaranteed to be fresh and valid.
      Locks during read and possible write so that only one process will
@@ -4496,6 +4534,9 @@ def getClientCredentials(forceRefresh=False, forceWrite=False, filename=None, ap
           if isinstance(e.args, tuple):
             e = e.args[0]
           if 'Reauthentication is needed' in str(e):
+            if GC.Values[GC.ENABLE_GCLOUD_REAUTH]:
+              refreshCredentialsWithReauth(credentials)
+              continue
             e = Msg.REAUTHENTICATION_IS_NEEDED
           handleOAuthTokenError(e, False)
   return credentials
@@ -8389,7 +8430,7 @@ class CSVPrintFile():
               except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
                       GAPI.insufficientFilePermissions, GAPI.insufficientParentPermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
                       GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
-                      GAPI.targetUserRoleLimitedByLicenseRestrictionx, GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
+                      GAPI.targetUserRoleLimitedByLicenseRestriction, GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
                       GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
                       GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
                       GAPI.ownerOnTeamDriveItemNotSupported,
@@ -34730,6 +34771,7 @@ LIST_EVENTS_SELECT_PROPERTIES = {
   'timemin': ('timeMin', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
   'updated': ('updatedMin', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
   'updatedmin': ('updatedMin', {GC.VAR_TYPE: GC.TYPE_DATETIME}),
+  'workinglocation': ('eventTypes', {GC.VAR_TYPE: GC.TYPE_STRING}),
   }
 
 LIST_EVENTS_MATCH_FIELDS = {
@@ -34755,6 +34797,12 @@ def _getCalendarListEventsProperty(myarg, attributes, kwargs):
   attrName, attribute = attributes.get(myarg, (None, None))
   if not attrName:
     return False
+  if myarg == 'workinglocation':
+    kwargs[attrName] = 'workingLocation'
+    kwargs['singleEvents'] = True
+    kwargs['showDeleted'] = False
+    kwargs['orderBy'] = 'startTime'
+    return True
   attrType = attribute[GC.VAR_TYPE]
   if attrType == GC.TYPE_BOOLEAN:
     kwargs[attrName] = True
@@ -34850,11 +34898,6 @@ CALENDAR_ATTENDEE_STATUS_CHOICE_MAP = {
 CALENDAR_EVENT_STATUS_CHOICES = ['confirmed', 'tentative', 'cancelled']
 CALENDAR_EVENT_TRANSPARENCY_CHOICES = ['opaque', 'transparent']
 CALENDAR_EVENT_VISIBILITY_CHOICES = ['default', 'public', 'private', 'confedential']
-#CALENDAR_EVENT_TYPE_CHOICE_MAP = {
-#  'default': 'default',
-#  'outofoffice': 'outOfOffice',
-#  'focustime': 'focusTime'
-#  }
 
 EVENT_JSON_CLEAR_FIELDS = ['created', 'creator', 'endTimeUpspecified', 'hangoutLink', 'htmlLink', 'eventType',
                            'privateCopy', 'locked', 'recurringEventId', 'updated']
@@ -47630,25 +47673,25 @@ def printShowCalendarEvents(users):
     csvPF.writeCSVfile('Calendar Events')
 
 def getWorkingLocationDate(dateType, dateList):
-  firstDate = getYYYYMMDD(minLen=1, returnDateTime=True)
+  firstDate = getYYYYMMDD(minLen=1, returnDateTime=True).replace(tzinfo=GC.Values[GC.TIMEZONE])
   if dateType == 'range':
-    lastDate = getYYYYMMDD(minLen=1, returnDateTime=True)
+    lastDate = getYYYYMMDD(minLen=1, returnDateTime=True).replace(tzinfo=GC.Values[GC.TIMEZONE])
   deltaDay = datetime.timedelta(days=1)
   deltaWeek = datetime.timedelta(weeks=1)
   if dateType == 'date':
     dateList.append({'first': firstDate, 'last': firstDate+deltaDay,
-                     'udelta': deltaDay, 'pdelta': deltaDay})
+                     'ulast': firstDate, 'udelta': deltaDay})
   elif dateType == 'range':
     dateList.append({'first': firstDate, 'last': lastDate+deltaDay,
-                     'udelta': deltaDay, 'pdelta': datetime.timedelta(days=(lastDate-firstDate).days+1)})
+                     'ulast': lastDate, 'udelta': deltaDay})
   elif dateType == 'daily':
     argRepeat = getInteger(minVal=1, maxVal=366)
     dateList.append({'first': firstDate, 'last': firstDate+datetime.timedelta(days=argRepeat),
-                     'udelta': deltaDay, 'pdelta': deltaDay})
+                     'ulast': firstDate+datetime.timedelta(days=argRepeat), 'udelta': deltaDay})
   else: #weekly
     argRepeat = getInteger(minVal=1, maxVal=52)
-    dateList.append({'first': firstDate, 'last': firstDate+datetime.timedelta(weeks=argRepeat),
-                     'udelta': deltaWeek, 'pdelta': deltaWeek})
+    dateList.append({'first': firstDate, 'last': firstDate+deltaDay, 'pdelta': deltaWeek, 'repeats': argRepeat,
+                     'ulast': firstDate+datetime.timedelta(weeks=argRepeat), 'udelta': deltaWeek})
 
 def getWorkingLocationTimeRange(timeList):
   startTime = getEventTime()
@@ -47740,9 +47783,9 @@ def updateWorkingLocation(users):
     for wlDate in dateList:
       j += 1
       first = wlDate['first']
-      last = wlDate['last']
-      datekvList[3] = first.strftime(YYYYMMDD_FORMAT)
-      while first <= last:
+      last = wlDate['ulast']
+      while first < last:
+        datekvList[3] = first.strftime(YYYYMMDD_FORMAT)
         body['start']['date'] = first.strftime(YYYYMMDD_FORMAT)
         body['end']['date'] = (first+datetime.timedelta(days=1)).strftime(YYYYMMDD_FORMAT)
         try:
@@ -47807,11 +47850,10 @@ def updateWorkingLocation(users):
 #	[showdayofweek]
 #	[formatjson [quotechar <Character>]] [todrive <ToDriveAttribute>*]
 def printShowWorkingLocation(users):
-  csvPF = CSVPrintFile(['User', 'type'], 'sortall') if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['primaryEmail', 'calendarId', 'id'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   kwargs = {'eventTypes': ['workingLocation'], 'showDeleted': False, 'singleEvents': True,
-#  kwargs = {'showDeleted': False, 'singleEvents': True,
-            'timeMax': None, 'timeMin': None}
+            'timeMax': None, 'timeMin': None, 'orderBy': 'startTime'}
   calId = 'primary'
   showDayOfWeek = False
   dateList = []
@@ -47841,9 +47883,9 @@ def printShowWorkingLocation(users):
       j += 1
       first = wlDate['first']
       last = wlDate['last']
-      while first <= last:
-        kwargs['timeMin'] = first.strftime(YYYYMMDDTHHMMSSZ_FORMAT)
-        kwargs['timeMax'] = last.strftime(YYYYMMDDTHHMMSSZ_FORMAT)
+      for _ in range(1, wlDate.get('repeats', 1)+1):
+        kwargs['timeMin'] = ISOformatTimeStamp(first)
+        kwargs['timeMax'] = ISOformatTimeStamp(last)
         try:
           events = callGAPIpages(cal.events(), 'list', 'items',
                                  throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.INVALID, GAPI.BAD_REQUEST],
@@ -47869,7 +47911,9 @@ def printShowWorkingLocation(users):
             if showDayOfWeek:
               _getEventDaysOfWeek(event)
             _printCalendarEvent(user, calId, event, csvPF, FJQC)
-        first += wlDate['pdelta']
+        if 'pdelta' in wlDate:
+          first += wlDate['pdelta']
+          last += wlDate['pdelta']
   if csvPF:
     csvPF.writeCSVfile('Calendar Working Locations')
 
