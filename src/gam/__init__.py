@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.62.00'
+__version__ = '6.62.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8027,7 +8027,10 @@ class CSVPrintFile():
 
   def SetTimestampColumn(self, timestampColumn):
     self.timestampColumn = timestampColumn
-    self.todaysTime = ISOformatTimeStamp(todaysTime())
+    if not GC.Values[GC.OUTPUT_TIMEFORMAT]:
+      self.todaysTime = ISOformatTimeStamp(todaysTime())
+    else:
+      self.todaysTime = todaysTime().strftime(GC.Values[GC.OUTPUT_TIMEFORMAT])
 
   def SetFormatJSON(self, formatJSON):
     self.formatJSON = formatJSON
