@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.62.02'
+__version__ = '6.62.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -2375,8 +2375,11 @@ def invalidQuery(query):
 def invalidMember(kwargs):
   if 'userKey' in kwargs:
     badRequestWarning(Ent.GROUP, Ent.MEMBER, kwargs['userKey'])
-  else:
+    return True
+  if 'query' in kwargs:
     badRequestWarning(Ent.GROUP, Ent.QUERY, invalidQuery(kwargs['query']))
+    return True
+  return False
 
 def invalidUserSchema(schema):
   if isinstance(schema, list):
@@ -30821,8 +30824,9 @@ def doPrintGroups():
                                  pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  orderBy='email', fields=cdfieldsnp, maxResults=maxResults, **kwargs)
-    except (GAPI.invalidMember, GAPI.invalidInput):
-      invalidMember(kwargs)
+    except (GAPI.invalidMember, GAPI.invalidInput) as e:
+      if not invalidMember(kwargs):
+        entityActionFailedExit([Ent.GROUP, None], str(e))
       entityList = []
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
       if kwargs.get('domain'):
@@ -31053,7 +31057,8 @@ def getGroupMembersEntityList(cd, entityList, matchPatterns, fieldsList, kwargs)
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  orderBy='email', fields=f'nextPageToken,groups({",".join(set(fieldsList))})', **kwargs)
     except (GAPI.invalidMember, GAPI.invalidInput):
-      invalidMember(kwargs)
+      if not invalidMember(kwargs):
+        entityActionFailedExit([Ent.GROUP, None], str(e))
       entityList = []
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.forbidden, GAPI.badRequest):
       if kwargs.get('domain'):
