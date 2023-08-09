@@ -31056,7 +31056,7 @@ def getGroupMembersEntityList(cd, entityList, matchPatterns, fieldsList, kwargs)
                                  pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
                                  throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                  orderBy='email', fields=f'nextPageToken,groups({",".join(set(fieldsList))})', **kwargs)
-    except (GAPI.invalidMember, GAPI.invalidInput):
+    except (GAPI.invalidMember, GAPI.invalidInput) as e:
       if not invalidMember(kwargs):
         entityActionFailedExit([Ent.GROUP, None], str(e))
       entityList = []
