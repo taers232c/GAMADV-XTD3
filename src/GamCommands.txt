@@ -6560,7 +6560,7 @@ gam <UserTypeEntity> print diskusage <DriveFileEntity> [todrive <ToDriveAttribut
         [anyowner|(showownedby any|me|others)]
         [pathdelimiter <Character>] [excludetrashed] [stripcrsfromname]
         (addcsvdata <FieldName> <String>)*
-        [show all|summary|summaryandtrash]
+        [noprogress] [show all|summary|summaryandtrash]
 
 <DriveActivityAction> ::=
         comment|

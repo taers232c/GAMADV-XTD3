@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.62.04'
+__version__ = '6.62.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52444,7 +52444,7 @@ DISKUSAGE_SHOW_CHOICES = {'all', 'summary', 'summaryandtrash'}
 #	[anyowner|(showownedby any|me|others)]
 #	[pathdelimiter <Character>] [excludetrashed] [stripcrsfromname]
 #	(addcsvdata <FieldName> <String>)*
-#	[show all|summary|summaryandtrash]
+#	[noprogress] [show all|summary|summaryandtrash]
 def printDiskUsage(users):
   def _getChildDriveFolderInfo(drive, fileEntry, user, i, count):
     q = WITH_PARENTS.format(fileEntry['id'])
@@ -52460,6 +52460,9 @@ def printDiskUsage(users):
     except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
       userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
       return
+    Ind.Increment()
+    if showProgress:
+      entityActionPerformed([Ent.USER, user, Ent.DRIVE_FOLDER, fileEntry['path']])
     for childEntryInfo in children:
       trashed = childEntryInfo['trashed']
       if trashed and excludeTrashed:
@@ -52500,6 +52503,7 @@ def printDiskUsage(users):
           if childEntryInfo['explicitlyTrashed']:
             trashFolder['directFileCount'] += 1
             trashFolder['directFileSize'] += fsize
+    Ind.Decrement()
 
   csvPF = CSVPrintFile(['User', 'Owner', 'id', 'name', 'ownedByMe', 'trashed', 'explicitlyTrashed',
                         'directFileCount', 'directFileSize', 'directFolderCount',
@@ -52509,7 +52513,7 @@ def printDiskUsage(users):
   orderBy = 'folder,name'
   zeroFolderInfo = {'directFileCount': 0, 'directFileSize': 0, 'directFolderCount': 0,
                     'totalFileCount': 0, 'totalFileSize': 0, 'totalFolderCount': 0}
-  showOwnedBy = True
+  showOwnedBy = showProgress = True
   pathDelimiter = '/'
   fileIdEntity = getDriveFileEntity()
   addCSVData = {}
@@ -52533,6 +52537,8 @@ def printDiskUsage(users):
       addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == 'show':
       showResults = getChoice(DISKUSAGE_SHOW_CHOICES)
+    elif myarg == 'noprogress':
+      showProgress = False
     else:
       unknownArgumentExit()
   if addCSVData:
@@ -52542,7 +52548,6 @@ def printDiskUsage(users):
   topFieldsList = fieldsList[:]
   topFieldsList.extend(['driveId', 'parents'])
   topFields = getFieldsFromFieldsList(topFieldsList)
-  foldersList = []
   i, count, users = getEntityArgument(users)
   i = 0
   for user in users:
@@ -52554,6 +52559,7 @@ def printDiskUsage(users):
     j = 0
     for fileId in fileIdEntity['list']:
       j += 1
+      foldersList = []
       trashFolder = {'User': user, 'id': 'Trash', 'name': 'Trash', 'path': 'Trash'}
       trashFolder.update(zeroFolderInfo)
       try:
@@ -52608,22 +52614,22 @@ def printDiskUsage(users):
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
         userSvcNotApplicableOrDriveDisabled(user, str(e), i, count)
         break
-  if showResults == 'all':
-    for folder in foldersList:
-      if addCSVData:
-        folder.update(addCSVData)
-      csvPF.WriteRow(folder)
-  else:
-    folder = foldersList[0]
-    if addCSVData:
-      folder.update(addCSVData)
-    csvPF.WriteRow(folder)
-  if showResults != 'summary' and not excludeTrashed:
-    trashFolder['trashed'] = trashFolder['totalFileCount']+trashFolder['totalFolderCount'] > 0
-    trashFolder['explicitlyTrashed'] = trashFolder['directFileCount']+trashFolder['directFolderCount'] > 0
-    if addCSVData:
-      trashFolder.update(addCSVData)
-    csvPF.WriteRow(trashFolder)
+      if showResults == 'all':
+        for folder in foldersList:
+          if addCSVData:
+            folder.update(addCSVData)
+          csvPF.WriteRow(folder)
+      else:
+        folder = foldersList[0]
+        if addCSVData:
+          folder.update(addCSVData)
+        csvPF.WriteRow(folder)
+      if showResults != 'summary' and not excludeTrashed:
+        trashFolder['trashed'] = trashFolder['totalFileCount']+trashFolder['totalFolderCount'] > 0
+        trashFolder['explicitlyTrashed'] = trashFolder['directFileCount']+trashFolder['directFolderCount'] > 0
+        if addCSVData:
+          trashFolder.update(addCSVData)
+        csvPF.WriteRow(trashFolder)
   csvPF.writeCSVfile('Drive Disk Usage')
 
 FILESHARECOUNTS_OWNER = 'Owner'
