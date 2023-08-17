@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.62.08'
+__version__ = '6.63.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -21709,7 +21709,6 @@ def createUserPeopleContactGroup(users):
       entityUnknownWarning(entityType, user, i, count)
   if csvPF:
     csvPF.writeCSVfile('People Contact Groups')
-
 
 # gam <UserTypeEntity> update contactgroups <ContactGroupItem> <ContactAttribute>+
 def updateUserPeopleContactGroup(users):
@@ -47888,10 +47887,10 @@ def _showCalendarWorkingLocation(primaryEmail, calId, eventEntityType, event, k,
   Ind.Decrement()
 
 # gam <UserTypeEntity> create workinglocation
-#	home|
-#	custom <String>
-#	office <String> [building|buildingid <String>] [floor|floorname <String>]
-#			[section|floorsection <String>] [desk|deskcode <String>]
+#	(home|
+#	 (custom <String>)|
+#	 (office <String> [building|buildingid <String>] [floor|floorname <String>]
+#	   		  [section|floorsection <String>] [desk|deskcode <String>]))
 #	((date yyyy-mm-dd)|
 #	 (range yyyy-mm-dd yyyy-mm-dd)|
 #	 (daily yyyy-mm-dd N)|
