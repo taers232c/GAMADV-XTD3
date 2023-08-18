@@ -4329,10 +4329,11 @@ class signjwtSignJwt(google.auth.crypt.Signer):
   def sign(self, message):
     ''' Call IAM Credentials SignJWT API to get our signed JWT '''
     try:
-      credentials, _ = google.auth.default(scopes=[API.IAM_SCOPE])
+      credentials, _ = google.auth.default(scopes=[API.IAM_SCOPE],
+                                           request=getTLSv1_2Request())
     except (google.auth.exceptions.DefaultCredentialsError, google.auth.exceptions.RefreshError) as e:
       systemErrorExit(API_ACCESS_DENIED_RC, str(e))
-    httpObj = transportAuthorizedHttp(credentials, http=getHttpObj())
+    httpObj = transportAuthorizedHttp(credentials, http=getHttpObj(override_min_tls='TLSv1_2'))
     iamc = getService(API.IAM_CREDENTIALS, httpObj)
     response = callGAPI(iamc.projects().serviceAccounts(), 'signJwt',
                         name=self.name, body={'payload': json.dumps(message)})
@@ -40483,7 +40484,7 @@ def verifyUserPrimaryEmail(cd, user, createIfNotFound, i, count):
   return False
 
 # gam <UserTypeEntity> update user <UserAttribute>*
-#	[verifynotinvitable] [alwaysevict] [noactionifalias]
+#	[verifynotinvitable|alwaysevict] [noactionifalias]
 #	[updateprimaryemail <RegularExpression> <EmailReplacement>]
 #	[updateoufromgroup <CSVFileInput> [keyfield <FieldName>] [datafield <FieldName>]]
 #	[immutableous <OrgUnitEntity>]|
