@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.00'
+__version__ = '6.63.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -12222,6 +12222,7 @@ def doCreateGCPServiceAccount():
     systemErrorExit(API_ACCESS_DENIED_RC, str(e))
   sa_info['client_id'] = token_info['issued_to']
   sa_output = json.dumps(sa_info, ensure_ascii=False, sort_keys=True, indent=2)
+  writeStdout(f'Writing SignJWT service account data:\n\n{sa_output}\n')
   writeFile(GC.Values[GC.OAUTH2SERVICE_JSON], sa_output, continueOnError=False)
 
 # Audit command utilities
@@ -13864,7 +13865,8 @@ PC_PATTERN = re.compile(r'(?s){PC}.*?{/PC}')
 UC_PATTERN = re.compile(r'(?s){UC}.*?{/UC}')
 LC_PATTERN = re.compile(r'(?s){LC}.*?{/LC}')
 CASE_MARKERS = {'PC', '/PC', 'UC', '/UC', 'LC', '/LC'}
-SKIP_PATTERNS = [re.compile(r'<head>.*?</head>'), re.compile(r'<script>.*?</script>')]
+SKIP_PATTERNS = [re.compile(r'<head>.*?</head>', flags=re.IGNORECASE),
+                 re.compile(r'<script>.*?</script>', flags=re.IGNORECASE)]
 
 def _processTagReplacements(tagReplacements, message):
   def pcase(trstring):
@@ -39940,6 +39942,7 @@ def getUserAttributes(cd, updateCmd, noUid=False):
   addGroups = {}
   addAliases = []
   PwdOpts = PasswordOptions(updateCmd)
+  resolveConflictAccount = True
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'notify':
@@ -39967,6 +39970,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         unknownArgumentExit()
     elif myarg == 'verifynotinvitable':
       parameters['verifyNotInvitable'] = True
+    elif myarg == 'alwaysevict':
+      resolveConflictAccount = False
     elif updateCmd and myarg == 'createifnotfound':
       parameters['createIfNotFound'] = True
     elif updateCmd and myarg == 'noactionifalias':
@@ -40340,7 +40345,9 @@ def getUserAttributes(cd, updateCmd, noUid=False):
       unknownArgumentExit()
   if not PwdOpts.makeUniqueRandomPassword:
     PwdOpts.AssignPassword(body, notify, notFoundBody, parameters['createIfNotFound'])
-  return (body, notify, tagReplacements, addGroups, addAliases, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters)
+  return (body, notify, tagReplacements, addGroups, addAliases, PwdOpts,
+          updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters,
+          resolveConflictAccount)
 
 def createUserAddToGroups(cd, user, addGroups, i, count):
   action = Act.Get()
@@ -40359,6 +40366,7 @@ def createUserAddAliases(cd, user, aliasList, i, count):
   Act.Set(action)
 
 # gam create user <EmailAddress> <UserAttribute>
+#	[verifynotinvitable|alwaysevict]
 #	(groups [<GroupRole>] [[delivery] <DeliverySetting>] <GroupEntity>)*
 #	[alias|aliases <EmailAddressList>]
 #	[license <SKUID> [product|productid <ProductID>]]
@@ -40374,7 +40382,11 @@ def createUserAddAliases(cd, user, aliasList, i, count):
 #	[addnumericsuffixonduplicate <Number>]
 def doCreateUser():
   cd = buildGAPIObject(API.DIRECTORY)
-  body, notify, tagReplacements, addGroups, addAliases, PwdOpts, _, _, _, parameters = getUserAttributes(cd, False, noUid=True)
+  body, notify, tagReplacements, addGroups, addAliases, PwdOpts, \
+    _, _, _, \
+    parameters, resolveConflictAccount = getUserAttributes(cd,
+                                                           False,
+                                                           noUid=True)
   suffix = 0
   originalEmail = body['primaryEmail']
   atLoc = originalEmail.find('@')
@@ -40392,7 +40404,9 @@ def doCreateUser():
                                       GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN,
                                       GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
                                       GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
-                        body=body, fields=fields)
+                        body=body,
+                        fields=fields,
+                        resolveConflictAccount=resolveConflictAccount)
       entityActionPerformed([Ent.USER, user])
       break
     except GAPI.duplicate:
@@ -40450,7 +40464,8 @@ def verifyUserPrimaryEmail(cd, user, createIfNotFound, i, count):
   entityUnknownWarning(Ent.USER, user, i, count)
   return False
 
-# gam <UserTypeEntity> update user <UserAttribute>* [noactionifalias]
+# gam <UserTypeEntity> update user <UserAttribute>*
+#	[verifynotinvitable] [alwaysevict] [noactionifalias]
 #	[updateprimaryemail <RegularExpression> <EmailReplacement>]
 #	[updateoufromgroup <CSVFileInput> [keyfield <FieldName>] [datafield <FieldName>]]
 #	[immutableous <OrgUnitEntity>]|
@@ -40467,11 +40482,13 @@ def verifyUserPrimaryEmail(cd, user, createIfNotFound, i, count):
 #	    (replace <Tag> <UserReplacement>)*]
 #	[notifyonupdate [<Boolean>]]
 #	[lograndompassword <FileName>] [ignorenullpassword]
-#	[verifynotinvitable]
 def updateUsers(entityList):
   cd = buildGAPIObject(API.DIRECTORY)
   ci = None
-  body, notify, tagReplacements, addGroups, addAliases, PwdOpts, updatePrimaryEmail, notFoundBody, groupOrgUnitMap, parameters = getUserAttributes(cd, True)
+  body, notify, tagReplacements, addGroups, addAliases, PwdOpts, \
+    updatePrimaryEmail, notFoundBody, groupOrgUnitMap, \
+    parameters, resolveConflictAccount = getUserAttributes(cd,
+                                                           True)
   vfe = 'primaryEmail' in body and body['primaryEmail'][:4].lower() == 'vfe@'
   if body.get('orgUnitPath', '') and parameters['immutableOUs']:
     ubody = body.copy()
@@ -40567,7 +40584,9 @@ def updateUsers(entityList):
                                   throwReasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
                                                 GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
                                                 GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
-                                  body=body, fields=fields)
+                                  body=body,
+                                  fields=fields,
+                                  resolveConflictAccount=resolveConflictAccount)
                 entityActionPerformed([Ent.USER, body['primaryEmail']], i, count)
                 if PwdOpts.filename and PwdOpts.notFoundPassword:
                   writeFile(PwdOpts.filename, f'{user},{PwdOpts.notFoundPassword}\n', mode='a', continueOnError=True)
