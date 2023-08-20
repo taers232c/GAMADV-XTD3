@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.01'
+__version__ = '6.63.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9457,7 +9457,7 @@ def MultiprocessGAMCommands(items, showCmds):
       if item[0] == Cmd.COMMIT_BATCH_CMD:
         batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                                   numItems, poolProcessResults[0],
-                                                                  PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1], ''))
+                                                                  PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
         while poolProcessResults[0] > 0:
           time.sleep(1)
           completedProcesses = []
@@ -56565,7 +56565,7 @@ def collectOrphans(users):
                            pageMessage=getPageMessageForWhom(),
                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                            retryReasons=[GAPI.UNKNOWN_ERROR],
-                           q=query, orderBy=OBY.orderBy, fields='nextPageToken,files(id,name,parents,mimeType,capabilities(canAddMyDriveParent))',
+                           q=query, orderBy=OBY.orderBy, fields='nextPageToken,files(id,name,parents,mimeType,capabilities(canMoveItemWithinDrive))',
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       if targetUserFolderPattern:
         trgtUserFolderName = _substituteForUser(targetUserFolderPattern, user, userName)
@@ -56609,7 +56609,7 @@ def collectOrphans(users):
 #        if fileType == Ent.DRIVE_FOLDER and not fileEntry['capabilities']['canAddMyDriveParent']:
 #          # Typically Google Backup & Sync images of laptops
 #          continue
-        if not useShortcuts and fileEntry['capabilities']['canAddMyDriveParent']:
+        if not useShortcuts and fileEntry['capabilities']['canMoveItemWithinDrive']:
           if csvPF:
             csvPF.WriteRow({'Owner': user, 'type': Ent.Singular(fileType), 'id': fileId, 'name': fileName, 'action': 'changeParent'})
             continue
