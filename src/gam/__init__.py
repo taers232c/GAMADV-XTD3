@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.03'
+__version__ = '6.63.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8921,11 +8921,17 @@ def getOSPlatform():
 
 # gam checkconnection
 def doCheckConnection():
-  hosts = ['api.github.com', 'raw.githubusercontent.com',
-           'accounts.google.com', 'oauth2.googleapis.com', 'www.googleapis.com']
+  hosts = ['api.github.com',
+           'raw.githubusercontent.com',
+           'accounts.google.com',
+           'oauth2.googleapis.com',
+           'www.googleapis.com']
   fix_hosts = {'calendar-json.googleapis.com': 'www.googleapis.com',
                'storage-api.googleapis.com': 'storage.googleapis.com'}
-  api_hosts = ['apps-apis.google.com', 'sites.google.com', 'versionhistory.googleapis.com', 'www.google.com']
+  api_hosts = ['apps-apis.google.com',
+               'sites.google.com',
+               'versionhistory.googleapis.com',
+               'www.google.com']
   for host in API.PROJECT_APIS:
     host = fix_hosts.get(host, host)
     if host not in api_hosts and host not in hosts:
@@ -8941,13 +8947,27 @@ def doCheckConnection():
   success_count = 0
   for host in hosts:
     try_count += 1
-    ip = socket.getaddrinfo(host, None)[0][-1][0] # works with ipv6
+    dns_err = None
+    ip = 'unknown'
+    try:
+      ip = socket.getaddrinfo(host, None)[0][-1][0] # works with ipv6
+    except socket.gaierror as e:
+      dns_err = f'{not_okay}\n   DNS failure: {str(e)}\n'
+    except Exception as e:
+      dns_err = f'{not_okay}\n   Unknown DNS failure: {str(e)}\n'
     check_line = f'Checking {host} ({ip}) ({try_count}/{host_count})...'
     writeStdout(f'{check_line:<100}')
     flushStdout()
+    if dns_err:
+      writeStdout(dns_err)
+      continue
     gen_firewall = 'You probably have security software or a firewall on your machine or network that is preventing GAM from making Internet connections. Check your network configuration or try running GAM on a hotspot or home network to see if the problem exists only on your organization\'s network.'
     try:
-      httpObj.request(f'https://{host}/', 'HEAD', headers=headers)
+      if host.startswith('http'):
+        url = host
+      else:
+        url = f'https://{host}:443/'
+      httpObj.request(url, 'HEAD', headers=headers)
       success_count += 1
       writeStdout(f'{okay}\n')
     except ConnectionRefusedError:
@@ -8961,7 +8981,7 @@ def doCheckConnection():
         writeStdout(f'{not_okay}\n    GAM expects to connect with TLS 1.3 or newer and that failed. If your firewall / proxy server is not compatible with TLS 1.3 then you can tell GAM to allow TLS 1.2 by setting tls_min_version = TLSv1.2 in gam.cfg.\n')
       elif e.reason == 'CERTIFICATE_VERIFY_FAILED':
         writeStdout(f'{not_okay}\n    Certificate verification failed. If you are behind a firewall / proxy server that does TLS / SSL inspection you may need to point GAM at your certificate authority file by setting cacerts_pem = /path/to/your/certauth.pem in gam.cfg.\n')
-      elif e.strerror.startswith('TLS/SSL connection has been closed\n'):
+      elif e.strerror and e.strerror.startswith('TLS/SSL connection has been closed\n'):
         writeStdout(f'{not_okay}\n    TLS connection was closed. {gen_firewall}\n')
       else:
         writeStdout(f'{not_okay}\n    {str(e)}\n')
@@ -29102,7 +29122,7 @@ GROUP_PREVIEW_TITLES = ['group', 'email', 'role', 'action', 'message']
 #	[notsuspended|suspended] [notarchived|archived]
 #	[preview] [actioncsv]
 #	<UserTypeEntity>
-# gam update groups <GroupEntity> sync [<GroupRole>]
+# gam update groups <GroupEntity> sync [<GroupRole>|ignorerole]
 #	[usersonly|groupsonly] [addonly|removeonly]
 #	[notsuspended|suspended] [notarchived|archived]
 #	[removedomainnostatusmembers]
@@ -29138,8 +29158,11 @@ def doUpdateGroups():
     entityActionNotPerformedWarning([entityType, group, Ent.ROLE, role], Msg.INVALID_ROLE.format(','.join(sorted(GROUP_ROLES_MAP))), i, count)
     return (None, None)
 
-  def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER):
-    role = getChoice(GROUP_ROLES_MAP, defaultChoice=defaultRole, mapChoice=True)
+  def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER, allowIgnoreRole=False):
+    if not allowIgnoreRole or not checkArgumentPresent(['ignorerole']):
+      role = getChoice(GROUP_ROLES_MAP, defaultChoice=defaultRole, mapChoice=True)
+    else:
+      role = Ent.ROLE_ALL
     groupMemberType = getChoice({'usersonly': Ent.TYPE_USER, 'groupsonly': Ent.TYPE_GROUP}, defaultChoice='ALL', mapChoice=True)
     return (role, groupMemberType)
 
@@ -29681,7 +29704,8 @@ def doUpdateGroups():
                                                            checkForCustomerId=True) for member in removeMembers],
                                  role)
   elif CL_subCommand == 'sync':
-    baseRole, groupMemberType = _getRoleGroupMemberType()
+    baseRole, groupMemberType = _getRoleGroupMemberType(allowIgnoreRole=True)
+    ignoreRole = baseRole == Ent.ROLE_ALL
     syncOperation = getSyncOperation()
     isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     removeDomainNoStatusMembers = checkArgumentPresent('removedomainnostatusmembers')
@@ -29759,7 +29783,8 @@ def doUpdateGroups():
         result = callGAPIpages(cd.members(), 'list', 'members',
                                pageMessage=getPageMessageForWhom(),
                                throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
-                               groupKey=group, roles=None if Ent.ROLE_MEMBER in rolesSet else memberRoles,
+                               groupKey=group,
+                               roles=None if Ent.ROLE_MEMBER in rolesSet or ignoreRole else memberRoles,
                                fields='nextPageToken,members(email,id,type,status,role)',
                                maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
@@ -29770,7 +29795,7 @@ def doUpdateGroups():
         currentMembersMaps[role] = {}
         domainNoStatusMembersSets[role] = set()
       for member in result:
-        role = member.get('role', Ent.ROLE_MEMBER)
+        role = member.get('role', Ent.ROLE_MEMBER) if not ignoreRole else Ent.ROLE_ALL
         email, memberStatus = _getMemberEmailStatus(member)
         if groupMemberType in ('ALL', member['type']) and role in rolesSet:
           if not removeDomainNoStatusMembers or memberStatus != 'NONE':
@@ -29789,11 +29814,11 @@ def doUpdateGroups():
                                    [currentMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in currentMembersSets[role]-syncMembersSets[role]],
                                    role)
       if syncOperation != 'removeonly':
-        for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
+        for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_ALL]:
           if role in rolesSet:
             _batchAddGroupMembers(group, i, count,
                                   [syncMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in syncMembersSets[role]-currentMembersSets[role]],
-                                  role, delivery_settings)
+                                  role if role != Ent.ROLE_ALL else Ent.ROLE_MEMBER, delivery_settings)
   elif CL_subCommand == 'update':
     baseRole, groupMemberType = _getRoleGroupMemberType(defaultRole=None)
     isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
@@ -31741,7 +31766,7 @@ def doCreateCIGroup():
 #	[notsuspended|suspended] [notarchived|archived]
 #	[preview] [actioncsv]
 #	<UserTypeEntity>
-# gam update cigroups <GroupEntity> sync [<GroupRole>]
+# gam update cigroups <GroupEntity> sync [<GroupRole>|ignorerole]
 #	[usersonly|groupsonly] [addonly|removeonly]
 #	[notsuspended|suspended] [notarchived|archived]
 #	[expire|expires <Time>] [preview] [actioncsv]
@@ -31777,8 +31802,11 @@ def doUpdateCIGroups():
     entityActionNotPerformedWarning([entityType, group, Ent.ROLE, role], Msg.INVALID_ROLE.format(','.join(sorted(GROUP_ROLES_MAP))), i, count)
     return (None, None)
 
-  def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER):
-    role = getChoice(GROUP_ROLES_MAP, defaultChoice=defaultRole, mapChoice=True)
+  def _getRoleGroupMemberType(defaultRole=Ent.ROLE_MEMBER, allowIgnoreRole=False):
+    if not allowIgnoreRole or not checkArgumentPresent(['ignorerole']):
+      role = getChoice(GROUP_ROLES_MAP, defaultChoice=defaultRole, mapChoice=True)
+    else:
+      role = Ent.ROLE_ALL
     groupMemberType = getChoice({'usersonly': Ent.TYPE_USER, 'groupsonly': Ent.TYPE_GROUP}, defaultChoice='ALL', mapChoice=True)
     return (role, groupMemberType)
 
@@ -32115,7 +32143,8 @@ def doUpdateCIGroups():
             _showFailure(group, memberEmail, role, str(e), j, jcount)
         Ind.Decrement()
   elif CL_subCommand == 'sync':
-    baseRole, groupMemberType = _getRoleGroupMemberType()
+    baseRole, groupMemberType = _getRoleGroupMemberType(allowIgnoreRole=True)
+    ignoreRole = baseRole == Ent.ROLE_ALL
     syncOperation = getSyncOperation()
     isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
     expireTime = _getExpireTime(baseRole)
@@ -32192,25 +32221,25 @@ def doUpdateCIGroups():
         currentMembersMaps[role] = {}
       for member in result:
         getCIGroupMemberRoleFixType(member)
-        role = member['role']
+        role = member['role'] if not ignoreRole else Ent.ROLE_ALL
         email = member.get(CIGROUP_MEMBERKEY, {}).get('id', '')
         if groupMemberType in ('ALL', member['type']) and role in rolesSet:
           cleanAddress = _cleanConsumerAddress(email, currentMembersMaps[role])
           currentMembersSets[role].add(cleanAddress)
           currentMembersNames[cleanAddress] = member['name']
       del result
-      if syncOperation != 'removeonly':
-        for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER]:
-          if role in rolesSet:
-            _batchAddGroupMembers(parent, i, count,
-                                  [syncMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in syncMembersSets[role]-currentMembersSets[role]],
-                                  role, expireTime)
       if syncOperation != 'addonly':
         for role in rolesSet:
           _batchRemoveGroupMembers(parent, i, count,
                                    [{'name': currentMembersNames[emailAddress],
                                      'email': currentMembersMaps[role].get(emailAddress, emailAddress)} for emailAddress in currentMembersSets[role]-syncMembersSets[role]],
                                    role)
+      if syncOperation != 'removeonly':
+        for role in [Ent.ROLE_OWNER, Ent.ROLE_MANAGER, Ent.ROLE_MEMBER, Ent.ROLE_ALL]:
+          if role in rolesSet:
+            _batchAddGroupMembers(parent, i, count,
+                                  [syncMembersMaps[role].get(emailAddress, emailAddress) for emailAddress in syncMembersSets[role]-currentMembersSets[role]],
+                                  role if role != Ent.ROLE_ALL else Ent.ROLE_MEMBER, expireTime)
   elif CL_subCommand == 'update':
     baseRole, groupMemberType = _getRoleGroupMemberType()
     isSuspended, isArchived = _getOptionalIsSuspendedIsArchived()
@@ -55087,7 +55116,8 @@ def copyDriveFile(users):
           try:
             result = callGAPI(drive.files(), 'copy',
                               bailOnInternalError=True,
-                              throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR, GAPI.TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED],
+                              throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR, GAPI.INSUFFICIENT_PARENT_PERMISSIONS,
+                                                                          GAPI.TEAMDRIVES_SHORTCUT_FILE_NOT_SUPPORTED],
                               fileId=childId, body=child, fields='id,name', supportsAllDrives=True)
             if not csvPF:
               entityModifierItemValueListActionPerformed(kvList, Act.MODIFIER_TO,
@@ -55118,7 +55148,8 @@ def copyDriveFile(users):
                                copyMoveOptions, False,
                                'copyFileInheritedPermissions',
                                'copyFileNonInheritedPermissions')
-          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+          except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
+                  GAPI.insufficientParentPermissions, GAPI.unknownError,
                   GAPI.invalid, GAPI.cannotCopyFile, GAPI.badRequest, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
                   GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded,
                   GAPI.internalError, GAPI.teamDrivesShortcutFileNotSupported) as e:
@@ -55340,7 +55371,7 @@ def copyDriveFile(users):
           source.update(copyBody)
           result = callGAPI(drive.files(), 'copy',
                             bailOnInternalError=True,
-                            throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR],
+                            throwReasons=GAPI.DRIVE_COPY_THROW_REASONS+[GAPI.INTERNAL_ERROR, GAPI.INSUFFICIENT_PARENT_PERMISSIONS],
                             fileId=fileId,
                             ignoreDefaultVisibility=copyParameters[DFA_IGNORE_DEFAULT_VISIBILITY],
                             keepRevisionForever=copyParameters[DFA_KEEP_REVISION_FOREVER],
@@ -55374,7 +55405,8 @@ def copyDriveFile(users):
                              copyMoveOptions, False,
                              'copyFileInheritedPermissions',
                              'copyFileNonInheritedPermissions')
-      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
+      except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions,
+              GAPI.insufficientParentPermissions, GAPI.unknownError,
               GAPI.invalid, GAPI.badRequest, GAPI.cannotCopyFile, GAPI.responsePreparationFailure, GAPI.fileNeverWritable, GAPI.fieldNotWritable,
               GAPI.teamDrivesSharingRestrictionNotAllowed, GAPI.rateLimitExceeded, GAPI.userRateLimitExceeded) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER_ID, fileId], str(e), j, jcount)
