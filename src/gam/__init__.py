@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.06'
+__version__ = '6.63.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -62792,7 +62792,8 @@ def appendSheetRanges(users):
           printLine('{'+f'"User": "{user}", "spreadsheetId": "{spreadsheetId}", "JSON": {json.dumps(result, ensure_ascii=False, sort_keys=False)}'+'}')
           continue
         for field in ['tableRange']:
-          printKeyValueList([field, result[field]])
+          if field in result:
+            printKeyValueList([field, result[field]])
         _showUpdateValuesResponse(result['updates'], k, kcount)
       except (GAPI.notFound, GAPI.forbidden, GAPI.permissionDenied,
               GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.badRequest,
@@ -65786,7 +65787,7 @@ def processDelegates(users):
     j = 0
     for delegate in delegates:
       j += 1
-      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd, aliasAllowed=aliasAllowed)
+      delegateEmail = convertUIDtoEmailAddress(delegate, cd=cd, emailTypes=['user', 'group'], aliasAllowed=aliasAllowed)
       try:
         if function == 'create':
           callGAPI(gmail.users().settings().delegates(), function,
