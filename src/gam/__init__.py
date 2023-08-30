@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.08'
+__version__ = '6.63.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -59872,7 +59872,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
                                bailOnTransientError=True,
                                throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.TRANSIENT_ERROR, GAPI.TEAMDRIVE_ALREADY_EXISTS,
                                                                            GAPI.INSUFFICIENT_PERMISSIONS, GAPI.INSUFFICIENT_FILE_PERMISSIONS,
-                                                                           GAPI.DUPLICATE, GAPI.BAD_REQUEST],
+                                                                           GAPI.DUPLICATE, GAPI.BAD_REQUEST, GAPI.USER_CANNOT_CREATE_TEAMDRIVES],
                                requestId=requestId, body=body, fields='id')
         driveId = shareddrive['id']
         if returnIdOnly:
@@ -59895,7 +59895,7 @@ def createSharedDrive(users, useDomainAdminAccess=False):
       except GAPI.duplicate:
         entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], Msg.DUPLICATE, i, count)
         break
-      except (GAPI.insufficientPermissions, GAPI.insufficientFilePermissions, GAPI.badRequest) as e:
+      except (GAPI.insufficientPermissions, GAPI.insufficientFilePermissions, GAPI.badRequest, GAPI.userCannotCreateTeamDrives) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.REQUEST_ID, requestId], str(e), i, count)
         break
       except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
