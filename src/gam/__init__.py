@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.11'
+__version__ = '6.63.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -12479,14 +12479,23 @@ def doWhatIs():
     entityUnknownWarning(Ent.EMAIL, email)
     setSysExitRC(ENTITY_IS_UKNOWN_RC)
 
-def _adjustTryDate(errMsg, noDateChange):
+def _adjustTryDate(errMsg, noDateChange, prevTryDate):
   match_date = re.match('Data for dates later than (.*) is not yet available. Please check back later', errMsg)
-  if not match_date:
+  if match_date:
+    tryDate = match_date.group(1)
+  else:
     match_date = re.match('Start date can not be later than (.*)', errMsg)
+    if match_date:
+      tryDate = match_date.group(1)
+    else:
+      match_date = re.match('End date greater than LastReportedDate.', errMsg)
+      if match_date:
+        tryDateTime = datetime.datetime.strptime(prevTryDate, YYYYMMDD_FORMAT)-datetime.timedelta(days=1)
+        tryDate = tryDateTime.strftime(YYYYMMDD_FORMAT)
   if (not match_date) or noDateChange:
     printWarningMessage(DATA_NOT_AVALIABLE_RC, errMsg)
     return None
-  return match_date.group(1)
+  return tryDate
 
 def _checkDataRequiredServices(result, tryDate, dataRequiredServices, parameterServices=None, checkUserEmail=False):
 # -1: Data not available:
@@ -12594,7 +12603,7 @@ def doReportUsageParameters():
       printErrorMessage(BAD_REQUEST_RC, Msg.BAD_REQUEST)
       return
     except GAPI.invalid as e:
-      tryDate = _adjustTryDate(str(e), False)
+      tryDate = _adjustTryDate(str(e), False, tryDate)
       if not tryDate:
         break
   for parameter in sorted(allParameters):
@@ -13373,7 +13382,7 @@ def doReport():
           if not status:
             break
         except GAPI.invalid as e:
-          tryDate = _adjustTryDate(str(e), noDateChange)
+          tryDate = _adjustTryDate(str(e), noDateChange, tryDate)
           if not tryDate:
             break
           startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
@@ -13450,7 +13459,7 @@ def doReport():
         if not status:
           break
       except GAPI.invalid as e:
-        tryDate = _adjustTryDate(str(e), noDateChange)
+        tryDate = _adjustTryDate(str(e), noDateChange, tryDate)
         if not tryDate:
           break
         startDateTime = endDateTime = datetime.datetime.strptime(tryDate, YYYYMMDD_FORMAT)
@@ -15338,7 +15347,7 @@ def _showCustomerLicenseInfo(customerInfo, FJQC):
         continue
       break
     except GAPI.invalid as e:
-      tryDate = _adjustTryDate(str(e), False)
+      tryDate = _adjustTryDate(str(e), False, tryDate)
       if not tryDate:
         return
       continue
@@ -23710,7 +23719,7 @@ CROS_TELEMETRY_TIME_OBJECTS = {'reportTime', 'lastUpdateTime', 'lastUpdateCheckT
 #	[reverselists <CrOSTelemetryListFieldNameList>]
 #	[formatjson [quotechar <Character>]]
 # gam print crostelemetry [todrive <ToDriveAttribute>*]
-#	[(ou|org|orgunit|ou_and_children  <OrgUnitItem>)|(cros_sn <SerialNumber>)|(filter <String>)]
+#	[(ou|org|orgunit|ou_and_children <OrgUnitItem>)|(cros_sn <SerialNumber>)|(filter <String>)]
 #	<CrOSTelemetryFieldName>* [fields <CrOSTelemetryFieldNameList>]
 #	[reverselists <CrOSTelemetryListFieldNameList>]
 #	[start <Date>] [end <Date>] [listlimit <Number>]
@@ -25265,10 +25274,10 @@ def doInfoChatMessage():
   infoChatMessage([None])
 
 # gam <UserTypeEntity> show chatmessages <ChatSpace>
-#	[filter <String>]
+#	[showdeleted [<Boolean>]] [filter <String>]
 #	[formatjson]
 # gam <UserTypeEntity> print chatmessages [todrive <ToDriveAttribute>*] <ChatSpace>i
-#	[filter <String>]
+#	[showdeleted [<Boolean>]] [filter <String>]
 #	[formatjson [quotechar <Character>]]
 def printShowChatMessages(users):
   def _printChatMessage(user, message):
@@ -25289,12 +25298,15 @@ def printShowChatMessages(users):
   csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   parent = pfilter = None
+  showDeleted = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'space' or myarg.startswith('spaces/'):
       parent = getChatSpace(myarg)
+    elif myarg == 'showdeleted':
+      showDeleted = getBoolean()
     elif myarg =='filter':
       pfilter = getString(Cmd.OB_STRING)
     else:
@@ -25314,9 +25326,10 @@ def printShowChatMessages(users):
       messages = callGAPIpages(chat.spaces().messages(), 'list', 'messages',
                                pageMessage=_getChatPageMessage(Ent.CHAT_MESSAGE, user, i, count, qfilter),
                                throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
-                               pageSize=CHAT_PAGE_SIZE, parent=parent, filter=pfilter)
+                               pageSize=CHAT_PAGE_SIZE, parent=parent, filter=pfilter, showDeleted=showDeleted)
       for message in messages:
-        _getChatSenderEmail(cd, message['sender'])
+        if 'sender' in message:
+          _getChatSenderEmail(cd, message['sender'])
     except (GAPI.notFound, GAPI.invalidArgument, GAPI.permissionDenied) as e:
       exitIfChatNotConfigured(chat, kvList, str(e), i, count)
       continue
