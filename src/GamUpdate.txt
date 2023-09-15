@@ -11,9 +11,13 @@ Updated `group` commands that manage members to handle the following error:
 ERROR: 503: serviceNotAvailable - The service is currently unavailable.
 ```
 
+Updated Data Studio to Looker Studio; added the following command synonyms:
+* `lookerstudioassets` for `datastudioassets`
+* 'lookerstudiopermissions` for `datastudiopermissions`
+
 Corrected error message in `gam add datastudiopermissions`:
 * Old -`ERROR: Missing argument: Expected <DataStudioAssetMembersEntity>`
-* New - `ERROR: Missing argument: Expected <DataStudioPermissionEntity>
+* New - `ERROR: Missing argument: Expected <LookerStudioPermissionEntity>
 
 6.63.14
 
