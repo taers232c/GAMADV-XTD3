@@ -834,7 +834,7 @@ class GamCLArgs():
   OB_CROS_ENTITY = 'CrOSEntity'
   OB_CUSTOMER_ID = 'CustomerID'
   OB_CUSTOMER_AUTH_TOKEN = 'CustomerAuthToken'
-  OB_DATASTUDIO_ASSET_MEMBERS_ENTITY = 'DataStudioAssetMembersEntity'
+  OB_DATASTUDIO_PERMISSION_ENTITY = 'DataStudioPermissionEntity'
   OB_DEVICE_FILE_ENTITY = 'DeviceFileEntity'
   OB_DEVICE_ENTITY = 'DeviceEntity'
   OB_DEVICE_ID = 'DeviceID'

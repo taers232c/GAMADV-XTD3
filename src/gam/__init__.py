@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.14'
+__version__ = '6.63.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4102,7 +4102,7 @@ def SetGlobalVariables():
       elif (varType == GC.TYPE_INTEGER) and itemName in {GC.CSV_INPUT_ROW_LIMIT, GC.CSV_OUTPUT_ROW_LIMIT}:
         GM.Globals[GM.PARSER].set(sectionName, itemName, '0')
 # Child process
-# Inherit main process output header/row filters/limit if not locally defined
+# Inherit main process output header/row filters/limit , print defaults if not locally defined
   else:
     if not GC.Values[GC.CSV_OUTPUT_HEADER_FILTER]:
       GC.Values[GC.CSV_OUTPUT_HEADER_FILTER] = GM.Globals[GM.CSV_OUTPUT_HEADER_FILTER][:]
@@ -4120,6 +4120,10 @@ def SetGlobalVariables():
       GC.Values[GC.CSV_OUTPUT_ROW_LIMIT] = GM.Globals[GM.CSV_OUTPUT_ROW_LIMIT]
     if not GC.Values[GC.PRINT_AGU_DOMAINS]:
       GC.Values[GC.PRINT_AGU_DOMAINS] = GM.Globals[GM.PRINT_AGU_DOMAINS]
+    if not GC.Values[GC.PRINT_CROS_OUS]:
+      GC.Values[GC.PRINT_CROS_OUS] = GM.Globals[GM.PRINT_CROS_OUS]
+    if not GC.Values[GC.PRINT_CROS_OUS_AND_CHILDREN]:
+      GC.Values[GC.PRINT_CROS_OUS_AND_CHILDREN] = GM.Globals[GM.PRINT_CROS_OUS_AND_CHILDREN]
 # customer_id, domain and admin_email must be set when enable_dasa = true
   if GC.Values[GC.ENABLE_DASA]:
     errors = 0
@@ -5954,7 +5958,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
                              throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                              includeDerivedMembership=includeDerivedMembership,
                              groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable):
       entityUnknownWarning(Ent.GROUP, group)
       _incrEntityDoesNotExist(Ent.GROUP)
       return
@@ -6085,7 +6089,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
                                  throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                  includeDerivedMembership=includeDerivedMembership,
                                  groupKey=group, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable):
           entityUnknownWarning(Ent.GROUP, group)
           _incrEntityDoesNotExist(Ent.GROUP)
           continue
@@ -9300,6 +9304,7 @@ def terminateStdQueueHandler(mpQueue, mpQueueHandler):
 
 def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                            debugLevel, todrive, printAguDomains,
+                           printCrosOUs, printCrosOUsAndChildren,
                            output_dateformat, output_timeformat,
                            csvColumnDelimiter, csvQuoteChar,
                            csvTimestampColumn,
@@ -9339,6 +9344,8 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
     GM.Globals[GM.NUM_BATCH_ITEMS] = numItems
     GM.Globals[GM.PID] = pid
     GM.Globals[GM.PRINT_AGU_DOMAINS] = printAguDomains
+    GM.Globals[GM.PRINT_CROS_OUS] = printCrosOUs
+    GM.Globals[GM.PRINT_CROS_OUS_AND_CHILDREN] = printCrosOUsAndChildren
     GM.Globals[GM.SAVED_STDOUT] = None
     GM.Globals[GM.SYSEXITRC] = 0
     if mpQueueCSVFile:
@@ -9509,6 +9516,7 @@ def MultiprocessGAMCommands(items, showCmds):
                                                  [pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout, mpQueueStderr,
                                                   GC.Values[GC.DEBUG_LEVEL], GM.Globals[GM.CSV_TODRIVE],
                                                   GC.Values[GC.PRINT_AGU_DOMAINS],
+                                                  GC.Values[GC.PRINT_CROS_OUS], GC.Values[GC.PRINT_CROS_OUS_AND_CHILDREN],
                                                   GC.Values[GC.OUTPUT_DATEFORMAT], GC.Values[GC.OUTPUT_TIMEFORMAT],
                                                   GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER],
                                                   GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR],
@@ -23120,6 +23128,16 @@ def substituteQueryTimes(queries, queryTimes):
         for queryTimeName, queryTimeValue in iter(queryTimes.items()):
           queries[i] = query.replace(f'#{queryTimeName}#', queryTimeValue)
 
+# Get CrOS devices from gam.cfg print_cros_ous and print_cros_ous_and_children
+def getCfgCrOSEntities():
+  if GC.Values[GC.PRINT_CROS_OUS]:
+    entityList = getItemsToModify(Cmd.ENTITY_CROS_OUS, GC.Values[GC.PRINT_CROS_OUS])
+  else:
+    entityList = []
+  if GC.Values[GC.PRINT_CROS_OUS_AND_CHILDREN]:
+    entityList.extend(getItemsToModify(Cmd.ENTITY_CROS_OUS_AND_CHILDREN, GC.Values[GC.PRINT_CROS_OUS_AND_CHILDREN]))
+  return entityList
+
 CROS_ORDERBY_CHOICE_MAP = {
   'lastsync': 'lastSync',
   'location': 'annotatedLocation',
@@ -23287,6 +23305,9 @@ def doPrintCrOSDevices(entityList=None):
   selectedLists = {}
   queryTimes = {}
   selectionAllowed = entityList is None
+  if selectionAllowed and (GC.Values[GC.PRINT_CROS_OUS] or GC.Values[GC.PRINT_CROS_OUS_AND_CHILDREN]):
+    entityList = getCfgCrOSEntities()
+    selectionAllowed = False
   allFields = noLists = oneRow = showDVRstorageFreePercentage = sortHeaders = False
   activeTimeRangesOrder = 'ASCENDING'
   while Cmd.ArgumentsRemaining():
@@ -23545,6 +23566,9 @@ def doPrintCrOSActivity(entityList=None):
   selectedLists = {}
   queryTimes = {}
   selectionAllowed = entityList is None
+  if selectionAllowed and (GC.Values[GC.PRINT_CROS_OUS] or GC.Values[GC.PRINT_CROS_OUS_AND_CHILDREN]):
+    entityList = getCfgCrOSEntities()
+    selectionAllowed = False
   oneUserPerRow = False
   directlyInOU = True
   activeTimeRangesOrder = 'ASCENDING'
@@ -29344,7 +29368,7 @@ def doUpdateGroups():
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(entityType, group, i, count)
     except (GAPI.duplicate, GAPI.memberNotFound, GAPI.resourceNotFound,
-            GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
+            GAPI.invalidMember, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
       _showFailure(group, member, role, str(e), j, jcount)
     except GAPI.conflict:
       _showSuccess(group, member, role, delivery_settings, j, jcount, Msg.ACTION_MAY_BE_DELAYED)
@@ -29381,7 +29405,7 @@ def doUpdateGroups():
       _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], ri[RI_OPTION], int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
-      if reason in GAPI.MEMBERS_THROW_REASONS:
+      if reason in GAPI.MEMBERS_THROW_REASONS and reason != GAPI.SERVICE_NOT_AVAILABLE:
         entityUnknownWarning(entityType, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       elif reason == GAPI.CONFLICT:
         _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], ri[RI_OPTION], int(ri[RI_J]), int(ri[RI_JCOUNT]), Msg.ACTION_MAY_BE_DELAYED)
@@ -29455,7 +29479,7 @@ def doUpdateGroups():
       _showSuccess(group, member, role, DELIVERY_SETTINGS_UNDEFINED, j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(entityType, group, i, count)
-    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.resourceNotFound, GAPI.conditionNotMet) as e:
+    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.resourceNotFound, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
       _showFailure(group, member, role, str(e), j, jcount)
     except GAPI.conflict:
       _showSuccess(group, member, role, DELIVERY_SETTINGS_UNDEFINED, j, jcount, Msg.ACTION_MAY_BE_DELAYED)
@@ -29470,7 +29494,7 @@ def doUpdateGroups():
       _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], DELIVERY_SETTINGS_UNDEFINED, int(ri[RI_J]), int(ri[RI_JCOUNT]))
     else:
       http_status, reason, message = checkGAPIError(exception)
-      if reason in GAPI.MEMBERS_THROW_REASONS:
+      if reason in GAPI.MEMBERS_THROW_REASONS and reason != GAPI.SERVICE_NOT_AVAILABLE:
         entityUnknownWarning(entityType, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
       elif reason == GAPI.CONFLICT:
         _showSuccess(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], DELIVERY_SETTINGS_UNDEFINED, int(ri[RI_J]), int(ri[RI_JCOUNT]), Msg.ACTION_MAY_BE_DELAYED)
@@ -29560,7 +29584,7 @@ def doUpdateGroups():
         Act.Set(Act.UPDATE)
       else:
         _showFailure(group, member, role, str(e), j, jcount)
-    except (GAPI.invalidMember, GAPI.resourceNotFound) as e:
+    except (GAPI.invalidMember, GAPI.resourceNotFound, GAPI.serviceNotAvailable) as e:
       _showFailure(group, member, role, str(e), j, jcount)
 
   def _callbackUpdateGroupMembers(request_id, response, exception):
@@ -29573,11 +29597,18 @@ def doUpdateGroups():
         Act.Set(Act.ADD)
         _addMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
         Act.Set(Act.UPDATE)
-      elif reason in GAPI.MEMBERS_THROW_REASONS:
+      elif reason in GAPI.MEMBERS_THROW_REASONS and reason != GAPI.SERVICE_NOT_AVAILABLE:
         entityUnknownWarning(entityType, ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]))
-      else:
+      elif reason not in GAPI.DEFAULT_RETRY_REASONS+GAPI.MEMBERS_RETRY_REASONS:
         errMsg = getHTTPError(_UPDATE_MEMBER_REASON_TO_MESSAGE_MAP, http_status, reason, message)
         _showFailure(ri[RI_ENTITY], ri[RI_ITEM], ri[RI_ROLE], errMsg, int(ri[RI_J]), int(ri[RI_JCOUNT]))
+      else:
+        if addBatchParms['adjust']:
+          addBatchParms['adjust'] = False
+          addBatchParms['wait'] += 0.25
+          writeStderr(f'{WARNING_PREFIX}{Msg.INTER_BATCH_WAIT_INCREASED.format(addBatchParms["wait"])}\n')
+        time.sleep(0.1)
+        _updateMember(ri[RI_ENTITY], int(ri[RI_I]), int(ri[RI_COUNT]), ri[RI_ROLE], ri[RI_OPTION], ri[RI_ITEM], int(ri[RI_J]), int(ri[RI_JCOUNT]))
 
   def _batchUpdateGroupMembers(group, i, count, updateMembers, role, delivery_settings):
     Act.Set([Act.UPDATE, Act.UPDATE_PREVIEW][preview])
@@ -29891,7 +29922,7 @@ def doUpdateGroups():
                                roles=None if Ent.ROLE_MEMBER in rolesSet or ignoreRole else memberRoles,
                                fields='nextPageToken,members(email,id,type,status,role)',
                                maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable):
         entityUnknownWarning(entityType, group, i, count)
         continue
       for role in rolesSet:
@@ -30016,7 +30047,7 @@ def doUpdateGroups():
                                groupKey=group, roles=None if Ent.ROLE_MEMBER in rolesSet else memberRoles,
                                fields='nextPageToken,members(email,id,type,status,role)',
                                maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable):
         entityUnknownWarning(entityType, group, i, count)
         continue
       removeMembers = {}
@@ -30845,7 +30876,7 @@ def doPrintGroups():
                             includeDerivedMembership=memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP],
                             groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role,type,status)',
                             maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
         groupData[i]['required'] -= 1
         return
@@ -30861,7 +30892,7 @@ def doPrintGroups():
                             includeDerivedMembership=memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP],
                             groupKey=ri[RI_ENTITY], roles=ri[RI_ROLE], fields='nextPageToken,members(email,id,role,type,status)',
                             maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden) as e:
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.GROUP, ri[RI_ENTITY], ri[RI_ROLE], None], str(e), i, int(ri[RI_COUNT]))
         break
     groupData[i]['required'] -= 1
@@ -31238,7 +31269,7 @@ def infoGroupMembers(entityList, ciGroupsAPI=False):
           for field in INFO_GROUPMEMBERS_FIELDS:
             printKeyValueList([field, result[field]])
           Ind.Decrement()
-        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden) as e:
+        except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable) as e:
           entityActionFailedWarning([entityType, group], str(e), j, jcount)
         except GAPI.memberNotFound:
           entityActionFailedWarning([entityType, group, Ent.MEMBER, memberKey], Msg.NOT_AN_ENTITY.format(Ent.Singular(Ent.MEMBER)), j, jcount)
@@ -31307,7 +31338,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
                                                throwReasons=GAPI.MEMBERS_THROW_REASONS+[GAPI.MEMBER_NOT_FOUND],
                                                retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                                groupKey=groupEmail, memberKey=member['id'], fields='delivery_settings')['delivery_settings']
-      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+      except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable):
         pass
       except GAPI.memberNotFound:
         pass
@@ -31322,7 +31353,7 @@ def getGroupMembers(cd, groupEmail, memberRoles, membersList, membersSet, i, cou
                                  throwReasons=GAPI.MEMBERS_THROW_REASONS, retryReasons=GAPI.MEMBERS_RETRY_REASONS,
                                  includeDerivedMembership=memberOptions[MEMBEROPTION_INCLUDEDERIVEDMEMBERSHIP],
                                  groupKey=groupEmail, roles=listRoles, fields=listFields, maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
-  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+  except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable):
     entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
     return
   if not memberOptions[MEMBEROPTION_RECURSIVE]:
@@ -31679,7 +31710,7 @@ def doShowGroupMembers():
                                   groupKey=groupEmail, fields='nextPageToken,members(email,id,role,status,type)', maxResults=GC.Values[GC.MEMBER_MAX_RESULTS])
       if showOwnedBy and not checkGroupShowOwnedBy(showOwnedBy, membersList):
         return
-    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
+    except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden, GAPI.serviceNotAvailable):
       if depth == 0:
         entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
       return
@@ -32313,6 +32344,9 @@ def doUpdateCIGroups():
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, group)
         continue
+      except (GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
+        entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group], str(e))
+        continue
       currentMembersNames = {}
       for role in rolesSet:
         currentMembersSets[role] = set()
@@ -32484,6 +32518,9 @@ def doUpdateCIGroups():
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(entityType, group, i, count)
         continue
+      except (GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
+        entityActionFailedWarning([entityType, group], str(e), i, count)
+        continue
       removeMembers = {}
       for role in rolesSet:
         removeMembers[role] = []
@@ -32553,6 +32590,9 @@ def doInfoCIGroups():
                                                      pageSize=GC.Values[GC.MEMBER_MAX_RESULTS])
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, group_id, i, count)
+        return
+      except (GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
+        entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, group_id], str(e), i, count)
         return
     for member in cachedGroupMembers[group_id]:
       member_id = member.get('name', '')
@@ -32943,6 +32983,8 @@ def doPrintCIGroups():
                                      parent=groupEntity['name'], view='FULL', fields='*', pageSize=pageSize)
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.CLOUD_IDENTITY_GROUP, groupEmail, i, count)
+      except (GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
+        entityActionFailedWarning([Ent.CLOUD_IDENTITY_GROUP, groupEmail], str(e), i, count)
     if memberRestrictions:
       printGettingEntityItemForWhom(Ent.MEMBER_RESTRICTION, groupEmail, i, count)
       try:
@@ -61081,7 +61123,7 @@ def processDataStudioPermissions(users):
       else:
         role = getChoice(DATASTUDIO_DELETE_PERMISSION_ROLE_CHOICE_MAP, mapChoice=True)
       permissions['permissions'].setdefault(role, {'members': []})
-      permissions['permissions'][role]['members'].extend(getEntityList(Cmd.OB_DATASTUDIO_ASSET_MEMBERS_ENTITY))
+      permissions['permissions'][role]['members'].extend(getEntityList(Cmd.OB_DATASTUDIO_PERMISSION_ENTITY))
     elif myarg == 'nodetails':
       showDetails = False
     else:
@@ -61233,7 +61275,7 @@ def _addUserToGroups(cd, user, addGroupsSet, addGroups, i, count):
       entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, j, jcount)
-    except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet) as e:
+    except (GAPI.duplicate, GAPI.cyclicMembershipsNotAllowed, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.GROUP, group, role, user], str(e), j, jcount)
     except GAPI.conflict:
       entityActionPerformedMessage([Ent.GROUP, group, role, user], Msg.ACTION_MAY_BE_DELAYED, j, jcount)
@@ -61300,7 +61342,7 @@ def _deleteUserFromGroups(cd, user, deleteGroupsSet, deleteGroups, i, count):
       entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, j, jcount)
-    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
     except GAPI.conflict:
       entityActionPerformedMessage([Ent.GROUP, group, role, user], Msg.ACTION_MAY_BE_DELAYED, j, jcount)
@@ -61400,7 +61442,7 @@ def _updateUserGroups(cd, user, updateGroupsSet, updateGroups, i, count):
       entityActionPerformed([Ent.GROUP, group, role, user], j, jcount)
     except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
       entityUnknownWarning(Ent.GROUP, group, j, jcount)
-    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+    except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
       entityActionFailedWarning([Ent.USER, user, Ent.GROUP, group], str(e), j, jcount)
   Ind.Decrement()
 
@@ -61531,7 +61573,7 @@ def syncUserWithGroups(users):
                                   'delivery_settings': result.get('delivery_settings', DELIVERY_SETTINGS_UNDEFINED)}
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, groupEmail, i, count)
-      except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+      except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), i, count)
     currGroupsSet = set(currGroups)
     syncGroupsSet = set(syncGroups)
@@ -61647,7 +61689,7 @@ def checkUserInGroups(users):
           else:
             csvPF.WriteRow({'user': user, 'group': groupEmail, 'role': notMemberOrRole})
           _setCheckError()
-        except (GAPI.invalidMember, GAPI.conditionNotMet) as e:
+        except (GAPI.invalidMember, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
           _setCheckError()
       else:
@@ -61669,6 +61711,9 @@ def checkUserInGroups(users):
             _setCheckError()
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
           entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
+          _setCheckError()
+        except (GAPI.invalidMember, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
+          entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
           _setCheckError()
     Ind.Decrement()
   if csvPF:
@@ -61791,7 +61836,7 @@ def printShowUserGroups(users):
             csvPF.WriteRow({'User': user, 'Group': groupEmail, 'Role': role, 'Status': status, 'Delivery': delivery_settings})
       except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
         entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
-      except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+      except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
         entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
     if countsOnly:
       if not csvPF:
@@ -61928,7 +61973,7 @@ def printShowGroupTree(users):
         except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.invalid, GAPI.forbidden):
           entityUnknownWarning(Ent.GROUP, groupEmail, j, jcount)
           continue
-        except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet) as e:
+        except (GAPI.memberNotFound, GAPI.invalidMember, GAPI.conditionNotMet, GAPI.serviceNotAvailable) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.GROUP, groupEmail], str(e), j, jcount)
           continue
       else:
