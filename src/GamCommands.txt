@@ -652,8 +652,6 @@ If an item contains spaces, it should be surrounded by ".
 <CourseWorkIDList> ::= "<CourseWorkID>(,<CourseWorkID>)*"
 <CourseWorkStateList> ::= all|"<CourseWorkState>(,<CourseWorkState>)*"
 <CrOSIDList> ::= "<CrOSID>(,<CrOSID>)*"
-<LookerStudioAssetIDList> ::= "<LookerStudioAssetID>(,<LookerStudioAssetID>)*"
-<LookerStudioPermissionList> ::= "<LookerStudioPermission>(,<LookerStudioPermission>)*"
 <DeviceIDList> ::= "<DeviceID>(,<DeviceID>)*"
 <DeviceUserList> ::= "<DeviceUserID>(,<DeviceUserID>)*"
 <DomainNameList> ::= "<DomainName>(,<DomainName>)*"
@@ -685,6 +683,8 @@ If an item contains spaces, it should be surrounded by ".
 <LabelIDList> ::= "<LabelID>(,<LabelID>)*"
 <LabelNameList> ::= "'<LabelName>'(,'<LabelName>')*"
 <LanguageList> ::= "<Language>(,<Language>)*"
+<LookerStudioAssetIDList> ::= "<LookerStudioAssetID>(,<LookerStudioAssetID>)*"
+<LookerStudioPermissionList> ::= "<LookerStudioPermission>(,<LookerStudioPermission>)*"
 <MatterItemList> ::= "<MatterItem>(,<MatterItem>)*"
 <MatterStateList> ::= "<MatterState>(,<MatterState>)*"
 <MessageIDList> ::= "<MessageID>(,<MessageID>)*"
@@ -988,10 +988,6 @@ Specify a collection of items by directly specifying them; the item type is dete
 <CrOSEntity> ::=
         <CrOSIDList> | (cros_sn <SerialNumberList>) |
         (query:<QueryCrOS>) | (query:orgunitpath:<OrgUnitPath>) | (query <QueryCrOS>)
-<LookerStudioAssetIDEntity> ::=
-        <LookerStudioAssetIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
-<LookerStudioPermissionEntity> ::=
-        <LookerStudioPermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <DeviceIDEntity> ::=
         <DeviceIDList> | (device_sn <SerialNumber>)
         (query:<QueryDevice>) | (query <QueryDevice>)
@@ -1105,6 +1101,10 @@ Specify a collection of items by directly specifying them; the item type is dete
         <LabelIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <LabelNameEntity> ::=
         <LabelNameList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<LookerStudioAssetIDEntity> ::=
+        <LookerStudioAssetIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
+<LookerStudioPermissionEntity> ::=
+        <LookerStudioPermissionList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <MessageIDEntity> ::=
         <MessageIDList> | <FileSelector> | <CSVFileSelector> | <CSVkmdSelector> | <CSVDataSelector>
 <MobileEntity> ::=
@@ -3084,7 +3084,7 @@ gam print|show transferapps
 <DataTransferService> ::=
         calendar|
         currents|
-        datastudio|"google data studio"|
+        datastudio|lookerstudio|"google data studio"|
         googledrive|gdrive|drive|"drive and docs"
 <DataTransferServiceList> ::= "<DataTransferService>(,<DataTransferService>)*"
 
@@ -3988,15 +3988,15 @@ gam print mobile [todrive <ToDriveAttribute>*]
         path|orgunitpath
 <OrgUnitFieldNameList> ::= "<OrgUnitFieldName>(,<OrgUnitFieldName>)*"
 
-gam create|add org|ou <OrgUnitPath> [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)] [buildpath]
-gam update org|ou <OrgUnitItem> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
+gam create|add org|ou <OrgUnitPath> [description <String>] [parent <OrgUnitItem>] [inherit|(blockinheritance False)] [buildpath]
+gam update org|ou <OrgUnitItem> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|(blockinheritance False)]
 gam update org|ou <OrgUnitItem> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
 gam update org|ou <OrgUnitItem> add|move <UserTypeEntity>
 gam update org|ou <OrgUnitItem> sync <CrOSTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
 gam update org|ou <OrgUnitItem> sync <UserTypeEntity> [removetoou <OrgUnitItem>]
 gam delete org|ou <OrgUnitItem>
 
-gam update orgs|ous <OrgUnitEntity> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|noinherit|(blockinheritance <Boolean>)]
+gam update orgs|ous <OrgUnitEntity> [name <String>] [description <String>] [parent <OrgUnitItem>] [inherit|(blockinheritance False)]
 gam update orgs|ous <OrgUnitEntity> add|move <CrOSTypeEntity> [quickcrosmove [<Boolean>]]
 gam update orgs|ous <OrgUnitEntity> add|move <UserTypeEntity>
 gam update orgs|ous <OrgUnitEntity> sync <CrOSTypeEntity> [removetoou <OrgUnitItem>] [quickcrosmove [<Boolean>]]
@@ -7080,7 +7080,7 @@ gam <UserTypeEntity> update license <SKUID> [product|productid <ProductID>] [fro
 gam <UserTypeEntity> delete license <SKUIDList> [product|productid <ProductID>] [preview] [actioncsv]
 gam <UserTypeEntity> sync license <SKUIDList> [product|productid <ProductID>] [addonly|removeonly] [allskus|onesku] [preview] [actioncsv]
 
-# Users - Data Studuo
+# Users - Looker Studuo
 
 <LookerStudioPermission> ::=
         user:<EmailAddress>|
