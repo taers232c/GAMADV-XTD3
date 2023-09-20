@@ -113,7 +113,8 @@ if ([ "${TRAVIS_DIST}" == "trusty" ] || [ "${TRAVIS_DIST}" == "xenial" ]) && [ "
   $pip install staticx
 fi
 
-$pip install --upgrade git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
+#$pip install --upgrade git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
+$pip install git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VERSION
 
 cd $mypath
 
