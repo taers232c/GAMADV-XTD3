@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.17'
+__version__ = '6.63.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -59885,7 +59885,9 @@ def doPrintShowOwnership():
           if item['value'] in foundIds:
             break
           fileInfo['id'] = item['value']
-        elif item['name'] == 'owner':
+        elif event['name'] == 'change_owner' and item['name'] == 'new_owner':
+          fileInfo['Owner'] = item['value']
+        elif event['name'] != 'change_owner' and item['name'] == 'owner':
           fileInfo['Owner'] = item['value']
         elif item['name'] == 'doc_title':
           fileInfo[fileNameTitle] = item['value']
