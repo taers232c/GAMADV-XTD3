@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.63.18'
+__version__ = '6.63.19'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -68075,7 +68075,7 @@ def printShowVacation(users):
     elif enabled:
       row['startdate'] = VACATION_START_STARTED
     if 'endTime' in result:
-      row['enddate'] = (result['endTime'])
+      row['enddate'] = formatLocalDatestamp(result['endTime'])
     elif enabled:
       row['enddate'] = VACATION_END_NOT_SPECIFIED
     row['subject'] = result.get('responseSubject', 'None')
