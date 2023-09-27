@@ -720,7 +720,7 @@ If an item contains spaces, it should be surrounded by ".
 <TasklistIDList> ::= "<TasklistID>(,<TasklistID>)*"
 <TasklistIDTaskIDList> ::= "<TasklistIDTaskID>(,<TasklistIDTaskID>)*"
 <ThreadIDList> ::= "<ThreadID>(,<ThreadID>)*"
-<Timelist> ::= "<Time>(,<Time>)*"
+<TimeList> ::= "<Time>(,<Time>)*"
 <UserList> ::= "<UserItem>(,<UserItem>)*"
 <YouTubeChannelIDList> ::= "<YouTubeChannelID>(,<YouTubeChannelID>)*"
 
