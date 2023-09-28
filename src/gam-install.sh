@@ -146,7 +146,7 @@ case $gamos in
         osversion=$(sw_vers -productVersion)
         osversion=${osversion:0:2}
         case ${osversion:0:2} in
-          11|12|13)
+          11|12|13|14)
             gamfile="macos-x86_64.tar.xz";;
           *)
             gamfile="macos-x86_64-legacy.tar";;
@@ -171,7 +171,9 @@ case $gamos in
     ;;
 esac
 
-if [ "$gamversion" == "latest" -o "$gamversion" == "prerelease" -o "$gamversion" == "draft" ]; then
+if [ "$gamversion" == "latest" ]; then
+  release_url="https://api.github.com/repos/taers232c/GAMADV-XTD3/releases/latest"
+elif [ "$gamversion" == "prerelease" -o "$gamversion" == "draft" ]; then
   release_url="https://api.github.com/repos/taers232c/GAMADV-XTD3/releases"
 else
   release_url="https://api.github.com/repos/taers232c/GAMADV-XTD3/releases/tags/v$gamversion"
