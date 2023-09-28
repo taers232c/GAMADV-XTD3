@@ -1,3 +1,7 @@
+6.64.03
+
+Updated `gam <UserTypeEntity> get drivefile` to allow downloading Jamboard files; they must be downloaded with `format pdf`.
+
 6.64.02
 
 Updated `gam <UserTypeEntity> transfer drive` to handle the following error:

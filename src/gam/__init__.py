@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.64.02'
+__version__ = '6.64.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -254,6 +254,7 @@ MIMETYPE_GA_DRAWING = f'{APPLICATION_VND_GOOGLE_APPS}drawing'
 MIMETYPE_GA_FILE = f'{APPLICATION_VND_GOOGLE_APPS}file'
 MIMETYPE_GA_FOLDER = f'{APPLICATION_VND_GOOGLE_APPS}folder'
 MIMETYPE_GA_FORM = f'{APPLICATION_VND_GOOGLE_APPS}form'
+MIMETYPE_GA_JAM = f'{APPLICATION_VND_GOOGLE_APPS}jam'
 MIMETYPE_GA_FUSIONTABLE = f'{APPLICATION_VND_GOOGLE_APPS}fusiontable'
 MIMETYPE_GA_MAP = f'{APPLICATION_VND_GOOGLE_APPS}map'
 MIMETYPE_GA_PRESENTATION = f'{APPLICATION_VND_GOOGLE_APPS}presentation'
@@ -49266,6 +49267,7 @@ MIMETYPE_CHOICE_MAP = {
   'gform': MIMETYPE_GA_FORM,
   'gfusion': MIMETYPE_GA_FUSIONTABLE,
   'gfusiontable': MIMETYPE_GA_FUSIONTABLE,
+  'gjam': MIMETYPE_GA_JAM,
   'gmap': MIMETYPE_GA_MAP,
   'gpresentation': MIMETYPE_GA_PRESENTATION,
   'gscript': MIMETYPE_GA_SCRIPT,
@@ -56458,6 +56460,7 @@ GOOGLEDOC_VALID_EXTENSIONS_MAP = {
   MIMETYPE_GA_DRAWING: ['.jpeg', '.jpg', '.pdf', '.png', '.svg'],
   MIMETYPE_GA_DOCUMENT: ['.docx', '.epub', '.html', '.odt', '.pdf', '.rtf', '.txt', '.zip'],
   MIMETYPE_GA_PRESENTATION: ['.pdf', '.pptx', '.odp', '.txt'],
+  MIMETYPE_GA_JAM: ['.pdf'],
   MIMETYPE_GA_SPREADSHEET: ['.csv', '.ods', '.pdf', '.tsv', '.xlsx', '.zip'],
   }
 
