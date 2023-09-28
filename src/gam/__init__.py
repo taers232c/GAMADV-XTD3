@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.64.01'
+__version__ = '6.64.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -57164,17 +57164,18 @@ def transferDrive(users):
         removeTargetParents.add(targetRootId)
       try:
         actionUser = sourceUser
-        if not updateTargetPermission:
-          op = 'Create Source ACL'
-          callGAPI(sourceDrive.permissions(), 'create',
-                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_SHARING_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
-                   fileId=childFileId, sendNotificationEmail=False, body=targetWriterPermissionsBody, fields='')
-        op = 'Update Source ACL'
-        callGAPI(sourceDrive.permissions(), 'update',
-                 throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER,
-                                                               GAPI.PERMISSION_NOT_FOUND, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
-                 fileId=childFileId, permissionId=targetPermissionId,
-                 transferOwnership=True, body={'role': 'owner'}, fields='')
+        if childEntryInfo['mimeType'] != MIMETYPE_GA_SHORTCUT:
+          if not updateTargetPermission:
+            op = 'Create Source ACL'
+            callGAPI(sourceDrive.permissions(), 'create',
+                     throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_SHARING_REQUEST, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
+                     fileId=childFileId, sendNotificationEmail=False, body=targetWriterPermissionsBody, fields='')
+          op = 'Update Source ACL'
+          callGAPI(sourceDrive.permissions(), 'update',
+                   throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.INVALID_OWNERSHIP_TRANSFER,
+                                                                 GAPI.PERMISSION_NOT_FOUND, GAPI.SHARING_RATE_LIMIT_EXCEEDED],
+                   fileId=childFileId, permissionId=targetPermissionId,
+                   transferOwnership=True, body={'role': 'owner'}, fields='')
         if removeSourceParents:
           op = 'Remove Source Parents'
           callGAPI(sourceDrive.files(), 'update',
