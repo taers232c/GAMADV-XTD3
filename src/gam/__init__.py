@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.64.03'
+__version__ = '6.64.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -254,8 +254,8 @@ MIMETYPE_GA_DRAWING = f'{APPLICATION_VND_GOOGLE_APPS}drawing'
 MIMETYPE_GA_FILE = f'{APPLICATION_VND_GOOGLE_APPS}file'
 MIMETYPE_GA_FOLDER = f'{APPLICATION_VND_GOOGLE_APPS}folder'
 MIMETYPE_GA_FORM = f'{APPLICATION_VND_GOOGLE_APPS}form'
-MIMETYPE_GA_JAM = f'{APPLICATION_VND_GOOGLE_APPS}jam'
 MIMETYPE_GA_FUSIONTABLE = f'{APPLICATION_VND_GOOGLE_APPS}fusiontable'
+MIMETYPE_GA_JAM = f'{APPLICATION_VND_GOOGLE_APPS}jam'
 MIMETYPE_GA_MAP = f'{APPLICATION_VND_GOOGLE_APPS}map'
 MIMETYPE_GA_PRESENTATION = f'{APPLICATION_VND_GOOGLE_APPS}presentation'
 MIMETYPE_GA_SCRIPT = f'{APPLICATION_VND_GOOGLE_APPS}script'
@@ -8909,6 +8909,7 @@ MACOS_CODENAMES = {
   11: 'Big Sur',
   12: 'Monterey',
   13: 'Ventura',
+  14: 'Sonoma',
   }
 
 def getOSPlatform():
@@ -35994,7 +35995,8 @@ def _moveCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEnt
       kvListEventNewCal = kvListEvent+[Ent.CALENDAR, newCalId]
       try:
         callGAPI(cal.events(), 'move',
-                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.REQUIRED_ACCESS_LEVEL, GAPI.INVALID,
+                 throwReasons=GAPI.CALENDAR_THROW_REASONS+[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.REQUIRED_ACCESS_LEVEL,
+                                                           GAPI.INVALID, GAPI.BAD_REQUEST,
                                                            GAPI.CANNOT_CHANGE_ORGANIZER, GAPI.CANNOT_CHANGE_ORGANIZER_OF_INSTANCE],
                  calendarId=calId, eventId=eventId, destination=newCalId, sendUpdates=parameters['sendUpdates'], fields='')
         entityModifierNewValueActionPerformed(kvListEvent, Act.MODIFIER_TO, f'{Ent.Singular(Ent.CALENDAR)}: {newCalId}', j, jcount)
@@ -36009,7 +36011,8 @@ def _moveCalendarEvents(origUser, user, origCal, calIds, count, calendarEventEnt
       except GAPI.requiredAccessLevel:
 # Correct "You need to have reader access to this calendar." to "Writer access required to both calendars."
         entityActionFailedWarning(kvListEventNewCal, Msg.WRITER_ACCESS_REQUIRED_TO_BOTH_CALENDARS, j, jcount)
-      except (GAPI.forbidden, GAPI.invalid, GAPI.cannotChangeOrganizer, GAPI.cannotChangeOrganizerOfInstance) as e:
+      except (GAPI.forbidden, GAPI.invalid, GAPI.badRequest,
+              GAPI.cannotChangeOrganizer, GAPI.cannotChangeOrganizerOfInstance) as e:
         entityActionFailedWarning(kvListEventNewCal, str(e), j, jcount)
       except (GAPI.serviceNotAvailable, GAPI.authError):
         entityServiceNotApplicableWarning(Ent.CALENDAR, calId, i, count)
@@ -56459,8 +56462,8 @@ NON_DOWNLOADABLE_MIMETYPES = [MIMETYPE_GA_FORM, MIMETYPE_GA_FUSIONTABLE, MIMETYP
 GOOGLEDOC_VALID_EXTENSIONS_MAP = {
   MIMETYPE_GA_DRAWING: ['.jpeg', '.jpg', '.pdf', '.png', '.svg'],
   MIMETYPE_GA_DOCUMENT: ['.docx', '.epub', '.html', '.odt', '.pdf', '.rtf', '.txt', '.zip'],
-  MIMETYPE_GA_PRESENTATION: ['.pdf', '.pptx', '.odp', '.txt'],
   MIMETYPE_GA_JAM: ['.pdf'],
+  MIMETYPE_GA_PRESENTATION: ['.pdf', '.pptx', '.odp', '.txt'],
   MIMETYPE_GA_SPREADSHEET: ['.csv', '.ods', '.pdf', '.tsv', '.xlsx', '.zip'],
   }
 
