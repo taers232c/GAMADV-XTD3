@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.64.09'
+__version__ = '6.64.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9248,7 +9248,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
       csvPF.SetTimestampColumn(dataItem[7])
       csvPF.SetMapDrive3Titles(dataItem[8])
       csvPF.SetFixPaths(dataItem[9])
-      csvPF.SetNoDataFields(dataItem[10], dataItem[11], dataItem[12], dataItem[13], dataItem[14])
+      csvPF.SetNodataFields(dataItem[10], dataItem[11], dataItem[12], dataItem[13], dataItem[14])
       csvPF.SetShowPermissionsLast(dataItem[15])
       csvPF.SetZeroBlankMimeTypeCounts(dataItem[16])
     elif dataType == GM.REDIRECT_QUEUE_DATA:
@@ -52433,7 +52433,6 @@ def printFileList(users):
   timeObjects = _getDriveTimeObjects()
   if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES]:
     fileNameTitle = 'title'
-    csvPF.SetMapDrive3Titles(True)
   else:
     fileNameTitle = 'name'
   csvPF.RemoveTitles(['capabilities'])
