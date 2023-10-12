@@ -4,6 +4,7 @@ Added command to get customer app details.
 ```
 gam info appdetails android|chrome|web <AppID> [formatjson]
 ```
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Installed-Apps
 
 6.64.12
 
