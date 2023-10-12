@@ -83,8 +83,17 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Set cURL retry flag
+      - name: common variables for all runs
+        env:
+          arch: ${{ matrix.arch }}
+          JID: ${{ matrix.jid }}
+          ACTIONS_CACHE: ${{ steps.cache-python-ssl.outputs.cache-hit }}
+          ACTIONS_GOAL: ${{ matrix.goal }}
         run: |
+          echo "arch=${arch}" >> $GITHUB_ENV
+          echo "JID=${JID}" >> $GITHUB_ENV
+          echo "ACTIONS_CACHE=${ACTIONS_CACHE}" >> $GITHUB_ENV
+          echo "ACTIONS_GOAL=${ACTIONS_GOAL}" >> $GITHUB_ENV
           curl_version=$(curl --version | head -n 1 | awk '{ print $2 }')
           echo "cURL is ${curl_version}"
           if [ "$curl_version" == "7.68.0" ]; then
@@ -93,13 +102,20 @@ jobs:
             export curl_retry="--retry 5 --retry-all-errors"
           fi
           echo "curl_retry=${curl_retry}" >> $GITHUB_ENV
+          # GAMCFGDIR should be recreated on every run
+          GAMCFGDIR="${RUNNER_TEMP}/.gam"
+          if [ "$arch" == "Win64" ]; then
+            GAMCFGDIR=$(cygpath -u "$GAMCFGDIR")
+          fi
+          echo "GAMCFGDIR=${GAMCFGDIR}" >> $GITHUB_ENV
+          echo "GAMCFGDIR is: ${GAMCFGDIR}"
 
       - name: Install necessary Github-hosted Linux packages
         if: runner.os == 'Linux' && runner.arch == 'X64'
         run: |
           echo "RUNNING: apt update..."
           sudo apt-get -qq --yes update
-          sudo apt-get -qq --yes install swig libpcsclite-dev
+          sudo apt-get -qq --yes install swig libpcsclite-dev libxslt1-dev
 
       - name: MacOS install tools
         if: runner.os == 'macOS'
@@ -120,9 +136,8 @@ jobs:
       - name: Set Env Variables for build
         if: matrix.goal == 'build'
         env:
-          arch: ${{ matrix.arch }}
-          jid: ${{ matrix.jid }}
           openssl_archs: ${{ matrix.openssl_archs }}
+          staticx: ${{ matrix.staticx }}
         run: |
           echo "We are running on ${RUNNER_OS}"
           LD_LIBRARY_PATH="${OPENSSL_INSTALL_PATH}/lib:${PYTHON_INSTALL_PATH}/lib:/usr/local/lib"
@@ -163,8 +178,7 @@ jobs:
             echo "WIX_ARCH=${WIX_ARCH}" >> $GITHUB_ENV
           fi
           echo "We'll run make with: ${MAKEOPT}"
-          echo "JID=${jid}" >> $GITHUB_ENV
-          echo "arch=${arch}" >> $GITHUB_ENV
+          echo "staticx=${staticx}" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $GITHUB_ENV
           echo "MAKE=${MAKE}" >> $GITHUB_ENV
           echo "MAKEOPT=${MAKEOPT}" >> $GITHUB_ENV
@@ -364,8 +378,6 @@ jobs:
           "${PYTHON}" -m pip install --upgrade setuptools
 
       - name: Install pip requirements
-        env:
-          arch: ${{ matrix.arch }}
         run: |
           echo "before anything..."
           "${PYTHON}" -m pip list
@@ -421,8 +433,14 @@ jobs:
           git clone https://github.com/pyinstaller/pyinstaller.git
           cd pyinstaller
           export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
-          #git checkout "${latest_release}"
-          git checkout "v5.13.2"
+          #V6.0.0 causes errors on staticx
+          if [[ "${staticx}" == "yes" ]]; then
+            git checkout "v5.13.2"
+          elif [[ "${RUNNER_OS}" == "Windows" ]]; then
+            git checkout "v5.13.2"
+          else
+            git checkout "${latest_release}"
+          fi
           # remove pre-compiled bootloaders so we fail if bootloader compile fails
           rm -rvf PyInstaller/bootloader/*-*/*
           cd bootloader
@@ -443,8 +461,6 @@ jobs:
 
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
-        env:
-          arch: ${{ matrix.arch }}
         run: |
              export gampath="./dist/gamadv-xtd3"
              mkdir -p -v "${gampath}"
@@ -483,8 +499,6 @@ jobs:
           fi
 
       - name: Basic Tests all jobs
-        env:
-          arch: ${{ matrix.arch }}
         run: |
           if [[ "${RUNNER_OS}" != "macOS" ]]; then
             $gam version extended
@@ -498,8 +512,6 @@ jobs:
 
       - name: Linux/MacOS package
         if: runner.os != 'Windows' && matrix.goal == 'build'
-        env:
-          arch: ${{ matrix.arch }}
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
               GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-${arch}.tar.xz"
