@@ -20208,7 +20208,7 @@ class PeopleManager():
           contactGroup[fieldName].append(entry)
       elif fieldName == PEOPLE_JSON:
         jsonData = getJSON(['resourceName', 'etag', 'metadata', 'formattedName', 'memberResourceNames',  'memberCount'])
-        if jsonData['groupType'] == 'USER_CONTACT_GROUP':
+        if jsonData.get('groupType', '') != 'SYSTEM_CONTACT_GROUP':
           contactGroup[PEOPLE_GROUP_NAME] = jsonData['name']
     return (contactGroup, ','.join(contactGroup.keys()))
 
