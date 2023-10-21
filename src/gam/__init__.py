@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.65.01'
+__version__ = '6.65.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -6468,6 +6468,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
         result = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
                                pageMessage=getPageMessageForWhom(),
                                throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                               retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                                customer=customerId, orgUnitPath=ou, projection='BASIC',
                                orderBy='id', sortOrder='ASCENDING', fields='nextPageToken,browsers(deviceId)')
       except (GAPI.badRequest, GAPI.invalidOrgunit, GAPI.forbidden):
@@ -6490,6 +6491,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
         result = callGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
                                pageMessage=getPageMessage(),
                                throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                               retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                                customer=customerId, query=query, projection='BASIC',
                                orderBy='id', sortOrder='ASCENDING', fields='nextPageToken,browsers(deviceId)')
       except GAPI.invalidInput:
@@ -24426,6 +24428,7 @@ def doPrintShowBrowsers():
         feed = yieldGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
                               pageMessage=pageMessage, messageAttribute='deviceId',
                               throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                              retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                               customer=customerId, orgUnitPath=orgUnitPath, query=query, projection=projection,
                               orderBy=orderBy, sortOrder=sortOrder, fields=fields)
         for browsers in feed:
