@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.65.02'
+__version__ = '6.65.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -36316,7 +36316,7 @@ EVENT_SHOW_ORDER = ['id', 'summary', 'status', 'description', 'location',
 EVENT_PRINT_ORDER = ['id', 'summary', 'status', 'description', 'location',
                      'created', 'updated', 'iCalUID']
 
-EVENT_TIME_OBJECTS = {'created', 'updated', 'dateTime'}
+EVENT_TIME_OBJECTS = {'created', 'updated'}
 
 def _showCalendarEvent(primaryEmail, calId, eventEntityType, event, k, kcount, FJQC):
   if FJQC.formatJSON:
