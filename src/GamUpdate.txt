@@ -1,3 +1,13 @@
+6.65.08
+
+Added option `addcsvdata <FieldName> <String>` to `gam report <ActivityApplicationName>` that adds
+additional columns of data to the CSV file output.
+
+Added option `shownoactivities` to `gam report <ActivityApplicationName>` that causes GAM to display
+a row with a key value of `NoActivities` when there are no activities to report.
+
+For example, to find Shared Drives with no activity, see: https://github.com/taers232c/GAMADV-XTD3/wiki/Reports#find-shared-drives-with-no-activity
+
 6.65.07
 
 Updated `gam delete building` to handle the following error:
@@ -5142,7 +5152,7 @@ Updated `gam [<UserTypeEntity>] create teamdrive <Name>` to output the name of t
 Team Drive in addition to its ID.
 ```
 $ gam user user@domain.com create teamdrive Test
-User: user@domain.com, Shared Drive Name: Test, Shared Drive ID: 0ALHCDtCDTx_4Uk9PVA, Created
+User: user@domain.com, Shared Drive Name: Test, Shared Drive ID: 0ALHCDtCDTx_4Uk9XYZ, Created
 ```
 
 6.03.20
