@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.65.08'
+__version__ = '6.65.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -56966,7 +56966,14 @@ def getDriveFile(users):
             else:
               if GC.Values[GC.DEBUG_LEVEL] > 0:
                 sys.stderr.write(f'Debug: spreadsheetUrl: {spreadsheetUrl}\n')
-              status, content = drive._http.request(uri=spreadsheetUrl, method='GET')
+              maxRetries = 10
+              sleepTime = 5
+              for retry in range(1, maxRetries+1):
+                status, content = drive._http.request(uri=spreadsheetUrl, method='GET')
+                if status['status'] != '429':
+                  break
+                writeStderr(Msg.RETRYING_GOOGLE_SHEET_EXPORT_SLEEPING.format(retry, maxRetries, sleepTime))
+                time.sleep(sleepTime)
               if status['status'] == '200':
                 f.write(content)
                 if targetStdout and content[-1] != '\n':
@@ -58132,7 +58139,7 @@ def transferOwnership(users):
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
-    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FOLDER)
+    user, drive, jcount = _validateUserGetFileIDs(user, i, count, fileIdEntity, entityType=Ent.DRIVE_FILE_OR_FOLDER)
     if jcount == 0:
       continue
     if filepath:
