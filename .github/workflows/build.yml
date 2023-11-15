@@ -438,7 +438,8 @@ jobs:
           if [[ "${staticx}" == "yes" ]]; then
             git checkout "v5.13.2"
           elif [[ "${RUNNER_OS}" == "Windows" ]]; then
-            git checkout "v5.13.2"
+            # git checkout "v5.13.2"
+            git checkout "${latest_release}"
           else
             git checkout "${latest_release}"
           fi
