@@ -8,7 +8,7 @@ rm -rf $gampath
 mkdir -p $gampath
 $python -OO -m PyInstaller --clean --distpath $gampath gam.spec
 export gam="$gampath/gam"
-$gam version extended
+$gam version extended nooffseterror
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
 cp license.rtf $gampath/
 cp Gam*.txt $gampath/

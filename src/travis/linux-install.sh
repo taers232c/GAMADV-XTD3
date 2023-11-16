@@ -5,6 +5,7 @@ mkdir -p $gampath
 export gampath=$(readlink -e $gampath)
 $python -OO -m PyInstaller --clean --distpath $gampath gam.spec
 export gam="${gampath}/gam"
+$gam version extended nooffseterror
 export GAMVERSION=`$gam version simple | head -n 1 | cut -c1-7`
 cp LICENSE $gampath/
 cp license.rtf $gampath/
