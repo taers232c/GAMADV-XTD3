@@ -9691,6 +9691,7 @@ def MultiprocessGAMCommands(items, showCmds):
             break
           waitRemaining = GC.Values[GC.PROCESS_WAIT_LIMIT] - delta
   except KeyboardInterrupt:
+    batchWriteStderr('Control-C (Multiprocess)\n')
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     batchWriteStderr(Msg.BATCH_CSV_TERMINATE_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                                 numItems, poolProcessResults[0],
@@ -71804,6 +71805,7 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
         CROS_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION][CL_objectName](entityList)
     sys.exit(GM.Globals[GM.SYSEXITRC])
   except KeyboardInterrupt:
+    batchWriteStderr('Control-C\n')
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()
