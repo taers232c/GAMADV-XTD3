@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.65.10
+  GAMVERSION: 6.65.11
   OPENSSL_CONFIG_OPTS: no-fips --api=3.0.0
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -70,7 +70,7 @@ jobs:
           path: |
             bin.tar.xz
             src/cpython
-          key: gam-${{ matrix.jid }}-20231115
+          key: gam-${{ matrix.jid }}-20231118
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -439,7 +439,8 @@ jobs:
             git checkout "v5.13.2"
           elif [[ "${RUNNER_OS}" == "Windows" ]]; then
             git checkout "v5.13.2"
-            #git checkout "${latest_release}"
+          elif [[ "${RUNNER_OS}" == "macOS" ]]; then
+            git checkout "v5.13.2"
           else
             git checkout "${latest_release}"
           fi

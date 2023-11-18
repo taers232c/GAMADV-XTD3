@@ -1,10 +1,14 @@
-6.65.10
+6.65.11
 
 Updated multiprocessing to handle the following error that occurs on MacOS when a `gam csv` command
 is interrupted with a contol-C.
 ```
 multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be N leaked semaphore objects to clean up at shutdown
 ```
+
+6.65.10
+
+Fixed bug in `gam print crostelemetry` that caused a trap: `KeyError: 'reportTime'`.
 
 6.65.09
 
