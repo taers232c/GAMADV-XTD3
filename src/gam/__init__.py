@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.65.11'
+__version__ = '6.65.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9234,9 +9234,10 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
   GM.Globals[GM.DATETIME_NOW] = datetimeNow
   GC.Values[GC.TIMEZONE] = tzinfo
   GC.Values[GC.OUTPUT_TIMEFORMAT] = output_timeformat
-  if sys.platform.startswith('win'):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
+#  if sys.platform.startswith('win'):
+#    signal.signal(signal.SIGINT, signal.SIG_IGN)
   if multiprocessing.get_start_method() == 'spawn':
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     Cmd = glclargs.GamCLArgs()
   else:
     csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
@@ -9340,9 +9341,10 @@ def StdQueueHandler(mpQueue, stdtype, gmGlobals, gcValues):
     except IOError as e:
       systemErrorExit(FILE_ERROR_RC, fdErrorMessage(fd, GM.Globals[stdtype][GM.REDIRECT_NAME], e))
 
-  if sys.platform.startswith('win'):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
+#  if sys.platform.startswith('win'):
+#    signal.signal(signal.SIGINT, signal.SIG_IGN)
   if multiprocessing.get_start_method() == 'spawn':
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     GM.Globals = gmGlobals.copy()
     GC.Values = gcValues.copy()
   pid0DataItem = [KEYBOARD_INTERRUPT_RC, None]
@@ -9433,7 +9435,8 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
 
   with mplock:
     initializeLogging()
-    if sys.platform.startswith('win'):
+#    if sys.platform.startswith('win'):
+    if multiprocessing.get_start_method() == 'spawn':
       signal.signal(signal.SIGINT, signal.SIG_IGN)
     GM.Globals[GM.API_CALLS_RETRY_DATA] = {}
     GM.Globals[GM.CMDLOG_LOGGER] = None
