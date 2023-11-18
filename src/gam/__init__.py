@@ -9542,6 +9542,18 @@ def MultiprocessGAMCommands(items, showCmds):
     if GM.Globals[GM.MULTIPROCESS_EXIT_CONDITION] is not None and checkChildProcessRC(result[1]):
       GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING] = True
 
+  def signal_handler(sig, frame):
+    controlC['trapped'] = True
+
+  def handleControlC(source):
+    batchWriteStderr(f'Control-C (Multiprocess-{source})\n')
+    setSysExitRC(KEYBOARD_INTERRUPT_RC)
+    batchWriteStderr(Msg.BATCH_CSV_TERMINATE_N_PROCESSES.format(currentISOformatTimeStamp(),
+                                                                numItems, poolProcessResults[0],
+                                                                PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
+    pool.terminate()
+    controlC['trapped']  = False
+
   if not items:
     return
   GM.Globals[GM.NUM_BATCH_ITEMS] = numItems = len(items)
@@ -9593,7 +9605,8 @@ def MultiprocessGAMCommands(items, showCmds):
   else:
     mpQueueCSVFile = None
 #  signal.signal(signal.SIGINT, origSigintHandler)
-  signal.signal(signal.SIGINT, signal.SIG_DFL)
+  controlC = {'trapped': False}
+  signal.signal(signal.SIGINT, signal_handler)
   batchWriteStderr(Msg.USING_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                 numItems, numPoolProcesses,
                                                 PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
@@ -9602,6 +9615,8 @@ def MultiprocessGAMCommands(items, showCmds):
     poolProcessResults = {pid: 0}
     for item in items:
       if GM.Globals[GM.MULTIPROCESS_EXIT_PROCESSING]:
+        break
+      if controlC['trapped']:
         break
       if item[0] == Cmd.COMMIT_BATCH_CMD:
         batchWriteStderr(Msg.COMMIT_BATCH_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
@@ -9664,42 +9679,39 @@ def MultiprocessGAMCommands(items, showCmds):
             break
           time.sleep(1)
     processWaitStart = time.time()
-    if GC.Values[GC.PROCESS_WAIT_LIMIT] > 0:
-      waitRemaining = GC.Values[GC.PROCESS_WAIT_LIMIT]
+    if not controlC['trapped']:
+      if GC.Values[GC.PROCESS_WAIT_LIMIT] > 0:
+        waitRemaining = GC.Values[GC.PROCESS_WAIT_LIMIT]
+      else:
+        waitRemaining = 'unlimited'
+      while poolProcessResults[0] > 0:
+        batchWriteStderr(Msg.BATCH_CSV_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
+                                                               numItems, poolProcessResults[0],
+                                                               PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1],
+                                                               Msg.BATCH_CSV_WAIT_LIMIT.format(waitRemaining)))
+        completedProcesses = []
+        for p, result in iter(poolProcessResults.items()):
+          if p != 0 and result.ready():
+            poolCallback(result.get())
+            completedProcesses.append(p)
+        for p in completedProcesses:
+          del poolProcessResults[p]
+        if poolProcessResults[0] > 0:
+          time.sleep(5)
+          if GC.Values[GC.PROCESS_WAIT_LIMIT] > 0:
+            delta = int(time.time()-processWaitStart)
+            if delta >= GC.Values[GC.PROCESS_WAIT_LIMIT]:
+              batchWriteStderr(Msg.BATCH_CSV_TERMINATE_N_PROCESSES.format(currentISOformatTimeStamp(),
+                                                                          numItems, poolProcessResults[0],
+                                                                          PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
+              pool.terminate()
+              break
+            waitRemaining = GC.Values[GC.PROCESS_WAIT_LIMIT] - delta
+      pool.close()
     else:
-      waitRemaining = 'unlimited'
-    while poolProcessResults[0] > 0:
-      batchWriteStderr(Msg.BATCH_CSV_WAIT_N_PROCESSES.format(currentISOformatTimeStamp(),
-                                                             numItems, poolProcessResults[0],
-                                                             PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1],
-                                                             Msg.BATCH_CSV_WAIT_LIMIT.format(waitRemaining)))
-      completedProcesses = []
-      for p, result in iter(poolProcessResults.items()):
-        if p != 0 and result.ready():
-          poolCallback(result.get())
-          completedProcesses.append(p)
-      for p in completedProcesses:
-        del poolProcessResults[p]
-      if poolProcessResults[0] > 0:
-        time.sleep(5)
-        if GC.Values[GC.PROCESS_WAIT_LIMIT] > 0:
-          delta = int(time.time()-processWaitStart)
-          if delta >= GC.Values[GC.PROCESS_WAIT_LIMIT]:
-            batchWriteStderr(Msg.BATCH_CSV_TERMINATE_N_PROCESSES.format(currentISOformatTimeStamp(),
-                                                                        numItems, poolProcessResults[0],
-                                                                        PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
-            pool.terminate()
-            break
-          waitRemaining = GC.Values[GC.PROCESS_WAIT_LIMIT] - delta
+      handleControlC('SIG')
   except KeyboardInterrupt:
-    batchWriteStderr('Control-C (Multiprocess)\n')
-    setSysExitRC(KEYBOARD_INTERRUPT_RC)
-    batchWriteStderr(Msg.BATCH_CSV_TERMINATE_N_PROCESSES.format(currentISOformatTimeStamp(),
-                                                                numItems, poolProcessResults[0],
-                                                                PROCESS_PLURAL_SINGULAR[poolProcessResults[0] == 1]))
-    pool.terminate()
-  else:
-    pool.close()
+    handleControlC('KBI')
   pool.join()
   batchWriteStderr(Msg.BATCH_CSV_PROCESSING_COMPLETE.format(currentISOformatTimeStamp(), numItems))
   if mpQueueCSVFile:
