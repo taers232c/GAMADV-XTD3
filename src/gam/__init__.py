@@ -24139,6 +24139,8 @@ def doInfoPrintShowCrOSTelemetry():
   readMask = ','.join(set(fieldsList))
   if csvPF and FJQC.formatJSON:
     csvPF.SetJSONTitles(['deviceId', 'JSON'])
+  if not pfilters:
+    pfilters = [(None, 'All')]
   for pfilter in pfilters:
     printGettingAllAccountEntities(Ent.CROS_DEVICE, pfilter[1])
     pageMessage = getPageMessage()
