@@ -9592,7 +9592,8 @@ def MultiprocessGAMCommands(items, showCmds):
     mpQueueCSVFile, mpQueueHandlerCSVFile = initializeCSVFileQueueHandler(mpManager, mpQueueStdout, mpQueueStderr)
   else:
     mpQueueCSVFile = None
-  signal.signal(signal.SIGINT, origSigintHandler)
+#  signal.signal(signal.SIGINT, origSigintHandler)
+  signal.signal(signal.SIGINT, signal.SIG_DFL)
   batchWriteStderr(Msg.USING_N_PROCESSES.format(currentISOformatTimeStamp(),
                                                 numItems, numPoolProcesses,
                                                 PROCESS_PLURAL_SINGULAR[numPoolProcesses == 1]))
