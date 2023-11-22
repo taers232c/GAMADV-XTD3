@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.65.13'
+__version__ = '6.65.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -54927,8 +54927,7 @@ def _copyPermissions(drive, user, i, count, j, jcount,
 
   def isPermissionCopyable(kvList, permission):
     role = permission['role']
-    if permission['type'] in {'group', 'user'}:
-      emailAddress = permission.get('emailAddress', '')
+    emailAddress = permission.get('emailAddress', '')
     domain = ''
     if copyMoveOptions['excludePermissionsFromDomains'] or copyMoveOptions['includePermissionsFromDomains']:
       if permission['type'] in {'group', 'user'}:
