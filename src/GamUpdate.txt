@@ -1,3 +1,13 @@
+6.65.16
+
+Fixed bug in `gam <UserTypeEntity> print filecounts` where `Item Cap` showed an incorrect value.
+
+Added option `addorigfieldstosubject` to `gam <UserTypeEntity> forward messages|threads` that causes GAM
+to append  the original `from`, `to` and `date` fields to the message subject.
+```
+Fwd: Ross to TestUser (Original From: Ross Scroggs <ross.scroggs@gmail.com> To: testuser@domain.com Date: Thu, 23 Nov 2023 07:01:59 -0800)
+```
+
 6.65.15
 
 Added additional options to `gam <UserTypeEntity> print|show youtubechannels`.
