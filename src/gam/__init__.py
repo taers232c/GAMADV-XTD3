@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.65.16'
+__version__ = '6.65.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -59041,6 +59041,7 @@ def _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess):
 # gam [<UserTypeEntity>] create drivefileacl <DriveFileEntity> [adminaccess|asadmin]
 #	anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)  (role <DriveFileACLRole>)]
 #	[withlink|(allowfilediscovery|discoverable [<Boolean>])] [expiration <Time>]
+#	(mappermissionsdomain <DomainName> <DomainName>)*
 #	[moveToNewOwnersRoot [<Boolean>]]
 #	[updatesheetprotectedranges  [<Boolean>]]
 #	[sendemail] [emailmessage <String>]
@@ -59056,14 +59057,15 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
   fileNameTitle = 'title' if not GC.Values[GC.DRIVE_V3_NATIVE_NAMES] else 'name'
   fileIdEntity = getDriveFileEntity()
   body = {}
-  body['type'] = getChoice(DRIVEFILE_ACL_PERMISSION_TYPES)
-  if body['type'] != 'anyone':
-    if body['type'] != 'domain':
+  body['type'] = permType = getChoice(DRIVEFILE_ACL_PERMISSION_TYPES)
+  if permType != 'anyone':
+    if permType != 'domain':
       body['emailAddress'] = permissionId = getEmailAddress()
     else:
       body['domain'] = permissionId = getString(Cmd.OB_DOMAIN_NAME)
   else:
     permissionId = 'anyone'
+  mapPermissionsDomains = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'withlink':
@@ -59077,6 +59079,9 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
       body['role'] = getChoice(DRIVEFILE_ACL_ROLES_MAP, mapChoice=True)
       if body['role'] == 'owner':
         sendNotificationEmail = _transferOwnership = True
+    elif myarg == 'mappermissionsdomain':
+      oldDomain = getString(Cmd.OB_DOMAIN_NAME).lower()
+      mapPermissionsDomains[oldDomain] = getString(Cmd.OB_DOMAIN_NAME).lower()
     elif myarg == 'enforcesingleparent':
       deprecatedArgument(myarg)
     elif myarg == 'movetonewownersroot':
@@ -59107,6 +59112,18 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
   _checkFileIdEntityDomainAccess(fileIdEntity, useDomainAdminAccess)
   if 'role' not in body:
     missingArgumentExit(f'role {formatChoiceList(DRIVEFILE_ACL_ROLES_MAP)}')
+  if mapPermissionsDomains:
+    if permType != 'anyone':
+      if permType != 'domain':
+        atLoc = permissionId.find('@')
+        if atLoc != -1:
+          mappedDomain = mapPermissionsDomains.get(permissionId[atLoc+1:], None)
+          if mappedDomain:
+            body['emailAddress'] = permissionId = f"{permissionId[:atLoc]}@{mappedDomain}"
+      else:
+        mappedDomain = mapPermissionsDomains.get(permissionId, None)
+        if mappedDomain:
+          body['domain'] = permissionId = mappedDomain
   _validatePermissionOwnerType(roleLocation, body)
   _validatePermissionAttributes('allowfilediscovery/withlink', withLinkLocation, body, 'allowFileDiscovery', ['anyone', 'domain'])
   _validatePermissionAttributes('expiration', expirationLocation, body, 'expirationTime', ['user', 'group'])
@@ -65262,7 +65279,7 @@ def forwardMessagesThreads(users, entityType):
   checkArgumentPresent({'recipient', 'recipients', 'to'})
   recipients = getRecipients()
   parameters = _initMessageThreadParameters(entityType, False, 1)
-  addOriginalFieldsToSubject =  includeSpamTrash = False
+  addOriginalFieldsToSubject = includeSpamTrash = False
   subject = ''
   encodings = [UTF8]
   while Cmd.ArgumentsRemaining():

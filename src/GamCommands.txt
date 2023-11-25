@@ -4589,6 +4589,7 @@ In these commands, the Google administrator named in oauth2.txt is used.
 gam create|add drivefileacl <SharedDriveEntityAdmin>
         anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
+        (mappermissionsdomain <DomainName> <DomainName>)*
         [expiration <Time>] [sendemail] [emailmessage <String>]
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
 gam update drivefileacl <SharedDriveEntityAdmin> <DriveFilePermissionIDorEmail>
@@ -4626,6 +4627,7 @@ In these commands, you specify an administrator and then indicate that you want 
 gam <UserTypeEntity> create|add drivefileacl <SharedDriveEntityAdmin>
         anyone|(user <UserItem>)|(group <GroupItem>)|(domain <DomainName>)
         (role <DriveFileACLRole>) [withlink|(allowfilediscovery|discoverable [<Boolean>])]
+        (mappermissionsdomain <DomainName> <DomainName>)*
         [movetonewownersroot [<Boolean>]]
         [expiration <Time>] [sendemail] [emailmessage <String>]
         [showtitles] [nodetails|(csv [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]])]
