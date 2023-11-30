@@ -9302,7 +9302,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
     elif dataType == GM.REDIRECT_QUEUE_VALUES:
       GC.Values = dataItem
       csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
-      csvPF.SetEscapeChar('\\' if not GC.Values[GC.CSV_OUTPUT_NO_ESCAPE_CHAR] else None)
+      csvPF.SetNoEscapeChar(GC.Values[GC.CSV_OUTPUT_NO_ESCAPE_CHAR])
       csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
       csvPF.SetTimestampColumn(GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN])
       csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
