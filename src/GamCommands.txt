@@ -3767,9 +3767,12 @@ gam show cigroup-members
 # Cloud Identity Devices
 
 <DeviceID> ::= devices/<String>
-<DeviceUserID> ::= devices/<String>/deviceUsers/<String>
+<DeviceIDList> ::= "<DeviceID>(,<DeviceID>)*"
+<DeviceEntity> ::=
+        <DeviceIDList> | devicesn <String> |
+        (query:<QueryDevice>)|(query <QueryDevice>)
 <DeviceType> ::= android|chrome_os|google_sync|ios|linux|mac_os|windows
-
+<DeviceUserID> ::= devices/<String>/deviceUsers/<String>
 <DeviceFieldName> ::=
         androidspecificattributes|
         assettag|
@@ -3779,11 +3782,13 @@ gam show cigroup-members
         buildnumber|
         compromisedstate|
         createtime|
+        deviceid|
         devicetype|
         enableddeveloperoptions|
         enabledusbdebugging|
         endpointverificationspecificattributes|
         encryptionstate|
+        hostname|
         imei|
         kernelversion|
         lastsynctime|

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.66.01'
+__version__ = '6.66.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -26804,13 +26804,13 @@ def getCIDeviceEntity():
   pageMessage = getPageMessage()
   try:
     devices = callGAPIpages(ci.devices(), 'list', 'devices',
-                            throwReasons=[GAPI.INVALID, GAPI.PERMISSION_DENIED],
+                            throwReasons=[GAPI.INVALID, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED],
                             retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                             pageMessage=pageMessage,
                             customer=customer, filter=query,
                             fields='nextPageToken,devices(name)', pageSize=100)
     return (devices, ci, customer, False)
-  except GAPI.invalid:
+  except (GAPI.invalid, GAPI.invalidArgument):
     Cmd.Backup()
     usageErrorExit(Msg.INVALID_QUERY)
   except GAPI.permissionDenied as e:
@@ -27142,11 +27142,13 @@ DEVICE_FIELDS_CHOICE_MAP = {
   'buildnumber': 'buildNumber',
   'compromisedstate': 'compromisedState',
   'createtime': 'createTime',
+  'deviceid': 'deviceId',
   'devicetype': 'deviceType',
   'enableddeveloperoptions': 'enabledDeveloperOptions',
   'enabledusbdebugging': 'enabledUsbDebugging',
   'encryptionstate': 'encryptionState',
   'endpointverificationspecificattributes': 'endpointVerificationSpecificAttributes',
+  'hostname': 'hostname',
   'imei': 'imei',
   'kernelversion': 'kernelVersion',
   'lastsynctime': 'lastSyncTime',
