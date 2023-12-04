@@ -1,3 +1,7 @@
+6.66.05
+
+Added column `space.name` to `gam <UserTypeEntity> print chatmembers`.
+
 6.66.04
 
 Updated Chat info|show|print commands to display all time fields in local time if specified in `gam.cfg`.

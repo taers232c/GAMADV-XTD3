@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.66.04'
+__version__ = '6.66.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -25557,17 +25557,18 @@ def printShowChatMembers(users):
     row = flattenJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS)
     if user is not None:
       row['User'] = user
+    row['space.name'] = parent
     if not FJQC.formatJSON:
       csvPF.WriteRowTitles(row)
     elif csvPF.CheckRowTitles(row):
-      row = {'User': user} if user is not None else {}
+      row = {'User': user, 'space.name': parent} if user is not None else {'space.name': parent}
       row.update({'name': member['name'],
                   'JSON': json.dumps(cleanJSON(member, timeObjects=CHAT_MEMBER_TIME_OBJECTS),
                                      ensure_ascii=False, sort_keys=True)})
       csvPF.WriteRowNoFilter(row)
 
   cd = buildGAPIObject(API.DIRECTORY)
-  csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'space.name', 'name'] if not isinstance(users, list) else ['space.name', 'name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   kwargs = {}
   parent = None
@@ -25847,7 +25848,7 @@ def printShowChatMessages(users):
       csvPF.WriteRowNoFilter(row)
 
   cd = buildGAPIObject(API.DIRECTORY)
-  csvPF = CSVPrintFile(['User', 'name'] if not isinstance(users, list) else ['name']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'space.name', 'name'] if not isinstance(users, list) else ['space.name', 'name']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   parent = pfilter = None
   showDeleted = False
