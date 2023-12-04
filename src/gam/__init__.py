@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.66.03'
+__version__ = '6.66.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -24578,6 +24578,8 @@ def doPrintShowBrowsers():
       csvPF.SetSortTitles(['deviceId'])
     csvPF.writeCSVfile('Browsers')
 
+BROWSER_TOKEN_TIME_OBJECTS = {'createTime', 'expireTime', 'revokeTime'}
+
 def _showBrowserToken(browser, FJQC, i=0, count=0):
   if FJQC.formatJSON:
     printLine(json.dumps(cleanJSON(browser), ensure_ascii=False, sort_keys=True))
@@ -24632,8 +24634,6 @@ def doRevokeBrowserToken():
     entityActionFailedWarning([Ent.CHROME_BROWSER_ENROLLMENT_TOKEN, tokenPermanentId], str(e))
   except GAPI.forbidden:
     accessErrorExit(None)
-
-BROWSER_TOKEN_TIME_OBJECTS = {'createTime', 'expireTime', 'revokeTime'}
 
 BROWSER_TOKEN_FIELDS_CHOICE_MAP = {
   'createtime': 'createTime',
@@ -24788,6 +24788,8 @@ def _cleanChatSpace(space):
   space.pop('type', None)
   space.pop('threaded', None)
 
+CHAT_SPACE_TIME_OBJECTS = {'createTime'}
+
 def _showChatSpace(space, FJQC, i=0, count=0):
   _cleanChatSpace(space)
   if FJQC.formatJSON:
@@ -24795,7 +24797,7 @@ def _showChatSpace(space, FJQC, i=0, count=0):
     return
   printEntity([Ent.CHAT_SPACE, space['name']], i, count)
   Ind.Increment()
-  showJSON(None, space)
+  showJSON(None, space, timeObjects=CHAT_SPACE_TIME_OBJECTS)
   Ind.Decrement()
 
 def  getChatSpaceParameters(myarg, body, typeChoicesMap):
@@ -25059,7 +25061,7 @@ CHAT_PAGE_SIZE = 1000
 def printShowChatSpaces(users):
   def _printChatSpace(user, space):
     _cleanChatSpace(space)
-    row = flattenJSON(space)
+    row = flattenJSON(space, timeObjects=CHAT_SPACE_TIME_OBJECTS)
     if user is not None:
       row['User'] = user
     if not FJQC.formatJSON:
@@ -25067,7 +25069,7 @@ def printShowChatSpaces(users):
     elif csvPF.CheckRowTitles(row):
       row = {'User': user} if user is not None else {}
       row.update({'name': space['name'],
-                  'JSON': json.dumps(cleanJSON(space),
+                  'JSON': json.dumps(cleanJSON(space, timeObjects=CHAT_SPACE_TIME_OBJECTS),
                                      ensure_ascii=False, sort_keys=True)})
       csvPF.WriteRowNoFilter(row)
 
@@ -25773,7 +25775,7 @@ def doDeleteChatMessage():
 def _cleanChatMessage(message):
   message.pop('cards', None)
 
-CHAT_MESSAGE_TIME_OBJECTS = {'createTime'}
+CHAT_MESSAGE_TIME_OBJECTS = {'createTime', 'deleteTime', 'lastUpdateTime'}
 
 def _showChatMessage(message, FJQC, i=0, count=0):
   _cleanChatMessage(message)
