@@ -24793,7 +24793,8 @@ CHAT_SPACE_TIME_OBJECTS = {'createTime'}
 def _showChatSpace(space, FJQC, i=0, count=0):
   _cleanChatSpace(space)
   if FJQC.formatJSON:
-    printLine(json.dumps(cleanJSON(space), ensure_ascii=False, sort_keys=True))
+    printLine(json.dumps(cleanJSON(space, timeObjects=CHAT_SPACE_TIME_OBJECTS),
+                         ensure_ascii=False, sort_keys=True))
     return
   printEntity([Ent.CHAT_SPACE, space['name']], i, count)
   Ind.Increment()
