@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.66.06'
+__version__ = '6.66.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -53659,6 +53659,7 @@ def printDiskUsage(users):
         if stripCRsFromName:
           childEntryInfo['name'] = _stripControlCharsFromName(childEntryInfo['name'])
         childEntryInfo['path'] = fileEntry['path']+pathDelimiter+childEntryInfo['name']
+        childEntryInfo.pop(sizeField, None)
         foldersList.append(childEntryInfo)
         _getChildDriveFolderInfo(drive, childEntryInfo, user, i, count)
         fileEntry['totalFileCount'] += childEntryInfo['totalFileCount']
@@ -53781,6 +53782,7 @@ def printDiskUsage(users):
         topFolder.pop('ownedByMe', None)
         topFolder.pop('parents', None)
         topFolder.update(zeroFolderInfo)
+        topFolder.pop(sizeField, None)
         foldersList.append(topFolder)
         _getChildDriveFolderInfo(drive, topFolder, user, i, count)
       except GAPI.fileNotFound:
