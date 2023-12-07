@@ -66828,7 +66828,8 @@ def printShowMessagesThreads(users, entityType):
             if senderMatchPattern:
               row['Sender'] = sender
             if not show_size:
-              labelsMap.pop('size', None)
+              for label in labelsMap.values():
+                label.pop('size', None)
             csvPF.WriteRowTitles(flattenJSON({'Labels': sorted(iter(labelsMap.values()), key=lambda k: k['name'])}, flattened=row))
       elif not senderMatchPattern:
         if not csvPF:
