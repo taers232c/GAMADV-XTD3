@@ -49,6 +49,7 @@ class GamAction():
   DELETE = 'dele'
   DELETE_EMPTY = 'delm'
   DELETE_PREVIEW = 'delp'
+  DELETE_SHORTCUT = 'desc'
   DEPROVISION = 'depr'
   DISABLE = 'disa'
   DOWNLOAD = 'down'
@@ -160,12 +161,13 @@ class GamAction():
     COPY_MERGE: ['Copied(Merge)', 'Copy(Merge)'],
     CREATE: ['Created', 'Create'],
     CREATE_PREVIEW: ['Created (Preview)', 'Create (Preview)'],
-    CREATE_SHORTCUT: ['Created Shortcut', 'Create SHORTCUT'],
+    CREATE_SHORTCUT: ['Created Shortcut', 'Create Shortcut'],
     DEDUP: ['Duplicates Deleted', 'Delete Duplicates'],
     DELETE: ['Deleted', 'Delete'],
     DELETE_EMPTY: ['Deleted', 'Delete Empty'],
     DELETE_PREVIEW: ['Deleted (Preview)', 'Delete (Preview)'],
     DEPROVISION: ['Deprovisioned', 'Deprovision'],
+    DELETE_SHORTCUT: ['Deleted Shortcut', 'Delete Shortcut'],
     DISABLE: ['Disabled', 'Disable'],
     DOWNLOAD: ['Downloaded', 'Download'],
     DRAFT: ['Drafted', 'Draft'],
