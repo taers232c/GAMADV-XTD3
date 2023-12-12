@@ -1,3 +1,12 @@
+6.66.12
+
+Updated all drive commands to handle the following error:
+```
+ERROR: 401: Active session is invalid. Error code: 4 - authError
+```
+This is due to the Drive SDK API being disabled in the user's OU.
+* See: https://support.google.com/a/answer/6105699
+
 6.66.11
 
 Fixed/improved handling of shortcuts in `gam <UserTypeEntity> transfer drive`.
