@@ -1,5 +1,7 @@
 6.66.12
 
+Upgraded to Python 3.12.1 where possible.
+
 Updated all drive commands to handle the following error:
 ```
 ERROR: 401: Active session is invalid. Error code: 4 - authError
