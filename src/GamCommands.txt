@@ -4908,7 +4908,7 @@ gam print vaultcounts [todrive <ToDriveAttributes>*]
 
 gam create vaultexport|export matter <MatterItem> [name <String>] corpus calendar|drive|mail|groups|hangouts_chat|voice
         (accounts <EmailAddressEntity>) | (orgunit|org|ou <OrgUnitPath>) | everyone
-        (shareddrives|teamdrives <SharedDriveIDList>) | (rooms <RoomList>)  | (sitesurl <URLList>)
+        (shareddrives|teamdrives <SharedDriveIDList>) | (rooms <RoomList>) | (sitesurl <URLList>)
         [scope all_data|held_data|unprocessed_data]
         [terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>] [timezone <TimeZone>]
         [locationquery <StringList>] [peoplequery <StringList>] [minuswords <StringList>]
@@ -6011,12 +6011,13 @@ gam <UserTypeEntity> copy drivefile <DriveFileEntity>
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent [<Boolean>]] [recursive [depth <Number>]]
+        <DriveFileCopyAttribute>*
+        [skipids <DriveFileEntity>]
         [copysubfiles [<Boolean>]] [filenamematchpattern <RegularExpression>]
              [filemimetype [not] <MimeTypeList>]
         [copysubfilesownedby any|me|others]
         [copysubfolders [<Boolean>]] [foldernamematchpattern <RegularExpression>]
         [copysubshortcuts [<Boolean>]] [shortcutnamematchpattern <RegularExpression>]
-        <DriveFileCopyAttribute>*
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
         [copiedshortcutspointtocopiedfiles [<Boolean>]]
@@ -6045,6 +6046,7 @@ gam <UserTypeEntity> move drivefile <DriveFileEntity> [newfilename <DriveFileNam
         [summary [<Boolean>]] [showpermissionmessages [<Boolean>]]
         [<DriveFileParentAttribute>]
         [mergewithparent|mergewithparentretain [<Boolean>]]
+        [skipids <DriveFileEntity>]
         [createshortcutsfornonmovablefiles [<Boolean>]]
         [duplicatefiles overwriteolder|overwriteall|duplicatename|uniquename|skip]
         [duplicatefolders merge|duplicatename|uniquename|skip]
@@ -6256,6 +6258,7 @@ gam <UserTypeEntity> print filerevisions <DriveFileEntity> [todrive <ToDriveAttr
 
 gam <UserTypeEntity> transfer ownership <DriveFileEntity> <UserItem>
         [<DriveFileParentAttribute>] [includetrashed] [norecursion [<Boolean>]]
+        [skipids <DriveFileEntity>]
         (orderby <DriveFileOrderByFieldName> [ascending|descending])*
         [preview] [filepath] [pathdelimiter <Character>] [buildtree]
         [todrive <ToDriveAttribute>*]
