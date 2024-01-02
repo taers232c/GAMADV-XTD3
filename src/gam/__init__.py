@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.02'
+__version__ = '6.67.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -59256,7 +59256,7 @@ def claimOwnership(users):
     for fileId in fileIdEntity['list']:
       j += 1
       filesToClaim = {}
-      kVlist = [Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId]
+      kvList = [Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, fileId]
       if buildTree:
         fileEntry = fileTree.get(fileId)
         if not fileEntry:
