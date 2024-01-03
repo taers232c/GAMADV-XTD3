@@ -3,7 +3,7 @@
 #
 # GAMADV-XTD3
 #
-# Copyright 2023, All Rights Reserved.
+# Copyright 2024, All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.03'
+__version__ = '6.67.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5751,7 +5751,7 @@ def shlexSplitListStatus(entity, dataDelimiter=' ,'):
     return (False, str(e))
 
 def getQueries(myarg):
-  if myarg == 'query':
+  if myarg in {'query', 'filter'}:
     return [getString(Cmd.OB_QUERY)]
   return shlexSplitList(getString(Cmd.OB_QUERY_LIST))
 
@@ -13971,6 +13971,7 @@ TAG_FIELD_SUBFIELD_CHOICE_MAP = {
   'otheremails': ('emails', TAG_OTHEREMAIL_ARGUMENT_TO_FIELD_MAP),
   'phone': ('phones', TAG_PHONE_ARGUMENT_TO_FIELD_MAP),
   'phones': ('phones', TAG_PHONE_ARGUMENT_TO_FIELD_MAP),
+  'photourl': ('thumbnailPhotoUrl', {'': 'thumbnailPhotoUrl'}),
   'posix': ('posixAccounts', TAG_POSIXACCOUNT_ARGUMENT_TO_FIELD_MAP),
   'posixaccounts': ('posixAccounts', TAG_POSIXACCOUNT_ARGUMENT_TO_FIELD_MAP),
   'relation': ('relations', TAG_RELATION_ARGUMENT_TO_FIELD_MAP),
@@ -14014,6 +14015,8 @@ def _getTagReplacement(tagReplacements, allowSubs):
       else:
         Cmd.Backup()
         usageErrorExit(Msg.INVALID_TAG_SPECIFICATION)
+    elif field == 'photourl':
+      subfield = matchfield = matchvalue = ''
     else:
       field = ''
     if not field or field not in TAG_FIELD_SUBFIELD_CHOICE_MAP:
@@ -14128,6 +14131,8 @@ def _getTagReplacementFieldValues(user, i, count, tagReplacements, results=None)
                 break
             else:
               data = {}
+        elif field == 'thumbnailPhotoUrl':
+          data = results
         else:
           data = results.get(field, {})
         tag['value'] = str(data.get(tag['subfield'], ''))
