@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.06'
+__version__ = '6.67.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -65653,14 +65653,15 @@ def _processMessagesThreads(users, entityType):
         idsList += ',...'
       try:
         callGAPI(gmail.users().messages(), function,
-                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_MESSAGE_ID, GAPI.INVALID, GAPI.FAILED_PRECONDITION],
+                 throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.INVALID_MESSAGE_ID, GAPI.INVALID,
+                                                        GAPI.FAILED_PRECONDITION, GAPI.PERMISSION_DENIED],
                  userId='me', body=body)
         for messageId in body['ids']:
           mcount += 1
           entityActionPerformed([Ent.USER, user, entityType, messageId], mcount, jcount)
       except (GAPI.serviceNotAvailable, GAPI.badRequest):
         mcount += bcount
-      except GAPI.invalid as e:
+      except (GAPI.invalid, GAPI.permissionDenied) as e:
         entityActionFailedWarning([Ent.USER, user, entityType, idsList], f'{str(e)} ({mcount+1}-{mcount+bcount}/{jcount})')
         mcount += bcount
       except GAPI.invalidMessageId:
