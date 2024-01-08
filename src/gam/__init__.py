@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.07'
+__version__ = '6.67.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -66261,7 +66261,8 @@ def _draftImportInsertMessage(users, operation):
       emlFile = False
     elif myarg == 'emlfile':
       filename = getString(Cmd.OB_FILE_NAME)
-      msgText = readFile(filename, encoding='ascii')
+      encoding =  getString(Cmd.OB_CHAR_SET) if checkArgumentPresent('charset') else 'ascii'
+      msgText = readFile(filename, encoding=encoding)
       emlFile = True
       internalDateSource = 'dateHeader'
     elif myarg == 'replace':
@@ -66400,17 +66401,17 @@ def _draftImportInsertMessage(users, operation):
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam <UserTypeEntity> draft message
-#	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 #	<MessageContent> (replace <Tag> <UserReplacement>)*
+#	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 #	(attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 def draftMessage(users):
   _draftImportInsertMessage(users, 'draft')
 
 # gam <UserTypeEntity> import message
+#	<MessageContent> (replace <Tag> <UserReplacement>)*
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 #	(addlabel <LabelName>)* [labels <LabelNameList>]
-#	<MessageContent> (replace <Tag> <UserReplacement>)*
 #	(attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 #	[deleted [<Boolean>]] [nevermarkspam [<Boolean>]] [processforcalendar [<Boolean>]]
@@ -66418,9 +66419,9 @@ def importMessage(users):
   _draftImportInsertMessage(users, 'import')
 
 # gam <UserTypeEntity> insert message
+#	<MessageContent> (replace <Tag> <UserReplacement>)*
 #	(<SMTPDateHeader> <Time>)* (<SMTPHeader> <String>)* (header <String> <String>)*
 #	(addlabel <LabelName>)* [labels <LabelNameList>]
-#	<MessageContent> (replace <Tag> <UserReplacement>)*
 #	(attach <FileName> [charset <CharSet>])*
 #	(embedimage <FileName> <String>)*
 #	[deleted [<Boolean>]]
