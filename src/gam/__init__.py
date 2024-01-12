@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.14'
+__version__ = '6.67.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -32034,6 +32034,7 @@ GROUPMEMBERS_DEFAULT_FIELDS = ['group', 'type', 'role', 'id', 'status', 'email']
 #	[userfields <UserFieldNameList>]
 #	[(recursive [noduplicates])|includederivedmembership] [nogroupemail]
 #	[peoplelookup|(peoplelookupuser <EmailAddress>)]
+#	[cachememberinfo [Boolean]]
 #	[formatjson [quotechar <Character>]]
 def doPrintGroupMembers():
   def getNameFromPeople(memberId):
@@ -32071,6 +32072,9 @@ def doPrintGroupMembers():
   typesSet = set()
   matchPatterns = {}
   showDeliverySettings = False
+  cacheMemberInfo = False
+  memberInfo = {}
+  memberNames = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -32127,6 +32131,8 @@ def doPrintGroupMembers():
       _, people = buildGAPIServiceObject(API.PEOPLE, getEmailAddress())
       if not people:
         return
+    elif myarg == 'cachememberinfo':
+      cacheMemberInfo = getBoolean()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if not typesSet:
@@ -32204,14 +32210,21 @@ def doPrintGroupMembers():
           row['name'] = UNKNOWN
         if memberType == Ent.TYPE_USER:
           try:
-            mbinfo = callGAPI(cd.users(), 'get',
-                              throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
-                              retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
-                              userKey=memberId, fields=userFields)
-            if memberOptions[MEMBEROPTION_MEMBERNAMES]:
-              row['name'] = mbinfo['name'].pop('fullName')
-              if not mbinfo['name']:
-                mbinfo.pop('name')
+            if not cacheMemberInfo or memberId not in memberNames:
+              mbinfo = callGAPI(cd.users(), 'get',
+                                throwReasons=GAPI.USER_GET_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE, GAPI.FAILED_PRECONDITION],
+                                retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
+                                userKey=memberId, fields=userFields)
+              if memberOptions[MEMBEROPTION_MEMBERNAMES]:
+                row['name'] = mbinfo['name'].pop('fullName')
+                if not mbinfo['name']:
+                  mbinfo.pop('name')
+              if cacheMemberInfo:
+                memberNames[memberId] = row['name']
+                memberInfo[memberId] = mbinfo
+            else:
+              row['name'] = memberNames[memberId]
+              mbinfo = memberInfo[memberId]
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(flattenJSON(mbinfo, flattened=row))
             else:
@@ -32230,24 +32243,34 @@ def doPrintGroupMembers():
               if peopleNames[memberId]:
                 row['name'] = peopleNames[memberId]
           except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-                  GAPI.badRequest, GAPI.backendError, GAPI.systemError, GAPI.serviceNotAvailable):
+                  GAPI.badRequest, GAPI.backendError, GAPI.systemError, GAPI.serviceNotAvailable, GAPI.failedPrecondition):
             pass
         elif memberType == Ent.TYPE_GROUP:
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
             try:
-              row['name'] = callGAPI(cd.groups(), 'get',
-                                     throwReasons=GAPI.GROUP_GET_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
-                                     retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
-                                     groupKey=memberId, fields='name')['name']
+              if not cacheMemberInfo or memberId not in memberNames:
+                row['name'] = callGAPI(cd.groups(), 'get',
+                                       throwReasons=GAPI.GROUP_GET_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
+                                       retryReasons=GAPI.GROUP_GET_RETRY_REASONS,
+                                       groupKey=memberId, fields='name')['name']
+                if cacheMemberInfo:
+                  memberNames[memberId] = row['name']
+              else:
+                row['name'] = memberNames[memberId]
             except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
                     GAPI.invalid, GAPI.systemError, GAPI.serviceNotAvailable):
               pass
         elif memberType == Ent.TYPE_CUSTOMER:
           if memberOptions[MEMBEROPTION_MEMBERNAMES]:
             try:
-              row['name'] = callGAPI(cd.customers(), 'get',
-                                     throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
-                                     customerKey=memberId, fields='customerDomain')['customerDomain']
+              if not cacheMemberInfo or memberId not in memberNames:
+                row['name'] = callGAPI(cd.customers(), 'get',
+                                       throwReasons=[GAPI.BAD_REQUEST, GAPI.INVALID_INPUT, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                                       customerKey=memberId, fields='customerDomain')['customerDomain']
+                if cacheMemberInfo:
+                  memberNames[memberId] = row['name']
+              else:
+                row['name'] = memberNames[memberId]
             except (GAPI.badRequest, GAPI.invalidInput, GAPI.resourceNotFound, GAPI.forbidden):
               pass
       if not FJQC.formatJSON:
@@ -33239,6 +33262,7 @@ def doInfoCIGroups():
   rolesSet = set()
   typesSet = set()
   memberOptions = initMemberOptions()
+  cachedGroupMembers = {}
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'quick':
@@ -33339,7 +33363,6 @@ def doInfoCIGroups():
         printKeyValueList([Msg.TOTAL_ITEMS_IN_ENTITY.format(Ent.Plural(entityType), Ent.Singular(Ent.CLOUD_IDENTITY_GROUP)), len(members)])
         Ind.Decrement()
       elif showMemberTree:
-        cachedGroupMembers = {}
         Ind.Increment()
         printEntity([Ent.MEMBERSHIP_TREE, ''])
         Ind.Increment()
