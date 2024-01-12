@@ -1,3 +1,10 @@
+6.67.16
+
+By default, `gam print group-members membernames` displays `Unknown` for members whose names can not be determined.
+Added option `unknownname <String>` that let's you specify an alternative value.
+
+Further improved performance of `gam print group-members membernames cachememberinfo`.
+
 6.67.15
 
 Update `gam print group-members membernames` to handle the following error:
