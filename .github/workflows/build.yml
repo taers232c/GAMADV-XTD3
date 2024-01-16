@@ -611,11 +611,10 @@ jobs:
     needs: build
     name: Publish to WinGet
     steps:
-      - name: Download GAM
+      - name: Download GAM artifact
         uses: actions/download-artifact@v4
         with:
           name: gam-binaries
-          path: src
       - name: Publish release to Winget Repo
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
