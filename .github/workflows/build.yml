@@ -605,3 +605,20 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           tar cJvvf bin.tar.xz bin/
+  
+  publish-winget:
+    runs-on: windows-latest
+    needs: build
+    name: Publish to WinGet
+    steps:
+      - name: Download GAM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: gam-binaries
+      - name: Publish release to Winget Repo
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: taers232c.GAMADV-XTD3
+          version: ${GAMVERSION}
+          installers-regex: '\.msi$'
+          token: ${{ secrets.WINGET_TOKEN }}
