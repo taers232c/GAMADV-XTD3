@@ -91,14 +91,14 @@ jobs:
       env:
         - DIST_UPGRADE=false
       filter_secrets: false
-    - os: osx
-      name: "MacOS"
-      language: generic
-      osx_image: xcode12.4
-      env:
-        - BUILD_PYTHON_VERSION=$MACOS_BUILD_PYTHON_VERSION
-        - MIN_PYTHON_VERSION=$MACOS_MIN_PYTHON_VERSION
-        - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
+#    - os: osx
+#      name: "MacOS"
+#      language: generic
+#      osx_image: xcode12.4
+#      env:
+#        - BUILD_PYTHON_VERSION=$MACOS_BUILD_PYTHON_VERSION
+#        - MIN_PYTHON_VERSION=$MACOS_MIN_PYTHON_VERSION
+#        - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
 
 before_install:
 - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
