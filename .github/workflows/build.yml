@@ -594,7 +594,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: github.event_name == 'push' && matrix.goal != 'test'
         with:
-          name: gam-binaries
+          name: gam-binaries-${{ matrix.os }}-${{ matrix.jid }}
           path: |
             src/*.tar.xz
             src/*.zip
@@ -607,14 +607,14 @@ jobs:
           tar cJvvf bin.tar.xz bin/
   
   publish-winget:
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: build
     name: Publish to WinGet
     steps:
       - name: Download GAM artifact
         uses: actions/download-artifact@v4
         with:
-          name: gam-binaries
+          name: gam-binaries-windows-2022-${{ matrix.jid }}
       - name: Publish release to Winget Repo
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
