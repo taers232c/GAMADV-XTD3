@@ -153,6 +153,7 @@ case $gamos in
   	    if [ "$gamversion" == "latest" ]; then
  	      gamversion="6.67.18"
 	    fi
+            ;;
         esac
         ;;
       arm|arm64|aarch64)
