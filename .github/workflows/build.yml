@@ -590,13 +590,20 @@ jobs:
             echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
           fi
 
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && matrix.goal != 'test'
+      - name: Archive production artifacts Linux/MacOS
+        uses: actions/upload-artifact@v3
+        if: runner.os != 'Windows' && github.event_name == 'push' && matrix.goal != 'test'
         with:
-          name: gam-binaries-${{ matrix.os }}-${{ matrix.jid }}
+          name: gam-binaries-linux-macos
           path: |
             src/*.tar.xz
+
+      - name: Archive production artifacts Windows
+        uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows' && github.event_name == 'push' && matrix.goal != 'test'
+        with:
+          name: gam-binaries-windows
+          path: |
             src/*.zip
             src/*.msi
 
@@ -614,7 +621,7 @@ jobs:
       - name: Download GAM artifact
         uses: actions/download-artifact@v4
         with:
-          name: gam-binaries-windows-2022-${{ matrix.jid }}
+          name: gam-binaries-windows
       - name: Publish release to Winget Repo
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
