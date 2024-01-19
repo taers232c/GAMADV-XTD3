@@ -151,7 +151,7 @@ case $gamos in
           *)
             gamfile="macos-x86_64-legacy.tar";;
 	  if [ "$gamversion" == "latest" ]; then
-	      gamversion="6.67.18""
+	      gamversion="6.67.18"
 	  fi
         esac
         ;;
