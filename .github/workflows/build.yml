@@ -591,7 +591,7 @@ jobs:
           fi
 
       - name: Archive production artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: github.event_name == 'push' && matrix.goal != 'test'
         with:
           name: gam-binaries
