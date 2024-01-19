@@ -149,10 +149,10 @@ case $gamos in
           11|12|13|14)
             gamfile="macos-x86_64.tar.xz";;
           *)
-            gamfile="macos-x86_64-legacy.tar";;
-	  if [ "$gamversion" == "latest" ]; then
-	      gamversion="6.67.18"
-	  fi
+            gamfile="macos-x86_64-legacy.tar"
+  	    if [ "$gamversion" == "latest" ]; then
+ 	      gamversion="6.67.18"
+	    fi
         esac
         ;;
       arm|arm64|aarch64)
