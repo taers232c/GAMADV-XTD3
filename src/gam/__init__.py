@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.23'
+__version__ = '6.67.24'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -14365,7 +14365,7 @@ def sendCreateUpdateUserNotification(body, basenotify, tagReplacements, i=0, cou
     if not html:
       notify[field] = notify[field].replace('#password#', notify['password'])
     else:
-      notify[field] = notify[field].replace('#password#', notify['password']).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+      notify[field] = notify[field].replace('#password#', notify['password'].replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
 
   userName, domain = splitEmailAddress(body['primaryEmail'])
   notify = basenotify.copy()
