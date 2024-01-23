@@ -1,3 +1,7 @@
+6.67.26
+
+Fixed bug in `gam print vaultexports ... formatjson` that caused a trap.
+
 6.67.25
 
 Added option `owneraccess` to `gam info courses <CourseEntity>` and `gam info course <CourseID>` in order
