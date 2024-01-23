@@ -1,3 +1,8 @@
+6.67.25
+
+Added option `owneraccess` to `gam info courses <CourseEntity>` and `gam info course <CourseID>` in order
+to test a possible API change.
+
 6.67.24
 
 Fixed bug that caused HTML password notification email messages to be displayed in raw form.

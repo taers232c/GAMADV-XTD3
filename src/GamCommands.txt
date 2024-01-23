@@ -5769,14 +5769,14 @@ gam <UserTypeEntity> create focustime
         [declinemode none|all|new]
         [declinemessage <String>]
         [summary <String>]
-        (timerange <Time> <Time> [recurrence <String>])+
-        [timezone <String>]
+        (timerange <Time> <Time>
+
 gam <UserTypeEntity> create outofoffice
         [declinemode none|all|new]
         [declinemessage <String>]
         [summary <String>]
-        (timerange <Time> <Time> [recurrence <String>])+
-        [timezone <String>]
+        (timerange <Time> <Time>
+
 gam <UserTypeEntity> create workinglocation
         (home|
          (custom <String>)|

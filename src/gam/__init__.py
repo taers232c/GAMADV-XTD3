@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.24'
+__version__ = '6.67.25'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -244,6 +244,7 @@ FILENAME_SAFE_CHARS = ALPHANUMERIC_CHARS+'-_.() '
 CHAT_MESSAGEID_CHARS = string.ascii_lowercase+string.digits+'-'
 
 ADMIN_ACCESS_OPTIONS = {'adminaccess', 'asadmin'}
+OWNER_ACCESS_OPTIONS = {'owneraccess', 'asowner'}
 
 # Python 3 values
 DEFAULT_CSV_READ_MODE = 'r'
@@ -44297,7 +44298,7 @@ class CourseAttributes():
     else:
       return True
     if self.members != 'none':
-      _, self.teachers, self.students = _getCourseAliasesMembers(self.croom, self.courseId, {'members': self.members},
+      _, self.teachers, self.students = _getCourseAliasesMembers(self.croom, self.croom, self.courseId, {'members': self.members},
                                                                  'nextPageToken,teachers(profile(emailAddress,id))',
                                                                  'nextPageToken,students(profile(emailAddress))')
     if self.announcementStates:
@@ -44928,7 +44929,7 @@ def _convertCourseUserIdToEmail(croom, userId, emails, entityValueList, i, count
     emails[userId] = userEmail
   return userEmail
 
-def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields, showGettings=False, i=0, count=0):
+def _getCourseAliasesMembers(croom, ocroom, courseId, courseShowProperties, teachersFields, studentsFields, showGettings=False, i=0, count=0):
   aliases = []
   teachers = []
   students = []
@@ -44954,7 +44955,7 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
         printGettingEntityItemForWhom(Ent.TEACHER, formatKeyValueList('', [Ent.Singular(Ent.COURSE), courseId], currentCount(i, count)))
         pageMessage = getPageMessage()
       try:
-        teachers = callGAPIpages(croom.courses().teachers(), 'list', 'teachers',
+        teachers = callGAPIpages(ocroom.courses().teachers(), 'list', 'teachers',
                                  pageMessage=pageMessage,
                                  throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE],
                                  retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -44968,7 +44969,7 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
         printGettingEntityItemForWhom(Ent.STUDENT, formatKeyValueList('', [Ent.Singular(Ent.COURSE), courseId], currentCount(i, count)))
         pageMessage = getPageMessage()
       try:
-        students = callGAPIpages(croom.courses().students(), 'list', 'students',
+        students = callGAPIpages(ocroom.courses().students(), 'list', 'students',
                                  pageMessage=pageMessage,
                                  throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE],
                                  retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -44979,18 +44980,23 @@ def _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFiel
         ClientAPIAccessDeniedExit()
   return (aliases, teachers, students)
 
-def _doInfoCourses(entityList):
+def _doInfoCourses(courseIdList):
   croom = buildGAPIObject(API.CLASSROOM)
   courseShowProperties = _initCourseShowProperties()
   courseShowProperties['ownerEmail'] = True
   ownerEmails = {}
+  useOwnerAccess = False
   FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if _getCourseShowProperties(myarg, courseShowProperties):
       pass
+    elif myarg in OWNER_ACCESS_OPTIONS:
+      useOwnerAccess = True
     else:
       FJQC.GetFormatJSON(myarg)
+  coursesInfo = {}
+  _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, not useOwnerAccess)
   fields = _setCourseFields(courseShowProperties, False)
   if courseShowProperties['members'] != 'none':
     if courseShowProperties['countsOnly']:
@@ -45002,10 +45008,13 @@ def _doInfoCourses(entityList):
   else:
     teachersFields = studentsFields = None
   i = 0
-  count = len(entityList)
-  for course in entityList:
+  count = len(courseIdList)
+  for courseId in courseIdList:
     i += 1
-    courseId = addCourseIdScope(course)
+    courseId = addCourseIdScope(courseId)
+    courseInfo = coursesInfo[courseId]
+    if not courseInfo:
+      continue
     try:
       course = callGAPI(croom.courses(), 'get',
                         throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
@@ -45014,7 +45023,7 @@ def _doInfoCourses(entityList):
       if courseShowProperties['ownerEmail']:
         course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
                                                            [Ent.COURSE, course['id'], Ent.OWNER_ID, course['ownerId']], i, count)
-      aliases, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields)
+      aliases, teachers, students = _getCourseAliasesMembers(croom, courseInfo['croom'], courseId, courseShowProperties, teachersFields, studentsFields)
       if FJQC.formatJSON:
         if courseShowProperties['aliases']:
           course.update({'aliases': list(aliases)})
@@ -45306,7 +45315,7 @@ def doPrintCourses():
     if showItemCountOnly:
       itemCount += 1
       continue
-    aliases, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
+    aliases, teachers, students = _getCourseAliasesMembers(croom, croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
     if courseShowProperties['aliases']:
       if not courseShowProperties['aliasesInColumns']:
         course['Aliases'] = delimiter.join([removeCourseAliasScope(alias['alias']) for alias in aliases])
@@ -46049,7 +46058,7 @@ def doPrintCourseParticipants():
   for course in coursesInfo:
     i += 1
     courseId = course['id']
-    _, teachers, students = _getCourseAliasesMembers(croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
+    _, teachers, students = _getCourseAliasesMembers(croom, croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
     if showItemCountOnly:
       if courseShowProperties['members'] != 'students':
         itemCount += len(teachers)
