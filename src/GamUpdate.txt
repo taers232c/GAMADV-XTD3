@@ -1,3 +1,10 @@
+6.67.27
+
+Updated `gam <UserTypeEntity> collect orphans` to handle the following error:
+```
+ERROR: 400: badRequest - Bad Request
+```
+
 6.67.26
 
 Fixed bug in `gam print vaultexports ... formatjson` that caused a trap.
