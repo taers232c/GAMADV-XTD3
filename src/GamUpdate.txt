@@ -1,3 +1,7 @@
+6.67.28
+
+Improved handling of `Bad Request` error in `gam <UserTypeEntity> collect orphans`.
+
 6.67.27
 
 Updated `gam <UserTypeEntity> collect orphans` to handle the following error:

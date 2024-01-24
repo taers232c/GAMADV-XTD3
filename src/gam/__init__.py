@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.27'
+__version__ = '6.67.28'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -58142,7 +58142,7 @@ def collectOrphans(users):
                      bailOnInternalError=True,
                      throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND,
                                                                  GAPI.INTERNAL_ERROR, GAPI.INSUFFICIENT_PARENT_PERMISSIONS],
-                     retryReasons=[GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND],
+                     retryReasons=[GAPI.FILE_NOT_FOUND],
                      fileId=fileId, body={}, addParents=newParentId, fields='')
             entityModifierNewValueItemValueListActionPerformed([Ent.USER, user, fileType, fileName],
                                                                Act.MODIFIER_INTO, None, [Ent.DRIVE_FOLDER, trgtUserFolderName], j, jcount)
