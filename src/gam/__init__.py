@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.28'
+__version__ = '6.67.29'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9502,6 +9502,7 @@ def ProcessGAMCommandMulti(pid, numItems, logCmd, mpQueueCSVFile, mpQueueStdout,
     GM.Globals[GM.PRINT_CROS_OUS_AND_CHILDREN] = printCrosOUsAndChildren
     GM.Globals[GM.SAVED_STDOUT] = None
     GM.Globals[GM.SYSEXITRC] = 0
+    GM.Globals[GM.PARSER] = None
     if mpQueueCSVFile:
       GM.Globals[GM.CSVFILE][GM.REDIRECT_QUEUE] = mpQueueCSVFile
     if mpQueueStdout:
@@ -29868,7 +29869,7 @@ def doCreateGroup(ciGroupsAPI=False):
   except GAPI.notFound:
     entityActionFailedWarning([entityType, groupEmail], Msg.DOES_NOT_EXIST)
   except (GAPI.groupNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-          GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.invalidArgument,
+          GAPI.backendError, GAPI.invalid, GAPI.invalidAttributeValue, GAPI.invalidInput, GAPI.invalidArgument, GAPI.failedPrecondition,
           GAPI.badRequest, GAPI.permissionDenied, GAPI.systemError, GAPI.serviceLimit, GAPI.serviceNotAvailable, GAPI.authError) as e:
     entityActionFailedWarning([entityType, groupEmail], str(e))
   except GAPI.required:
@@ -46369,31 +46370,37 @@ def doCourseAddItems(courseIdList, getEntityListArg):
 # gam course <CourseID> remove alias <CourseAlias>
 # gam courses <CourseEntity> remove topic <CourseTopicIDEntity>
 # gam course <CourseID> remove topic <CourseTopicID>
-# gam courses <CourseEntity> remove teachers|students <UserTypeEntity>
-# gam course <CourseID> remove teacher|student <EmailAddress>
+# gam courses <CourseEntity> remove teachers|students [owneracccess] <UserTypeEntity>
+# gam course <CourseID> remove teacher|student [owneracccess] <EmailAddress>
 def doCourseRemoveItems(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(ADD_REMOVE_PARTICIPANT_TYPES_MAP, mapChoice=True)
   coursesInfo = {}
   if not getEntityListArg:
     if role in {Ent.STUDENT, Ent.TEACHER}:
+      useOwnerAccess = checkArgumentPresent(OWNER_ACCESS_OPTIONS)
       removeItems = getStringReturnInList(Cmd.OB_EMAIL_ADDRESS)
     elif role == Ent.COURSE_ALIAS:
+      useOwnerAccess = False
       removeItems = getStringReturnInList(Cmd.OB_COURSE_ALIAS)
     else: # role == Ent.COURSE_TOPIC:
+      useOwnerAccess = True
       removeItems = getStringReturnInList(Cmd.OB_COURSE_TOPIC_ID)
     courseParticipantLists = None
   else:
     if role in {Ent.STUDENT, Ent.TEACHER}:
+      useOwnerAccess = checkArgumentPresent(OWNER_ACCESS_OPTIONS)
       _, removeItems = getEntityToModify(defaultEntityType=Cmd.ENTITY_USERS,
                                          typeMap={Cmd.ENTITY_COURSEPARTICIPANTS: PARTICIPANT_EN_MAP[role]})
     elif role == Ent.COURSE_ALIAS:
+      useOwnerAccess = False
       removeItems = getEntityList(Cmd.OB_COURSE_ALIAS_ENTITY, shlexSplit=True)
     else: # role == Ent.COURSE_TOPIC:
+      useOwnerAccess = True
       removeItems = getEntityList(Cmd.OB_COURSE_TOPIC_ID_ENTITY, shlexSplit=True)
     courseParticipantLists = removeItems if isinstance(removeItems, dict) else None
   checkForExtraneousArguments()
-  _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, role != Ent.COURSE_TOPIC)
+  _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, not useOwnerAccess)
   i = 0
   count = len(courseIdList)
   for courseId in courseIdList:

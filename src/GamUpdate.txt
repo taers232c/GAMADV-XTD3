@@ -1,3 +1,11 @@
+6.67.29
+
+Added optional argument `owneraccess` to `gam courses <CourseEntity> remove teachers|students [owneracccess] <UserTypeEntity` and
+`gam course <CourseID> remove teacher|student [owneraccess] <EmailAddress>` in order to test a possible API change.
+
+Updated code to avoid a trap when `gam config auto_batch_min 1 csv file.csv gam ...` was entered.
+The `config auto_batch_min 1` is not appropriate in this context and will be ignored.
+
 6.67.28
 
 Improved handling of `Bad Request` error in `gam <UserTypeEntity> collect orphans`.

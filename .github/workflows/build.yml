@@ -1,4 +1,4 @@
-name: Build and test GAM
+`name: Build and test GAM
 
 on:
   push:
@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.67.28
+  GAMVERSION: 6.67.29
   OPENSSL_CONFIG_OPTS: no-fips --api=3.0.0
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
