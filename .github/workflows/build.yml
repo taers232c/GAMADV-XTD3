@@ -1,4 +1,4 @@
-`name: Build and test GAM
+name: Build and test GAM
 
 on:
   push:
