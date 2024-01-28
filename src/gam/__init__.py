@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.29'
+__version__ = '6.67.30'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52392,6 +52392,8 @@ def extendFileTreeParents(drive, fileTree, fields):
         if not result.get('driveId'):
           result['parents'] = [ORPHANS] if result.get('ownedByMe', False) else [SHARED_WITHME]
         else:
+          if result['name'] == TEAM_DRIVE:
+            result['name'] = _getSharedDriveNameFromId(drive, result['driveId'])
           result['parents'] = [SHARED_DRIVES] if 'sharedWithMeTime' not in f_file else [SHARED_WITHME]
       fileTree[fileId]['info'] = result
       fileTree[fileId]['info']['noDisplay'] = True
@@ -72898,7 +72900,7 @@ def ProcessGAMCommand(args, processGamCfg=True, inLoop=False, closeSTD=True):
         CROS_COMMANDS_WITH_OBJECTS[CL_command][CMD_FUNCTION][CL_objectName](entityList)
     sys.exit(GM.Globals[GM.SYSEXITRC])
   except KeyboardInterrupt:
-    batchWriteStderr('Control-C\n')
+    batchWriteStderr('\nControl-C\n')
     setSysExitRC(KEYBOARD_INTERRUPT_RC)
     showAPICallsRetryData()
     adjustRedirectedSTDFilesIfNotMultiprocessing()

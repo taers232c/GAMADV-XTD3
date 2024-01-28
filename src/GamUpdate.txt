@@ -1,3 +1,7 @@
+6.67.30
+
+Fixed bug where the `fullpath` option in various commands was not converting the generic shared drive name `Drive` to the drive's actual name.
+
 6.67.29
 
 Added optional argument `owneraccess` to `gam courses <CourseEntity> remove teachers|students [owneracccess] <UserTypeEntity` and
