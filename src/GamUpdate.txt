@@ -1,3 +1,8 @@
+6.67.31
+
+Updated `gam <UserTypeEntity> claim|transfer ownership <DriveFileEntity>` to properly
+handle the case where `<DriveFileEntity>` referencess a Drive shortcut.
+
 6.67.30
 
 Fixed bug where the `fullpath` option in various commands was not converting the generic shared drive name `Drive` to the drive's actual name.
