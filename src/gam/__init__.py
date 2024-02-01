@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.31'
+__version__ = '6.67.32'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -108,6 +108,7 @@ from filelock import FileLock
 
 from pathvalidate import sanitize_filename, sanitize_filepath
 
+# Do not import system library, includes discovery documents
 #import googleapiclient
 #import googleapiclient.discovery
 #import googleapiclient.errors
@@ -150,6 +151,7 @@ import gdata.apps.contacts
 import gdata.apps.contacts.service
 import gdata.apps.sites
 import gdata.apps.sites.service
+# Import local library, does not include discovery documents
 import googleapiclient
 import googleapiclient.discovery
 import googleapiclient.errors
@@ -7843,7 +7845,7 @@ class CSVPrintFile():
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT], 'retaintitle': False,
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'uploadnodata': GC.Values[GC.TODRIVE_UPLOAD_NODATA],
                     'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER], 'noemail': GC.Values[GC.TODRIVE_NOEMAIL],
-                    'share': {}}
+                    'share': []}
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'tduser':
@@ -7916,9 +7918,9 @@ class CSVPrintFile():
       elif myarg == 'tdnoescapechar':
         self.todrive['noescapechar'] = getBoolean()
       elif myarg == 'tdshare':
-        self.todrive['share']['emailAddress'] = normalizeEmailAddressOrUID(getString(Cmd.OB_EMAIL_ADDRESS))
-        self.todrive['share']['type'] = 'user'
-        self.todrive['share']['role'] = getChoice(self.TDSHARE_ACL_ROLES_MAP, mapChoice=True)
+        self.todrive['share'].append({'emailAddress': normalizeEmailAddressOrUID(getString(Cmd.OB_EMAIL_ADDRESS)),
+                                      'type': 'user',
+                                      'role': getChoice(self.TDSHARE_ACL_ROLES_MAP, mapChoice=True)})
       else:
         Cmd.Backup()
         break
@@ -8579,31 +8581,33 @@ class CSVPrintFile():
               closeFile(csvFile)
               return
             closeFile(csvFile)
-            if not self.todrive['fileId'] and self.todrive['share'] and self.todrive['share']['emailAddress'] != user:
+            if not self.todrive['fileId'] and self.todrive['share']:
               Act.Set(Act.SHARE)
-              try:
-                callGAPI(drive.permissions(), 'create',
-                         bailOnInternalError=True,
-                         throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
-                         fileId=spreadsheetId, sendNotificationEmail=False, body=self.todrive['share'], fields='', supportsAllDrives=True)
-                entityActionPerformed([Ent.USER, user, Ent.SPREADSHEET, title,
-                                       Ent.TARGET_USER, self.todrive['share']['emailAddress'], Ent.ROLE, self.todrive['share']['role']])
-              except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
-                      GAPI.insufficientFilePermissions, GAPI.insufficientParentPermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
-                      GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
-                      GAPI.targetUserRoleLimitedByLicenseRestriction, GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
-                      GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
-                      GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
-                      GAPI.ownerOnTeamDriveItemNotSupported,
-                      GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
-                      GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
-                      GAPI.fileOrganizerOnFoldersInSharedDriveOnly,
-                      GAPI.fileOrganizerOnNonTeamDriveNotSupported,
-                      GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
-                      GAPI.invalidSharingRequest, GAPI.fileNeverWritable, GAPI.abusiveContentRestriction) as e:
-                entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, title,
-                                           Ent.TARGET_USER, self.todrive['share']['emailAddress'], Ent.ROLE, self.todrive['share']['role']],
-                                          str(e))
+              for share in self.todrive['share']:
+                if share['emailAddress'] != user:
+                  try:
+                    callGAPI(drive.permissions(), 'create',
+                             bailOnInternalError=True,
+                             throwReasons=GAPI.DRIVE_ACCESS_THROW_REASONS+GAPI.DRIVE3_CREATE_ACL_THROW_REASONS,
+                             fileId=spreadsheetId, sendNotificationEmail=False, body=share, fields='', supportsAllDrives=True)
+                    entityActionPerformed([Ent.USER, user, Ent.SPREADSHEET, title,
+                                           Ent.TARGET_USER, share['emailAddress'], Ent.ROLE, share['role']])
+                  except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
+                          GAPI.insufficientFilePermissions, GAPI.insufficientParentPermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
+                          GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
+                          GAPI.targetUserRoleLimitedByLicenseRestriction, GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
+                          GAPI.publishOutNotPermitted, GAPI.shareInNotPermitted, GAPI.shareOutNotPermitted, GAPI.shareOutNotPermittedToUser,
+                          GAPI.cannotShareTeamDriveTopFolderWithAnyoneOrDomains, GAPI.cannotShareTeamDriveWithNonGoogleAccounts,
+                          GAPI.ownerOnTeamDriveItemNotSupported,
+                          GAPI.organizerOnNonTeamDriveNotSupported, GAPI.organizerOnNonTeamDriveItemNotSupported,
+                          GAPI.fileOrganizerNotYetEnabledForThisTeamDrive,
+                          GAPI.fileOrganizerOnFoldersInSharedDriveOnly,
+                          GAPI.fileOrganizerOnNonTeamDriveNotSupported,
+                          GAPI.teamDrivesFolderSharingNotSupported, GAPI.invalidLinkVisibility,
+                          GAPI.invalidSharingRequest, GAPI.fileNeverWritable, GAPI.abusiveContentRestriction) as e:
+                    entityActionFailedWarning([Ent.USER, user, Ent.SPREADSHEET, title,
+                                               Ent.TARGET_USER, share['emailAddress'], Ent.ROLE, share['role']],
+                                              str(e))
             if ((result['mimeType'] == MIMETYPE_GA_SPREADSHEET) and
                 (self.todrive['sheetEntity'] or self.todrive['locale'] or self.todrive['timeZone'] or
                  self.todrive['sheettitle'] or self.todrive['cellwrap'] or self.todrive['cellnumberformat'])):
