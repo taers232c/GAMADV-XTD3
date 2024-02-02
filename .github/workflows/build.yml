@@ -9,7 +9,7 @@ defaults:
     working-directory: src
 
 env:
-  GAMVERSION: 6.67.33
+  GAMVERSION: 6.67.34
   OPENSSL_CONFIG_OPTS: no-fips --api=3.0.0
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -303,6 +303,7 @@ jobs:
                       --with-ensurepip=upgrade \
                       --enable-optimizations \
                       --with-lto \
+                      --disable-test-modules \
                       "${extra_args[@]}"
 
       - name: Windows Get External Python deps

@@ -4533,6 +4533,7 @@ gam create shareddrive <Name>
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
         [errorretries <Integer>] [updateinitialdelay <Integer>] [updateretrydelay <Integer>]
+        [movetoorgunitdelay <Integer>]
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
 gam update shareddrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
@@ -4566,13 +4567,14 @@ gam show oushareddrives
         [ou|org|orgunit <OrgUnitPath>]
         [formatjson]
 
-In these commands, you specify an administrator and then indicate that you want domain administrator access with the adminaccess option.
+In these commands, you specify user, administrator access is not used.
 
 gam <UserTypeEntity> create shareddrive <Name> adminaccess
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
         [errorretries <Integer>] [updateinitialdelay <Integer>] [updateretrydelay <Integer>]
+        [movetoorgunitdelay <Integer>]
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
 gam <UserTypeEntity> update shareddrive <SharedDriveEntity> adminaccess [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
@@ -4606,6 +4608,7 @@ gam <UserTypeEntity> create shareddrive <Name>
         (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
         [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
         [errorretries <Integer>] [updateinitialdelay <Integer>] [updateretrydelay <Integer>]
+        [movetoorgunitdelay <Integer>]
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
 gam <UserTypeEntity> update shareddrive <SharedDriveEntity> [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]

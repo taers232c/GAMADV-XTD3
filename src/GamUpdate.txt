@@ -1,3 +1,13 @@
+6.67.34
+
+Added option `movetoorgunitdelay <Integer>` to `gam <UserTypeEntity> create shareddrive <Name> ... ou|org|orgunit <OrgUnitItem>`.
+GAM creates the Shared Drive, verifies that it has been created and then tries to move it to `<OrgUnitItem>`. Google seems to
+require a delay or the following error is generated.
+```
+ERROR: 409: 409 - The operation was aborted.
+```
+`movetoorgunitdelay` defaults to 20 seconds which seems to work; `<Integer>` can range from 0 to 60.
+
 6.67.33
 
 Upgraded to OpenSSL 3.2.1 where possible.

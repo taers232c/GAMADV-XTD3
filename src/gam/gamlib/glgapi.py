@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2023 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2024 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -276,6 +276,7 @@ YOUTUBE_THROW_REASONS = [SERVICE_NOT_AVAILABLE, AUTH_ERROR, UNSUPPORTED_SUPERVIS
 REASON_MESSAGE_MAP = {
   ABORTED: [
     ('Label name exists or conflicts', DUPLICATE),
+    ('The operation was aborted', ABORTED),
     ],
   CONDITION_NOT_MET: [
     ('Cyclic memberships not allowed', CYCLIC_MEMBERSHIPS_NOT_ALLOWED),
