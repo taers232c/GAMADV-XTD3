@@ -73,6 +73,9 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   echo "Compiling Python ${BUILD_PYTHON_VERSION}..."
   safe_flags="--with-openssl=$HOME/ssl --enable-shared --prefix=${HOME}/python --with-ensurepip=upgrade --disable-test-modules"
   unsafe_flags="--enable-optimizations --with-lto"
+  if ([ "${TRAVIS_DIST}" == "focal" ] && [ "${PLATFORM}" == "arm64" ]; then
+    unsafe_flags=""
+  fi
   if [ ! -e Makefile ]; then
     echo "running configure with safe and unsafe"
     ./configure $safe_flags $unsafe_flags > /dev/null
