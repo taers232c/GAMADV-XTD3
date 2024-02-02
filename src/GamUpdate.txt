@@ -1,3 +1,21 @@
+6.67.33
+
+Upgraded to OpenSSL 3.2.1 where possible.
+
+Fixed bug in `gam <UserTypeEntity> print shareddrives` where `role` was improperly displayed as `fileOrganizer`
+rather than `writer`.
+
+Added option `guiroles [<Boolean>]` to `gam <UserTypeEntity> info|print|show shareddrive` that maps
+the Drive API role names to the Google Drive GUI role names.
+```
+API: GUI
+commenter: Commenter
+fileOrganizer: Content manager
+organizer: Manager
+reader: Viewer
+writer: Contributor
+```
+
 6.67.32
 
 Updated `<ToDriveAttribute>` to allow multiple `tdshare <EmailAddress> commenter|reader|writer` options.

@@ -4542,9 +4542,11 @@ gam delete shareddrive <SharedDriveEntity>
        [adminaccess|asadmin] [allowitemdeletion]
 gam hide shareddrive <SharedDriveEntity>
 gam unhide shareddrive <SharedDriveEntity>
-gam info shareddrive <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
+gam info shareddrive <SharedDriveEntity>
+        [fields <SharedDriveFieldNameList>]
         [formatjson]
-gam show shareddriveinfo <SharedDriveEntity> [fields <SharedDriveFieldNameList>]
+gam show shareddriveinfo <SharedDriveEntity>
+        [fields <SharedDriveFieldNameList>]
         [formatjson]
 gam print shareddrives [todrive <ToDriveAttribute>*]
         [teamdriveadminquery|query <QueryTeamDrive>]
@@ -4572,15 +4574,17 @@ gam <UserTypeEntity> create shareddrive <Name> adminaccess
         [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
         [errorretries <Integer>] [updateinitialdelay <Integer>] [updateretrydelay <Integer>]
         [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
-gam update shareddrive <SharedDriveEntity> asadmin [name <Name>]
+gam <UserTypeEntity> update shareddrive <SharedDriveEntity> adminaccess [name <Name>]
         [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
         (<SharedDriveRestrictionsFieldName> <Boolean>)*
         [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
 gam <UserTypeEntity> delete shareddrive <SharedDriveEntity>
         adminaccess [allowitemdeletion]
-gam <UserTypeEntity> info shareddrive <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>]
+gam <UserTypeEntity> info shareddrive <SharedDriveEntity>
+        adminaccess [fields <SharedDriveFieldNameList>]
         [formatjson]
-gam <UserTypeEntity> show shareddriveinfo <SharedDriveEntity> adminaccess [fields <SharedDriveFieldNameList>]
+gam <UserTypeEntity> show shareddriveinfo <SharedDriveEntity>
+        adminaccess [fields <SharedDriveFieldNameList>]
         [formatjson]
 gam <UserTypeEntity> print shareddrives [todrive <ToDriveAttribute>*]
         adminaccess [teamdriveadminquery|query <QueryTeamDrive>]
@@ -4594,6 +4598,39 @@ gam <UserTypeEntity> show shareddrives
         (role|roles <SharedDriveACLRoleList>)*
         [fields <SharedDriveFieldNameList>]
         [formatjson]
+
+In these commands, you
+
+gam <UserTypeEntity> create shareddrive <Name>
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        (<SharedDriveRestrictionsSubfieldName> <Boolean>)*
+        [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
+        [errorretries <Integer>] [updateinitialdelay <Integer>] [updateretrydelay <Integer>]
+        [(csv [todrive <ToDriveAttribute>*] (addcsvdata <FieldName> <String>)*) | returnidonly]
+gam <UserTypeEntity> update shareddrive <SharedDriveEntity> [name <Name>]
+        [(theme|themeid <String>) | ([customtheme <DriveFileID> <Float> <Float> <Float>] [color <ColorValue>])]
+        (<SharedDriveRestrictionsFieldName> <Boolean>)*
+        [hide|hidden <Boolean>] [ou|org|orgunit <OrgUnitItem>]
+gam <UserTypeEntity> delete shareddrive <SharedDriveEntity>
+        [allowitemdeletion]
+gam <UserTypeEntity> info shareddrive <SharedDriveEntity>
+        [fields <SharedDriveFieldNameList>]
+        [guiroles [<Boolean>]] [formatjson]
+gam <UserTypeEntity> show shareddriveinfo <SharedDriveEntity>
+        [fields <SharedDriveFieldNameList>]
+        [guiroles [<Boolean>]] [formatjson]
+gam <UserTypeEntity> print shareddrives [todrive <ToDriveAttribute>*]
+        [teamdriveadminquery|query <QueryTeamDrive>]
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
+        (role|roles <SharedDriveACLRoleList>)*
+        [fields <SharedDriveFieldNameList>]
+        [guiroles [<Boolean>]] [formatjson [quotechar <Character>]]
+gam <UserTypeEntity> show shareddrives
+        [teamdriveadminquery|query <QueryTeamDrive>]
+        [matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
+        (role|roles <SharedDriveACLRoleList>)*
+        [fields <SharedDriveFieldNameList>]
+        [guiroles [<Boolean>]] [formatjson]
 
 These commands are used to manage the ACLs on the Team Drives themselves, not the files/folders on the Team Drives.
 

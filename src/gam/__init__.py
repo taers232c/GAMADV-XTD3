@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.67.32'
+__version__ = '6.67.33'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -61750,6 +61750,36 @@ SHAREDDRIVE_LIST_FIELDS_CHOICE_MAP = {
   'ou': 'orgUnitId',
   }
 SHAREDDRIVE_TIME_OBJECTS = {'createdTime'}
+SHAREDDRIVE_ROLES_CAPABILITIES_MAP = {
+  'commenter': {'canComment': True, 'canEdit': False},
+  'reader': {'canComment': False, 'canEdit': False},
+  'writer': {'canEdit': True, 'canTrashChildren': False},
+  'fileOrganizer': {'canTrashChildren': True, 'canManageMembers': False},
+  'organizer': {'canManageMembers': True},
+  }
+SHAREDDRIVE_API_GUI_ROLES_MAP = {
+  'commenter': 'Commenter',
+  'fileOrganizer': 'Content manager',
+  'organizer': 'Manager',
+  'reader': 'Viewer',
+  'writer': 'Contributor',
+  'unknown': 'Unknown'
+  }
+
+def _getSharedDriveRole(shareddrive):
+  if 'capabilities' not in shareddrive:
+    return None
+  for role, capabilities in iter(SHAREDDRIVE_ROLES_CAPABILITIES_MAP.items()):
+    match = True
+    for capability in capabilities:
+      if capabilities[capability] != shareddrive['capabilities'].get(capability, ''):
+        match = False
+        break
+    if match:
+      break
+  else:
+    role = 'unknown'
+  return role
 
 def _showSharedDrive(user, shareddrive, j, jcount, FJQC):
   def _showCapabilitiesRestrictions(field):
@@ -61780,17 +61810,23 @@ def _showSharedDrive(user, shareddrive, j, jcount, FJQC):
   _showCapabilitiesRestrictions('restrictions')
   Ind.Decrement()
 
-# gam <UserTypeEntity> info shareddrive <SharedDriveEntity> [adminaccess|asadmin] [fields <SharedDriveFieldNameList>] [formatjson]
+# gam <UserTypeEntity> info shareddrive <SharedDriveEntity>
+#	[adminaccess|asadmin]
+#	[fields <SharedDriveFieldNameList>]
+#	[guiroles [<Boolean>]] [formatjson]
 def infoSharedDrive(users, useDomainAdminAccess=False):
   fileIdEntity = getSharedDriveEntity()
   fieldsList = []
   FJQC = FormatJSONQuoteChar()
+  guiRoles = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg in ADMIN_ACCESS_OPTIONS:
       useDomainAdminAccess = True
     elif getFieldsList(myarg, SHAREDDRIVE_FIELDS_CHOICE_MAP, fieldsList, initialField=['id', 'name']):
       pass
+    elif myarg == 'guiroles':
+      guiRoles = getBoolean()
     else:
       FJQC.GetFormatJSON(myarg)
   fields = ','.join(set(fieldsList)) if fieldsList else '*'
@@ -61806,6 +61842,9 @@ def infoSharedDrive(users, useDomainAdminAccess=False):
                              throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.NOT_FOUND],
                              useDomainAdminAccess=useDomainAdminAccess,
                              driveId=driveId, fields=fields)
+      role = _getSharedDriveRole(shareddrive)
+      if role:
+        shareddrive['role'] = role if not guiRoles else SHAREDDRIVE_API_GUI_ROLES_MAP[role]
       _showSharedDrive(user, shareddrive, i, count, FJQC)
     except GAPI.notFound as e:
       entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, driveId], str(e), i, count)
@@ -61832,26 +61871,18 @@ SHAREDDRIVE_ACL_ROLES_MAP = {
   'writer': 'writer',
   }
 
-SHAREDDRIVE_ROLES_CAPABILITIES_MAP = {
-  'commenter': {'canComment': True, 'canEdit': False},
-  'fileOrganizer': {'canAddChildren': True, 'canManageMembers': False},
-  'organizer': {'canManageMembers': True},
-  'reader': {'canEdit': False, 'canComment': False},
-  'writer': {'canEdit': True, 'canManageMembers': False},
-  }
-
 # gam <UserTypeEntity> print shareddrives [todrive <ToDriveAttribute>*]
 #	[adminaccess|asadmin [shareddriveadminquery|query <QuerySharedDrive>]]
 #	[matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
 #	(role|roles <SharedDriveACLRoleList>)*
 #	[fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
-#	[formatjson [quotechar <Character>]]
+#	[guiroles [<Boolean>]] [formatjson [quotechar <Character>]]
 # gam <UserTypeEntity> show shareddrives
 #	[adminaccess|asadmin [shareddriveadminquery|query <QuerySharedDrive>]]
 #	[matchname <RegularExpression>] [orgunit|org|ou <OrgUnitPath>]
 #	(role|roles <SharedDriveACLRoleLIst>)*
 #	[fields <SharedDriveFieldNameList>] [noorgunits [<Boolean>]]
-#	[formatjson]
+#	[guiroles [<Boolean>]] [formatjson]
 def printShowSharedDrives(users, useDomainAdminAccess=False):
   def stripNonShowFields(shareddrive):
     if orgUnitIdToPathMap:
@@ -61875,6 +61906,7 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
   SHAREDDRIVE_FIELDS_CHOICE_MAP.update(SHAREDDRIVE_LIST_FIELDS_CHOICE_MAP)
   showOrgUnitPaths = True
   orgUnitIdToPathMap = None
+  guiRoles = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -61902,6 +61934,8 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
       pass
     elif myarg == 'noorgunits':
       showOrgUnitPaths = not getBoolean()
+    elif myarg == 'guiroles':
+      guiRoles = getBoolean()
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if query and not useDomainAdminAccess:
@@ -61953,18 +61987,9 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
       for shareddrive in feed:
         if matchPattern is not None and matchPattern.match(shareddrive['name']) is None:
           continue
-        for role, capabilities in iter(SHAREDDRIVE_ROLES_CAPABILITIES_MAP.items()):
-          match = True
-          for capability in capabilities:
-            if capabilities[capability] != shareddrive['capabilities'][capability]:
-              match = False
-              break
-          if match:
-            break
-        else:
-          role = 'unknown'
+        role = _getSharedDriveRole(shareddrive)
         if not roles or role in roles:
-          shareddrive['role'] = role
+          shareddrive['role'] = role if not guiRoles else SHAREDDRIVE_API_GUI_ROLES_MAP[role]
           matchedFeed.append(shareddrive)
     elif matchPattern is not None or orgUnitId is not None:
       for shareddrive in feed:
@@ -61995,7 +62020,7 @@ def printShowSharedDrives(users, useDomainAdminAccess=False):
           if FJQC.formatJSON:
             row = {'User': user, 'id': shareddrive['id'], 'name': shareddrive['name']}
             if not useDomainAdminAccess:
-              row['role'] = shareddrive['role']
+              row['role'] = shareddrive['role'] if not guiRoles else SHAREDDRIVE_API_GUI_ROLES_MAP[shareddrive['role']]
             row['JSON'] = json.dumps(cleanJSON(shareddrive, timeObjects=SHAREDDRIVE_TIME_OBJECTS), ensure_ascii=False, sort_keys=True)
             csvPF.WriteRow(row)
           else:
