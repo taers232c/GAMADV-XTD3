@@ -3363,16 +3363,16 @@ gam show peoplecontacts
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 
-gam info people <PeopleResourceNameEntity>
+gam info people|propleprofile <PeopleResourceNameEntity>
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
-gam print people [todrive <ToDriveAttribute>*]
+gam print people|peopleprofile [todrive <ToDriveAttribute>*]
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
         [coountsonly]
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson [quotechar <Character>]]
-gam show people
+gam show people|peopleprofile
         [query <String>]
         [mergesources <PeopleMergeSourceName>]
         [coountsonly]
