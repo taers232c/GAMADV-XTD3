@@ -3142,7 +3142,7 @@ gam print|show transferapps
 gam create|add datatransfer|transfer <OldOwnerID> <DataTransferServiceList> <NewOwnerID>
         [private|shared|all] [release_resources]
         (<ParameterKey> <ParameterValue>)*
-
+        [wait <Integer> <Integer>]
 gam info datatransfer|transfer <TransferID>
 gam print datatransfers|transfers [todrive <ToDriveAttribute>*]
         [olduser|oldowner <UserItem>] [newuser|newowner <UserItem>]
