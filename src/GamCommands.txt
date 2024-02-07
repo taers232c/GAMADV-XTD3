@@ -3363,7 +3363,7 @@ gam show peoplecontacts
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 
-gam info people|propleprofile <PeopleResourceNameEntity>
+gam info people|peopleprofile <PeopleResourceNameEntity>
         [allfields|(fields <PeopleFieldNameList>)] [showmetadata]
         [formatjson]
 gam print people|peopleprofile [todrive <ToDriveAttribute>*]
