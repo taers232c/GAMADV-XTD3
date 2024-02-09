@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.68.04'
+__version__ = '6.68.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -107,12 +107,10 @@ from dateutil.relativedelta import relativedelta
 from filelock import FileLock
 
 from pathvalidate import sanitize_filename, sanitize_filepath
-
-# Do not import system library, includes discovery documents
-#import googleapiclient
-#import googleapiclient.discovery
-#import googleapiclient.errors
-#import googleapiclient.http
+import googleapiclient
+import googleapiclient.discovery
+import googleapiclient.errors
+import googleapiclient.http
 import google.oauth2.credentials
 import google.oauth2.id_token
 import google.auth
