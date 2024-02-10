@@ -570,7 +570,7 @@ jobs:
 
       - name: Archive production artifacts MacOS x86_64
         uses: actions/upload-artifact@v4
-        if: runner.os == 'macOS' && matrix.arch == 'x86_64" && github.event_name == 'push' && matrix.goal != 'test'
+        if: runner.os == 'macOS' && matrix.arch == 'x86_64' && github.event_name == 'push' && matrix.goal != 'test'
         with:
           name: gam-binaries-macos-x86_64
           path: |
