@@ -560,6 +560,9 @@ jobs:
           fi
           echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
 
+  upload:
+    runs-on: ubuntu-latest
+    steps:        
       - name: Archive production artifacts Linux
         uses: actions/upload-artifact@v4
         if: runner.os == 'Linux' && github.event_name == 'push' && matrix.goal != 'test'
@@ -593,6 +596,10 @@ jobs:
             src/*.zip
             src/*.msi
 
+  merge:
+    runs-on: ubuntu-latest
+    needs: upload
+    steps:
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v4
         with:
@@ -612,13 +619,13 @@ jobs:
   
   publish-winget:
     runs-on: windows-2022
-    needs: build
+    needs: merge
     name: Publish to WinGet
     steps:
       - name: Download GAM artifact
         uses: actions/download-artifact@v4
         with:
-          name: gam-binaries-windows
+          name: gam-binaries
       - name: Publish release to Winget Repo
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
