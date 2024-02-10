@@ -616,10 +616,11 @@ jobs:
 #            src/*.msi
 #
       - name: Archive production artifacts
+        runs-on: ubuntu-latest
         uses: actions/upload-artifact@v4
         if: github.event_name == 'push' && matrix.goal != 'test'
         with:
-          name: gam-binaries-${{ GAMOS }}-${{ arch }}
+          name: gam-binaries-${{ env.GAMOS }}-${{ env.arch }}
           path: |
             src/*.tar.xz
             src/*.zip
