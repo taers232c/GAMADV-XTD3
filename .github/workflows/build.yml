@@ -63,7 +63,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240209
+          key: gam-${{ matrix.jid }}-20240210
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -528,7 +528,7 @@ jobs:
         if: runner.os != 'Windows' && matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-             GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}s-${arch}.tar.xz"
+             GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}.tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
             if [[ "${staticx}" == "yes" ]]; then
               GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}-legacy.tar.xz"
