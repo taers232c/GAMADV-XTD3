@@ -560,10 +560,6 @@ jobs:
           fi
           echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
 
-  upload:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:        
       - name: Archive production artifacts Linux
         uses: actions/upload-artifact@v4
         if: runner.os == 'Linux' && github.event_name == 'push' && matrix.goal != 'test'
@@ -599,7 +595,7 @@ jobs:
 
   merge:
     runs-on: ubuntu-latest
-    needs: upload
+    needs: build
     steps:
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v4
