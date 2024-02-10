@@ -51,14 +51,14 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 0
 
       - name: Cache multiple paths
         if: matrix.goal == 'build'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache-python-ssl
         with:
           path: |
@@ -561,7 +561,7 @@ jobs:
           echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
 
       - name: Archive production artifacts Linux/MacOS
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: runner.os != 'Windows' && github.event_name == 'push' && matrix.goal != 'test'
         with:
           name: gam-binaries-linux-macos
