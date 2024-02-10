@@ -448,27 +448,27 @@ jobs:
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
         run: |
-             export gampath="./dist/gamadv-xtd3"
-             mkdir -p -v "${gampath}"
-             if [[ "${RUNNER_OS}" == "macOS" ]]; then
-               export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
-             elif [[ "${RUNNER_OS}" == "Windows" ]]; then
-               # Work around issue where PyInstaller picks up python3.dll from other Python versions
-               # https://github.com/pyinstaller/pyinstaller/issues/7102
-               export PATH="/usr/bin"
-             else
-               export gampath=$(realpath "${gampath}")
-             fi
-             export gam="${gampath}/gam"
-             echo "gampath=${gampath}" >> $GITHUB_ENV
-             echo "gam=${gam}" >> $GITHUB_ENV
-             echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
-             # TEMP force everything back to one file.
-             export PYINSTALLER_BUILD_ONEFILE="yes"
-             export distpath="./dist/gam"
-             export gampath="${distpath}"
-             "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${gampath}" gam.spec
-             cat build/gam/warn-gam.txt
+          export gampath="./dist/gamadv-xtd3"
+          mkdir -p -v "${gampath}"
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
+          elif [[ "${RUNNER_OS}" == "Windows" ]]; then
+            # Work around issue where PyInstaller picks up python3.dll from other Python versions
+            # https://github.com/pyinstaller/pyinstaller/issues/7102
+            export PATH="/usr/bin"
+          else
+            export gampath=$(realpath "${gampath}")
+          fi
+          export gam="${gampath}/gam"
+          echo "gampath=${gampath}" >> $GITHUB_ENV
+          echo "gam=${gam}" >> $GITHUB_ENV
+          echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
+          # TEMP force everything back to one file.
+          export PYINSTALLER_BUILD_ONEFILE="yes"
+          export distpath="./dist/gam"
+          export gampath="${distpath}"
+          "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${gampath}" gam.spec
+          cat build/gam/warn-gam.txt
 
       - name: Copy extra package files
         if: matrix.goal == 'build'

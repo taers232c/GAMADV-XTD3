@@ -2,12 +2,13 @@
 from os import getenv
 from re import search
 from sys import platform
+from sys import modules
 
 from PyInstaller.utils.hooks import copy_metadata
 
 from gam.gamlib.glverlibs import GAM_VER_LIBS
 
-sys.modules['FixTk'] = None
+modules['FixTk'] = None
 
 datas = []
 for pkg in GAM_VER_LIBS:
