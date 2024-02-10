@@ -597,7 +597,7 @@ jobs:
         uses: actions/upload-artifact/merge@v4
         with:
           name: gam-binaries
-         pattern: gam-binaries-*
+          pattern: gam-binaries-*
 
       - name: Tar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
