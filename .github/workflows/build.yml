@@ -465,10 +465,10 @@ jobs:
           echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
           # TEMP force everything back to one file.
           export PYINSTALLER_BUILD_ONEFILE="yes"
-          export distpath="./dist/gam"
+          export distpath="./dist/gamadv-xtd3"
           export gampath="${distpath}"
           "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${gampath}" gam.spec
-          cat build/gam/warn-gam.txt
+          # cat build/gam/warn-gam.txt
 
       - name: Copy extra package files
         if: matrix.goal == 'build'

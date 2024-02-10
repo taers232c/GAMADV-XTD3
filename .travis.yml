@@ -140,6 +140,6 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-#  edge: true
+  edge: true
   on:
     repo: taers232c/GAMADV-XTD3
