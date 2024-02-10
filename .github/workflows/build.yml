@@ -582,39 +582,6 @@ jobs:
           fi
           tar cJvvf cache.tar.xz $tar_folders
   
-#      - name: Archive production artifacts Linux
-#        uses: actions/upload-artifact@v4
-#        if: runner.os == 'Linux' && github.event_name == 'push' && matrix.goal != 'test'
-#        with:
-#          name: gam-binaries-linux
-#          path: |
-#            src/*.tar.xz
-#
-#      - name: Archive production artifacts MacOS x86_64
-#        uses: actions/upload-artifact@v4
-#        if: runner.os == 'macOS' && matrix.arch == 'x86_64' && github.event_name == 'push' && matrix.goal != 'test'
-#        with:
-#          name: gam-binaries-macos-x86_64
-#          path: |
-#            src/*.tar.xz
-#
-#      - name: Archive production artifacts MacOS arm64
-#        uses: actions/upload-artifact@v4
-#        if: runner.os == 'macOS' && matrix.arch == 'arm64' && github.event_name == 'push' && matrix.goal != 'test'
-#        with:
-#          name: gam-binaries-macos-arm64
-#          path: |
-#            src/*.tar.xz
-#
-#      - name: Archive production artifacts Windows
-#        uses: actions/upload-artifact@v4
-#        if: runner.os == 'Windows' && github.event_name == 'push' && matrix.goal != 'test'
-#        with:
-#          name: gam-binaries-windows
-#          path: |
-#            src/*.zip
-#            src/*.msi
-#
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         if: github.event_name == 'push' && matrix.goal != 'test'
