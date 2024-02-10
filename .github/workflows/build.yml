@@ -38,11 +38,11 @@ jobs:
             goal: build
             arch: arm64
             openssl_archs: darwin64-arm64
-          - os: macos-14
-            jid: 4
-            goal: build
-            arch: universal2
-            openssl_archs: darwin64-x86_64 darwin64-arm64
+#          - os: macos-14
+#            jid: 4
+#            goal: build
+#            arch: universal2
+#            openssl_archs: darwin64-x86_64 darwin64-arm64
           - os: windows-2022
             jid: 5
             goal: build
@@ -517,14 +517,14 @@ jobs:
         if: runner.os != 'Windows' && matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-${arch}.tar.xz"
+             GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-${arch}.tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
-              if [[ "${staticx}" == "yes" ]]; then
-                libver="legacy"
-              else
-                libver="glibc$(ldd --version | awk '/ldd/{print $NF}')"
-              fi
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-${arch}-${libverver}.tar.xz"
+            if [[ "${staticx}" == "yes" ]]; then
+              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-${arch}-legacy.tar.xz"
+            else
+              libver=$(ldd --version | awk '/ldd/{print $NF}')
+              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-${arch}-glibc${libver}.tar.xz"
+            fi
           fi
           echo "GAM Archive ${GAM_ARCHIVE}"
           tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
