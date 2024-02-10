@@ -48,11 +48,6 @@ jobs:
             goal: build
             arch: Win64
             openssl_archs: VC-WIN64A
-          # - os: windows-2022
-          #   jid: 6
-          #   goal: build
-          #   arch: Win32
-          #   openssl_archs: VC-WIN32
 
     steps:
 
@@ -448,7 +443,13 @@ jobs:
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
         run: |
-          export gampath="./dist/gamadv-xtd3"
+          if [[ "${staticx}" == "yes" ]]; then
+            export distpath="./dist/gamadv-xtd3"
+            export gampath="${distpath}"
+          else
+            export distpath="./dist"
+            export gampath="${distpath}/gamadv-xtd3"
+          fi
           mkdir -p -v "${gampath}"
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
@@ -467,21 +468,44 @@ jobs:
           export PYINSTALLER_BUILD_ONEFILE="yes"
           export distpath="./dist/gamadv-xtd3"
           export gampath="${distpath}"
-          "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${gampath}" gam.spec
+          "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${distpath}" gam.spec
           # cat build/gam/warn-gam.txt
 
       - name: Copy extra package files
         if: matrix.goal == 'build'
         run: |
+          cp -v cacerts.pem $gampath
           cp -v LICENSE $gampath
           cp -v license.rtf $gampath
           cp -v Gam*.txt $gampath
-          cp -v cacerts.pem $gampath
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
               cp -v gam-setup.bat $gampath
           fi
 
+      - name: Install StaticX
+        if: matrix.staticx == 'yes'
+        run: |
+          "${PYTHON}" -m pip install --upgrade patchelf-wrapper
+          "${PYTHON}" -m pip install --upgrade staticx
+
+      - name: Make StaticX
+        if: matrix.staticx == 'yes'
+        run: |
+          case $RUNNER_ARCH in
+            X64)
+              ldlib=/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+              ;;
+            ARM64)
+              ldlib=/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
+              ;;
+          esac
+          echo "ldlib=${ldlib}"
+          $PYTHON -m staticx -l "${ldlib}" "${gam}" "${gam}-staticx"
+          rm -v "${gam}"
+          mv -v "${gam}-staticx" "${gam}"
+
       - name: Basic Tests all jobs
+        id: basictests
         run: |
           $PYTHON -m unittest discover --start-directory ./ --pattern "*_test.py" --buffer || if [ $? != 5 ]; then exit $?; fi # exit 5 is no tests
           $gam version extended nooffseterror
@@ -495,42 +519,14 @@ jobs:
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
               GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-macos-${arch}.tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
-              this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-${arch}-glibc${this_glibc_ver}.tar.xz"
+              if [[ "${staticx}" == "yes" ]]; then
+                libver="legacy"
+              else
+                libver="glibc$(ldd --version | awk '/ldd/{print $NF}')"
+              fi
+              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-${arch}-${libverver}.tar.xz"
           fi
           echo "GAM Archive ${GAM_ARCHIVE}"
-          tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
-
-      - name: Linux 64-bit install patchelf/staticx
-        if: runner.os == 'Linux' && contains(runner.arch, '64') && matrix.goal != 'test'
-        run: |
-          "${PYTHON}" -m pip install --upgrade patchelf-wrapper
-          "${PYTHON}" -m pip install --upgrade staticx
-
-      - name: Linux 64-bit Make Static
-        if: runner.os == 'Linux' && contains(runner.arch, '64') && matrix.goal != 'test'
-        run: |
-          case $RUNNER_ARCH in
-            X64)
-              ldlib=/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
-              ;;
-            ARM64)
-              ldlib=/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1
-              ;;
-          esac
-          echo "ldlib=${ldlib}"
-          $PYTHON -m staticx -l "${ldlib}" "${gam}" "${gam}-staticx"
-
-      - name: Linux Run StaticX-ed
-        if: runner.os == 'Linux' && contains(runner.arch, '64') && matrix.goal != 'test'
-        run: |
-          "${gam}-staticx" version extended
-          mv -v "${gam}-staticx" "${gam}"
-
-      - name: Linux package staticx
-        if: runner.os == 'Linux' && contains(runner.arch, '64') && matrix.goal != 'test'
-        run: |
-          GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-linux-$(uname -m)-legacy.tar.xz"
           tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
 
       - name: Windows package
@@ -590,7 +586,7 @@ jobs:
           else
             tar_folders="bin/"
           fi
-          tar cJvvf cache.tar.xz "$tar_folders"
+          tar cJvvf cache.tar.xz $tar_folders
   
   publish-winget:
     runs-on: windows-2022
