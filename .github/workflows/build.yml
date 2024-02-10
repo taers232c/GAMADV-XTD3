@@ -560,11 +560,27 @@ jobs:
           fi
           echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
 
-      - name: Archive production artifacts Linux/MacOS
+      - name: Archive production artifacts Linux
         uses: actions/upload-artifact@v4
-        if: runner.os != 'Windows' && github.event_name == 'push' && matrix.goal != 'test'
+        if: runner.os == 'Linux' && github.event_name == 'push' && matrix.goal != 'test'
         with:
-          name: gam-binaries-linux-macos
+          name: gam-binaries-linux
+          path: |
+            src/*.tar.xz
+
+      - name: Archive production artifacts MacOS x86_64
+        uses: actions/upload-artifact@v4
+        if: runner.os == 'macOS' && matrix.arch == 'x86_64" && github.event_name == 'push' && matrix.goal != 'test'
+        with:
+          name: gam-binaries-macos-x86_64
+          path: |
+            src/*.tar.xz
+
+      - name: Archive production artifacts MacOS arm64
+        uses: actions/upload-artifact@v4
+        if: runner.os == 'macOS' && matrix.arch == 'arm64' && github.event_name == 'push' && matrix.goal != 'test'
+        with:
+          name: gam-binaries-macos-arm64
           path: |
             src/*.tar.xz
 
@@ -576,6 +592,12 @@ jobs:
           path: |
             src/*.zip
             src/*.msi
+
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: gam-binaries
+         pattern: gam-binaries-*
 
       - name: Tar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
