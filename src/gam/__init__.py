@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.68.06'
+__version__ = '6.68.07'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -41128,6 +41128,8 @@ def getUserAttributes(cd, updateCmd, noUid=False):
         body['name'].pop('fullName')
       if 'sshPublicKeys' in body and 'fingerprint' in body['sshPublicKeys']:
         body['sshPublicKeys'].pop('fingerprint')
+      for location in body.get('locations', []):
+        location.pop('buildingName', None)
     elif myarg == 'employeeid':
       entry = {'type': 'organization', 'value': getString(Cmd.OB_STRING, minLen=0)}
       appendItemToBodyList(body, 'externalIds', entry, 'value')
@@ -42324,6 +42326,9 @@ def infoUsers(entityList):
               addJsonGroupParents(groupParents, group, groupEmail)
         if getLicenses:
           user['licenses'] = [SKU.formatSKUIdDisplayName(u_license) for u_license in licenses]
+        if getBuildingNames:
+          for location in user.get('locations', []):
+            location['buildingName'] = _getBuildingNameById(cd, location.get('buildingId', ''))
         if not getAliases:
           user.pop('aliases', None)
           user.pop('nonEditableAliases', None)
