@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.68.07'
+__version__ = '6.68.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3395,7 +3395,7 @@ def SetGlobalVariables():
   def _getCfgHeaderFilter(sectionName, itemName):
     value = GM.Globals[GM.PARSER].get(sectionName, itemName)
     headerFilters = []
-    if not value:
+    if not value or (len(value) == 2 and _stringInQuotes(value)):
       return headerFilters
     splitStatus, filters = shlexSplitListStatus(value)
     if splitStatus:
@@ -3411,7 +3411,7 @@ def SetGlobalVariables():
   def _getCfgHeaderForce(sectionName, itemName):
     value = GM.Globals[GM.PARSER].get(sectionName, itemName)
     headerForce = []
-    if not value:
+    if not value or (len(value) == 2 and _stringInQuotes(value)):
       return headerForce
     splitStatus, headerForce = shlexSplitListStatus(value)
     if not splitStatus:
@@ -18008,12 +18008,15 @@ def doPrintAliases():
       try:
         entityList = callGAPIpages(cd.groups(), 'list', 'groups',
                                    pageMessage=getPageMessage(showFirstLastItems=True), messageAttribute='email',
-                                   throwReasons=GAPI.GROUP_LIST_THROW_REASONS,
+                                   throwReasons=GAPI.GROUP_LIST_USERKEY_THROW_REASONS,
                                    retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                                    query=query, orderBy='email',
                                    fields=f'nextPageToken,groups({",".join(groupFields)})', **kwargs)
         for group in entityList:
           writeAliases(group, group['email'], 'Group')
+      except (GAPI.invalidMember, GAPI.invalidInput) as e:
+        if not invalidMember(query):
+          entityActionFailedExit([Ent.GROUP, None], str(e))
       except GAPI.domainNotFound as e :
         entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, kwargs['domain']], str(e))
         continue
@@ -41517,7 +41520,7 @@ def doCreateUser():
                         throwReasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND,
                                       GAPI.DOMAIN_CANNOT_USE_APIS, GAPI.FORBIDDEN,
                                       GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
-                                      GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+                                      GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.CONDITION_NOT_MET],
                         body=body,
                         fields=fields,
                         resolveConflictAccount=resolveConflictAccount)
@@ -41536,7 +41539,7 @@ def doCreateUser():
     except GAPI.invalidOrgunit:
       entityActionFailedExit([Ent.USER, user], Msg.INVALID_ORGUNIT)
     except (GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden,
-            GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter) as e:
+            GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter, GAPI.conditionNotMet) as e:
       entityActionFailedExit([Ent.USER, user], str(e))
   if PwdOpts.filename and PwdOpts.password:
     writeFile(PwdOpts.filename, f'{user},{PwdOpts.password}\n', mode='a', continueOnError=True)
@@ -41698,7 +41701,7 @@ def updateUsers(entityList):
                 result = callGAPI(cd.users(), 'insert',
                                   throwReasons=[GAPI.DUPLICATE, GAPI.DOMAIN_NOT_FOUND, GAPI.FORBIDDEN,
                                                 GAPI.INVALID, GAPI.INVALID_INPUT, GAPI.INVALID_PARAMETER,
-                                                GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE],
+                                                GAPI.INVALID_ORGUNIT, GAPI.INVALID_SCHEMA_VALUE, GAPI.CONDITION_NOT_MET],
                                   body=body,
                                   fields=fields,
                                   resolveConflictAccount=resolveConflictAccount)
@@ -41730,7 +41733,7 @@ def updateUsers(entityList):
       entityActionFailedWarning([Ent.USER, user], Msg.INVALID_ORGUNIT, i, count)
     except (GAPI.resourceNotFound, GAPI.domainNotFound, GAPI.domainCannotUseApis, GAPI.forbidden, GAPI.badRequest,
             GAPI.invalid, GAPI.invalidInput, GAPI.invalidParameter, GAPI.insufficientArchivedUserLicenses,
-            GAPI.conflict, GAPI.badRequest, GAPI.backendError, GAPI.systemError) as e:
+            GAPI.conflict, GAPI.badRequest, GAPI.backendError, GAPI.systemError, GAPI.conditionNotMet) as e:
       entityActionFailedWarning([Ent.USER, user], str(e), i, count)
 
 # gam update users <UserTypeEntity> ...
@@ -51304,6 +51307,11 @@ def _mapDriveRevisionNames(revision):
       revision['lastModifyingUserName'] = revision['lastModifyingUser']['displayName']
     _mapDriveUser(revision['lastModifyingUser'])
 
+DRIVEFILE_BASIC_PERMISSION_FIELDS = [
+  'displayName', 'id', 'emailAddress', 'domain', 'role', 'type',
+  'allowFileDiscovery', 'expirationTime', 'deleted', 'permissionDetails' #permissionDetails must be last
+  ]
+
 DRIVE_FIELDS_CHOICE_MAP = {
   'alternatelink': 'webViewLink',
   'appdatacontents': 'spaces',
@@ -51362,8 +51370,9 @@ DRIVE_FIELDS_CHOICE_MAP = {
   'ownernames': 'owners.displayName',
   'owners': 'owners',
   'parents': 'parents',
-  'permissions': 'permissions',
+  'permissiondetails': 'permissions.permissionDetails',
   'permissionids': 'permissionIds',
+  'permissions': 'permissions',
   'properties': 'properties',
   'quotabytesused': 'quotaBytesUsed',
   'quotaused': 'quotaBytesUsed',
@@ -51719,7 +51728,7 @@ def showFileInfo(users):
       showLabels = getChoice(SHOWLABELS_CHOICES)
     elif myarg == 'showshareddrivepermissions':
       getPermissionsForSharedDrives = True
-      permissionsFields = 'nextPageToken,permissions'
+      permissionsFields = f'nextPageToken,permissions({",".join(DRIVEFILE_BASIC_PERMISSION_FIELDS)})'
     elif myarg == 'returnidonly':
       returnIdOnly = True
     elif DFF.ProcessArgument(myarg):
@@ -51727,7 +51736,8 @@ def showFileInfo(users):
     else:
       FJQC.GetFormatJSON(myarg)
   if DFF.fieldsList:
-    getPermissionsForSharedDrives, permissionsFields = _setGetPermissionsForSharedDrives(DFF.fieldsList)
+    if not getPermissionsForSharedDrives:
+      getPermissionsForSharedDrives, permissionsFields = _setGetPermissionsForSharedDrives(DFF.fieldsList)
     _setSelectionFields()
     fields = getFieldsFromFieldsList(DFF.fieldsList)
     showNoParents = 'parents' in DFF.fieldsList
@@ -52581,6 +52591,7 @@ DRIVEFILE_ACL_ROLES_MAP = {
   }
 
 DRIVEFILE_ACL_PERMISSION_TYPES = ['anyone', 'domain', 'group', 'user'] # anyone must be first element
+DRIVEFILE_ACL_PERMISSION_DETAILS_TYPES = ['file', 'member']
 
 class PermissionMatch():
   _PERMISSION_MATCH_ACTION_MAP = {'process': True, 'skip': False}
@@ -52667,10 +52678,13 @@ class PermissionMatch():
         self.permissionFields.add('expirationTime')
       elif myarg == 'deleted':
         deletedLocation = Cmd.Location()
-        body['deleted'] = getBoolean()
+        body[myarg] = getBoolean()
         self.permissionFields.add('deleted')
       elif myarg == 'inherited':
-        body['inherited'] = getBoolean()
+        body[myarg] = getBoolean()
+        self.permissionFields.add('permissionDetails')
+      elif myarg == 'permtype':
+        body['permissionType'] = getChoice(DRIVEFILE_ACL_PERMISSION_DETAILS_TYPES)
         self.permissionFields.add('permissionDetails')
       elif myarg in {'em', 'endmatch'}:
         break
@@ -52710,18 +52724,24 @@ class PermissionMatch():
       if field in {'type', 'role'}:
         if permission.get(field, '') not in value:
           break
-      elif field in {'nottype'}:
+      elif field == 'nottype':
         if permission.get('type', '') in value:
           break
-      elif field in {'notrole'}:
+      elif field == 'notrole':
         if permission.get('role', '') in value:
           break
       elif field in {'allowFileDiscovery', 'deleted'}:
         if value != permission.get(field, False):
           break
-      elif field in {'inherited'}:
+      elif field == 'inherited':
         if 'permissionDetails' in permission:
           if value != permission['permissionDetails'][0].get(field, False):
+            break
+        else:
+          break
+      elif field == 'permissionType':
+        if 'permissionDetails' in permission:
+          if value != permission['permissionDetails'][0].get(field, ''):
             break
         else:
           break
@@ -52736,14 +52756,14 @@ class PermissionMatch():
               break
         else:
           break
-      elif field in {'emailaddresslist'}:
+      elif field == 'emailaddresslist':
         emailAddress = permission.get('emailAddress')
         if emailAddress:
           if emailAddress not in value:
             break
         else:
           break
-      elif field in {'permissionidlist'}:
+      elif field == 'permissionidlist':
         permissionId = permission.get('id')
         if permissionId:
           if permissionId not in value:
@@ -53141,6 +53161,16 @@ def printFileList(users):
     if DLP.onlySharedDrives or getPermissionsForSharedDrives or DFF.showSharedDriveNames:
       _setSkipObjects(skipObjects, ['driveId'], DFF.fieldsList)
 
+  def _printFileInfoRow(baserow, fileInfo):
+    row = baserow.copy()
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
+                                       simpleLists=simpleLists, delimiter=delimiter))
+    else:
+      row['JSON'] = json.dumps(cleanJSON(fileInfo, skipObjects=skipObjects, timeObjects=timeObjects),
+                               ensure_ascii=False, sort_keys=True)
+      csvPF.WriteRowTitlesJSONNoFilter(row)
+
   def _printFileInfo(drive, user, f_file, cleanFileName):
     driveId = f_file.get('driveId')
     checkSharedDrivePermissions = getPermissionsForSharedDrives and driveId and 'permissions' not in f_file
@@ -53218,18 +53248,15 @@ def printFileList(users):
           baserow[fileNameTitle] = fileInfo[fileNameTitle]
         if 'owners' in fileInfo:
           flattenJSON({'owners': fileInfo['owners']}, flattened=baserow, skipObjects=skipObjects)
-        permissions = fileInfo.pop('permissions')
-        for permission in permissions:
-          row = baserow.copy()
+        for permission in fileInfo.pop('permissions'):
           fileInfo['permission'] = permission
-          if not FJQC.formatJSON:
-            csvPF.WriteRowTitles(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
-                                             simpleLists=simpleLists, delimiter=delimiter))
+          pdetails = fileInfo['permission'].pop('permissionDetails', [])
+          if not pdetails:
+            _printFileInfoRow(baserow, fileInfo)
           else:
-            row = baserow.copy()
-            row['JSON'] = json.dumps(cleanJSON(fileInfo, skipObjects=skipObjects, timeObjects=timeObjects),
-                                     ensure_ascii=False, sort_keys=True)
-            csvPF.WriteRowTitlesJSONNoFilter(row)
+            for pdetail in pdetails:
+              fileInfo['permission']['permissionDetails'] = pdetail
+              _printFileInfoRow(baserow, fileInfo)
     else:
       if not countsRowFilter:
         csvPF.UpdateMimeTypeCounts(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
@@ -53417,7 +53444,7 @@ def printFileList(users):
       showLabels = getChoice(SHOWLABELS_CHOICES)
     elif myarg == 'showshareddrivepermissions':
       getPermissionsForSharedDrives = True
-      permissionsFields = 'nextPageToken,permissions'
+      permissionsFields = f'nextPageToken,permissions({",".join(DRIVEFILE_BASIC_PERMISSION_FIELDS)})'
     elif myarg == 'pmfilter':
       pmselect = False
     elif myarg == 'oneitemperrow':
@@ -53459,9 +53486,10 @@ def printFileList(users):
     DLP.Finalize(fileIdEntity)
   if DLP.PM.permissionMatches:
     getPermissionsForSharedDrives = True
-    permissionsFields = 'nextPageToken,permissions'
+    permissionsFields = f'nextPageToken,permissions({",".join(DRIVEFILE_BASIC_PERMISSION_FIELDS)})'
   elif DFF.fieldsList:
-    getPermissionsForSharedDrives, permissionsFields = _setGetPermissionsForSharedDrives(DFF.fieldsList)
+    if not getPermissionsForSharedDrives:
+      getPermissionsForSharedDrives, permissionsFields = _setGetPermissionsForSharedDrives(DFF.fieldsList)
   if DFF.fieldsList:
     _setSelectionFields()
     fields = getFieldsFromFieldsList(DFF.fieldsList)
@@ -60875,24 +60903,19 @@ def infoDriveFileACLs(users, useDomainAdminAccess=False):
 def doInfoDriveFileACLs():
   infoDriveFileACLs([_getAdminEmail()], True)
 
-DRIVEFILE_BASIC_PERMISSION_FIELDS = [
-  'displayName', 'id', 'emailAddress', 'domain', 'role', 'type',
-  'allowFileDiscovery', 'expirationTime', 'deleted'
-  ]
-
 DRIVEFILE_PERMISSIONS_FOR_VIEW_CHOICES = ['published']
 
 def getDriveFilePermissionsFields(myarg, fieldsList):
   if myarg in DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP:
     fieldsList.append(DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP[myarg])
   elif myarg == 'basicpermissions':
-    fieldsList.extend(DRIVEFILE_BASIC_PERMISSION_FIELDS)
+    fieldsList.extend(DRIVEFILE_BASIC_PERMISSION_FIELDS[:-1])
   elif myarg == 'fields':
     for field in _getFieldsList():
       if field in DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP:
         fieldsList.append(DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP[field])
       elif field == 'basicpermissions':
-        fieldsList.extend(DRIVEFILE_BASIC_PERMISSION_FIELDS)
+        fieldsList.extend(DRIVEFILE_BASIC_PERMISSION_FIELDS[:-1])
       else:
         invalidChoiceExit(field, DRIVE_PERMISSIONS_SUBFIELDS_CHOICE_MAP, True)
   else:
@@ -60916,6 +60939,17 @@ def getDriveFilePermissionsFields(myarg, fieldsList):
 #	(orderby <DriveFileOrderByFieldName> [ascending|descending])*
 #	[formatjson] [adminaccess|asadmin]
 def printShowDriveFileACLs(users, useDomainAdminAccess=False):
+  def _printPermissionRow(baserow, permission):
+    row = baserow.copy()
+    flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      row = baserow.copy()
+      row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
+                               ensure_ascii=False, sort_keys=True)
+      csvPF.WriteRowNoFilter(row)
+
   csvPF = CSVPrintFile(['Owner', 'id'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fileIdEntity = getDriveFileEntity()
@@ -61036,16 +61070,14 @@ def printShowDriveFileACLs(users, useDomainAdminAccess=False):
           baserow[fileNameTitle] = fileName
         if oneItemPerRow:
           for permission in permissions:
-            row = baserow.copy()
             _mapDrivePermissionNames(permission)
-            flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
-            if not FJQC.formatJSON:
-              csvPF.WriteRowTitles(row)
-            elif csvPF.CheckRowTitles(row):
-              row = baserow.copy()
-              row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
-                                       ensure_ascii=False, sort_keys=True)
-              csvPF.WriteRowNoFilter(row)
+            pdetails = permission.pop('permissionDetails', [])
+            if not pdetails:
+              _printPermissionRow(baserow, permission)
+            else:
+              for pdetail in pdetails:
+                permission['permissionDetails'] = pdetail
+                _printPermissionRow(baserow, permission)
         else:
           row = baserow.copy()
           for permission in permissions:
@@ -62287,6 +62319,17 @@ SHOW_NO_PERMISSIONS_DRIVES_CHOICE_MAP = {
 #	[shownopermissionsdrives false|true|only]
 #	[formatjsn]
 def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
+  def _printPermissionRow(baserow, permission):
+    row = baserow.copy()
+    flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
+    if not FJQC.formatJSON:
+      csvPF.WriteRowTitles(row)
+    elif csvPF.CheckRowTitles(row):
+      row = baserow.copy()
+      row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
+                               ensure_ascii=False, sort_keys=True)
+      csvPF.WriteRowNoFilter(row)
+
   csvPF = CSVPrintFile(['User', 'id', 'name', 'createdTime'], 'sortall') if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   roles = set()
@@ -62469,16 +62512,14 @@ def printShowSharedDriveACLs(users, useDomainAdminAccess=False):
           baserow = {'User': user, 'id': shareddrive['id'], 'name': shareddrive['name'], 'createdTime': shareddrive['createdTime']}
           if shareddrive['permissions']:
             for permission in shareddrive['permissions']:
-              row = baserow.copy()
               _mapDrivePermissionNames(permission)
-              flattenJSON({'permission': permission}, flattened=row, timeObjects=timeObjects)
-              if not FJQC.formatJSON:
-                csvPF.WriteRowTitles(row)
-              elif csvPF.CheckRowTitles(row):
-                row = baserow.copy()
-                row['JSON'] = json.dumps(cleanJSON({'permission': permission}, timeObjects=timeObjects),
-                                         ensure_ascii=False, sort_keys=True)
-                csvPF.WriteRowNoFilter(row)
+              pdetails = permission.pop('permissionDetails', [])
+              if not pdetails:
+                _printPermissionRow(baserow, permission)
+              else:
+                for pdetail in pdetails:
+                  permission['permissionDetails'] = pdetail
+                  _printPermissionRow(baserow, permission)
           else:
             if not FJQC.formatJSON:
               csvPF.WriteRowTitles(baserow)
