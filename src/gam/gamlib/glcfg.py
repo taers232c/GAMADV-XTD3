@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2023 Ross Scroggs All Rights Reserved.
+# Copyright (C) 2024 Ross Scroggs All Rights Reserved.
 #
 # All Rights Reserved.
 #
@@ -284,6 +284,8 @@ TODRIVE_UPLOAD_NODATA = 'todrive_upload_nodata'
 TODRIVE_USER = 'todrive_user'
 # Update CrOS org unit with orgUnitId
 UPDATE_CROS_OU_WITH_ID = 'update_cros_ou_with_id'
+# Use course owner for course access
+USE_COURSE_OWNER_ACCESS = 'use_course_owner_access'
 # Use Project ID as Project Name and App Name
 USE_PROJECTID_AS_NAME = 'use_projectid_as_name'
 # When retrieving lists of Users from API, how many should be retrieved in each chunk
@@ -420,6 +422,7 @@ Defaults = {
   TODRIVE_UPLOAD_NODATA: TRUE,
   TODRIVE_USER: '',
   UPDATE_CROS_OU_WITH_ID: FALSE,
+  USE_COURSE_OWNER_ACCESS: FALSE,
   USE_PROJECTID_AS_NAME: FALSE,
   USER_MAX_RESULTS: '500',
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: FALSE,
@@ -575,6 +578,7 @@ VAR_INFO = {
   TODRIVE_UPLOAD_NODATA: {VAR_TYPE: TYPE_BOOLEAN},
   TODRIVE_USER: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
   UPDATE_CROS_OU_WITH_ID: {VAR_TYPE: TYPE_BOOLEAN},
+  USE_COURSE_OWNER_ACCESS: {VAR_TYPE: TYPE_BOOLEAN},
   USE_PROJECTID_AS_NAME: {VAR_TYPE: TYPE_BOOLEAN},
   USER_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 500)},
   USER_SERVICE_ACCOUNT_ACCESS_ONLY: {VAR_TYPE: TYPE_BOOLEAN},

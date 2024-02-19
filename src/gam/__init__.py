@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.68.08'
+__version__ = '6.69.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -6338,15 +6338,15 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
   elif entityType in {Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS, Cmd.ENTITY_STUDENTS}:
     croom = buildGAPIObject(API.CLASSROOM)
     if not noListConversion:
-      courses = convertEntityToList(entity)
+      courseIdList = convertEntityToList(entity)
     else:
-      courses = [entity]
-    for course in courses:
-      courseId = addCourseIdScope(course)
+      courseIdList = [entity]
+    _, _, coursesInfo = _getCoursesOwnerInfo(croom, courseIdList, GC.Values[GC.USE_COURSE_OWNER_ACCESS])
+    for courseId, courseInfo in coursesInfo.items():
       try:
         if entityType in {Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_TEACHERS}:
           printGettingAllEntityItemsForWhom(Ent.TEACHER, removeCourseIdScope(courseId), entityType=Ent.COURSE)
-          result = callGAPIpages(croom.courses().teachers(), 'list', 'teachers',
+          result = callGAPIpages(courseInfo['croom'].courses().teachers(), 'list', 'teachers',
                                  pageMessage=getPageMessageForWhom(),
                                  throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.SERVICE_NOT_AVAILABLE],
                                  retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -6359,7 +6359,7 @@ def getItemsToModify(entityType, entity, memberRoles=None, isSuspended=None, isA
               entityList.append(email)
         if entityType in {Cmd.ENTITY_COURSEPARTICIPANTS, Cmd.ENTITY_STUDENTS}:
           printGettingAllEntityItemsForWhom(Ent.STUDENT, removeCourseIdScope(courseId), entityType=Ent.COURSE)
-          result = callGAPIpages(croom.courses().students(), 'list', 'students',
+          result = callGAPIpages(courseInfo['croom'].courses().students(), 'list', 'students',
                                  pageMessage=getPageMessageForWhom(),
                                  throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.BAD_REQUEST, GAPI.SERVICE_NOT_AVAILABLE],
                                  retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -17979,7 +17979,7 @@ def doPrintAliases():
       except (GAPI.invalidOrgunit, GAPI.invalidInput):
         entityActionFailedWarning([Ent.ALIAS, None], invalidQuery(query))
         continue
-      except GAPI.domainNotFound as e :
+      except GAPI.domainNotFound as e:
         entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, kwargs['domain']], str(e))
         continue
       except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
@@ -18017,7 +18017,7 @@ def doPrintAliases():
       except (GAPI.invalidMember, GAPI.invalidInput) as e:
         if not invalidMember(query):
           entityActionFailedExit([Ent.GROUP, None], str(e))
-      except GAPI.domainNotFound as e :
+      except GAPI.domainNotFound as e:
         entityActionFailedWarning([Ent.ALIAS, None, Ent.DOMAIN, kwargs['domain']], str(e))
         continue
       except (GAPI.resourceNotFound, GAPI.forbidden, GAPI.badRequest):
@@ -44215,6 +44215,8 @@ class CourseAttributes():
 
   def __init__(self, croom, updateMode):
     self.croom = croom
+    self.ocroom = croom
+    self.tcroom = None
     self.updateMode = updateMode
     self.body = {}
     self.courseId = None
@@ -44374,15 +44376,20 @@ class CourseAttributes():
       missingArgumentExit('copyfrom <CourseID>')
     else:
       return True
+# ocroom - copyfrom course owner
+    if self.announcementStates or self.materialStates or self.workStates or self.copyTopics or self.members != 'none':
+      _, self.ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{self.ownerId}')
+      if self.ocroom is None:
+        return False
     if self.members != 'none':
-      _, self.teachers, self.students = _getCourseAliasesMembers(self.croom, self.croom, self.courseId, {'members': self.members},
+      _, self.teachers, self.students = _getCourseAliasesMembers(self.croom, self.ocroom, self.courseId, {'members': self.members},
                                                                  'nextPageToken,teachers(profile(emailAddress,id))',
                                                                  'nextPageToken,students(profile(emailAddress))')
     if self.announcementStates:
       printGettingAllEntityItemsForWhom(Ent.COURSE_ANNOUNCEMENT_ID, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0,
                                         _gettingCourseEntityQuery(Ent.COURSE_ANNOUNCEMENT_STATE, self.announcementStates))
       try:
-        self.courseAnnouncements = callGAPIpages(self.croom.courses().announcements(), 'list', 'announcements',
+        self.courseAnnouncements = callGAPIpages(self.ocroom.courses().announcements(), 'list', 'announcements',
                                                  pageMessage=getPageMessageForWhom(),
                                                  throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                                  retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -44399,7 +44406,7 @@ class CourseAttributes():
       printGettingAllEntityItemsForWhom(Ent.COURSE_MATERIAL_ID, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0,
                                         _gettingCourseEntityQuery(Ent.COURSE_MATERIAL_STATE, self.materialStates))
       try:
-        self.courseMaterials = callGAPIpages(self.croom.courses().courseWorkMaterials(), 'list', 'courseWorkMaterial',
+        self.courseMaterials = callGAPIpages(self.ocroom.courses().courseWorkMaterials(), 'list', 'courseWorkMaterial',
                                              pageMessage=getPageMessageForWhom(),
                                              throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                              retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -44420,7 +44427,7 @@ class CourseAttributes():
       printGettingAllEntityItemsForWhom(Ent.COURSE_WORK_ID, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0,
                                         _gettingCourseEntityQuery(Ent.COURSE_WORK_STATE, self.workStates))
       try:
-        self.courseWorks = callGAPIpages(self.croom.courses().courseWork(), 'list', 'courseWork',
+        self.courseWorks = callGAPIpages(self.ocroom.courses().courseWork(), 'list', 'courseWork',
                                          pageMessage=getPageMessageForWhom(),
                                          throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                          retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -44444,7 +44451,7 @@ class CourseAttributes():
     if self.copyTopics:
       printGettingAllEntityItemsForWhom(Ent.COURSE_TOPIC, Ent.TypeName(Ent.COURSE, self.courseId), 0, 0)
       try:
-        courseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
+        courseTopics = callGAPIpages(self.ocroom.courses().topics(), 'list', 'topic',
                                      pageMessage=getPageMessageForWhom(),
                                      throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.SERVICE_NOT_AVAILABLE],
                                      retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -44520,14 +44527,16 @@ class CourseAttributes():
     newCourseId = newCourse['id']
     ownerId = newCourse['ownerId']
     teacherFolderId = newCourse['teacherFolder']['id']
+# tcroom - new/update course owner
     if self.announcementStates or self.materialStates or self.workStates or self.copyTopics:
-      _, tcroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{ownerId}')
-      if tcroom is None:
+      _, self.tcroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{ownerId}')
+      if self.tcroom is None:
         return
     if (self.announcementStates or self.materialStates or self.workStates) and self.copyMaterialsFiles:
       _, tdrive = buildGAPIServiceObject(API.DRIVE3, f'uid:{ownerId}')
       if tdrive is None:
         return
+# Adds are done with domain admin
     if self.members in {'all', 'students'}:
       addParticipants = [student['profile']['emailAddress'] for student in self.students if 'emailAddress' in student['profile']]
       _batchAddItemsToCourse(self.croom, newCourseId, i, count, addParticipants, Ent.STUDENT)
@@ -44536,7 +44545,7 @@ class CourseAttributes():
       _batchAddItemsToCourse(self.croom, newCourseId, i, count, addParticipants, Ent.TEACHER)
     if self.copyTopics:
       try:
-        newCourseTopics = callGAPIpages(self.croom.courses().topics(), 'list', 'topic',
+        newCourseTopics = callGAPIpages(self.tcroom.courses().topics(), 'list', 'topic',
                                         throwReasons=GAPI.COURSE_ACCESS_THROW_REASONS+[GAPI.FAILED_PRECONDITION, GAPI.SERVICE_NOT_AVAILABLE],
                                         retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                                         courseId=newCourseId, fields='nextPageToken,topic(topicId,name)',
@@ -44559,7 +44568,7 @@ class CourseAttributes():
                                                                [Ent.COURSE, self.courseId], Msg.DUPLICATE, j, jcount)
           continue
         try:
-          result = callGAPI(tcroom.courses().topics(), 'create',
+          result = callGAPI(self.tcroom.courses().topics(), 'create',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION, GAPI.INVALID_ARGUMENT, GAPI.SERVICE_NOT_AVAILABLE],
                             retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                             courseId=newCourseId, body={'name': topicName}, fields='topicId')
@@ -44586,7 +44595,7 @@ class CourseAttributes():
         if self.copyMaterialsFiles:
           self.CopyMaterials(tdrive, newCourseId, body, Ent.COURSE_ANNOUNCEMENT_ID, courseAnnouncementId, teacherFolderId)
         try:
-          result = callGAPI(tcroom.courses().announcements(), 'create',
+          result = callGAPI(self.tcroom.courses().announcements(), 'create',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
                                           GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
                             retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -44622,7 +44631,7 @@ class CourseAttributes():
               if newTopicId:
                 body['topicId'] = newTopicId
         try:
-          result = callGAPI(tcroom.courses().courseWorkMaterials(), 'create',
+          result = callGAPI(self.tcroom.courses().courseWorkMaterials(), 'create',
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
                                           GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR, GAPI.INTERNAL_ERROR, GAPI.SERVICE_NOT_AVAILABLE],
                             retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
@@ -44661,7 +44670,7 @@ class CourseAttributes():
           body.pop('dueDate', None)
           body.pop('dueTime', None)
         try:
-          result = callGAPI(tcroom.courses().courseWork(), 'create',
+          result = callGAPI(self.tcroom.courses().courseWork(), 'create',
                             bailOnInternalError=True,
                             throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.FORBIDDEN,
                                           GAPI.BAD_REQUEST, GAPI.FAILED_PRECONDITION, GAPI.BACKEND_ERROR,
@@ -45006,6 +45015,30 @@ def _convertCourseUserIdToEmail(croom, userId, emails, entityValueList, i, count
     emails[userId] = userEmail
   return userEmail
 
+def _getCoursesOwnerInfo(croom, courseIds, useOwnerAccess):
+  coursesInfo = {}
+  for courseId in courseIds:
+    courseId = addCourseIdScope(courseId)
+    if courseId not in coursesInfo:
+      try:
+        course = callGAPI(croom.courses(), 'get',
+                          throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
+                          retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
+                          id=courseId, fields='name,ownerId')
+        if useOwnerAccess:
+          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{course["ownerId"]}')
+        else:
+          ocroom = croom
+        if ocroom is not None:
+          coursesInfo[courseId] = {'name': course['name'], 'croom': ocroom}
+      except GAPI.notFound:
+        entityDoesNotExistWarning(Ent.COURSE, courseId)
+      except (GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
+        entityActionFailedWarning([Ent.COURSE, courseId], str(e))
+      except GAPI.forbidden:
+        ClientAPIAccessDeniedExit()
+  return 0, len(coursesInfo), coursesInfo
+
 def _getCourseAliasesMembers(croom, ocroom, courseId, courseShowProperties, teachersFields, studentsFields, showGettings=False, i=0, count=0):
   aliases = []
   teachers = []
@@ -45062,7 +45095,7 @@ def _doInfoCourses(courseIdList):
   courseShowProperties = _initCourseShowProperties()
   courseShowProperties['ownerEmail'] = True
   ownerEmails = {}
-  useOwnerAccess = False
+  useOwnerAccess = GC.Values[GC.USE_COURSE_OWNER_ACCESS]
   FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -45072,8 +45105,6 @@ def _doInfoCourses(courseIdList):
       useOwnerAccess = True
     else:
       FJQC.GetFormatJSON(myarg)
-  coursesInfo = {}
-  _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, not useOwnerAccess)
   fields = _setCourseFields(courseShowProperties, False)
   if courseShowProperties['members'] != 'none':
     if courseShowProperties['countsOnly']:
@@ -45084,14 +45115,9 @@ def _doInfoCourses(courseIdList):
       studentsFields = 'nextPageToken,students(profile)'
   else:
     teachersFields = studentsFields = None
-  i = 0
-  count = len(courseIdList)
-  for courseId in courseIdList:
+  i, count, coursesInfo = _getCoursesOwnerInfo(croom, courseIdList, useOwnerAccess)
+  for courseId, courseInfo in coursesInfo.items():
     i += 1
-    courseId = addCourseIdScope(courseId)
-    courseInfo = coursesInfo[courseId]
-    if not courseInfo:
-      continue
     try:
       course = callGAPI(croom.courses(), 'get',
                         throwReasons=[GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
@@ -45162,12 +45188,14 @@ def _doInfoCourses(courseIdList):
     except GAPI.forbidden:
       ClientAPIAccessDeniedExit()
 
-# gam info courses <CourseEntity> [owneremail] [alias|aliases] [show none|all|students|teachers] [countsonly]
+# gam info courses <CourseEntity> [owneraccess]
+#	[owneremail] [alias|aliases] [show none|all|students|teachers] [countsonly]
 #	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
 def doInfoCourses():
   _doInfoCourses(getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True))
 
-# gam info course <CourseID> [owneremail] [alias|aliases] [show none|all|students|teachers] [countsonly]
+# gam info course <CourseID> [owneraccess]
+#	[owneremail] [alias|aliases] [show none|all|students|teachers] [countsonly]
 #	[fields <CourseFieldNameList>] [skipfields <CourseFieldNameList>] [formatjson]
 def doInfoCourse():
   _doInfoCourses(getStringReturnInList(Cmd.OB_COURSE_ID))
@@ -45325,6 +45353,7 @@ def doPrintCourses():
   ownerEmails = {}
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
   showItemCountOnly = False
+  useOwnerAccess = GC.Values[GC.USE_COURSE_OWNER_ACCESS]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -45345,7 +45374,7 @@ def doPrintCourses():
   if applyCourseItemFilter:
     if courseShowProperties['fields']:
       courseShowProperties['fields'].append(courseItemFilter['timefilter'])
-  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
+  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, useOwnerAccess)
   if coursesInfo is None:
     if showItemCountOnly:
       writeStdout('0\n')
@@ -45384,6 +45413,12 @@ def doPrintCourses():
     for field in courseShowProperties['skips']:
       course.pop(field, None)
     courseId = course['id']
+    if useOwnerAccess:
+      _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{course["ownerId"]}')
+      if not ocroom:
+        continue
+    else:
+      ocroom = croom
     if courseShowProperties['ownerEmail']:
       course['ownerEmail'] = _convertCourseUserIdToEmail(croom, course['ownerId'], ownerEmails,
                                                          [Ent.COURSE, courseId, Ent.OWNER_ID, course['ownerId']], i, count)
@@ -45392,7 +45427,7 @@ def doPrintCourses():
     if showItemCountOnly:
       itemCount += 1
       continue
-    aliases, teachers, students = _getCourseAliasesMembers(croom, croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
+    aliases, teachers, students = _getCourseAliasesMembers(croom, ocroom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
     if courseShowProperties['aliases']:
       if not courseShowProperties['aliasesInColumns']:
         course['Aliases'] = delimiter.join([removeCourseAliasScope(alias['alias']) for alias in aliases])
@@ -45617,7 +45652,6 @@ def doPrintCourseTopics():
     courseId = course['id']
     if courseTopicIdsLists:
       courseTopicIds = courseTopicIdsLists[courseId]
-
     if not courseTopicIds:
       fields = getItemFieldsFromFieldsList('topic', fieldsList)
       printGettingAllEntityItemsForWhom(Ent.COURSE_TOPIC, Ent.TypeName(Ent.COURSE, courseId), i, count)
@@ -46101,6 +46135,7 @@ def doPrintCourseParticipants():
   courseShowProperties = _initCourseShowProperties(['name'])
   courseShowProperties['members'] = 'all'
   showItemCountOnly = False
+  useOwnerAccess = GC.Values[GC.USE_COURSE_OWNER_ACCESS]
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'todrive':
@@ -46113,7 +46148,7 @@ def doPrintCourseParticipants():
       showItemCountOnly = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
-  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties)
+  coursesInfo = _getCoursesInfo(croom, courseSelectionParameters, courseShowProperties, useOwnerAccess)
   if coursesInfo is None:
     if showItemCountOnly:
       writeStdout('0\n')
@@ -46135,7 +46170,13 @@ def doPrintCourseParticipants():
   for course in coursesInfo:
     i += 1
     courseId = course['id']
-    _, teachers, students = _getCourseAliasesMembers(croom, croom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
+    if useOwnerAccess:
+      _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{course["ownerId"]}')
+      if not ocroom:
+        continue
+    else:
+      ocroom = croom
+    _, teachers, students = _getCourseAliasesMembers(croom, ocroom, courseId, courseShowProperties, teachersFields, studentsFields, True, i, count)
     if showItemCountOnly:
       if courseShowProperties['members'] != 'students':
         itemCount += len(teachers)
@@ -46322,29 +46363,6 @@ def _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, r
     dbatch.execute()
   Ind.Decrement()
 
-def _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess):
-  for courseId in courseIds:
-    courseId = addCourseIdScope(courseId)
-    if courseId not in coursesInfo:
-      coursesInfo[courseId] = {}
-      try:
-        info = callGAPI(croom.courses(), 'get',
-                        throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED, GAPI.SERVICE_NOT_AVAILABLE],
-                        retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
-                        id=courseId, fields='name,ownerId')
-        if not useAdminAccess:
-          _, ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{info["ownerId"]}')
-        else:
-          ocroom = croom
-        if ocroom is not None:
-          coursesInfo[courseId] = {'name': info['name'], 'croom': ocroom}
-      except GAPI.notFound:
-        entityDoesNotExistWarning(Ent.COURSE, courseId)
-      except (GAPI.permissionDenied, GAPI.serviceNotAvailable) as e:
-        entityActionFailedWarning([Ent.COURSE, courseId], str(e))
-      except GAPI.forbidden:
-        ClientAPIAccessDeniedExit()
-
 def _updateCourseOwner(croom, courseId, owner, i, count):
   action = Act.Get()
   Act.Set(Act.UPDATE_OWNER)
@@ -46401,7 +46419,6 @@ def doCourseAddItems(courseIdList, getEntityListArg):
     makeFirstTeacherOwner = checkArgumentPresent(['makefirstteacherowner'])
   else:
     makeFirstTeacherOwner = False
-  coursesInfo = {}
   if not getEntityListArg:
     if role in {Ent.STUDENT, Ent.TEACHER}:
       addItems = getStringReturnInList(Cmd.OB_EMAIL_ADDRESS)
@@ -46425,22 +46442,17 @@ def doCourseAddItems(courseIdList, getEntityListArg):
     if makeFirstTeacherOwner and addItems:
       firstTeacher = normalizeEmailAddressOrUID(addItems[0])
   checkForExtraneousArguments()
-  _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, role != Ent.COURSE_TOPIC)
-  i = 0
-  count = len(courseIdList)
-  for courseId in courseIdList:
+  i, count, coursesInfo = _getCoursesOwnerInfo(croom, courseIdList, role == Ent.COURSE_TOPIC)
+  for courseId, courseInfo in coursesInfo.items():
     i += 1
     if courseParticipantLists:
       addItems = courseParticipantLists[courseId]
       firstTeacher = None
       if makeFirstTeacherOwner and addItems:
         firstTeacher = normalizeEmailAddressOrUID(addItems[0])
-    courseId = addCourseIdScope(courseId)
-    courseInfo = coursesInfo[courseId]
-    if courseInfo:
-      _batchAddItemsToCourse(courseInfo['croom'], courseId, i, count, addItems, role)
-      if makeFirstTeacherOwner and firstTeacher:
-        _updateCourseOwner(courseInfo['croom'], courseId, firstTeacher, i, count)
+    _batchAddItemsToCourse(courseInfo['croom'], courseId, i, count, addItems, role)
+    if makeFirstTeacherOwner and firstTeacher:
+      _updateCourseOwner(courseInfo['croom'], courseId, firstTeacher, i, count)
 
 # gam courses <CourseEntity> remove alias <CourseAliasEntity>
 # gam course <CourseID> remove alias <CourseAlias>
@@ -46451,10 +46463,11 @@ def doCourseAddItems(courseIdList, getEntityListArg):
 def doCourseRemoveItems(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(ADD_REMOVE_PARTICIPANT_TYPES_MAP, mapChoice=True)
-  coursesInfo = {}
   if not getEntityListArg:
     if role in {Ent.STUDENT, Ent.TEACHER}:
-      useOwnerAccess = checkArgumentPresent(OWNER_ACCESS_OPTIONS)
+      useOwnerAccess = GC.Values[GC.USE_COURSE_OWNER_ACCESS]
+      if checkArgumentPresent(OWNER_ACCESS_OPTIONS):
+        useOwnerAccess = True
       removeItems = getStringReturnInList(Cmd.OB_EMAIL_ADDRESS)
     elif role == Ent.COURSE_ALIAS:
       useOwnerAccess = False
@@ -46476,17 +46489,12 @@ def doCourseRemoveItems(courseIdList, getEntityListArg):
       removeItems = getEntityList(Cmd.OB_COURSE_TOPIC_ID_ENTITY, shlexSplit=True)
     courseParticipantLists = removeItems if isinstance(removeItems, dict) else None
   checkForExtraneousArguments()
-  _getCoursesOwnerInfo(croom, courseIdList, coursesInfo, not useOwnerAccess)
-  i = 0
-  count = len(courseIdList)
-  for courseId in courseIdList:
+  i, count, coursesInfo = _getCoursesOwnerInfo(croom, courseIdList, useOwnerAccess)
+  for courseId, courseInfo in coursesInfo.items():
     i += 1
     if courseParticipantLists:
       removeItems = courseParticipantLists[courseId]
-    courseId = addCourseIdScope(courseId)
-    courseInfo = coursesInfo[courseId]
-    if courseInfo:
-      _batchRemoveItemsFromCourse(courseInfo['croom'], courseId, i, count, removeItems, role)
+    _batchRemoveItemsFromCourse(courseInfo['croom'], courseId, i, count, removeItems, role)
 
 # gam courses <CourseEntity> clear teachers|students
 # gam course <CourseID> clear teacher|student
@@ -46494,14 +46502,13 @@ def doCourseClearParticipants(courseIdList, getEntityListArg):
   croom = buildGAPIObject(API.CLASSROOM)
   role = getChoice(CLEAR_SYNC_PARTICIPANT_TYPES_MAP, mapChoice=True)
   checkForExtraneousArguments()
-  i = 0
-  count = len(courseIdList)
-  for courseId in courseIdList:
+  i, count, coursesInfo = _getCoursesOwnerInfo(croom, courseIdList, GC.Values[GC.USE_COURSE_OWNER_ACCESS])
+  for courseId, courseInfo in coursesInfo.items():
     i += 1
     removeParticipants = getItemsToModify(PARTICIPANT_EN_MAP[role], courseId, noListConversion=True)
     if GM.Globals[GM.CLASSROOM_SERVICE_NOT_AVAILABLE]:
       continue
-    _batchRemoveItemsFromCourse(croom, courseId, i, count, removeParticipants, role)
+    _batchRemoveItemsFromCourse(courseInfo['croom'], courseId, i, count, removeParticipants, role)
 
 # gam courses <CourseEntity> sync students [addonly|removeonly] <UserTypeEntity>
 # gam course <CourseID> sync students [addonly|removeonly] <UserTypeEntity>
@@ -46528,9 +46535,8 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
         syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
       if makeFirstTeacherOwner:
         firstTeacher = normalizeEmailAddressOrUID(syncParticipants[0])
-  i = 0
-  count = len(courseIdList)
-  for courseId in courseIdList:
+  i, count, coursesInfo = _getCoursesOwnerInfo(croom, courseIdList, GC.Values[GC.USE_COURSE_OWNER_ACCESS])
+  for courseId, courseInfo in coursesInfo.items():
     i += 1
     if courseParticipantLists:
       syncParticipantsSet = set()
@@ -46540,21 +46546,18 @@ def doCourseSyncParticipants(courseIdList, getEntityListArg):
           syncParticipantsSet.add(normalizeEmailAddressOrUID(user))
         if makeFirstTeacherOwner:
           firstTeacher = normalizeEmailAddressOrUID(courseParticipantLists[courseId][0])
-    courseInfo = checkCourseExists(croom, courseId, i, count)
-    if courseInfo:
-      courseId = courseInfo['id']
-      currentParticipantsSet = set()
-      currentParticipants = getItemsToModify(PARTICIPANT_EN_MAP[role], courseId, noListConversion=True)
-      if GM.Globals[GM.CLASSROOM_SERVICE_NOT_AVAILABLE]:
-        continue
-      for user in currentParticipants:
-        currentParticipantsSet.add(normalizeEmailAddressOrUID(user))
-      if syncOperation != 'removeonly':
-        _batchAddItemsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
-      if makeFirstTeacherOwner and firstTeacher:
-        _updateCourseOwner(croom, courseId, firstTeacher, i, count)
-      if syncOperation != 'addonly':
-        _batchRemoveItemsFromCourse(croom, courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
+    currentParticipantsSet = set()
+    currentParticipants = getItemsToModify(PARTICIPANT_EN_MAP[role], courseId, noListConversion=True)
+    if GM.Globals[GM.CLASSROOM_SERVICE_NOT_AVAILABLE]:
+      continue
+    for user in currentParticipants:
+      currentParticipantsSet.add(normalizeEmailAddressOrUID(user))
+    if syncOperation != 'removeonly':
+      _batchAddItemsToCourse(croom, courseId, i, count, list(syncParticipantsSet-currentParticipantsSet), role)
+    if makeFirstTeacherOwner and firstTeacher:
+      _updateCourseOwner(croom, courseId, firstTeacher, i, count)
+    if syncOperation != 'addonly':
+      _batchRemoveItemsFromCourse(courseInfo['croom'], courseId, i, count, list(currentParticipantsSet-syncParticipantsSet), role)
 
 def studentUnknownWarning(studentId, errMsg, i, count):
   setSysExitRC(SERVICE_NOT_APPLICABLE_RC)
@@ -47211,9 +47214,8 @@ def createClassroomInvitations(users):
   croom = buildGAPIObject(API.CLASSROOM)
   classroomEmails = {}
   courseIds = None
-  coursesInfo = {}
   role = CLASSROOM_ROLE_STUDENT
-  useAdminAccess = False
+  useOwnerAccess = True
   csvPF = None
   FJQC = FormatJSONQuoteChar(csvPF)
   while Cmd.ArgumentsRemaining():
@@ -47228,20 +47230,20 @@ def createClassroomInvitations(users):
     elif csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg in ADMIN_ACCESS_OPTIONS:
-      useAdminAccess = True
+      useOwnerAccess = False
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, False)
   if courseIds is None:
     missingArgumentExit('courses <CourseEntity>')
   if csvPF:
     if FJQC.formatJSON:
-      csvPF.SetTitles(['userEmail', 'JSON'])
+      csvPF.SetJSONTitles(['userEmail', 'JSON'])
     else:
-      csvPF.SetTitles(['userId', 'userEmail', 'courseId', 'courseName', 'id', 'role'])
-    csvPF.SetSortAllTitles()
+      csvPF.SetTitles(['userEmail', 'courseId', 'courseName', 'id', 'role'])
+      csvPF.SetSortAllTitles()
   courseIdsLists = courseIds if isinstance(courseIds, dict) else None
   if courseIdsLists is None:
-    _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess)
+    j, jcount, coursesInfo =  _getCoursesOwnerInfo(croom, courseIds, useOwnerAccess)
   entityType = CLASSROOM_ROLE_ENTITY_MAP[role]
   i, count, users = getEntityArgument(users)
   for user in users:
@@ -47249,25 +47251,20 @@ def createClassroomInvitations(users):
     userId = normalizeEmailAddressOrUID(user)
     userEmail = _getClassroomEmail(croom, classroomEmails, userId, userId)
     if courseIdsLists:
-      courseIds = courseIdsLists[user]
-      _getCoursesOwnerInfo(croom, courseIds, coursesInfo, useAdminAccess)
-    jcount = len(courseIds)
+      j, jcount, coursesInfo = _getCoursesOwnerInfo(croom, courseIdsLists[user], useOwnerAccess)
     if csvPF or not FJQC.formatJSON:
       entityPerformActionNumItems([Ent.USER, userId], jcount, entityType, i, count)
     if jcount == 0:
       continue
-    j = 0
-    for courseId in courseIds:
+    for courseId, courseInfo in coursesInfo.items():
       j += 1
-      courseId = addCourseIdScope(courseId)
-      courseInfo = coursesInfo[courseId]
-      if not courseInfo:
-        continue
       courseNameId = f'{courseInfo["name"]} ({courseId})'
       try:
         invitation = callGAPI(courseInfo['croom'].invitations(), 'create',
                               throwReasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.ALREADY_EXISTS, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
                               body={'userId': userId, 'courseId': courseId, 'role': role})
+        invitation['courseName'] = courseInfo['name']
+        invitation['userEmail'] = userEmail
         if not csvPF:
           if not FJQC.formatJSON:
             Ind.Increment()
@@ -47277,14 +47274,12 @@ def createClassroomInvitations(users):
             printLine(json.dumps(cleanJSON(invitation), ensure_ascii=False, sort_keys=True))
         else:
           if not FJQC.formatJSON:
-            invitation['courseName'] = courseInfo['name']
-            invitation['userEmail'] = userEmail
             csvPF.WriteRow(invitation)
           else:
             csvPF.WriteRowNoFilter({'userEmail': userEmail,
                                     'JSON': json.dumps(cleanJSON(invitation), ensure_ascii=False, sort_keys=True)})
-      except GAPI.permissionDenied:
-        entityUnknownWarning(Ent.USER, userId, i, count)
+      except GAPI.permissionDenied as e:
+        entityActionFailedWarning([Ent.USER, userId, Ent.COURSE, courseNameId, entityType, None], str(e), j, jcount)
         break
       except GAPI.notFound:
         entityUnknownWarning(Ent.COURSE, courseNameId, j, jcount)
@@ -47424,6 +47419,49 @@ def printShowClassroomInvitations(users):
                                   'JSON': json.dumps(cleanJSON(invitations), ensure_ascii=False, sort_keys=True)})
   if csvPF:
     csvPF.writeCSVfile('ClassroomInvitations')
+
+# gam delete classroominvitation courses <CourseEntity> (ids <ClassroomInvitationIDEntity>)|(role all|owner|student|teacher)
+def doDeleteClassroomInvitations():
+  croom = buildGAPIObject(API.CLASSROOM)
+  courseIdList = invitationIds = None
+  role = CLASSROOM_ROLE_ALL
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg in {'course', 'courses', 'class', 'classes'}:
+      courseIdList = getEntityList(Cmd.OB_COURSE_ENTITY, shlexSplit=True)
+    elif myarg in {'id', 'ids'}:
+      invitationIds = getEntityList(Cmd.OB_CLASSROOM_INVITATION_ID_ENTITY)
+    elif myarg == 'role':
+      role = getChoice(CLASSROOM_ROLE_MAP, mapChoice=True)
+    else:
+      unknownArgumentExit()
+  if courseIdList is None:
+    missingArgumentExit('courses <CourseEntity>')
+  entityType = Ent.CLASSROOM_INVITATION
+  i, count, coursesInfo = _getCoursesOwnerInfo(croom, courseIdList, True)
+  for courseId, courseInfo in coursesInfo.items():
+    i += 1
+    courseNameId = f'{courseInfo["name"]} ({courseId})'
+    if invitationIds is not None:
+      userInvitationIds = invitationIds
+    else:
+      status, userInvitationIds = _getClassroomInvitationIds(courseInfo['croom'], None, [courseId], role, i, count)
+      if status < 0:
+        continue
+    jcount = len(userInvitationIds)
+    entityPerformActionNumItems([Ent.COURSE, courseNameId], jcount, entityType, i, count)
+    Ind.Increment()
+    j = 0
+    for invitationId in userInvitationIds:
+      j += 1
+      try:
+        callGAPI(courseInfo['croom'].invitations(), 'delete',
+                 throwReasons=[GAPI.NOT_FOUND, GAPI.FAILED_PRECONDITION, GAPI.FORBIDDEN, GAPI.PERMISSION_DENIED],
+                 id=invitationId)
+        entityActionPerformed([Ent.COURSE, courseNameId, entityType, invitationId], j, jcount)
+      except (GAPI.notFound, GAPI.failedPrecondition, GAPI.forbidden, GAPI.permissionDenied) as e:
+        entityActionFailedWarning([Ent.COURSE, courseNameId, entityType, invitationId], str(e), j, jcount)
+    Ind.Decrement()
 
 # gam show classroominvitations (course|class <CourseEntity>)*|([teacher <UserItem>] [student <UserItem>] [states <CourseStateList>])
 #	[role all|owner|student|teacher] [formatjson]
@@ -71489,6 +71527,7 @@ MAIN_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CHROMENETWORK:	doDeleteChromeNetwork,
       Cmd.ARG_CHROMEPOLICY:	doDeleteChromePolicy,
       Cmd.ARG_CIGROUP:		doDeleteCIGroups,
+      Cmd.ARG_CLASSROOMINVITATION:	doDeleteClassroomInvitations,
       Cmd.ARG_CONTACT:		doDeleteDomainContacts,
       Cmd.ARG_CONTACTPHOTO:	doDeleteDomainContactPhoto,
       Cmd.ARG_COURSE:		doDeleteCourse,
