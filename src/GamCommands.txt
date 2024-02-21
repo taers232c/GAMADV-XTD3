@@ -7161,7 +7161,8 @@ gam <UserTypeEntity> show cseidentities
 gam <UserTypeEntity> print cseidentities [todrive <ToDriveAttribute>*]
         [formatjson [quotechar <Character>]]
 
-gam <UserTypeEntity> create csekeypair incertdir <FilePath> inkeydir <FilePath>
+gam <UserTypeEntity> create csekeypair
+        [incertdir <FilePath>] [inkeydir <FilePath>]
         [addidentity [<Boolean>]] [kpemail <EmailAddress>]
         [formatjson|returnidonly]
 gam <UserTypeEntity> disable csekeypair <KeyPairID>

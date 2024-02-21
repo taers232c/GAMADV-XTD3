@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.70.00'
+__version__ = '6.70.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -3630,6 +3630,8 @@ def SetGlobalVariables():
 
   def _getCfgDirectory(sectionName, itemName):
     dirPath = os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(sectionName, itemName)))
+    if (not dirPath) and (itemName in {GC.GMAIL_CSE_INCERT_DIR, GC.GMAIL_CSE_INKEY_DIR}):
+      return dirPath
     if (not dirPath) or (not os.path.isabs(dirPath)):
       if (sectionName != configparser.DEFAULTSECT) and (GM.Globals[GM.PARSER].has_option(sectionName, itemName)):
         dirPath = os.path.join(os.path.expanduser(_stripStringQuotes(GM.Globals[GM.PARSER].get(configparser.DEFAULTSECT, itemName))), dirPath)
@@ -3707,6 +3709,8 @@ def SetGlobalVariables():
     for itemName, itemEntry in iter(GC.VAR_INFO.items()):
       if itemEntry[GC.VAR_TYPE] == GC.TYPE_DIRECTORY:
         dirPath = GC.Values[itemName]
+        if (not dirPath) and (itemName in {GC.GMAIL_CSE_INCERT_DIR, GC.GMAIL_CSE_INKEY_DIR}):
+          return
         if (itemName != GC.CACHE_DIR or not GC.Values[GC.NO_CACHE]) and not os.path.isdir(dirPath):
           writeStderr(formatKeyValueList(WARNING_PREFIX,
                                          [Ent.Singular(Ent.CONFIG_FILE), GM.Globals[GM.GAM_CFG_FILE],
@@ -69620,7 +69624,7 @@ def _showCSEItem(result, entityType, keyField, timeObjects, i, count, FJQC):
   showJSON(None, result, timeObjects=timeObjects)
   Ind.Decrement()
   Ind.Decrement()
-  
+
 CSE_IDENTITY_TIME_OBJECTS = {}
 CSE_KEYPAIR_TIME_OBJECTS = {'disableTime'}
 
@@ -69736,7 +69740,7 @@ def processCSEIdentity(users):
 def printShowCSEIdentities(users):
   _printShowCSEItems(users, Ent.CSE_IDENTITY, 'emailAddress', CSE_IDENTITY_TIME_OBJECTS)
 
-# gam <UserTypeEntity> create csekeypair incertdir <FilePath> inkeydir <FilePath>
+# gam <UserTypeEntity> create csekeypair [incertdir <FilePath>] [inkeydir <FilePath>]
 #	[addidentity [<Boolean>]] [kpemail <EmailAddress>]
 #	[formatjson|returnidonly]
 def createCSEKeyPair(users):
@@ -69745,9 +69749,10 @@ def createCSEKeyPair(users):
     if not os.path.isdir(filepath):
       entityDoesNotExistExit(Ent.DIRECTORY, f'{myarg} {filepath}')
     return filepath
-    
+
   FJQC = FormatJSONQuoteChar()
-  incertdir = inkeydir = None
+  incertdir = GC.Values[GC.GMAIL_CSE_INCERT_DIR]
+  inkeydir = GC.Values[GC.GMAIL_CSE_INKEY_DIR]
   addIdentity = returnIdOnly = False
   kpEmail = None
   while Cmd.ArgumentsRemaining():

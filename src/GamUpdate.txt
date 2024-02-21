@@ -1,3 +1,8 @@
+6.70.01
+
+Added `gmail_cse_incert_dir` and `gmail_cse_inkey_dir` path variables to `gam.cfg` that provide
+default values for the `incertdir <FilePath>` and `inkeydir <FilePath>` options in `gam <UserTypeEntity> create csekeypair`.
+
 6.70.00
 
 Added support for Gmail Client Side Encryption.

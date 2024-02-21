@@ -161,6 +161,10 @@ ENABLE_GCLOUD_REAUTH = 'enable_gcloud_reauth'
 EVENT_MAX_RESULTS = 'event_max_results'
 # Path to extra_args.txt
 EXTRA_ARGS = 'extra_args'
+# Gmail CSE certificates directory
+GMAIL_CSE_INCERT_DIR = 'gmail_cse_incert_dir'
+# Gmail CSE KACL wrapped key files
+GMAIL_CSE_INKEY_DIR = 'gmail_cse_inkey_dir'
 # When processing items in batches, how many seconds should GAM wait between batches
 INTER_BATCH_WAIT = 'inter_batch_wait'
 # When retrieving lists of licenses from API, how many should be retrieved in each chunk
@@ -361,6 +365,8 @@ Defaults = {
   ENABLE_GCLOUD_REAUTH: FALSE,
   EVENT_MAX_RESULTS: '250',
   EXTRA_ARGS: '',
+  GMAIL_CSE_INCERT_DIR: '',
+  GMAIL_CSE_INKEY_DIR: '',
   INTER_BATCH_WAIT: '0',
   LICENSE_MAX_RESULTS: '100',
   LICENSE_SKUS: '',
@@ -517,6 +523,8 @@ VAR_INFO = {
   ENABLE_GCLOUD_REAUTH: {VAR_TYPE: TYPE_BOOLEAN},
   EVENT_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (1, 2500)},
   EXTRA_ARGS: {VAR_TYPE: TYPE_FILE, VAR_SIGFILE: FN_EXTRA_ARGS_TXT, VAR_SFFT: ('', FN_EXTRA_ARGS_TXT), VAR_ACCESS: os.R_OK},
+  GMAIL_CSE_INCERT_DIR: {VAR_TYPE: TYPE_DIRECTORY},
+  GMAIL_CSE_INKEY_DIR: {VAR_TYPE: TYPE_DIRECTORY},
   INTER_BATCH_WAIT: {VAR_TYPE: TYPE_FLOAT, VAR_LIMITS: (0.0, 60.0)},
   LICENSE_MAX_RESULTS: {VAR_TYPE: TYPE_INTEGER, VAR_LIMITS: (10, 1000)},
   LICENSE_SKUS: {VAR_TYPE: TYPE_STRING, VAR_LIMITS: (0, None)},
