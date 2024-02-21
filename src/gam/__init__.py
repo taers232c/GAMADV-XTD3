@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.70.01'
+__version__ = '6.70.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -44381,10 +44381,12 @@ class CourseAttributes():
     else:
       return True
 # ocroom - copyfrom course owner
-    if self.announcementStates or self.materialStates or self.workStates or self.copyTopics or self.members != 'none':
-      _, self.ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{self.ownerId}')
-      if self.ocroom is None:
-        return False
+    self.ocroom = self.croom
+    if GC.Values[GC.USE_COURSE_OWNER_ACCESS]:
+      if self.announcementStates or self.materialStates or self.workStates or self.copyTopics or self.members != 'none':
+        _, self.ocroom = buildGAPIServiceObject(API.CLASSROOM, f'uid:{self.ownerId}')
+        if self.ocroom is None:
+          return False
     if self.members != 'none':
       _, self.teachers, self.students = _getCourseAliasesMembers(self.croom, self.ocroom, self.courseId, {'members': self.members},
                                                                  'nextPageToken,teachers(profile(emailAddress,id))',
