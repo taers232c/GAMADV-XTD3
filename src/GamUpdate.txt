@@ -1,3 +1,11 @@
+6.70.00
+
+Added support for Gmail Client Side Encryption.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Gmail-CSE
+
+This is an initial, minimally tested release; proceed with care and report all issues.
+
 6.69.00
 
 Added `use_classroom_owner_access` Boolean variable to `gam.cfg` that controls how GAM gets
