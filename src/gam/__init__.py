@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.70.03'
+__version__ = '6.70.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -42932,7 +42932,7 @@ def doPrintUsers(entityList=None):
     elif myarg == 'showitemcountonly':
       showItemCountOnly = True
     elif myarg == 'showvalidcolumn':
-      showValidColumn = 'Found'
+      showValidColumn = 'Valid'
     elif myarg == 'addcsvdata':
       k = getString(Cmd.OB_STRING)
       addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
