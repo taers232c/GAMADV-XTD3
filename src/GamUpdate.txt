@@ -1,3 +1,11 @@
+6.70.05
+
+Update `gam <UserTypeEntity> process filedrivelabels` to handle the following errors:
+```
+ERROR: 403: applyLabelForbidden
+ERROR: 403: fileNeverWritable - This file is never writable.
+```
+
 6.70.04
 
 Added option `showvalidcolumn` to `gam print users` that can be used to identify whether
@@ -9,7 +17,6 @@ to verify as domain members.
 Added option `addcsvdata <FieldName> <String>` to `gam print users` that adds
 additional columns of data to the CSV file output. Typically, you would read CSV file of email addresses
 to generate a CSV file of results and copy data from the input CSV to the outout CSV.
-
 
 6.70.03
 
