@@ -1,10 +1,8 @@
 6.70.05
 
-Update `gam <UserTypeEntity> process filedrivelabels` to handle the following errors:
-```
-ERROR: 403: applyLabelForbidden
-ERROR: 403: fileNeverWritable - This file is never writable.
-```
+Added commands to create|delete|display Drive Label permissions.
+
+* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Users-Drive-Labels
 
 6.70.04
 
