@@ -1,3 +1,7 @@
+6.70.08
+
+Fixed bug in `gam <UserTypeEntity> create cseidentity <KeyPairID>` that caused an error.
+
 6.70.07
 
 Updated user instructions in `gam oauth create` and `gam <UserTypeEntity> update serviceaccount`

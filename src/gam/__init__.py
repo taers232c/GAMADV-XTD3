@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.70.07'
+__version__ = '6.70.08'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -70004,7 +70004,7 @@ def processCSEIdentity(users):
     if not gmail:
       continue
     if keyPairId:
-      identity = {'keyPairId': keyPairId, 'emailAddress': user if not kpEmail else kpEmail}
+      identity = {'primaryKeyPairId': keyPairId, 'emailAddress': user if not kpEmail else kpEmail}
       kwargs = {'body': identity}
       if function == 'patch':
         kwargs['emailAddress'] = identity['emailAddress']
