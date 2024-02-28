@@ -1,3 +1,17 @@
+6.71.00
+
+Added `csv_output_sort_headers` string list variable to `gam.cfg` that causes GAM to sort CSV output
+rows by the column headers specified in the variable. The column headers are case insensitive and
+if column header does not appear in the CSV output, it is ignored.
+
+Added `sortheaders <StringList>` to `redirect csv <FileName>` that has the same effect as above.
+
+The sort keys specified in `redirect csv ... sortheaders <StringList>` take precedence over the values from `gam.cfg`.
+
+Added option `tdsubject <String>` to  `<ToDriveAttribute>` that causes GAM to use `<String>` as the subject
+in all emails sent. In `<String>`, `#file#` will, be replaced by the file title and `#sheet#` will be replaced
+by the sheet/tab title. By default, the subject is the file title.
+
 6.70.09
 
 Added additional error handling to Gmail Client Side Encryption commands.

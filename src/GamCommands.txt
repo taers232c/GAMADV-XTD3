@@ -612,15 +612,17 @@ If an item contains spaces, it should be surrounded by ".
         (tdnobrowser [<Boolean>])|
         (tdnoemail [<Boolean>])|
         (tdnoescapechar [<Boolean>])|
+        (tdnotify [<Boolean>])|
         (tdparent (id:<DriveFolderID>)|<DriveFolderName>)|
         (tdretaintitle [<Boolean>])|
         (tdshare <EmailAddress> commenter|reader|writer)*|
         (tdsheet (id:<Number>)|<String>)|
         (tdsheettimestamp [<Boolean>] [tdsheettimeformat <String>])
         (tdsheettitle <String>)|
+        (tdsubject <String>)|
         ([tdsheetdaysoffset <Number>] [tdsheethoursoffset <Number>])|
         (tdtimestamp [<Boolean>] [tdtimeformat <String>]
-            [tddaysoffset <Number>] [tdhoursoffset <Number>])|
+            ([tddaysoffset <Number>] [tdhoursoffset <Number>])|
         (tdtimezone <TimeZone>)|
         (tdtitle <String>)|
         (tdupdatesheet [<Boolean>])|
@@ -1247,7 +1249,7 @@ For redirect csv, the optional arguments must appear in the order shown.
 <Redirect> ::=
         redirect csv <FileName> [multiprocess] [append] [noheader] [charset <Charset>]
                      [columndelimiter <Character>] [noescapechar <Boolean>] [quotechar <Character>]
-                     [timestampcolumn <String>]
+                     [sortheaders <StringList>] [timestampcolumn <String>]
                      [todrive <ToDriveAttribute>*] |
         redirect stdout <FileName> [multiprocess] [append] |
         redirect stdout null [multiprocess] |
