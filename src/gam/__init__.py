@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.71.01'
+__version__ = '6.71.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5138,12 +5138,12 @@ def checkGAPIError(e, softErrors=False, retryOnHttpError=False, mapNotFound=True
     elif http_status == 400:
       if '@attachmentnotvisible' in lmessage:
         error = makeErrorDict(http_status, GAPI.BAD_REQUEST, message)
-      elif 'does not match' in lmessage or 'invalid' in lmessage:
-        error = makeErrorDict(http_status, GAPI.INVALID, message)
-      elif status == 'FAILED_PRECONDITION' or 'precondition check failed' in lmessage:
-        error = makeErrorDict(http_status, GAPI.FAILED_PRECONDITION, message)
       elif status == 'INVALID_ARGUMENT':
         error = makeErrorDict(http_status, GAPI.INVALID_ARGUMENT, message)
+      elif status == 'FAILED_PRECONDITION' or 'precondition check failed' in lmessage:
+        error = makeErrorDict(http_status, GAPI.FAILED_PRECONDITION, message)
+      elif 'does not match' in lmessage or 'invalid' in lmessage:
+        error = makeErrorDict(http_status, GAPI.INVALID, message)
     elif http_status == 401:
       if 'active session is invalid' in lmessage and reason == 'authError':
         message += ' Drive SDK API access disabled'
@@ -69940,15 +69940,15 @@ def printShowSmimes(users):
   if csvPF:
     csvPF.writeCSVfile('S/MIME')
 
-def _showCSEItem(result, entityType, keyField, skipObjects, timeObjects, i, count, FJQC):
+def _showCSEItem(result, entityType, keyField, timeObjects, i, count, FJQC):
   if FJQC.formatJSON:
-    printLine(json.dumps(cleanJSON(result, skipObjects=skipObjects, timeObjects=timeObjects),
+    printLine(json.dumps(cleanJSON(result, timeObjects=timeObjects),
                          ensure_ascii=False, sort_keys=True))
     return
   Ind.Increment()
   printEntity([entityType, result[keyField]], i, count)
   Ind.Increment()
-  showJSON(None, result, skipObjects=skipObjects, timeObjects=timeObjects)
+  showJSON(None, result, timeObjects=timeObjects)
   Ind.Decrement()
   Ind.Decrement()
 
@@ -69963,6 +69963,13 @@ def _resetCSEKeyPairSkipObjects(myarg, skipObjects):
   else:
     return False
   return True
+
+def _stripCSEKeyPairSkipObjects(result, skipObjects):
+  if 'pem' in skipObjects:
+    result.pop('pem', None)
+  if 'kaclsData' in skipObjects:
+    if 'privateKeyMetadata' in result and 'kaclsKeyMetadata' in result['privateKeyMetadata']:
+      result['privateKeyMetadata']['kaclsKeyMetadata'].pop('kaclsData', None)
 
 CSE_IDENTITY_TIME_OBJECTS = {}
 CSE_KEYPAIR_TIME_OBJECTS = {'disableTime'}
@@ -70010,7 +70017,9 @@ def _printShowCSEItems(users, entityType, keyField, timeObjects):
       j = 0
       for result in results:
         j += 1
-        _showCSEItem(result, entityType, keyField, skipObjects, timeObjects, j, jcount, FJQC)
+        if entityType == Ent.Ent.CSE_KEYPAIR:
+          _stripCSEKeyPairSkipObjects(result, skipObjects)
+        _showCSEItem(result, entityType, keyField, timeObjects, j, jcount, FJQC)
     else:
       for result in results:
         row = flattenJSON(result, flattened={'User': user})
@@ -70070,7 +70079,7 @@ def processCSEIdentity(users):
       if not  FJQC.formatJSON:
         entityActionPerformed(kvList, i, count)
       if function != 'delete':
-        _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', set(), CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
+        _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
     except (GAPI.permissionDenied, GAPI.notFound, GAPI.alreadyExists) as e:
       entityActionFailedWarning(kvList, str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
@@ -70125,18 +70134,17 @@ def createCSEKeyPair(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
+    kvList = [Ent.USER, user, Ent.CSE_KEYPAIR, None]
     smimeFilename = os.path.join(incertdir, user+'.p7pem')
     if not os.path.isfile(smimeFilename):
-      entityActionNotPerformedWarning([Ent.USER, user, Ent.CSE_KEYPAIR, None],
-                                      Msg.FILE_NOT_FOUND.format(smimeFilename), i, count)
+      entityActionNotPerformedWarning(kvList, Msg.FILE_NOT_FOUND.format(smimeFilename), i, count)
       continue
     smimeData = readFile(smimeFilename, mode='rb', continueOnError=True)
     if smimeData is None:
       continue
     kaclFilename = os.path.join(inkeydir, user+'.wrap')
     if not os.path.isfile(kaclFilename):
-      entityActionNotPerformedWarning([Ent.USER, user, Ent.CSE_KEYPAIR, None],
-                                      Msg.FILE_NOT_FOUND.format(kaclFilename), i, count)
+      entityActionNotPerformedWarning(kvList, Msg.FILE_NOT_FOUND.format(kaclFilename), i, count)
       continue
     jsonData = readFile(kaclFilename, mode='r', encoding=UTF8, continueOnError=True)
     if jsonData is None:
@@ -70152,17 +70160,14 @@ def createCSEKeyPair(users):
         'privateKeyMetadata': [{'kaclsKeyMetadata': {'kaclsUri': kaclsUri, 'kaclsData': kaclsData}}]
       }
     except KeyError:
-      entityActionNotPerformedWarning([Ent.USER, user, Ent.CSE_KEYPAIR, None],
-                                      Msg.JSON_KEY_NOT_FOUND.format(key, kaclFilename), i, count)
+      entityActionNotPerformedWarning(kvList, Msg.JSON_KEY_NOT_FOUND.format(key, kaclFilename), i, count)
       continue
     except (IndexError, SyntaxError, TypeError, ValueError) as e:
-      entityActionNotPerformedWarning([Ent.USER, user, Ent.CSE_KEYPAIR, None],
-                                      Msg.JSON_ERROR.format(str(e), kaclFilename) , i, count)
+      entityActionNotPerformedWarning(kvList, Msg.JSON_ERROR.format(str(e), kaclFilename) , i, count)
       continue
-    kvList = [Ent.USER, user, Ent.CSE_KEYPAIR, None]
     try:
       result = callGAPI(gmail.users().settings().cse().keypairs(), 'create',
-                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED],
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
                         userId='me', body=cseKeyPair)
 
       keyPairId = result['keyPairId']
@@ -70170,19 +70175,20 @@ def createCSEKeyPair(users):
         kvList[-1] = keyPairId
         if not  FJQC.formatJSON:
           entityActionPerformed(kvList, i, count)
-        _showCSEItem(result, Ent.CSE_KEYPAIR, 'keyPairId', skipObjects, CSE_KEYPAIR_TIME_OBJECTS, i, count, FJQC)
+        _stripCSEKeyPairSkipObjects(result, skipObjects)
+        _showCSEItem(result, Ent.CSE_KEYPAIR, 'keyPairId', CSE_KEYPAIR_TIME_OBJECTS, i, count, FJQC)
       elif not addIdentity:
         writeStdout(f'{keyPairId}\n')
       if addIdentity:
         identity = {'keyPairId': keyPairId, 'emailAddress': user if not kpEmail else kpEmail}
-        kvList = [Ent.USER, user, Ent.CSE_IDENTITY, identity['emailAddress'], Ent.CSE_KEYPAIR, keyPairId]
+        kvList = [Ent.USER, user, Ent.CSE_KEYPAIR, keyPairId, Ent.CSE_IDENTITY, identity['emailAddress']]
         result = callGAPI(gmail.users().settings().cse().identities(), 'create',
                           throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
                           userId='me', body=identity)
         if not returnIdOnly:
           if not  FJQC.formatJSON:
             entityActionPerformed(kvList, i, count)
-          _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', set(), CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
+          _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
         else:
           writeStdout(f'{keyPairId}-{user}\n')
     except (GAPI.permissionDenied, GAPI.alreadyExists) as e:
@@ -70202,7 +70208,7 @@ CSE_KEYPAIR_ACTION_FUNCTION_MAP = {
 # gam <UserTypeEntity> enable csekeypair <KeyPairID>
 #	[showpem] [showkaclsdata] [formatjson]
 # gam <UserTypeEntity> obliterate csekeypair <KeyPairID>
-# gam <UserTypeEntity> info csekeypair <KeyPairID>
+# gam <UserTypeEntity> info csekey3pair <KeyPairID>
 #	[showpem] [showkaclsdata] [formatjson]
 def processCSEKeyPair(users):
   function = CSE_KEYPAIR_ACTION_FUNCTION_MAP[Act.Get()]
@@ -70230,7 +70236,8 @@ def processCSEKeyPair(users):
       if function != 'obliterate':
         if not FJQC.formatJSON:
           entityActionPerformed(kvList, i, count)
-        _showCSEItem(result, Ent.CSE_KEYPAIR, 'keyPairId', skipObjects, CSE_KEYPAIR_TIME_OBJECTS, i, count, FJQC)
+        _stripCSEKeyPairSkipObjects(result, skipObjects)
+        _showCSEItem(result, Ent.CSE_KEYPAIR, 'keyPairId', CSE_KEYPAIR_TIME_OBJECTS, i, count, FJQC)
       else:
         entityActionPerformed(kvList, i, count)
     except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.alreadyExists) as e:

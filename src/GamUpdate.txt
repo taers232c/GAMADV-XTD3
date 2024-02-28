@@ -1,3 +1,7 @@
+6.71.02
+
+Added additional error handling to Gmail Client Side Encryption commands.
+
 6.71.01
 
 Fixed bug in `gam audit monitor create` that caused a trap.
