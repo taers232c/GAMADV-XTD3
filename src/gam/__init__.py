@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.70.08'
+__version__ = '6.70.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -69906,16 +69906,29 @@ def printShowSmimes(users):
   if csvPF:
     csvPF.writeCSVfile('S/MIME')
 
-def _showCSEItem(result, entityType, keyField, timeObjects, i, count, FJQC):
+def _showCSEItem(result, entityType, keyField, skipObjects, timeObjects, i, count, FJQC):
   if FJQC.formatJSON:
-    printLine(json.dumps(cleanJSON(result, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True))
+    printLine(json.dumps(cleanJSON(result, skipObjects=skipObjects, timeObjects=timeObjects),
+                         ensure_ascii=False, sort_keys=True))
     return
   Ind.Increment()
   printEntity([entityType, result[keyField]], i, count)
   Ind.Increment()
-  showJSON(None, result, timeObjects=timeObjects)
+  showJSON(None, result, skipObjects=skipObjects, timeObjects=timeObjects)
   Ind.Decrement()
   Ind.Decrement()
+
+def _initCSEKeyPairSkipObjects():
+  return {'pem', 'kaclsData'}
+
+def _resetCSEKeyPairSkipObjects(myarg, skipObjects):
+  if myarg == 'showpem':
+    skipObjects.discard('pem')
+  elif myarg == 'showkaclsdata':
+    skipObjects.discard('kaclsData')
+  else:
+    return False
+  return True
 
 CSE_IDENTITY_TIME_OBJECTS = {}
 CSE_KEYPAIR_TIME_OBJECTS = {'disableTime'}
@@ -69923,10 +69936,13 @@ CSE_KEYPAIR_TIME_OBJECTS = {'disableTime'}
 def _printShowCSEItems(users, entityType, keyField, timeObjects):
   csvPF = CSVPrintFile(['User', keyField]) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  skipObjects = _initCSEKeyPairSkipObjects() if entityType == Ent.CSE_KEYPAIR else set()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
+    elif entityType == Ent.CSE_KEYPAIR and _resetCSEKeyPairSkipObjects(myarg, skipObjects):
+      pass
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   i, count, users = getEntityArgument(users)
@@ -69960,7 +69976,7 @@ def _printShowCSEItems(users, entityType, keyField, timeObjects):
       j = 0
       for result in results:
         j += 1
-        _showCSEItem(result, entityType, keyField, timeObjects, j, jcount, FJQC)
+        _showCSEItem(result, entityType, keyField, skipObjects, timeObjects, j, jcount, FJQC)
     else:
       for result in results:
         row = flattenJSON(result, flattened={'User': user})
@@ -69968,7 +69984,8 @@ def _printShowCSEItems(users, entityType, keyField, timeObjects):
           csvPF.WriteRowTitles(row)
         elif csvPF.CheckRowTitles(row):
           csvPF.WriteRowNoFilter({'User': user, keyField: result[keyField],
-                                  'JSON':  json.dumps(cleanJSON(result, timeObjects=timeObjects), ensure_ascii=False, sort_keys=True)})
+                                  'JSON':  json.dumps(cleanJSON(result, skipObjects=skipObjects, timeObjects=timeObjects),
+                                                      ensure_ascii=False, sort_keys=True)})
   if csvPF:
     csvPF.writeCSVfile(Ent.Plural(entityType))
 
@@ -70014,13 +70031,13 @@ def processCSEIdentity(users):
       kvList = [Ent.USER, user, Ent.CSE_IDENTITY, kwargs['cseEmailAddress']]
     try:
       result = callGAPI(gmail.users().settings().cse().identities(), function,
-                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED],
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
                         userId='me', **kwargs)
       if not  FJQC.formatJSON:
         entityActionPerformed(kvList, i, count)
       if function != 'delete':
-        _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
-    except GAPI.permissionDenied as e:
+        _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', set(), CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
+    except (GAPI.permissionDenied, GAPI.notFound, GAPI.alreadyExists) as e:
       entityActionFailedWarning(kvList, str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -70034,7 +70051,7 @@ def printShowCSEIdentities(users):
 
 # gam <UserTypeEntity> create csekeypair [incertdir <FilePath>] [inkeydir <FilePath>]
 #	[addidentity [<Boolean>]] [kpemail <EmailAddress>]
-#	[formatjson|returnidonly]
+#	[showpem] [showkaclsdata] [formatjson|returnidonly]
 def createCSEKeyPair(users):
   def _getFolderPath(myarg):
     filepath = os.path.expanduser(getString(Cmd.OB_FILE_PATH))
@@ -70047,6 +70064,7 @@ def createCSEKeyPair(users):
   inkeydir = GC.Values[GC.GMAIL_CSE_INKEY_DIR]
   addIdentity = returnIdOnly = False
   kpEmail = None
+  skipObjects = _initCSEKeyPairSkipObjects()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if myarg == 'incertdir':
@@ -70059,6 +70077,8 @@ def createCSEKeyPair(users):
       kpEmail = getEmailAddress(noUid=True)
     elif myarg == 'returnidonly':
       returnIdOnly = True
+    elif _resetCSEKeyPairSkipObjects(myarg, skipObjects):
+      pass
     else:
       FJQC.GetFormatJSON(myarg)
   if not incertdir:
@@ -70116,22 +70136,22 @@ def createCSEKeyPair(users):
         kvList[-1] = keyPairId
         if not  FJQC.formatJSON:
           entityActionPerformed(kvList, i, count)
-        _showCSEItem(result, Ent.CSE_KEYPAIR, 'keyPairId', CSE_KEYPAIR_TIME_OBJECTS, i, count, FJQC)
+        _showCSEItem(result, Ent.CSE_KEYPAIR, 'keyPairId', skipObjects, CSE_KEYPAIR_TIME_OBJECTS, i, count, FJQC)
       elif not addIdentity:
         writeStdout(f'{keyPairId}\n')
       if addIdentity:
         identity = {'keyPairId': keyPairId, 'emailAddress': user if not kpEmail else kpEmail}
         kvList = [Ent.USER, user, Ent.CSE_IDENTITY, identity['emailAddress'], Ent.CSE_KEYPAIR, keyPairId]
         result = callGAPI(gmail.users().settings().cse().identities(), 'create',
-                          throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED],
+                          throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.ALREADY_EXISTS],
                           userId='me', body=identity)
         if not returnIdOnly:
           if not  FJQC.formatJSON:
             entityActionPerformed(kvList, i, count)
-          _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
+          _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', set(), CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
         else:
           writeStdout(f'{keyPairId}-{user}\n')
-    except GAPI.permissionDenied as e:
+    except (GAPI.permissionDenied, GAPI.alreadyExists) as e:
       entityActionFailedWarning(kvList, str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -70144,16 +70164,23 @@ CSE_KEYPAIR_ACTION_FUNCTION_MAP = {
   }
 
 # gam <UserTypeEntity> disable csekeypair <KeyPairID>
-#	[formatjson]
+#	[showpem] [showkaclsdata] [formatjson]
 # gam <UserTypeEntity> enable csekeypair <KeyPairID>
-#	[formatjson]
+#	[showpem] [showkaclsdata] [formatjson]
 # gam <UserTypeEntity> obliterate csekeypair <KeyPairID>
 # gam <UserTypeEntity> info csekeypair <KeyPairID>
-#	[formatjson]
+#	[showpem] [showkaclsdata] [formatjson]
 def processCSEKeyPair(users):
   function = CSE_KEYPAIR_ACTION_FUNCTION_MAP[Act.Get()]
   keyPairId = getString(Cmd.OB_CSE_KEYPAIR_ID)
-  FJQC = FormatJSONQuoteChar(formatJSONOnly=True)
+  FJQC = FormatJSONQuoteChar()
+  skipObjects = _initCSEKeyPairSkipObjects()
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if _resetCSEKeyPairSkipObjects(myarg, skipObjects):
+      pass
+    else:
+      FJQC.GetFormatJSON(myarg)
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -70163,23 +70190,24 @@ def processCSEKeyPair(users):
     kvList = [Ent.USER, user, Ent.CSE_KEYPAIR, keyPairId]
     try:
       result = callGAPI(gmail.users().settings().cse().keypairs(), function,
-                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED],
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT,
+                                                               GAPI.FAILED_PRECONDITION, GAPI.ALREADY_EXISTS],
                         userId='me', keyPairId=keyPairId)
       if function != 'obliterate':
         if not FJQC.formatJSON:
           entityActionPerformed(kvList, i, count)
-        _showCSEItem(result, Ent.CSE_KEYPAIR, 'keyPairId', CSE_KEYPAIR_TIME_OBJECTS, i, count, FJQC)
+        _showCSEItem(result, Ent.CSE_KEYPAIR, 'keyPairId', skipObjects, CSE_KEYPAIR_TIME_OBJECTS, i, count, FJQC)
       else:
         entityActionPerformed(kvList, i, count)
-    except GAPI.permissionDenied as e:
+    except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.failedPrecondition, GAPI.alreadyExists) as e:
       entityActionFailedWarning(kvList, str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
 
 # gam <UserTypeEntity> show csekeypairs
-#	[formatjson]
+#	[showpem] [showkaclsdata] [formatjson]
 # gam <UserTypeEntity> print csekeypairs [todrive <ToDriveAttribute>*]
-#	[formatjson [quotechar <Character>]]
+#	[showpem] [showkaclsdata] [formatjson [quotechar <Character>]]
 def printShowCSEKeyPairs(users):
   _printShowCSEItems(users, Ent.CSE_KEYPAIR, 'keyPairId', CSE_KEYPAIR_TIME_OBJECTS)
 

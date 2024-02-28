@@ -1,3 +1,11 @@
+6.70.09
+
+Added additional error handling to Gmail Client Side Encryption commands.
+
+Added options `showpem` and `showkaclsdata` to all Gmail CSE commands that process/display
+CSE key pairs. By default, the `pem` and `kaclsdata` fields will not be displayed unless
+the corresponding `show` option is specified.
+
 6.70.08
 
 Fixed bug in `gam <UserTypeEntity> create cseidentity <KeyPairID>` that caused an error.

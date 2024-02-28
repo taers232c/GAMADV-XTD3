@@ -7189,19 +7189,19 @@ gam <UserTypeEntity> print cseidentities [todrive <ToDriveAttribute>*]
 gam <UserTypeEntity> create csekeypair
         [incertdir <FilePath>] [inkeydir <FilePath>]
         [addidentity [<Boolean>]] [kpemail <EmailAddress>]
-        [formatjson|returnidonly]
+        [showpem] [showkaclsdata] [formatjson|returnidonly]
 gam <UserTypeEntity> disable csekeypair <KeyPairID>
-        [formatjson]
+        [showpem] [showkaclsdata] [formatjson]
 gam <UserTypeEntity> enable csekeypair <KeyPairID>
-        [formatjson]
+        [showpem] [showkaclsdata] [formatjson]
 gam <UserTypeEntity> obliterate csekeypair <KeyPairID>
 
 gam <UserTypeEntity> info csekeypair <KeyPairID>
-        [formatjson]
+        [showpem] [showkaclsdata] [formatjson]
 gam <UserTypeEntity> show csekeypairs
-        [formatjson]
+        [showpem] [showkaclsdata] [formatjson]
 gam <UserTypeEntity> print csekeypairs [todrive <ToDriveAttribute>*]
-        [formatjson [quotechar <Character>]]
+        [showpem] [showkaclsdata] [formatjson [quotechar <Character>]]
 
 # Users - Gmail - Settings
 
