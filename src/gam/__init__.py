@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.71.00'
+__version__ = '6.71.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -12577,8 +12577,8 @@ def _showMailboxMonitorRequestStatus(request, i=0, count=0):
   printKeyValueList(['End', request['endDate']])
   printKeyValueList(['Monitor Incoming', request['outgoingEmailMonitorLevel']])
   printKeyValueList(['Monitor Outgoing', request['incomingEmailMonitorLevel']])
-  printKeyValueList(['Monitor Chats', request['chatMonitorLevel']])
-  printKeyValueList(['Monitor Drafts', request['draftMonitorLevel']])
+  printKeyValueList(['Monitor Chats', request.get('chatMonitorLevel', 'NONE')])
+  printKeyValueList(['Monitor Drafts', request.get('draftMonitorLevel', 'NONE')])
   Ind.Decrement()
 
 # gam audit monitor create <EmailAddress> <DestEmailAddress> [begin <DateTime>] [end <DateTime>] [incoming_headers] [outgoing_headers] [nochats] [nodrafts] [chat_headers] [draft_headers]

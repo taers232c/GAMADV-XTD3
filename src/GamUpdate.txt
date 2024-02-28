@@ -1,3 +1,7 @@
+6.71.01
+
+Fixed bug in `gam audit monitor create` that caused a trap.
+
 6.71.00
 
 Added `csv_output_sort_headers` string list variable to `gam.cfg` that causes GAM to sort CSV output
