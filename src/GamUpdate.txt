@@ -1,3 +1,9 @@
+6.71.03
+
+Added option `tdalert <EmailAddress>` to `<ToDriveAttribute>`. When a todrive file is created or updated,
+GAM will send notification emails to all `tdalert <EmailAddress>` users if `tdnotify` is true.
+`<EmailAddress>` must be valid within your Google Workspace.
+
 6.71.02
 
 Added additional error handling to Gmail Client Side Encryption commands.

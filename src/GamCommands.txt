@@ -600,6 +600,7 @@ If an item contains spaces, it should be surrounded by ".
 <Title> ::= <String>
 <ToDriveAttribute> ::=
         (tdaddsheet [<Boolean>])|
+        (tdalert <EmailAddress>)*|
         (tdbackupsheet (id:<Number>)|<String>)|
         (tdcellnumberformat text|number)|
         (tdcellwrap clip|overflow|wrap)|
