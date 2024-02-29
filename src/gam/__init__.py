@@ -9328,7 +9328,7 @@ def CSVFileQueueHandler(mpQueue, mpQueueStdout, mpQueueStderr, csvPF, datetimeNo
     csvPF.SetColumnDelimiter(GC.Values[GC.CSV_OUTPUT_COLUMN_DELIMITER])
     csvPF.SetNoEscapeChar(GC.Values[GC.CSV_OUTPUT_NO_ESCAPE_CHAR])
     csvPF.SetQuoteChar(GC.Values[GC.CSV_OUTPUT_QUOTE_CHAR])
-    csvPF.SetSortHeaderss(GC.Values[GC.CSV_OUTPUT_SORT_HEADERS])
+    csvPF.SetSortHeaders(GC.Values[GC.CSV_OUTPUT_SORT_HEADERS])
     csvPF.SetTimestampColumn(GC.Values[GC.CSV_OUTPUT_TIMESTAMP_COLUMN])
     csvPF.SetHeaderFilter(GC.Values[GC.CSV_OUTPUT_HEADER_FILTER])
     csvPF.SetHeaderDropFilter(GC.Values[GC.CSV_OUTPUT_HEADER_DROP_FILTER])
@@ -70105,12 +70105,12 @@ def createUpdateCSEIdentity(users):
     kvList = [Ent.USER, user, Ent.CSE_IDENTITY, identity['emailAddress'], Ent.CSE_KEYPAIR, keyPairId]
     try:
       result = callGAPI(gmail.users().settings().cse().identities(), function,
-                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
                         userId='me', **kwargs)
       if not  FJQC.formatJSON:
         entityActionPerformed(kvList, i, count)
       _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
-    except (GAPI.permissionDenied, GAPI.notFound, GAPI.alreadyExists) as e:
+    except (GAPI.permissionDenied, GAPI.invalidArgument, GAPI.notFound, GAPI.alreadyExists) as e:
       entityActionFailedWarning(kvList, str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
