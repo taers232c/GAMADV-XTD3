@@ -1,3 +1,8 @@
+6.71.05
+
+Added option `tdfrom <EmailAddress>` to  `<ToDriveAttribute>` that causes GAM to use `<EmailAddress>` as the from address
+in all emails sent. By default, the from address is the Google Workspace Admin in `gam oauth info`.o
+
 6.71.04
 
 Updated `gam <UserTypeEntity> create|update cseidentity` to accept either of the following key pair options:

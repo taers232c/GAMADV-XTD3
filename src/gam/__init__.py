@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.71.04'
+__version__ = '6.71.05'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7853,7 +7853,7 @@ class CSVPrintFile():
                     'fileId': None, 'parentId': None, 'parent': GC.Values[GC.TODRIVE_PARENT], 'retaintitle': False,
                     'localcopy': GC.Values[GC.TODRIVE_LOCALCOPY], 'uploadnodata': GC.Values[GC.TODRIVE_UPLOAD_NODATA],
                     'nobrowser': GC.Values[GC.TODRIVE_NOBROWSER], 'noemail': GC.Values[GC.TODRIVE_NOEMAIL],
-                    'alert': [], 'share': [], 'notify': False, 'subject': None}
+                    'alert': [], 'share': [], 'notify': False, 'subject': None, 'from': None}
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
       if myarg == 'tduser':
@@ -7935,6 +7935,8 @@ class CSVPrintFile():
         self.todrive['notify'] = getBoolean()
       elif myarg == 'tdsubject':
         self.todrive['subject'] = getString(Cmd.OB_STRING, minLen=0)
+      elif myarg == 'tdfrom':
+        self.todrive['from'] = getString(Cmd.OB_EMAIL_ADDRESS)
       else:
         Cmd.Backup()
         break
@@ -8693,11 +8695,11 @@ class CSVPrintFile():
           else:
             subject = self.todrive['subject'].replace('#file#', title).replace('#sheet#', sheetTitle)
           if not self.todrive['noemail']:
-            send_email(subject, msg_txt, user, clientAccess=GC.Values[GC.TODRIVE_CLIENTACCESS])
+            send_email(subject, msg_txt, user, clientAccess=GC.Values[GC.TODRIVE_CLIENTACCESS], msgFrom=self.todrive['from'])
           if self.todrive['notify']:
             for recipient in self.todrive['share']+self.todrive['alert']:
               if recipient['emailAddress'] != user:
-                send_email(subject, msg_txt, recipient['emailAddress'], clientAccess=GC.Values[GC.TODRIVE_CLIENTACCESS])
+                send_email(subject, msg_txt, recipient['emailAddress'], clientAccess=GC.Values[GC.TODRIVE_CLIENTACCESS], msgFrom=self.todrive['from'])
           if not self.todrive['nobrowser']:
             webbrowser.open(file_url)
         except (GAPI.forbidden, GAPI.insufficientPermissions):

@@ -608,6 +608,7 @@ If an item contains spaces, it should be surrounded by ".
         (tdcopysheet (id:<Number>)|<String>)|
         (tddescription <String>)|
         (tdfileid <DriveFileID>)|
+        (tdfrom <EmailAddress>)|
         (tdlocalcopy [<Boolean>])|
         (tdlocale <Locale>)|
         (tdnobrowser [<Boolean>])|
