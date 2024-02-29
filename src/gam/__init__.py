@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.71.03'
+__version__ = '6.71.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -61,7 +61,6 @@ import logging
 from logging.handlers import RotatingFileHandler
 import mimetypes
 import multiprocessing
-import operator
 import os
 import platform
 import queue
@@ -8355,6 +8354,17 @@ class CSVPrintFile():
                                                            Ent.FormatEntityValueList(entityValueList)+[Act.NotPerformed(), errMsg],
                                                            currentCountNL(0, 0)))
 
+    @staticmethod
+    def itemgetter(*items):
+      if len(items) == 1:
+        item = items[0]
+        def g(obj):
+          return obj.get(item, '')
+      else:
+        def g(obj):
+          return tuple(obj.get(item, '') for item in items)
+      return g      
+
     def writeCSVData(writer):
       try:
         if GM.Globals[GM.CSVFILE][GM.REDIRECT_WRITE_HEADER]:
@@ -8362,7 +8372,7 @@ class CSVPrintFile():
         if not self.sortHeaders:
           writer.writerows(self.rows)
         else:
-          for row in sorted(self.rows, key=operator.itemgetter(*self.sortHeaders)):
+          for row in sorted(self.rows, key=itemgetter(*self.sortHeaders)):
             writer.writerow(row)
         return True
       except IOError as e:
@@ -69970,8 +69980,9 @@ def _stripCSEKeyPairSkipObjects(result, skipObjects):
   if 'pem' in skipObjects:
     result.pop('pem', None)
   if 'kaclsData' in skipObjects:
-    if 'privateKeyMetadata' in result and 'kaclsKeyMetadata' in result['privateKeyMetadata']:
-      result['privateKeyMetadata']['kaclsKeyMetadata'].pop('kaclsData', None)
+    for privateKeyMetadata in result.get('privateKeyMetadata', []):
+      if 'kaclsKeyMetadata' in privateKeyMetadata:
+        privateKeyMetadata['kaclsKeyMetadata'].pop('kaclsData', None)
 
 CSE_IDENTITY_TIME_OBJECTS = {}
 CSE_KEYPAIR_TIME_OBJECTS = {'disableTime'}
@@ -70019,7 +70030,7 @@ def _printShowCSEItems(users, entityType, keyField, timeObjects):
       j = 0
       for result in results:
         j += 1
-        if entityType == Ent.Ent.CSE_KEYPAIR:
+        if entityType == Ent.CSE_KEYPAIR:
           _stripCSEKeyPairSkipObjects(result, skipObjects)
         _showCSEItem(result, entityType, keyField, timeObjects, j, jcount, FJQC)
     else:
@@ -70041,16 +70052,72 @@ CSE_IDENTITY_ACTION_FUNCTION_MAP = {
   Act.INFO: 'get',
   }
 
-# gam <UserTypeEntity> create cseidentity <KeyPairID> [kpemail <EmailAddress>]
+# gam <UserTypeEntity> create cseidentity
+#	(primarykeypairid <KeyPairID>) | (signingkeypairid <KeyPairID> encryptionkeypairid <KeyPairID>)
+#	[kpemail <EmailAddress>]
 #	[formatjson]
-# gam <UserTypeEntity> update cseidentity <KeyPairID> [kpemail <EmailAddress>]
+# gam <UserTypeEntity> update cseidentity
+#	(primarykeypairid <KeyPairID>) | (signingkeypairid <KeyPairID> encryptionkeypairid <KeyPairID>)
+#	[kpemail <EmailAddress>]
 #	[formatjson]
+def createUpdateCSEIdentity(users):
+  function = CSE_IDENTITY_ACTION_FUNCTION_MAP[Act.Get()]
+  primaryKeyPairId = signingKeyPairId = encryptionKeyPairId = None
+  FJQC = FormatJSONQuoteChar()
+  kpEmail = None
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if myarg == 'primarykeypairid':
+      primaryKeyPairId = getString(Cmd.OB_CSE_KEYPAIR_ID)
+    elif myarg == 'signingkeypairid':
+      signingKeyPairId = getString(Cmd.OB_CSE_KEYPAIR_ID)
+    elif myarg == 'encryptionkeypairid':
+      encryptionKeyPairId = getString(Cmd.OB_CSE_KEYPAIR_ID)
+    elif myarg == 'kpemail':
+      kpEmail = getEmailAddress(noUid=True)
+    else:
+      FJQC.GetFormatJSON(myarg)
+  if primaryKeyPairId:
+    if signingKeyPairId or encryptionKeyPairId:
+      usageErrorExit(Msg.ARE_MUTUALLY_EXCLUSIVE.format('primarykeypairid', 'signingkeypairid/encryptionkeypairid'))
+    identity = {'primaryKeyPairId': primaryKeyPairId, 'emailAddress': None}
+    keyPairId = primaryKeyPairId
+  elif signingKeyPairId or encryptionKeyPairId:
+    if not signingKeyPairId or not encryptionKeyPairId:
+      usageErrorExit(Msg.ARE_BOTH_REQUIRED.format('signingkeypairid', 'encryptionkeypairid'))
+    identity = {'signAndEncryptKeyPairs': {'signingKeyPairId': signingKeyPairId, 'encryptionKeyPairId': encryptionKeyPairId},
+                'emailAddress': None}
+    keyPairId = f'{signingKeyPairId}/{encryptionKeyPairId}'
+  else:
+    missingArgumentExit('primarykeypairid|(signingkeypairid & encryptionkeypairid)')
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
+    if not gmail:
+      continue
+    identity['emailAddress'] = user if not kpEmail else kpEmail
+    kwargs = {'body': identity}
+    if function == 'patch':
+      kwargs['emailAddress'] = identity['emailAddress']
+    kvList = [Ent.USER, user, Ent.CSE_IDENTITY, identity['emailAddress'], Ent.CSE_KEYPAIR, keyPairId]
+    try:
+      result = callGAPI(gmail.users().settings().cse().identities(), function,
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
+                        userId='me', **kwargs)
+      if not  FJQC.formatJSON:
+        entityActionPerformed(kvList, i, count)
+      _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
+    except (GAPI.permissionDenied, GAPI.notFound, GAPI.alreadyExists) as e:
+      entityActionFailedWarning(kvList, str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.badRequest):
+      entityServiceNotApplicableWarning(Ent.USER, user, i, count)
+
 # gam <UserTypeEntity> delete cseidentity [kpemail <EmailAddress>]
 # gam <UserTypeEntity> info cseidentity [kpemail <EmailAddress>]
 #	[formatjson]
 def processCSEIdentity(users):
   function = CSE_IDENTITY_ACTION_FUNCTION_MAP[Act.Get()]
-  keyPairId = getString(Cmd.OB_CSE_KEYPAIR_ID) if function in {'create', 'patch'} else None
   FJQC = FormatJSONQuoteChar()
   kpEmail = None
   while Cmd.ArgumentsRemaining():
@@ -70065,24 +70132,17 @@ def processCSEIdentity(users):
     user, gmail = buildGAPIServiceObject(API.GMAIL, user, i, count)
     if not gmail:
       continue
-    if keyPairId:
-      identity = {'primaryKeyPairId': keyPairId, 'emailAddress': user if not kpEmail else kpEmail}
-      kwargs = {'body': identity}
-      if function == 'patch':
-        kwargs['emailAddress'] = identity['emailAddress']
-      kvList = [Ent.USER, user, Ent.CSE_IDENTITY, identity['emailAddress'], Ent.CSE_KEYPAIR, keyPairId]
-    else:
-      kwargs = {'cseEmailAddress': user if not kpEmail else kpEmail}
-      kvList = [Ent.USER, user, Ent.CSE_IDENTITY, kwargs['cseEmailAddress']]
+    kwargs = {'cseEmailAddress': user if not kpEmail else kpEmail}
+    kvList = [Ent.USER, user, Ent.CSE_IDENTITY, kwargs['cseEmailAddress']]
     try:
       result = callGAPI(gmail.users().settings().cse().identities(), function,
-                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.NOT_FOUND, GAPI.ALREADY_EXISTS],
+                        throwReasons=GAPI.GMAIL_THROW_REASONS+[GAPI.PERMISSION_DENIED, GAPI.NOT_FOUND],
                         userId='me', **kwargs)
-      if not  FJQC.formatJSON:
+      if not FJQC.formatJSON:
         entityActionPerformed(kvList, i, count)
       if function != 'delete':
         _showCSEItem(result, Ent.CSE_IDENTITY, 'emailAddress', CSE_IDENTITY_TIME_OBJECTS, i, count, FJQC)
-    except (GAPI.permissionDenied, GAPI.notFound, GAPI.alreadyExists) as e:
+    except (GAPI.permissionDenied, GAPI.notFound) as e:
       entityActionFailedWarning(kvList, str(e), i, count)
     except (GAPI.serviceNotAvailable, GAPI.badRequest):
       entityServiceNotApplicableWarning(Ent.USER, user, i, count)
@@ -73067,7 +73127,7 @@ USER_ADD_CREATE_FUNCTIONS = {
   Cmd.ARG_CHATSPACE:		createChatSpace,
   Cmd.ARG_CLASSROOMINVITATION:	createClassroomInvitations,
   Cmd.ARG_CONTACTDELEGATE:	processContactDelegates,
-  Cmd.ARG_CSEIDENTITY:		processCSEIdentity,
+  Cmd.ARG_CSEIDENTITY:		createUpdateCSEIdentity,
   Cmd.ARG_CSEKEYPAIR:		createCSEKeyPair,
   Cmd.ARG_LOOKERSTUDIOPERMISSION:	processLookerStudioPermissions,
   Cmd.ARG_DELEGATE:		processDelegates,
@@ -73581,7 +73641,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_CHATMEMBER:	deleteUpdateChatMember,
       Cmd.ARG_CHATMESSAGE:	updateChatMessage,
       Cmd.ARG_CHATSPACE:	updateChatSpace,
-      Cmd.ARG_CSEIDENTITY:	processCSEIdentity,
+      Cmd.ARG_CSEIDENTITY:	createUpdateCSEIdentity,
       Cmd.ARG_LOOKERSTUDIOPERMISSION:	processLookerStudioPermissions,
       Cmd.ARG_DELEGATE:		updateDelegates,
       Cmd.ARG_DRIVEFILE:	updateDriveFile,

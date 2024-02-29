@@ -1,3 +1,11 @@
+6.71.04
+
+Updated `gam <UserTypeEntity> create|update cseidentity` to accept either of the following key pair options:
+* `primarykeypairid <KeyPairID>` - The configuration of a CSE identity that uses the same key pair for signing and encryption.
+* `signingkeypairid <KeyPairID> encryptionkeypairid <KeyPairID>` - The configuration of a CSE identity that uses different key pairs for signing and encryption.
+
+Updated CSV output row sorting to avoid a trap that occurred when a row was missing one of the sort fields.
+
 6.71.03
 
 Added option `tdalert <EmailAddress>` to `<ToDriveAttribute>`. When a todrive file is created or updated,

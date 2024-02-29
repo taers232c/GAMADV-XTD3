@@ -7176,9 +7176,13 @@ gam <UserTypeEntity> print smimes [todrive <ToDriveAttribute>*]
 
 # Users - Gmail Client Side Encryption
 
-gam <UserTypeEntity> create cseidentity <KeyPairID> [kpemail <EmailAddress>]
+gam <UserTypeEntity> create cseidentity
+        (primarykeypairid <KeyPairID>) | (signingkeypairid <KeyPairID> encryptionkeypairid <KeyPairID>)
+        [kpemail <EmailAddress>]
         [formatjson]
-gam <UserTypeEntity> update cseidentity <KeyPairID> [kpemail <EmailAddress>]
+gam <UserTypeEntity> update cseidentity
+        (primarykeypairid <KeyPairID>) | (signingkeypairid <KeyPairID> encryptionkeypairid <KeyPairID>)
+        [kpemail <EmailAddress>]
         [formatjson]
 gam <UserTypeEntity> delete cseidentity [kpemail <EmailAddress>]
 
