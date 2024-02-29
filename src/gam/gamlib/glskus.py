@@ -35,6 +35,7 @@ _PRODUCTS = {
   '101040': 'Beyond Corp Enterprise',
   '101043': 'Google Workspace Additional Storage',
   '101047': 'Gemini',
+  '101049': 'Education Endpoint Management',
   'Google-Apps': 'Google Workspace',
   'Google-Chrome-Device-Management': 'Google Chrome Device Management',
   'Google-Drive-storage': 'Google Drive Storage',
@@ -61,12 +62,12 @@ _SKUS = {
     'product': '101031', 'aliases': ['gwepstaff', 'workspaceeducationplusstaff'], 'displayName': 'Google Workspace for Education Plus (Staff)'},
   '1010310010': {
     'product': '101031', 'aliases': ['gwepstudent', 'workspaceeducationplusstudent'], 'displayName': 'Google Workspace for Education Plus (Extra Student)'},
+  '1010330002': {
+    'product': '101033', 'aliases': ['gvpremier', 'voicepremier', 'googlevoicepremier'], 'displayName': 'Google Voice Premier'},
   '1010330003': {
     'product': '101033', 'aliases': ['gvstarter', 'voicestarter', 'googlevoicestarter'], 'displayName': 'Google Voice Starter'},
   '1010330004': {
     'product': '101033', 'aliases': ['gvstandard', 'voicestandard', 'googlevoicestandard'], 'displayName': 'Google Voice Standard'},
-  '1010330002': {
-    'product': '101033', 'aliases': ['gvpremier', 'voicepremier', 'googlevoicepremier'], 'displayName': 'Google Voice Premier'},
   '1010350001': {
     'product': '101035', 'aliases': ['cloudsearch'], 'displayName': 'Cloud Search'},
   '1010360001': {
@@ -91,6 +92,8 @@ _SKUS = {
     'product': '101047', 'aliases': ['gwlabs', 'workspacelabs'], 'displayName': 'Google Workspace Labs'},
   '1010470003': {
     'product': '101047', 'aliases': ['geminibiz'], 'displayName': 'Gemini Business'},
+  '1010490001': {
+    'product': '101049', 'aliases': ['eeu'], 'displayName': 'Endpoint Education Upgrade'},
   'Google-Apps': {
     'product': 'Google-Apps', 'aliases': ['standard', 'free'], 'displayName': 'G Suite Legacy'},
   'Google-Apps-For-Business': {

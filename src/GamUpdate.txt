@@ -1,4 +1,17 @@
+6.71.06
+
+Added additional error handling to Gmail Client Side Encryption commands.
+
+Added license product Education Endpoint Management
+* ProductID - 101049
+
+Added license SKU Endpoint Education Upgrade
+* ProductID - 101049
+* SKUID - 1010490001 | eeu
+
 6.71.05
+
+Fixed a bug introduced in 6.71.00 that caused a trap in `gam <UserTypeEntity> print filelist`.
 
 Added option `tdfrom <EmailAddress>` to  `<ToDriveAttribute>` that causes GAM to use `<EmailAddress>` as the from address
 in all emails sent. By default, the from address is the Google Workspace Admin in `gam oauth info`.o

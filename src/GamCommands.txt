@@ -243,6 +243,7 @@ If an item contains spaces, it should be surrounded by ".
         101040 |
         101043 |
         101047 |
+        101049 |
         Google-Apps |
         Google-Chrome-Device-Management |
         Google-Drive-storage |
@@ -266,9 +267,10 @@ If an item contains spaces, it should be surrounded by ".
         cdm | chrome | googlechromedevicemanagement | Google-Chrome-Device-Management |
         cloudidentity | identity | 1010010001 |
         cloudidentitypremium | identitypremium | 1010050001 |
-        cloudsearch | 1010350001 |
-        geminibiz | 1010470003 |
-        geminient| duetai | 1010470001 |
+        cloudsearch | 1010350001 | Cloud Search |
+        eeu | 1010490001 | SKU Endpoint Education Upgrade |
+        geminibiz | 1010470003 | Gemini Business |
+        geminient| duetai | 1010470001 | Gemini Enterprise |
         gsuitebasic | gafb | gafw | basic | Google-Apps-For-Business |
         gsuitebusiness | gau | gsb | unlimited | Google-Apps-Unlimited |
         gsuitebusinessarchived | gsbau | businessarchived | 1010340002 |
@@ -277,22 +279,22 @@ If an item contains spaces, it should be surrounded by ".
         gsuiteenterpriseeducationstudent | gsefes | e4es | 1010310003 |
         gsuitegov | gafg | gsuitegovernment | Google-Apps-For-Government |
         gsuitelite | gal | gsl | lite | Google-Apps-Lite |
-        gwep | workspaceeducationplus | 1010310008 |
-        gwepstaff | workspaceeducationplusstaff | 1010310009 |
-        gwepstudent | workspaceeducationplusstudent | 1010310010 |
-        gwes | workspaceeducationstandard | 1010310005 |
-        gwesstaff | workspaceeducationstandardstaff | 1010310006 |
-        gwesstudent | workspaceeducationstandardstudent | 1010310007 |
-        gwetlu | workspaceeducationupgrade | 1010370001 |
-        gwlabs | workspacelabs | 1010470002
-        meetdialing | googlemeetglobaldialing | 1010360001 |
+        gwep | workspaceeducationplus | 1010310008 | Google Workspace for Education Plus |
+        gwepstaff | workspaceeducationplusstaff | 1010310009 | Google Workspace for Education Plus (Staff) |
+        gwepstudent | workspaceeducationplusstudent | 1010310010 | Google Workspace for Education Plus (Extra Student)|
+        gwes | workspaceeducationstandard | 1010310005 | Google Workspace for Education Standard |
+        gwesstaff | workspaceeducationstandardstaff | 1010310006 | Google Workspace for Education Standard (Staff) |
+        gwesstudent | workspaceeducationstandardstudent | 1010310007 | Google Workspace for Education Standard (Extra Student)
+        gwetlu | workspaceeducationupgrade | 1010370001 | Google Workspace for Education: Teaching and Learning Upgrade |
+        gwlabs | workspacelabs | 1010470002 | Google Workspace Labs |
+        meetdialing | googlemeetglobaldialing | 1010360001 |  Google Meet Global Dialing |
         postini | gams | gsuitegams | gsuitepostini | gsuitemessagesecurity | Google-Apps-For-Postini |
         standard | free | Google-Apps |
         vault | googlevault | Google-Vault |
         vfe | googlevaultformeremployee | Google-Vault-Former-Employee |
-        voicepremier | gvpremier | googlevoicepremier | 1010330002 |
-        voicestandard | gvstandard | googlevoicestandard | 1010330004 |
-        voicestarter | gvstarter | googlevoicestarter | 1010330003 |
+        voicepremier | gvpremier | googlevoicepremier | 1010330002 | Google Voice Premier 
+        voicestandard | gvstandard | googlevoicestandard | 1010330004 | Google Voice Standard |
+        voicestarter | gvstarter | googlevoicestarter | 1010330003 | Google Voice Starter |
         wsas | plusstorage | 1010430001 |
         wsbizplus | workspacebusinessplus | 1010020025 |
         wsbizplusarchived | workspacebusinessplusarchived | 1010340003 |
