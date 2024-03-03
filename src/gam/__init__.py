@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.71.08'
+__version__ = '6.71.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -53624,7 +53624,8 @@ def printFileList(users):
         DLP.GetFileIdEntity()
       if not fileIdEntity['shareddrive']:
         cleanFileIDsList(fileIdEntity, [ROOT, ORPHANS])
-      noSelect = False
+      if maxdepth != -1:
+        noSelect = False
     elif not fileIdEntity:
       fileIdEntity = DLP.GetFileIdEntity()
   elif not buildTree:
@@ -53634,7 +53635,7 @@ def printFileList(users):
                  and not fileIdEntity['shareddrivefilequery']
                  and _simpleFileIdEntityList(fileIdEntity['list']))
   incrementalPrint = buildTree and (not filepath) and noSelect and not DLP.locationSet and not showParent
-  if incrementalPrint:
+  if buildTree and noSelect and not DLP.locationSet and not showParent:
     DLP.AddMimeTypeToQuery()
   if buildTree:
     if not fileIdEntity.get('shareddrive'):
