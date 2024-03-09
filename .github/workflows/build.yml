@@ -135,7 +135,7 @@ jobs:
           bash ./rust.sh -y
           source $HOME/.cargo/env
           # Install needed packages
-          brew update
+          # brew update
           brew install gpg swig
 
       - name: Windows Configure VCode
