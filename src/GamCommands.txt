@@ -2225,6 +2225,7 @@ gam <CrOSTypeEntity> update <CrOSAttribute>+ [quickcrosmove [<Boolean>]] [nobatc
         annotateduser|user|
         autoupdateexpiration|
         bootmode|
+        cpuinfo|
         cpustatusreports|
         deprovisionreason|
         devicefiles|
