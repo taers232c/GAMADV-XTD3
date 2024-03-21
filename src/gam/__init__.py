@@ -23116,6 +23116,7 @@ CROS_FIELDS_CHOICE_MAP = {
   'asset': 'annotatedAssetId',
   'assetid': 'annotatedAssetId',
   'autoupdateexpiration': 'autoUpdateExpiration',
+  'backlightinfo': 'backlightInfo',
   'bootmode': 'bootMode',
   'cpuinfo': 'cpuInfo',
   'cpustatusreports': 'cpuStatusReports',

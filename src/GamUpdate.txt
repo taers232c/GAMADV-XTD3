@@ -1,6 +1,6 @@
 6.71.18
 
-Updated `<CrOSFieldName>` to include `cpuinfo`.
+Updated `<CrOSFieldName>` to include `cpuinfo` and `backlightinfo`.
 
 6.71.17
 
