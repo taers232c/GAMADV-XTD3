@@ -53987,7 +53987,7 @@ def _getCommentFields(fieldsList):
             if subSubField in FILECOMMENTS_SUBFIELDS_CHOICE_MAP[subField]:
               fieldsList.append(f'{FILECOMMENTS_FIELDS_CHOICE_MAP[field]}.{FILECOMMENTS_SUBFIELDS_CHOICE_MAP[field][subField]}.{FILECOMMENTS_SUBFIELDS_CHOICE_MAP[subField][subSubField]}')
             else:
-              invalidChoiceExit(subSubField, FILECOMMENTS_SUBFIELDS_CHOICE_MAP[field][subField], True)
+              invalidChoiceExit(subSubField, FILECOMMENTS_SUBFIELDS_CHOICE_MAP[subField], True)
           else:
             invalidChoiceExit(subField, FILECOMMENTS_SUBFIELDS_CHOICE_MAP[field], True)
       else:
