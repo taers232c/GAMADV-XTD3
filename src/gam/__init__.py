@@ -71389,8 +71389,7 @@ def printShowNotes(users):
             row = {'User': noteCounts.pop('User')}
             row['JSON'] = json.dumps(cleanJSON(noteCounts), ensure_ascii=False, sort_keys=True)
             csvPF.WriteRowNoFilter(row)
-        continue
-      if not csvPF:
+      elif not csvPF:
         jcount = len(notes)
         if not FJQC.formatJSON:
           entityPerformActionNumItems([Ent.USER, user], jcount, Ent.NOTE, i, count)
