@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.72.08'
+__version__ = '6.72.09'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -71349,7 +71349,7 @@ def printShowNotes(users):
           csvPF.RemoveJSONTitles(['owner', 'ownedByMe'])
   if countsOnly and csvPF:
     if not FJQC.formatJSON:
-      csvPF.SetTitles(['User', 'noteOwner', 'noteWriter'])
+      csvPF.SetTitles(['User', 'noteOwner', 'noteWriter', 'totalNotes'])
     else:
       csvPF.SetJSONTitles(['User', 'JSON'])
   fields = getItemFieldsFromFieldsList('notes', fieldsList, returnItemIfNoneList=False)
@@ -71370,19 +71370,23 @@ def printShowNotes(users):
                             throwReasons=GAPI.KEEP_THROW_REASONS,
                             filter=noteFilter, fields=fields)
       if countsOnly:
-        noteCounts = {'User': user, 'noteOwner': 0, 'noteWriter': 0}
+        noteCounts = {'User': user, 'noteOwner': 0, 'noteWriter': 0, 'totalNotes': 0}
         for note in notes:
+          noteCounts['totalNotes'] += 1
           for permission in note['permissions']:
             if permission.get('user', {}).get('email', '').lower() == user:
               noteCounts[NOTES_COUNTS_MAP[permission['role']]] += 1
               break
         if not csvPF:
           if not FJQC.formatJSON:
-            printEntityKVList([Ent.USER, user], ['noteOwner', noteCounts['noteOwner'], 'noteWriter', noteCounts['noteWriter']], i, count)
+            printEntityKVList([Ent.USER, user], ['noteOwner', noteCounts['noteOwner'],
+                                                 'noteWriter', noteCounts['noteWriter'],
+                                                 'totalNotes', noteCounts['totalNotes']], i, count)
           else:
             printLine(json.dumps(cleanJSON(noteCounts), ensure_ascii=False, sort_keys=True))
         else:
-          row = {'User': user, 'noteOwner': noteCounts['noteOwner'], 'noteWriter': noteCounts['noteWriter']}
+          row = {'User': user, 'noteOwner': noteCounts['noteOwner'], 'noteWriter': noteCounts['noteWriter'],
+                 'totalNotes': noteCounts['totalNotes']}
           if not FJQC.formatJSON:
             csvPF.WriteRowTitles(row)
           elif csvPF.CheckRowTitles(row):
