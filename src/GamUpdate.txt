@@ -3,6 +3,8 @@
 Updated all commands that display tasks to display the due date in GMT as the time portion
 is not supported by the API and converting the due date to local time may display the wrong date.
 
+Renamed license SKU `1010400001` from `Beyond Corp Enterprise` to `Chrome Enterprise Premium`.
+
 6.72.14
 
 Upgraded to Python 3.12.3 where possible.
