@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.72.16'
+__version__ = '6.73.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -25512,7 +25512,7 @@ def createChatMember(users):
           member = callGAPI(chat.spaces().members(), 'patch',
                             bailOnInternalError=True,
                             throwReasons=[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.PERMISSION_DENIED, GAPI.INTERNAL_ERROR],
-                            name=name, updateMask='role', body={'role': role})
+                            name=member['name'], updateMask='role', body={'role': role})
         if not returnIdOnly:
           kvList[-1] = member['name']
           _getChatMemberEmail(cd, member)
