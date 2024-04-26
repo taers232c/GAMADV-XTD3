@@ -1,6 +1,6 @@
 6.75.01
 
-Improved code in `gam upload sakey`.
+Added option `admin <EmailAddress>` to  `gam upload sakey`.
 
 6.75.00
 
