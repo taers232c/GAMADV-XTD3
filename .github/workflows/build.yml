@@ -3,6 +3,11 @@ name: Build and test GAM
 on:
   push:
 
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
 defaults:
   run:
     shell: bash
@@ -78,9 +83,10 @@ jobs:
 
       - name: Use pre-compiled Python for testing
         if: matrix.python != ''
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+          allow-prereleases: true
 
       - name: common variables for all runs
         env:
@@ -135,7 +141,7 @@ jobs:
           bash ./rust.sh -y
           source $HOME/.cargo/env
           # Install needed packages
-          # brew update
+          brew update
           brew install gpg swig
 
       - name: Windows Configure VCode
@@ -478,14 +484,25 @@ jobs:
           fi
           export gam="${gampath}/gam"
           echo "gampath=${gampath}" >> $GITHUB_ENV
-          echo "gam=${gam}" >> $GITHUB_ENV
-          echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
           # TEMP force everything back to one file.
           export PYINSTALLER_BUILD_ONEFILE="yes"
           export distpath="./dist/gamadv-xtd3"
           export gampath="${distpath}"
           "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${distpath}" gam.spec
-          # cat build/gam/warn-gam.txt
+          cat build/gam/warn-gam.txt
+          if [ -x "$(command -v realpath)" ]; then
+               realpath=realpath
+             else
+               brew install coreutils
+               realpath=grealpath
+             fi
+          export gam=$(realpath "$gam")
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            export gam=$(cygpath -w "$gam")
+            echo "GAM on Windows at ${gam}"
+          fi
+          echo "gam=${gam}" >> $GITHUB_ENV
+          echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
 
       - name: Copy extra package files
         if: matrix.goal == 'build'
@@ -528,6 +545,12 @@ jobs:
           export GAMVERSION=$($gam version simple)
           echo "GAM Version ${GAMVERSION}"
           echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
+
+      - name: Attest Binary Provenance
+        uses: actions/attest-build-provenance@v1
+        if: matrix.goal == 'build'
+        with:
+          subject-path: ${{ env.gam }}
 
       - name: Linux/MacOS package
         if: runner.os != 'Windows' && matrix.goal == 'build'
@@ -586,16 +609,25 @@ jobs:
             tar_folders="bin/"
           fi
           tar cJvvf cache.tar.xz $tar_folders
-  
+
+      - name: Attest Build Archive Provenance
+        uses: actions/attest-build-provenance@v1
+        if: (github.event_name == 'push' || github.event_name == 'schedule') && matrix.goal == 'build'
+        with:
+          subject-path: |
+            src/gam*.tar.xz
+            src/gam*.zip
+            src/gam*.msi
+
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         if: github.event_name == 'push' && matrix.goal != 'test'
         with:
           name: gam-binaries-${{ env.GAMOS }}-${{ env.arch }}-${{ matrix.jid }}
           path: |
-            src/*.tar.xz
-            src/*.zip
-            src/*.msi
+            src/gam*.tar.xz
+            src/gam*.zip
+            src/gam*.msi
 
   merge:
     runs-on: ubuntu-latest
