@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
   id-token: write
-  attestations: write
+#  attestations: write
 
 defaults:
   run:
@@ -73,7 +73,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240507
+          key: gam-${{ matrix.jid }}-20240507a
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -546,11 +546,11 @@ jobs:
           echo "GAM Version ${GAMVERSION}"
           echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
 
-      - name: Attest Binary Provenance
-        uses: actions/attest-build-provenance@v1
-        if: matrix.goal == 'build'
-        with:
-          subject-path: ${{ env.gam }}
+#      - name: Attest Binary Provenance
+#        uses: actions/attest-build-provenance@v1
+#        if: matrix.goal == 'build'
+#        with:
+#          subject-path: ${{ env.gam }}
 
       - name: Linux/MacOS package
         if: runner.os != 'Windows' && matrix.goal == 'build'
@@ -610,14 +610,14 @@ jobs:
           fi
           tar cJvvf cache.tar.xz $tar_folders
 
-      - name: Attest Build Archive Provenance
-        uses: actions/attest-build-provenance@v1
-        if: (github.event_name == 'push' || github.event_name == 'schedule') && matrix.goal == 'build'
-        with:
-          subject-path: |
-            src/gam*.tar.xz
-            src/gam*.zip
-            src/gam*.msi
+#      - name: Attest Build Archive Provenance
+#        uses: actions/attest-build-provenance@v1
+#        if: (github.event_name == 'push' || github.event_name == 'schedule') && matrix.goal == 'build'
+#        with:
+#          subject-path: |
+#            src/gam*.tar.xz
+#            src/gam*.zip
+#            src/gam*.msi
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
