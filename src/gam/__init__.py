@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.76.00'
+__version__ = '6.76.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -38446,6 +38446,7 @@ VAULT_CORPUS_OPTIONS_MAP = {
   'VOICE': 'voiceOptions',
   }
 VAULT_CORPUS_QUERY_MAP = {
+  'CALENDAR': None,
   'DRIVE': 'driveQuery',
   'MAIL': 'mailQuery',
   'GROUPS': 'groupsQuery',
@@ -39103,6 +39104,8 @@ def _getHoldQueryParameters(myarg, queryParameters):
 
 def _setHoldQuery(body, queryParameters):
   queryType = VAULT_CORPUS_QUERY_MAP[body['corpus']]
+  if queryType is None:
+    return
   body['query'] = {queryType: {}}
   if body['corpus'] == 'DRIVE':
     if queryParameters.get('query'):
@@ -39129,7 +39132,7 @@ def _setHoldQuery(body, queryParameters):
     if queryParameters.get('coveredData'):
       body['query'][queryType]['coveredData'] = queryParameters['coveredData']
 
-# gam create vaulthold|hold matter <MatterItem> [name <String>] corpus drive|mail|groups|hangouts_chat
+# gam create vaulthold|hold matter <MatterItem> [name <String>] corpus calendar|drive|mail|groups|hangouts_chat|voice
 #	[(accounts|groups|users <EmailItemList>) | (orgunit|org|ou <OrgUnit>)]
 #	[query <QueryVaultCorpus>]
 #	[terms <String>] [start|starttime <Date>|<Time>] [end|endtime <Date>|<Time>]
