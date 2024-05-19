@@ -5706,7 +5706,7 @@ Transfer ownership of a selection of a users secondary calendars to another user
 gam <UserTypeEntity> transfer calendars|seccals <UserItem> [<UserCalendarEntity>]
         [keepuser | (retainrole <CalendarACLRole>)] [sendnotifications <Boolean>] [noretentionmessages]
         <CalendarSettings>* [append description|location|summary] [noupdatemessages]
-        [removefromoldowner] [addtonewowner <CalendarAttribute>*] [nolistmessages]
+        [deletefromoldowner] [addtonewowner <CalendarAttribute>*] [nolistmessages]
 
 <AttendeeAttendance> ::= optional|required
 <AttendeeStatus> ::= accepted|declined|needsaction|tentative
