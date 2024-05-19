@@ -1,6 +1,6 @@
 6.76.05
 
-Added options `removefromoldowner`, `addtonewowner <CalendarAttribute>*` and `nolistmessages`
+Added options `deletefromoldowner`, `addtonewowner <CalendarAttribute>*` and `nolistmessages`
 to `gam <UserTypeEntity> transfer calendars <UserItem>` that allow manipulation of the
 old and new owners's calendar lists.
 
