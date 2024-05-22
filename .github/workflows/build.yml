@@ -68,7 +68,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240522
+          key: gam-${{ matrix.jid }}-20240522a
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -430,13 +430,14 @@ jobs:
           export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
           #V6.0.0 causes errors on staticx
           if [[ "${staticx}" == "yes" ]]; then
-            git checkout "v5.13.2"
+            git checkout "v6.6.0"
           elif [[ "${RUNNER_OS}" == "Windows" ]]; then
-            git checkout "v5.13.2"
+            git checkout "v6.6.0"
           elif [[ "${RUNNER_OS}" == "macOS" ]]; then
-            git checkout "v5.13.2"
+            git checkout "v6.6.0"
           else
-            git checkout "${latest_release}"
+            #git checkout "${latest_release}"
+            git checkout "v6.6.0"
           fi
           # remove pre-compiled bootloaders so we fail if bootloader compile fails
           rm -rvf PyInstaller/bootloader/*-*/*

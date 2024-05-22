@@ -18,7 +18,7 @@ env:
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.10
 #    - PYINSTALLER_VERSION=v5.13.2
-    - PYINSTALLER_VERSION=v6.2.0
+    - PYINSTALLER_VERSION=v6.6.0
 
 cache:
   directories:
