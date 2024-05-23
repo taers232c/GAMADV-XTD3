@@ -3,6 +3,11 @@ name: Build and test GAM
 on:
   push:
 
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
 defaults:
   run:
     shell: bash
@@ -47,7 +52,7 @@ jobs:
             jid: 5
             goal: build
             arch: universal2
-            openssl_archs: darwin64-x86_64 darwin64-arm64
+            openssl_archs: darwin64-arm64 darwin64-x86_64
           - os: windows-2022
             jid: 6
             goal: build
@@ -68,7 +73,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240522d
+          key: gam-${{ matrix.jid }}-20240522e
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -128,16 +133,16 @@ jobs:
           sudo apt-get -qq --yes update
           sudo apt-get -qq --yes install swig libpcsclite-dev libxslt1-dev
 
-#      - name: MacOS install tools
-#        if: runner.os == 'macOS'
-#        run: |
-#          # Install latest Rust
-#          curl $curl_retry -fsS -o rust.sh https://sh.rustup.rs
-#          bash ./rust.sh -y
-#          source $HOME/.cargo/env
-#          # Install needed packages
-#          # brew update
-#          brew install gpg swig
+      - name: MacOS install tools
+        if: runner.os == 'macOS'
+        run: |
+          # Install latest Rust
+          curl $curl_retry -fsS -o rust.sh https://sh.rustup.rs
+          bash ./rust.sh -y
+          source $HOME/.cargo/env
+          # Install needed packages
+          # brew update
+          brew install gpg swig
 
       - name: Windows Configure VCode
         uses: ilammy/msvc-dev-cmd@v1
@@ -431,19 +436,17 @@ jobs:
           export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
           #V6.0.0 causes errors on staticx
           #if [[ "${staticx}" == "yes" ]]; then
-          #  git checkout "v6.6.0"
+          #  git checkout "v5.13.2"
           #elif [[ "${RUNNER_OS}" == "Windows" ]]; then
-          #  git checkout "v6.6.0"
+          #  git checkout "v5.13.2"
           #elif [[ "${RUNNER_OS}" == "macOS" ]]; then
-          #  git checkout "v6.6.0"
+          #  git checkout "v5.13.2"
           #else
           git checkout "${latest_release}"
-          #  git checkout "v6.6.0"
           #fi
           # remove pre-compiled bootloaders so we fail if bootloader compile fails
           rm -rvf PyInstaller/bootloader/*-*/*
           cd bootloader
-          export PYINSTALLER_BUILD_ARGS=""
           case "${arch}" in
             "Win32")
               export PYINSTALLER_BUILD_ARGS="--target-arch=32bit"
@@ -613,6 +616,9 @@ jobs:
   merge:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v4
