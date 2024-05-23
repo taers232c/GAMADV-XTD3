@@ -68,7 +68,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240522a
+          key: gam-${{ matrix.jid }}-20240522b
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -384,7 +384,8 @@ jobs:
           "${PYTHON}" get-pip.py
           "${PYTHON}" -m pip install --upgrade pip
           "${PYTHON}" -m pip install --upgrade wheel
-          "${PYTHON}" -m pip install --upgrade setuptools
+          #"${PYTHON}" -m pip install --upgrade setuptools
+          "${PYTHON}" -m pip install --force-reinstall setuptools==69.5.1
 
       - name: Install pip requirements
         run: |
