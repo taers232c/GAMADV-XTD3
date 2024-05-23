@@ -68,7 +68,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240522b
+          key: gam-${{ matrix.jid }}-20240522c
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -126,17 +126,6 @@ jobs:
           echo "RUNNING: apt update..."
           sudo apt-get -qq --yes update
           sudo apt-get -qq --yes install swig libpcsclite-dev libxslt1-dev
-
-      - name: MacOS install tools
-        if: runner.os == 'macOS'
-        run: |
-          # Install latest Rust
-          curl $curl_retry -fsS -o rust.sh https://sh.rustup.rs
-          bash ./rust.sh -y
-          source $HOME/.cargo/env
-          # Install needed packages
-          # brew update
-          brew install gpg swig
 
       - name: Windows Configure VCode
         uses: ilammy/msvc-dev-cmd@v1
@@ -384,8 +373,7 @@ jobs:
           "${PYTHON}" get-pip.py
           "${PYTHON}" -m pip install --upgrade pip
           "${PYTHON}" -m pip install --upgrade wheel
-          #"${PYTHON}" -m pip install --upgrade setuptools
-          "${PYTHON}" -m pip install --force-reinstall setuptools==69.5.1
+          "${PYTHON}" -m pip install --upgrade setuptools
 
       - name: Install pip requirements
         run: |
@@ -430,16 +418,16 @@ jobs:
           cd pyinstaller
           export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
           #V6.0.0 causes errors on staticx
-          if [[ "${staticx}" == "yes" ]]; then
-            git checkout "v6.6.0"
-          elif [[ "${RUNNER_OS}" == "Windows" ]]; then
-            git checkout "v6.6.0"
-          elif [[ "${RUNNER_OS}" == "macOS" ]]; then
-            git checkout "v6.6.0"
-          else
-            #git checkout "${latest_release}"
-            git checkout "v6.6.0"
-          fi
+          #if [[ "${staticx}" == "yes" ]]; then
+          #  git checkout "v6.6.0"
+          #elif [[ "${RUNNER_OS}" == "Windows" ]]; then
+          #  git checkout "v6.6.0"
+          #elif [[ "${RUNNER_OS}" == "macOS" ]]; then
+          #  git checkout "v6.6.0"
+          #else
+          git checkout "${latest_release}"
+          #  git checkout "v6.6.0"
+          #fi
           # remove pre-compiled bootloaders so we fail if bootloader compile fails
           rm -rvf PyInstaller/bootloader/*-*/*
           cd bootloader
