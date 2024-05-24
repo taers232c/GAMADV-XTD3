@@ -46,13 +46,13 @@ jobs:
           - os: macos-14
             jid: 4
             goal: build
-            arch: aarch64
+            arch: arm64
             openssl_archs: darwin64-arm64
-          - os: macos-14
-            jid: 5
-            goal: build
-            arch: universal2
-            openssl_archs: darwin64-arm64 darwin64-x86_64
+#          - os: macos-14
+#            jid: 5
+#            goal: build
+#            arch: universal2
+#            openssl_archs: darwin64-arm64 darwin64-x86_64
           - os: windows-2022
             jid: 6
             goal: build
@@ -142,7 +142,8 @@ jobs:
           source $HOME/.cargo/env
           # Install needed packages
           # brew update
-          brew install gpg swig
+          # brew install gpg
+          brew install swig
 
       - name: Windows Configure VCode
         uses: ilammy/msvc-dev-cmd@v1
