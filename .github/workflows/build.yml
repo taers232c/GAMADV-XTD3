@@ -46,7 +46,7 @@ jobs:
           - os: macos-14
             jid: 4
             goal: build
-            arch: arm64
+            arch: aarch64
             openssl_archs: darwin64-arm64
 #          - os: macos-14
 #            jid: 5
@@ -424,9 +424,7 @@ jobs:
             "${PYTHON}" -m pip install --upgrade -r requirements.txt
             echo "after requirements..."
             "${PYTHON}" -m pip list
-            if [[ "${RUNNER_OS}" != "Windows" ]]; then
-              "${PYTHON}" -m pip install --force-reinstall --no-deps --upgrade cryptography
-            fi
+            "${PYTHON}" -m pip install --force-reinstall --no-deps --upgrade cryptography
           fi
           echo "after everything..."
           "${PYTHON}" -m pip list
