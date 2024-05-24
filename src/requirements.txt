@@ -1,5 +1,5 @@
 chardet
-cryptography
+cryptography<=42.0.5
 distro; sys_platform == 'linux'
 filelock
 google-api-python-client
