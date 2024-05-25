@@ -293,6 +293,7 @@ Globals = {
   SECTION: None,
   SHOW_GETTINGS: True,
   SHOW_GETTINGS_GOT_NL: False,
+  SAVED_STDOUT: None,
   STDERR: {},
   STDOUT: {},
   SVCACCT_SCOPES: {},
