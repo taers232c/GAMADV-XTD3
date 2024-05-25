@@ -17,8 +17,7 @@ env:
     - MIN_OPENSSL_VERSION=$LINUX_MIN_OPENSSL_VERSION
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.10
-#    - PYINSTALLER_VERSION=v5.13.2
-    - PYINSTALLER_VERSION=v6.6.0
+    - PYINSTALLER_VERSION=v6.7.0
 
 cache:
   directories:
@@ -99,6 +98,9 @@ jobs:
 #        - BUILD_PYTHON_VERSION=$MACOS_BUILD_PYTHON_VERSION
 #        - MIN_PYTHON_VERSION=$MACOS_MIN_PYTHON_VERSION
 #        - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
+    - os: windows
+      name: "Windows 64-bit"
+      language: shell
 
 before_install:
 - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
@@ -140,7 +142,6 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-  edge:
-    branch: v2.0.3-beta.4
+  edge: true
   on:
     repo: taers232c/GAMADV-XTD3
