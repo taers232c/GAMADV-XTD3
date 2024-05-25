@@ -98,9 +98,9 @@ jobs:
 #        - BUILD_PYTHON_VERSION=$MACOS_BUILD_PYTHON_VERSION
 #        - MIN_PYTHON_VERSION=$MACOS_MIN_PYTHON_VERSION
 #        - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
-    - os: windows
-      name: "Windows 64-bit"
-      language: shell
+#    - os: windows
+#      name: "Windows 64-bit"
+#      language: shell
 
 before_install:
 - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
