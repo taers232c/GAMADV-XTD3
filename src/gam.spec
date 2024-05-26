@@ -19,6 +19,7 @@ datas += [('datastudio-v1.json', '.')]
 datas += [('cacerts.pem', '.')]
 hiddenimports = [
      'gam.gamlib.yubikey',
+     'cryptography.hazmat.bindings._rust',
      ]
 
 a = Analysis(
