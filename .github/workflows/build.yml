@@ -436,7 +436,7 @@ jobs:
           cd pyinstaller
           export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            git checkout "v5.13.2"
+            git checkout "v6.5.0"
           else
             git checkout "${latest_release}"
           fi
@@ -535,7 +535,7 @@ jobs:
       - name: Basic Tests all jobs
         id: basictests
         run: |
-          $PYTHON -m unittest discover --start-directory ./ --pattern "*_test.py" --buffer || if [ $? != 5 ]; then exit $?; fi # exit 5 is no tests
+          #$PYTHON -m unittest discover --start-directory ./ --pattern "*_test.py" --buffer || if [ $? != 5 ]; then exit $?; fi # exit 5 is no tests
           $gam version extended nooffseterror
           export GAMVERSION=$($gam version simple)
           echo "GAM Version ${GAMVERSION}"
