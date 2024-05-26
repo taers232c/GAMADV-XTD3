@@ -73,7 +73,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240525
+          key: gam-${{ matrix.jid }}-20240526
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -436,7 +436,7 @@ jobs:
           cd pyinstaller
           export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            git checkout "v6.4.0"
+            git checkout "v5.13.2"
           else
             git checkout "${latest_release}"
           fi
