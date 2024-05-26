@@ -436,7 +436,7 @@ jobs:
           cd pyinstaller
           export latest_release=$(git tag --list | grep -v dev | grep -v rc | sort -Vr | head -n1)
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            git checkout "v6.5.0"
+            git checkout "v6.4.0"
           else
             git checkout "${latest_release}"
           fi
