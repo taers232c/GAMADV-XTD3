@@ -469,7 +469,7 @@ jobs:
           elif [[ "${RUNNER_OS}" == "Windows" ]]; then
             # Work around issue where PyInstaller picks up python3.dll from other Python versions
             # https://github.com/pyinstaller/pyinstaller/issues/7102
-	    export PATH="$(dirname ${PYTHON}):/usr/bin"
+            export PATH="$(dirname ${PYTHON}):/usr/bin"
           else
             export gampath=$(realpath "${gampath}")
           fi
