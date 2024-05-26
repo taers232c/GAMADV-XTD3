@@ -469,7 +469,7 @@ jobs:
           elif [[ "${RUNNER_OS}" == "Windows" ]]; then
             # Work around issue where PyInstaller picks up python3.dll from other Python versions
             # https://github.com/pyinstaller/pyinstaller/issues/7102
-            export PATH="/usr/bin"
+	    export PATH="$(dirname ${PYTHON}):/usr/bin"
           else
             export gampath=$(realpath "${gampath}")
           fi
@@ -532,9 +532,8 @@ jobs:
         id: basictests
         run: |
           #$PYTHON -m unittest discover --start-directory ./ --pattern "*_test.py" --buffer || if [ $? != 5 ]; then exit $?; fi # exit 5 is no tests
-          #$gam version extended nooffseterror
-          #export GAMVERSION=$($gam version simple
-          export GAMVERSION="6.76.06"
+          $gam version extended nooffseterror
+          export GAMVERSION=$($gam version simple)
           echo "GAM Version ${GAMVERSION}"
           echo "GAMVERSION=${GAMVERSION}" >> $GITHUB_ENV
 
@@ -565,25 +564,25 @@ jobs:
           /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/light.exe -ext /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/WixUIExtension.dll gam.wixobj -o "gamadv-xtd3-${GAMVERSION}-windows-${GAM_ARCHIVE_ARCH}.msi" || true;
           rm -v -f *.wixpdb
 
-#      - name: Basic Tests build jobs only
-#        if: matrix.goal != 'test' && steps.cache-python-ssl.outputs.cache-hit != 'true'
-#        run: |
-#          export voutput=$($gam version extended nooffseterror)
-#          export python_line=$(echo -e "${voutput}" | grep "Python ")
-#          export python_arr=($python_line)
-#          export this_python=${python_arr[1]}
-#          if [[ "${this_python}" != "${COMPILED_PYTHON_VERSION}" ]]; then
-#            echo "ERROR: Tried to compile Python ${COMPILED_PYTHON_VERSION} but ended up with ${this_python}"
-#            exit 1
-#          fi
-#          export openssl_line=$(echo -e "${voutput}" | grep "OpenSSL ")
-#          export openssl_arr=($openssl_line)
-#          export this_openssl="${openssl_arr[1]}"
-#          if [[ "${this_openssl}" != "${COMPILED_OPENSSL_VERSION}" ]]; then
-#            echo "ERROR: Tried to compile OpenSSL ${COMPILED_OPENSSL_VERSION} but ended up with ${this_openssl}"
-#            exit 1
-#          fi
-#          echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
+      - name: Basic Tests build jobs only
+        if: matrix.goal != 'test' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+        run: |
+          export voutput=$($gam version extended nooffseterror)
+          export python_line=$(echo -e "${voutput}" | grep "Python ")
+          export python_arr=($python_line)
+          export this_python=${python_arr[1]}
+          if [[ "${this_python}" != "${COMPILED_PYTHON_VERSION}" ]]; then
+            echo "ERROR: Tried to compile Python ${COMPILED_PYTHON_VERSION} but ended up with ${this_python}"
+            exit 1
+          fi
+          export openssl_line=$(echo -e "${voutput}" | grep "OpenSSL ")
+          export openssl_arr=($openssl_line)
+          export this_openssl="${openssl_arr[1]}"
+          if [[ "${this_openssl}" != "${COMPILED_OPENSSL_VERSION}" ]]; then
+            echo "ERROR: Tried to compile OpenSSL ${COMPILED_OPENSSL_VERSION} but ended up with ${this_openssl}"
+            exit 1
+          fi
+          echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
 
       - name: Tar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
