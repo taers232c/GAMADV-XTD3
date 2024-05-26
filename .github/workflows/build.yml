@@ -565,9 +565,9 @@ jobs:
           /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/light.exe -ext /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/WixUIExtension.dll gam.wixobj -o "gamadv-xtd3-${GAMVERSION}-windows-${GAM_ARCHIVE_ARCH}.msi" || true;
           rm -v -f *.wixpdb
 
-      - name: Basic Tests build jobs only
-        if: matrix.goal != 'test' && steps.cache-python-ssl.outputs.cache-hit != 'true'
-        run: |
+#      - name: Basic Tests build jobs only
+#        if: matrix.goal != 'test' && steps.cache-python-ssl.outputs.cache-hit != 'true'
+#        run: |
 #          export voutput=$($gam version extended nooffseterror)
 #          export python_line=$(echo -e "${voutput}" | grep "Python ")
 #          export python_arr=($python_line)
@@ -583,7 +583,7 @@ jobs:
 #            echo "ERROR: Tried to compile OpenSSL ${COMPILED_OPENSSL_VERSION} but ended up with ${this_openssl}"
 #            exit 1
 #          fi
-          echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
+#          echo "We successfully compiled Python ${this_python} and OpenSSL ${this_openssl}"
 
       - name: Tar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
