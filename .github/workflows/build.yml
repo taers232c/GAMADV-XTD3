@@ -527,7 +527,7 @@ jobs:
         if: runner.os != 'Windows' && matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-             GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}.tar.xz"
+            GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}.tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
             if [[ "${staticx}" == "yes" ]]; then
               GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}-legacy.tar.xz"
