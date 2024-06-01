@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.76.10'
+__version__ = '6.76.11'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -53775,6 +53775,7 @@ def printFileList(users):
       csvPF.WriteRowTitlesJSONNoFilter(row)
 
   def _printFileInfo(drive, user, f_file, cleanFileName):
+    nonlocal getSharedDriveACLsCount, getSharedDriveACLsCountMsg
     driveId = f_file.get('driveId')
     checkSharedDrivePermissions = getPermissionsForSharedDrives and driveId and 'permissions' not in f_file
     if (f_file.get('noDisplay', False) or
@@ -53788,6 +53789,10 @@ def printFileList(users):
         (DLP.onlySharedDrives and not driveId)):
       return
     if checkSharedDrivePermissions:
+      if not incrementalPrint:
+        getSharedDriveACLsCount += 1
+        if getSharedDriveACLsCount % 100 == 0:
+          writeStderr(f'{Msg.GOT} {getSharedDriveACLsCount} {getSharedDriveACLsCountMsg}')
       try:
         f_file['permissions'] = callGAPIpages(drive.permissions(), 'list', 'permissions',
                                               throwReasons=GAPI.DRIVE3_GET_ACL_REASONS,
@@ -53796,7 +53801,7 @@ def printFileList(users):
         if not DLP.CheckFilePermissionMatches(f_file):
           return
         for permission in f_file['permissions']:
-          permission.pop('teamDrivePermissionDetails', None)
+          permission.pop('teamDrivePermissionDetails', None) ##### Why?
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
               GAPI.insufficientAdministratorPrivileges, GAPI.insufficientFilePermissions,
               GAPI.unknownError, GAPI.invalid,
@@ -54052,6 +54057,7 @@ def printFileList(users):
     elif myarg == 'showshareddrivepermissions':
       getPermissionsForSharedDrives = True
       permissionsFields = f'nextPageToken,permissions({",".join(DRIVEFILE_BASIC_PERMISSION_FIELDS)})'
+      getSharedDriveACLsCountMsg = f'{Ent.Plural(Ent.DRIVE_FILE_OR_FOLDER_ACL)} {Msg.FOR} {Ent.Plural(Ent.SHAREDDRIVE)}\n'
     elif myarg == 'pmfilter':
       pmselect = False
     elif myarg == 'oneitemperrow':
@@ -54197,6 +54203,7 @@ def printFileList(users):
       filePathInfo = initFilePathInfo(pathDelimiter)
     filesPrinted = set()
     mimeTypeInfo = {}
+    getSharedDriveACLsCount = 0
     if buildTree:
       printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, user, i, count, query=DLP.fileIdEntity['query'])
       if not incrementalPrint:
