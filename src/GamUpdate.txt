@@ -1,6 +1,13 @@
+6.76.12
+
+Fixed bug in `gam <UserTypeEntity> print|show chatspaces` that caused the following error:
+```
+ERROR: Got an unexpected keyword argument orderBy
+```
+
 6.76.11
 
-Thanks to Jay, added `gam report vault'.
+Thanks to Jay, added `gam report vault`.
 
 Thanks to Jay, added the following Gemini SKUs:
 ```

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.76.11'
+__version__ = '6.76.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -25540,8 +25540,8 @@ def printShowChatSpaces(users):
   if not useAdminAccess:
     if pfilter:
       kwargs['filter'] = pfilter
-    else:
-      kwargs['orderBy'] = OBY.orderBy
+  else:
+    kwargs['orderBy'] = OBY.orderBy
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
