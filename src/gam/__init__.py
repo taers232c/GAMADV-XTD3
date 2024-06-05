@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.76.12'
+__version__ = '6.76.13'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -52411,6 +52411,7 @@ def showFileInfo(users):
         if showLabels is not None:
           labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
                                  throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                 retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS+[GAPI.UNKNOWN_ERROR],
                                  fileId=fileId)
           _formatFileDriveLabels(showLabels, labels, result, False, ' ')
         if not FJQC.formatJSON:
@@ -53914,6 +53915,7 @@ def printFileList(users):
         if showLabels is not None:
           labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
                                  throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                 retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS+[GAPI.UNKNOWN_ERROR],
                                  fileId=childFileId)
           _formatFileDriveLabels(showLabels, labels, childEntryInfo, True, delimiter)
         if filepath:
@@ -54225,6 +54227,7 @@ def printFileList(users):
             for f_file in files:
               labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
                                      throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                     retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS+[GAPI.UNKNOWN_ERROR],
                                      fileId=f_file['id'])
               _formatFileDriveLabels(showLabels, labels, f_file, True, delimiter)
           if not incrementalPrint:
@@ -54281,6 +54284,7 @@ def printFileList(users):
           if showLabels is not None:
             labels = callGAPIitems(drive.files(), 'listLabels', 'labels',
                                    throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                                   retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS+[GAPI.UNKNOWN_ERROR],
                                    fileId=fileId)
             _formatFileDriveLabels(showLabels, labels, fileEntryInfo, True, delimiter)
           if filepath:
