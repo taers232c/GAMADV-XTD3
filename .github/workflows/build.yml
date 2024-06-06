@@ -68,7 +68,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240605
+          key: gam-${{ matrix.jid }}-20240605a
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -135,7 +135,7 @@ jobs:
           bash ./rust.sh -y
           source $HOME/.cargo/env
           # Install needed packages
-          brew update
+          # brew update
           # brew install gpg
           brew install swig
 
