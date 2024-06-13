@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.76.14'
+__version__ = '6.76.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -13297,7 +13297,7 @@ REPORT_CHOICE_MAP = {
   'user': 'user',
   'users': 'user',
   'useraccounts': 'user_accounts',
-  'vault': 'vault'
+  'vault': 'vault',
   }
 
 REPORT_ACTIVITIES_UPPERCASE_EVENTS = {
@@ -30238,7 +30238,7 @@ def doCreateGroup(ciGroupsAPI=False):
       if getBeforeUpdate:
         settings = callGAPI(gs.groups(), 'get',
                             throwReasons=GAPI.GROUP_SETTINGS_THROW_REASONS,
-                            retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND],
+                            retryReasons=GAPI.GROUP_SETTINGS_RETRY_REASONS+[GAPI.NOT_FOUND, GAPI.INVALID_ARGUMENT],
                             groupUniqueId=mapGroupEmailForSettings(groupEmail), fields='*')
         settings.update(gs_body)
       callGAPI(gs.groups(), 'update',
@@ -54819,7 +54819,7 @@ def printShowFileCounts(users):
 
   def showMimeTypeInfo(user, mimeTypeInfo, sharedDriveId, sharedDriveName, i, count):
     if summary != FILECOUNT_SUMMARY_NONE:
-      if user != summaryUser:
+      if count != 0:
         for mimeType, mtinfo in iter(mimeTypeInfo.items()):
           summaryMimeTypeInfo.setdefault(mimeType, {'count': 0, 'size': 0})
           summaryMimeTypeInfo[mimeType]['count'] += mtinfo['count']
@@ -55230,7 +55230,7 @@ def printShowFileShareCounts(users):
 
   def showShareCounts(user, shareCounts, i, count):
     if summary != FILECOUNT_SUMMARY_NONE:
-      if user != summaryUser:
+      if count != 0:
         for field, shareCount in iter(shareCounts.items()):
           summaryShareCounts[field] += shareCount
         if summary == FILECOUNT_SUMMARY_ONLY:

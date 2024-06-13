@@ -9,6 +9,7 @@ defaults:
     working-directory: src
 
 env:
+  SCRATCH_COUNTER: 1
   OPENSSL_CONFIG_OPTS: no-fips --api=3.0.0
   OPENSSL_INSTALL_PATH: ${{ github.workspace }}/bin/ssl
   OPENSSL_SOURCE_PATH: ${{ github.workspace }}/src/openssl
@@ -78,9 +79,10 @@ jobs:
 
       - name: Use pre-compiled Python for testing
         if: matrix.python != ''
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+          #allow-prereleases: true
 
       - name: common variables for all runs
         env:
@@ -138,6 +140,7 @@ jobs:
           # brew update
           # brew install gpg
           brew install swig
+          #brew install ncurses
 
       - name: Windows Configure VCode
         uses: ilammy/msvc-dev-cmd@v1
@@ -164,7 +167,9 @@ jobs:
             MAKE=make
             MAKEOPT="-j$(sysctl -n hw.logicalcpu)"
             PERL=perl
-            echo "MACOSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
+            MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion | awk -F '.' '{print $1 "." $2}')
+            echo "MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}" >> $GITHUB_ENV
+            echo "We are running on and targetting MacOS ${MACOSX_DEPLOYMENT_TARGET}"
             echo "PYTHON=${PYTHON_INSTALL_PATH}/bin/python3" >> $GITHUB_ENV
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
             MAKE=make
@@ -266,15 +271,27 @@ jobs:
                  -output "${GITHUB_WORKSPACE}/bin/ssl/bin/openssl"
             rm -rf ${GITHUB_WORKSPACE}/bin/ssl-darwin64-x86_64
             rm -rf ${GITHUB_WORKSPACE}/bin/ssl-darwin64-arm64
-            echo "LDFLAGS=-L${OPENSSL_INSTALL_PATH}/lib" >> $GITHUB_ENV
-            echo "CRYPTOGRAPHY_SUPPRESS_LINK_FLAGS=1" >> $GITHUB_ENV
-            echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch arm64 -arch x86_64 ${CFLAGS}" >> $GITHUB_ENV
-            echo "ARCHFLAGS=-arch x86_64 -arch arm64" >> $GITHUB_ENV
           else
             cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_archs}"
             # install_sw saves us ages processing man pages :-)
             $MAKE install_sw
           fi
+          echo "LDFLAGS=-L${OPENSSL_INSTALL_PATH}/lib" >> $GITHUB_ENV
+          echo "CRYPTOGRAPHY_SUPPRESS_LINK_FLAGS=1" >> $GITHUB_ENV
+          case $arch in
+            universal2)
+              echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch arm64 -arch x86_64 ${CFLAGS}" >> $GITHUB_ENV
+              echo "ARCHFLAGS=-arch x86_64 -arch arm64" >> $GITHUB_ENV
+              ;;
+            x86_64)
+              echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch x86_64 ${CFLAGS}" >> $GITHUB_ENV
+              echo "ARCHFLAGS=-arch x86_64" >> $GITHUB_ENV
+              ;;
+            aarch64)
+              echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch arm64 ${CFLAGS}" >> $GITHUB_ENV
+              echo "ARCHFLAGS=-arch arm64" >> $GITHUB_ENV
+              ;;
+          esac
 
       - name: Run OpenSSL
         if: matrix.goal == 'build'
@@ -534,11 +551,11 @@ jobs:
             GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}.tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
             if [[ "${staticx}" == "yes" ]]; then
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}-legacy.tar.xz"
+              libver="legacy"
             else
-              libver=$(ldd --version | awk '/ldd/{print $NF}')
-              GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}-glibc${libver}.tar.xz"
+              libver="glibc$(ldd --version | awk '/ldd/{print $NF}')"
             fi
+            GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}-${libver}.tar.xz"
           fi
           echo "GAM Archive ${GAM_ARCHIVE}"
           tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
