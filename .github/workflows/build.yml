@@ -626,20 +626,3 @@ jobs:
         uses: geekyeggo/delete-artifact@v4
         with:
           name: gam-binaries-*
-
-  publish-winget:
-    runs-on: windows-latest
-    needs: merge
-    name: Publish to WinGet
-    steps:
-#      - name: Download GAM artifact
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: gam-binaries
-      - name: Publish release to Winget Repo
-        uses: vedantmgoyal2009/winget-releaser@v2
-        with:
-          identifier: taers232c.GAMADV-XTD3
-          version: ${GAMVERSION}
-          installers-regex: '\.msi$'
-          token: ${{ secrets.WINGET_TOKEN }}
