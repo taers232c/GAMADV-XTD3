@@ -628,7 +628,7 @@ jobs:
           name: gam-binaries-*
 
   publish-winget:
-    runs-on: windows-2022
+    runs-on: windows-latest
     needs: merge
     name: Publish to WinGet
     steps:
