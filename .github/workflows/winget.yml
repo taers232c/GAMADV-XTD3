@@ -1,8 +1,6 @@
 name: Publish to WinGet
 on:
-  push:
-  release:
-    types: [released]
+  workflow_dispatch:
 jobs:
   publish:
     runs-on: windows-latest
@@ -10,7 +8,6 @@ jobs:
       - uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: taers232c.GAMADV-XTD3
-          # version: 6.76.15
           release-tag: v6.76.15
           max-versions-to-keep: 5 # keep only latest 5 versions
           installers-regex: '\.msi$'
