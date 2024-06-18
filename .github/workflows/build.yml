@@ -641,6 +641,6 @@ jobs:
         with:
           identifier: taers232c.GAMADV-XTD3
           #version: ${GAMVERSION}
-          release-tag: v${GAMVERSION}
+          release-tag: v6.76.15
           installers-regex: '\.msi$'
           token: ${{ secrets.WINGET_TOKEN }}
