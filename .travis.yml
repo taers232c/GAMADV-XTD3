@@ -133,6 +133,7 @@ script:
 before_deploy:
 - export TRAVIS_TAG="preview"
 - unset LD_LIBRARY_PATH
+- rvm install 2.7
 
 deploy:
   provider: releases
@@ -142,6 +143,7 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
+  edge: true
 #  edge:
 #    branch: v2.0.3-beta.4
   on:
