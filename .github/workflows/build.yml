@@ -280,11 +280,11 @@ jobs:
               echo "ARCHFLAGS=-arch x86_64 -arch arm64" >> $GITHUB_ENV
               ;;
             x86_64)
-              echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch x86_64 ${CFLAGS}" >> $GITHUB_ENV
+              echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include ${CFLAGS}" >> $GITHUB_ENV
               echo "ARCHFLAGS=-arch x86_64" >> $GITHUB_ENV
               ;;
             aarch64)
-              echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include -arch arm64 ${CFLAGS}" >> $GITHUB_ENV
+              echo "CFLAGS=-I${OPENSSL_INSTALL_PATH}/include ${CFLAGS}" >> $GITHUB_ENV
               echo "ARCHFLAGS=-arch arm64" >> $GITHUB_ENV
               ;;
           esac
@@ -302,11 +302,7 @@ jobs:
           cd "${GITHUB_WORKSPACE}/src"
           git clone https://github.com/python/cpython.git
           cd "${PYTHON_SOURCE_PATH}"
-          if [[ "${RUNNER_OS}" == "Linux" ]]; then
-            export LATEST_STABLE_TAG="v3.12.3"
-          else
-            export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
-          fi
+          export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
           git checkout "${LATEST_STABLE_TAG}"
           export COMPILED_PYTHON_VERSION=${LATEST_STABLE_TAG:1} # Trim the "v" prefix
           echo "COMPILED_PYTHON_VERSION=${COMPILED_PYTHON_VERSION}" >> $GITHUB_ENV
