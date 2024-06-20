@@ -302,7 +302,11 @@ jobs:
           cd "${GITHUB_WORKSPACE}/src"
           git clone https://github.com/python/cpython.git
           cd "${PYTHON_SOURCE_PATH}"
-          export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1)
+          if [[ "${RUNNER_OS}" == "Linux" ]]; then
+            export LATEST_STABLE_TAG="v3.12.3"
+          else
+            export LATEST_STABLE_TAG=$(git tag --list | grep -v a | grep -v rc | grep -v b | sort -Vr | head -n1
+          fi
           git checkout "${LATEST_STABLE_TAG}"
           export COMPILED_PYTHON_VERSION=${LATEST_STABLE_TAG:1} # Trim the "v" prefix
           echo "COMPILED_PYTHON_VERSION=${COMPILED_PYTHON_VERSION}" >> $GITHUB_ENV
