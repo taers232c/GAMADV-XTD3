@@ -6,8 +6,8 @@ dist: focal
 
 env:
   global:
-    - BUILD_PYTHON_VERSION=3.12.3
-    - MIN_PYTHON_VERSION=3.12.3
+    - BUILD_PYTHON_VERSION=3.12.4
+    - MIN_PYTHON_VERSION=3.12.4
     - LINUX_BUILD_OPENSSL_VERSION=3.3.1
     - LINUX_MIN_OPENSSL_VERSION=3.3.1
     - MACOS_BUILD_PYTHON_VERSION=3.10.8
@@ -142,7 +142,7 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-  edge:
-    branch: v2.0.3-beta.4
+#  edge:
+#    branch: v2.0.3-beta.4
   on:
     repo: taers232c/GAMADV-XTD3
