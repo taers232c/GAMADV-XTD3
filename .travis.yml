@@ -138,18 +138,27 @@ before_deploy:
 - unset LD_LIBRARY_PATH
 
 deploy:
-  provider: releases
-  token: $GITHUB_TOKEN
-  file_glob: true
-  overwrite: true
-  file: gamadv-xtd3-$GAMVERSION-*
-  skip_cleanup: true
-  draft: true
 - if [ "${EDGE_TRUE}" == "true" ]; then
+    provider: releases
+    token: $GITHUB_TOKEN
+    file_glob: true
+    overwrite: true
+    file: gamadv-xtd3-$GAMVERSION-*
+    skip_cleanup: true
+    draft: true
     edge: true
+    on:
+      repo: taers232c/GAMADV-XTD3
   else
+    provider: releases
+    token: $GITHUB_TOKEN
+    file_glob: true
+    overwrite: true
+    file: gamadv-xtd3-$GAMVERSION-*
+    skip_cleanup: true
+    draft: true
     edge:
-    branch: v2.0.3-beta.4
+      branch: v2.0.3-beta.4
+    on:
+      repo: taers232c/GAMADV-XTD3
   fi
-  on:
-    repo: taers232c/GAMADV-XTD3
