@@ -142,8 +142,8 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-  group: previous
-  edge:
-    branch: v2.0.3-beta.4
+  edge: true
+#  edge:
+#    branch: v2.0.3-beta.4
   on:
     repo: taers232c/GAMADV-XTD3
