@@ -18,6 +18,7 @@ env:
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.10
     - PYINSTALLER_VERSION=v6.6.0
+    - EDGE_TRUE=false
 
 cache:
   directories:
@@ -40,12 +41,14 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=true
+        - EDGE_TRUE=true
     - os: linux
       name: "Linux 64-bit Bionic"
       dist: bionic
       language: shell
       env:
         - DIST_UPGRADE=true
+        - EDGE_TRUE=true
     - os: linux
       name: "Linux 64-bit Xenial"
       dist: xenial
@@ -142,8 +145,11 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-  edge: true
-#  edge:
-#    branch: v2.0.3-beta.4
+- if [ "${EDGE_TRUE}" == "true" ]; then
+    edge: true
+  else
+    edge:
+    branch: v2.0.3-beta.4
+  fi
   on:
     repo: taers232c/GAMADV-XTD3
