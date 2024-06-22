@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.77.00'
+__version__ = '6.77.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -11196,7 +11196,7 @@ def _grantRotateRights(iam, projectId, service_account, email, account_type='ser
   callGAPI(iam.projects().serviceAccounts(), 'setIamPolicy',
            resource=f'projects/{projectId}/serviceAccounts/{service_account}', body=body)
 
-def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
+def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo, create_key=True):
   iam = getAPIService(API.IAM, httpObj)
   try:
     service_account = callGAPI(iam.projects().serviceAccounts(), 'create',
@@ -11213,8 +11213,10 @@ def _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
     entityActionFailedWarning([Ent.PROJECT, projectInfo['projectId'], Ent.SVCACCT, svcAcctInfo['name']], str(e))
     return False
   GM.Globals[GM.SVCACCT_SCOPES_DEFINED] = False
-  if not doProcessSvcAcctKeys(mode='retainexisting', iam=iam, projectId=service_account['projectId'],
-                              clientEmail=service_account['email'], clientId=service_account['uniqueId']):
+  if create_key and not doProcessSvcAcctKeys(mode='retainexisting', iam=iam,
+                                             projectId=service_account['projectId'],
+                                             clientEmail=service_account['email'],
+                                             clientId=service_account['uniqueId']):
     return False
   sa_email = service_account['name'].rsplit('/', 1)[-1]
   _grantRotateRights(iam, projectInfo['projectId'], sa_email, sa_email)
@@ -11230,8 +11232,7 @@ def setGAMProjectConsentScreen(httpObj, projectId, appInfo):
   except (GAPI.invalidArgument, GAPI.alreadyExists):
     pass
 
-def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo, svcAcctInfo):
-
+def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo, svcAcctInfo, create_key=True):
   def _checkClientAndSecret(csHttpObj, client_id, client_secret):
     post_data = {'client_id': client_id, 'client_secret': client_secret,
                  'code': 'ThisIsAnInvalidCodeOnlyBeingUsedToTestIfClientAndSecretAreValid',
@@ -11293,7 +11294,7 @@ def _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo,
   sys.stdout.write(Msg.GO_BACK_TO_YOUR_BROWSER_AND_CLICK_OK_TO_CLOSE_THE_OAUTH_CLIENT_POPUP)
   sys.stdout.write(Msg.TRUST_GAM_CLIENT_ID.format(GAM, client_id))
   readStdin('')
-  if not _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo):
+  if not _createOauth2serviceJSON(httpObj, projectInfo, svcAcctInfo, create_key):
     return
   sys.stdout.write(Msg.YOUR_GAM_PROJECT_IS_CREATED_AND_READY_TO_USE)
 
@@ -11385,12 +11386,13 @@ def _generateProjectSvcAcctId(prefix):
 
 def _getLoginHintProjectInfo(createCmd):
   login_hint = None
+  create_key = True
   appInfo = {'applicationTitle': '', 'supportEmail': ''}
   projectInfo = {'projectId': '', 'parent': '', 'name': ''}
   svcAcctInfo = {'name': '', 'displayName': '', 'description': ''}
   if not Cmd.PeekArgumentPresent(['admin', 'appname', 'supportemail', 'project', 'parent',
                                   'projectname', 'saname', 'sadisplayname', 'sadescription',
-                                  'algorithm', 'localkeysize', 'validityhours', 'yubikey']):
+                                  'algorithm', 'localkeysize', 'validityhours', 'yubikey', 'nokey']):
     login_hint = getString(Cmd.OB_EMAIL_ADDRESS, optional=True)
     if login_hint and login_hint.find('@') == -1:
       Cmd.Backup()
@@ -11404,6 +11406,8 @@ def _getLoginHintProjectInfo(createCmd):
       myarg = getArgument()
       if myarg == 'admin':
         login_hint = getEmailAddress(noUid=True)
+      elif myarg == 'nokey':
+        create_key = False
       elif myarg == 'project':
         projectInfo['projectId'] = getString(Cmd.OB_STRING, minLen=6, maxLen=30)
         _checkProjectId(projectInfo['projectId'])
@@ -11453,7 +11457,7 @@ def _getLoginHintProjectInfo(createCmd):
   else:
     if projects:
       entityActionFailedExit([Ent.USER, login_hint, Ent.PROJECT, projectInfo['projectId']], Msg.DUPLICATE)
-  return (crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo)
+  return (crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo, create_key)
 
 def _getCurrentProjectId():
   jsonData = readFile(GC.Values[GC.OAUTH2SERVICE_JSON], continueOnError=True, displayError=False)
@@ -11607,12 +11611,13 @@ def doCreateGCPFolder():
 #	[saname <ServiceAccountName>] [sadisplayname <ServiceAccountDisplayName>] [sadescription <ServiceAccountDescription>]
 #	[(algorithm KEY_ALG_RSA_1024|KEY_ALG_RSA_2048)|
 #	 (localkeysize 1024|2048|4096 [validityhours <Number>])|
-#	 (yubikey yubikey_pin yubikey_slot AUTHENTICATION yubikey_serialnumber <String>)]
+#	 (yubikey yubikey_pin yubikey_slot AUTHENTICATION yubikey_serialnumber <String>)|
+#	 nokey]
 def doCreateProject():
   _checkForExistingProjectFiles([GC.Values[GC.OAUTH2SERVICE_JSON], GC.Values[GC.CLIENT_SECRETS_JSON]])
   sys.stdout.write(Msg.TRUST_GAM_CLIENT_ID.format(GAM_PROJECT_CREATION, GAM_PROJECT_CREATION_CLIENT_ID))
   readStdin('')
-  crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo = _getLoginHintProjectInfo(True)
+  crm, httpObj, login_hint, appInfo, projectInfo, svcAcctInfo, create_key = _getLoginHintProjectInfo(True)
   login_domain = getEmailAddressDomain(login_hint)
   body = {'projectId': projectInfo['projectId'], 'displayName': projectInfo['name']}
   if projectInfo['parent']:
@@ -11697,7 +11702,7 @@ def doCreateProject():
 #  except (GAPI.badRequest, GAPI.failedPrecondition, GAPI.permissionDenied):
 #    pass
 # Create client_secrets.json and oauth2service.json
-  _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo, svcAcctInfo)
+  _createClientSecretsOauth2service(httpObj, login_hint, appInfo, projectInfo, svcAcctInfo, create_key)
 
 # gam use project [<EmailAddress>] [<ProjectID>]
 # gam use project [admin <EmailAddress>] [project <ProjectID>]
@@ -45114,7 +45119,7 @@ class CourseAttributes():
     }
 
   COURSE_WORK_INDIVIDUAL_STUDENT_ASSIGNMENTS_OPTIONS = {'copy', 'delete', 'maptoall'}
-  
+
   def GetAttributes(self):
     while Cmd.ArgumentsRemaining():
       myarg = getArgument()
@@ -48583,20 +48588,30 @@ def deleteBackupCodes(users):
       entityActionNotPerformedWarning([Ent.USER, user, Ent.BACKUP_VERIFICATION_CODES, None],
                                       Msg.IS_SUSPENDED_NO_BACKUPCODES, i, count)
 
-# gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttribute>*] [delimiter <Character>]
+# gam <UserTypeEntity> print backupcodes|verificationcodes [todrive <ToDriveAttribute>*]
+#	[delimiter <Character>] [countsonly]
 # gam <UserTypeEntity> show backupcodes|verificationcodes
 def printShowBackupCodes(users):
   cd = buildGAPIObject(API.DIRECTORY)
-  csvPF = CSVPrintFile(['User', 'verificationCodes']) if Act.csvFormat() else None
+  csvPF = CSVPrintFile(['User', 'verificationCodesCount', 'verificationCodes']) if Act.csvFormat() else None
   delimiter = GC.Values[GC.CSV_OUTPUT_FIELD_DELIMITER]
+  counts_only = False
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
       csvPF.GetTodriveParameters()
     elif myarg == 'delimiter':
       delimiter = getCharacter()
+    elif myarg == 'countsonly':
+      counts_only = True
     else:
       unknownArgumentExit()
+  # if we're only getting counts, we don't want actual codes pulled down
+  if counts_only:
+    csvPF.RemoveTitles('verificationCodes')
+    fields = 'items(etag)'
+  else:
+    fields = 'items(verificationCode)'
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -48606,11 +48621,14 @@ def printShowBackupCodes(users):
     try:
       codes = callGAPIitems(cd.verificationCodes(), 'list', 'items',
                             throwReasons=[GAPI.USER_NOT_FOUND],
-                            userKey=user, fields='items(verificationCode)')
+                            userKey=user, fields=fields)
       if not csvPF:
         _showBackupCodes(user, codes, i, count)
+      elif counts_only:
+        csvPF.WriteRow({'User': user, 'verificationCodesCount': len(codes)})
       else:
         csvPF.WriteRow({'User': user,
+                        'verificationCodesCount': len(codes),
                         'verificationCodes': delimiter.join([code['verificationCode'] for code in codes if 'verificationCode' in code])})
     except GAPI.userNotFound:
       entityUnknownWarning(Ent.USER, user, i, count)
