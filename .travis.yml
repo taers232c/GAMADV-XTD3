@@ -10,10 +10,6 @@ env:
     - MIN_PYTHON_VERSION=3.12.4
     - LINUX_BUILD_OPENSSL_VERSION=3.3.1
     - LINUX_MIN_OPENSSL_VERSION=3.3.1
-    - MACOS_BUILD_PYTHON_VERSION=3.10.8
-    - MACOS_MIN_PYTHON_VERSION=3.10.8
-    - MACOS_BUILD_OPENSSL_VERSION=1.1.1w
-    - MACOS_MIN_OPENSSL_VERSION=1.1.1n
     - MIN_OPENSSL_VERSION=$LINUX_MIN_OPENSSL_VERSION
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.10
@@ -28,12 +24,6 @@ cache:
 jobs:
   fast_finish: true
   include:
-#    - os: linux
-#      name: "Linux 64-bit Jammy"
-#      dist: jammy
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=true
     - os: linux
       name: "Linux 64-bit Focal"
       dist: focal
@@ -58,14 +48,6 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
-#    - os: linux
-#      name: "Linux ARM64 Jammy"
-#      dist: jammy
-#      arch: arm64
-#      language: shell
-#      env:
-#        - DIST_UPGRADE=false
-#      filter_secrets: false
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal
@@ -90,24 +72,9 @@ jobs:
       env:
         - DIST_UPGRADE=false
       filter_secrets: false
-#    - os: osx
-#      name: "MacOS"
-#      language: generic
-#      osx_image: xcode12.4
-#      env:
-#        - BUILD_PYTHON_VERSION=$MACOS_BUILD_PYTHON_VERSION
-#        - MIN_PYTHON_VERSION=$MACOS_MIN_PYTHON_VERSION
-#        - MIN_OPENSSL_VERSION=$MACOS_MIN_OPENSSL_VERSION
-#    - os: windows
-#      name: "Windows 64-bit"
-#      language: shell
 
 before_install:
-- if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    export GAMOS="macos";
-  else
-    export GAMOS="${TRAVIS_OS_NAME}";
-  fi
+  export GAMOS="${TRAVIS_OS_NAME}";
 - export SCRIPT_OS_NAME="${GAMOS}";
   if [ "${TRAVIS_CPU_ARCH}" == "amd64" ]; then
     export PLATFORM="x86_64";
