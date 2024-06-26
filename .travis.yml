@@ -111,7 +111,7 @@ deploy:
   draft: true
   edge: true
 #  edge:
-@    branch: v2.0.3-beta.4
+#    branch: v2.0.3-beta.4
   on:
     repo: taers232c/GAMADV-XTD3
 
