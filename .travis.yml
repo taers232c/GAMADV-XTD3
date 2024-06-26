@@ -21,6 +21,10 @@ cache:
     - $HOME/python
     - $HOME/ssl
 
+before_deploy:
+- export TRAVIS_TAG="preview"
+- unset LD_LIBRARY_PATH
+
 jobs:
   fast_finish: true
   include:
@@ -30,6 +34,17 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=true
+      deploy:
+        provider: releases
+        token: $GITHUB_TOKEN
+        file_glob: true
+        overwrite: true
+        file: gamadv-xtd3-$GAMVERSION-*
+        skip_cleanup: true
+        draft: true
+       edge: true
+        on:
+          repo: taers232c/GAMADV-XTD3
     - os: linux
       name: "Linux 64-bit Bionic"
       dist: bionic
@@ -42,12 +57,35 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
+      deploy:
+        provider: releases
+        token: $GITHUB_TOKEN
+        file_glob: true
+        overwrite: true
+        file: gamadv-xtd3-$GAMVERSION-*
+        skip_cleanup: true
+        draft: true
+        edge: true
+        on:
+          repo: taers232c/GAMADV-XTD3
     - os: linux
       name: "Linux 64-bit Trusty"
       dist: trusty
       language: shell
       env:
         - DIST_UPGRADE=false
+      deploy:
+        provider: releases
+        token: $GITHUB_TOKEN
+        file_glob: true
+        overwrite: true
+        file: gamadv-xtd3-$GAMVERSION-*
+        skip_cleanup: true
+        draft: true
+        edge:
+          branch: v2.0.3-beta.4
+        on:
+          repo: taers232c/GAMADV-XTD3
     - os: linux
       name: "Linux ARM64 Focal"
       dist: focal
@@ -56,6 +94,18 @@ jobs:
       env:
         - DIST_UPGRADE=false
       filter_secrets: false
+      deploy:
+        provider: releases
+        token: $GITHUB_TOKEN
+        file_glob: true
+        overwrite: true
+        file: gamadv-xtd3-$GAMVERSION-*
+        skip_cleanup: true
+        draft: true
+        edge:
+          branch: v2.0.3-beta.4
+        on:
+          repo: taers232c/GAMADV-XTD3
     - os: linux
       name: "Linux ARM64 Bionic"
       dist: bionic
@@ -63,6 +113,18 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
+      deploy:
+        provider: releases
+        token: $GITHUB_TOKEN
+        file_glob: true
+        overwrite: true
+        file: gamadv-xtd3-$GAMVERSION-*
+        skip_cleanup: true
+        draft: true
+        edge:
+          branch: v2.0.3-beta.4
+        on:
+          repo: taers232c/GAMADV-XTD3
       filter_secrets: false
     - os: linux
       name: "Linux ARM64 Xenial"
@@ -71,6 +133,18 @@ jobs:
       language: shell
       env:
         - DIST_UPGRADE=false
+      deploy:
+        provider: releases
+        token: $GITHUB_TOKEN
+        file_glob: true
+        overwrite: true
+        file: gamadv-xtd3-$GAMVERSION-*
+        skip_cleanup: true
+        draft: true
+        edge:
+          branch: v2.0.3-beta.4
+        on:
+          repo: taers232c/GAMADV-XTD3
       filter_secrets: false
 
 before_install:
@@ -96,22 +170,3 @@ script:
 #- $gam version extended | grep TLSv1\.[23]
 # expect fail since server doesn't support our TLS version
 - $gam config tls_min_version TLSv1_2 version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]
-
-before_deploy:
-- export TRAVIS_TAG="preview"
-- unset LD_LIBRARY_PATH
-
-deploy:
-  provider: releases
-  token: $GITHUB_TOKEN
-  file_glob: true
-  overwrite: true
-  file: gamadv-xtd3-$GAMVERSION-*
-  skip_cleanup: true
-  draft: true
-#  edge: true
-  edge:
-    branch: v2.0.3-beta.4
-  on:
-    repo: taers232c/GAMADV-XTD3
-
