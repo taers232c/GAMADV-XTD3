@@ -13833,6 +13833,8 @@ def doReport():
           if not status:
             break
         except GAPI.invalid as e:
+          if userCustomerRange:
+            break
           numDateChanges += 1
           tryDate = _adjustTryDate(str(e), numDateChanges, limitDateChanges, tryDate)
           if not tryDate:
@@ -13915,6 +13917,8 @@ def doReport():
         if not status:
           break
       except GAPI.invalid as e:
+        if userCustomerRange:
+          break
         numDateChanges += 1
         tryDate = _adjustTryDate(str(e), numDateChanges, limitDateChanges, tryDate)
         if not tryDate:
@@ -45508,7 +45512,6 @@ class CourseAttributes():
           if self.individualStudentAssignments == 'delete':
             entityModifierItemValueListActionNotPerformedWarning([Ent.COURSE, newCourseId, Ent.COURSE_WORK, f'{body.get("title", courseWorkId)}'], Act.MODIFIER_FROM,
                                                                  [Ent.COURSE, self.courseId], 'individualStudentAssignments delete', j, jcount)
-
             continue
           if self.individualStudentAssignments == 'maptoall':
             body['assigneeMode'] = 'ALL_STUDENTS'
