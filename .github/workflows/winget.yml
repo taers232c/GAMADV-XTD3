@@ -8,7 +8,7 @@ jobs:
       - uses: vedantmgoyal2009/winget-releaser@v2
         with:
           identifier: taers232c.GAMADV-XTD3
-          release-tag: v6.77.06
+          release-tag: v6.77.07
           max-versions-to-keep: 1 # keep only latest versions
           installers-regex: '\.msi$'
           token: ${{ secrets.WINGET_TOKEN }}
