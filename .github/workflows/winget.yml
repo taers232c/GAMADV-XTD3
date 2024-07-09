@@ -1,6 +1,8 @@
 name: Publish to WinGet
 on:
   workflow_dispatch:
+env:
+  GDN_SUPPRESS_FORKED_BUILD_WARNING: true
 jobs:
   publish:
     runs-on: windows-latest
