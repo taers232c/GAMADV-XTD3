@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.77.09'
+__version__ = '6.77.10'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -65755,7 +65755,7 @@ def getPhoto(users, profileMode):
             entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], Msg.NOT_ALLOWED, i, count)
             continue
           if showPhotoData:
-            writeStdout(base64.urlsafe_b64encode(photo_data).decode(UTF8)+'\n')
+            writeStdout(base64.encodebytes(photo_data).decode(UTF8))
         except (httplib2.HttpLib2Error, google.auth.exceptions.TransportError, RuntimeError) as e:
           entityActionFailedWarning([Ent.USER, user, Ent.PHOTO, filename], str(e), i, count)
           continue
@@ -66616,7 +66616,7 @@ def _printShowTokens(entityType, users):
 # gam <UserTypeEntity> print tokens|token [todrive <ToDriveAttribute>*] [clientid <ClientID>]
 #	[usertokencounts|(aggregateusersby|orderby clientid|id|appname|displaytext)] [delimiter <Character>]
 # gam <UserTypeEntity> show tokens|token|3lo|oauth [clientid <ClientID>]
-#	[usertokencounts|(aggregateusersby|orderby clientid|id|appname|displaytext_]
+#	[usertokencounts|(aggregateusersby|orderby clientid|id|appname|displaytext)] [delimiter <Character>]
 def printShowTokens(users):
   _printShowTokens(Cmd.ENTITY_USERS, users)
 
