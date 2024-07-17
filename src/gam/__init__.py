@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.77.14'
+__version__ = '6.77.15'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -36918,9 +36918,13 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
       parameters['attendees'].append(addAttendee)
   elif myarg == 'json':
     jsonData = getJSON(EVENT_JSON_CLEAR_FIELDS)
-    if function in {'insert', 'import'}:
+    if function == 'insert':
       body.update(jsonData)
       clearJSONfields(body, EVENT_JSON_INSERT_CLEAR_FIELDS)
+    elif function == 'import':
+      body.update(jsonData)
+      if 'id' in body:
+        body['iCalUID'] = body.pop('id')
     elif function == 'update':
       if 'event' in jsonData and 'attendees' in jsonData['event']:
         parameters['attendees'].extend(jsonData['event'].pop('attendees'))
