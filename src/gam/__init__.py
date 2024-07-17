@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.77.13'
+__version__ = '6.77.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -5703,6 +5703,8 @@ def convertUIDtoEmailAddressWithType(emailAddressOrUID, cd=None, sal=None, email
 # Convert UID to email address
 def convertUIDtoEmailAddress(emailAddressOrUID, cd=None, emailTypes=None,
                              checkForCustomerId=False, ciGroupsAPI=False, aliasAllowed=True):
+  if emailAddressOrUID.startswith('cbcm-browser.'):
+    return emailAddressOrUID
   email, _ = convertUIDtoEmailAddressWithType(emailAddressOrUID, cd, emailTypes,
                                               checkForCustomerId, ciGroupsAPI, aliasAllowed)
   return email
@@ -36916,7 +36918,7 @@ def _getCalendarEventAttribute(myarg, body, parameters, function):
       parameters['attendees'].append(addAttendee)
   elif myarg == 'json':
     jsonData = getJSON(EVENT_JSON_CLEAR_FIELDS)
-    if function == 'insert':
+    if function in {'insert', 'import'}:
       body.update(jsonData)
       clearJSONfields(body, EVENT_JSON_INSERT_CLEAR_FIELDS)
     elif function == 'update':
