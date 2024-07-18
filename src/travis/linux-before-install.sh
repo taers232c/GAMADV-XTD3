@@ -112,3 +112,4 @@ $pip list --outdated | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install 
 $pip cache remove lxml
 $pip install --upgrade -r src/requirements.txt
 $pip install wheel
+$pip install --upgrade setuptools==70.3.0 --force-reinstall
