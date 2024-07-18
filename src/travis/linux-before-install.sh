@@ -49,7 +49,7 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   sudo apt-get -qq --yes update
   sudo apt-get -qq --yes install swig libpcsclite-dev
   sudo apt-get -qq --yes build-dep python3
-  sudo apt-get -qq --yes install setuptools=70.0.3
+  sudo apt-get -qq --yes install setuptools=70.3.0
 
   # Compile latest OpenSSL
   ls -l ${mypath}/sslinstalls
