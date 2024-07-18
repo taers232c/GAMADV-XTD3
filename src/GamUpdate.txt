@@ -1,9 +1,7 @@
-6.78.00
+6.77.17
 
-Added option `showitemcountonly` to `gam print domains`that causes GAM to display the
+Added option `showitemcountonly` to `gam print domains` that causes GAM to display the
 number of domains on stdout; no CSV file is written.
-
-Improved GAM start speed.
 
 6.77.16
 

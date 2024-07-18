@@ -431,8 +431,6 @@ jobs:
             "${PYTHON}" -m pip list
             "${PYTHON}" -m pip install --force-reinstall --no-deps --upgrade cryptography
           fi
-          echo "Unnstall google-api-python-client..."
-          "${PYTHON}" -m pip uninstall --yes google-api-python-client
           echo "after everything..."
           "${PYTHON}" -m pip list
 

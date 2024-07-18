@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.78.00'
+__version__ = '6.77.17'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -147,7 +147,7 @@ import gdata.apps.contacts.service
 import gdata.apps.sites
 import gdata.apps.sites.service
 # Import local library, does not include discovery documents
-from . import googleapiclient
+import googleapiclient
 import googleapiclient.discovery
 import googleapiclient.errors
 import googleapiclient.http
@@ -16109,7 +16109,6 @@ def doPrintShowDomains():
       showItemCountOnly = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
-  getTodriveFJQCOnly(csvPF, FJQC, True)
   try:
     domains = callGAPIitems(cd.domains(), 'list', 'domains',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],

@@ -113,4 +113,3 @@ $pip cache remove lxml
 $pip install --upgrade -r src/requirements.txt
 $pip install wheel
 $pip install --upgrade setuptools==70.3.0 --force-reinstall
-$pip uninstall --yes google-api-python-client
