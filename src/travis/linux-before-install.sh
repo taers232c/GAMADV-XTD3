@@ -1,19 +1,19 @@
 echo "RUNNING: apt update..."
-sudo apt-get -qq --yes update > /dev/null
+sudo apt-get --yes update > /dev/null
 export mypath=$(pwd)
 echo "We are running on Ubuntu $TRAVIS_DIST $PLATFORM"
 ldd --version
 export LD_LIBRARY_PATH=~/ssl/lib:~/python/lib
 export cpucount=$(nproc --all)
 echo "This device has $cpucount CPUs for compiling..."
-sudo apt-get -qq --yes install xz-utils > /dev/null
-sudo apt-get -qq --yes install libwww-curl-perl > /dev/null
+sudo apt-get --yes install xz-utils > /dev/null
+sudo apt-get --yes install libwww-curl-perl > /dev/null
 export SSLVER=$(~/ssl/bin/openssl version)
 export SSLRESULT=$?
 export PYVER=$(~/python/bin/python3 -V)
 export PYRESULT=$?
-sudo apt-get -qq --yes install libxml2-dev > /dev/null
-sudo apt-get -qq --yes install libxslt-dev > /dev/null
+sudo apt-get --yes install libxml2-dev > /dev/null
+sudo apt-get --yes install libxslt-dev > /dev/null
 if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION "* ]] || [ $PYRESULT -ne 0 ] || [[ "$PYVER" != "Python $BUILD_PYTHON_VERSION"* ]]; then
   echo "SSL Result: $SSLRESULT - SSL Ver: $SSLVER - Py Result: $PYRESULT - Py Ver: $PYVER"
   if [ $SSLRESULT -ne 0 ]; then
