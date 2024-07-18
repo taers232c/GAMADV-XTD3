@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.77.16'
+__version__ = '6.78.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -147,7 +147,7 @@ import gdata.apps.contacts.service
 import gdata.apps.sites
 import gdata.apps.sites.service
 # Import local library, does not include discovery documents
-import googleapiclient
+from . import googleapiclient
 import googleapiclient.discovery
 import googleapiclient.errors
 import googleapiclient.http
@@ -16090,18 +16090,34 @@ def doInfoDomain():
 
 DOMAIN_SORT_TITLES = ['domainName', 'parentDomainName', 'creationTime', 'type', 'verified']
 
-# gam print domains [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
-# gam show domains [formatjson]
+# gam print domains [todrive <ToDriveAttribute>*]
+#	[formatjson [quotechar <Character>]]
+#	[showitemcountonly]
+# gam show domains
+#	[formatjson]
+#	[showitemcountonly]
 def doPrintShowDomains():
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(['domainName'], DOMAIN_SORT_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
+  showItemCountOnly = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'showitemcountonly':
+      showItemCountOnly = True
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
   getTodriveFJQCOnly(csvPF, FJQC, True)
   try:
     domains = callGAPIitems(cd.domains(), 'list', 'domains',
                             throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                             customer=GC.Values[GC.CUSTOMER_ID])
     count = len(domains)
+    if showItemCountOnly:
+      writeStdout(f'{count}\n')
+      return
     i = 0
     for domain in domains:
       i += 1

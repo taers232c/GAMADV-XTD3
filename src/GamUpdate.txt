@@ -1,3 +1,10 @@
+6.78.00
+
+Added option `showitemcountonly` to `gam print domains`that causes GAM to display the
+number of domains on stdout; no CSV file is written.
+
+Improved GAM start speed.
+
 6.77.16
 
 Fixed bug in `gam <UserTypeEntity> print filelist` that caused a trap.
