@@ -36,20 +36,20 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   echo "RUNNING: apt upgrade..."
   sudo apt-mark hold openssh-server
   if [[ "$DIST_UPGRADE" == "true" ]]; then
-    sudo apt-get -qq --yes upgrade
-    sudo apt-get -qq --yes --with-new-pkgs upgrade
+    sudo apt-get --yes upgrade
+    sudo apt-get --yes --with-new-pkgs upgrade
   fi
   echo "Installing build tools..."
-  sudo apt-get -qq --yes install build-essential
+  sudo apt-get --yes install build-essential
   echo "Installing deps for python3"
   sudo cp -v /etc/apt/sources.list /tmp
   sudo chmod a+rwx /tmp/sources.list
   echo "deb-src http://archive.ubuntu.com/ubuntu/ $TRAVIS_DIST main" >> /tmp/sources.list
   sudo cp -v /tmp/sources.list /etc/apt
-  sudo apt-get -qq --yes update
-  sudo apt-get -qq --yes install swig libpcsclite-dev
-  sudo apt-get -qq --yes build-dep python3
-  sudo apt-get -qq --yes install setuptools=70.3.0
+  sudo apt-get --yes update
+  sudo apt-get --yes install swig libpcsclite-dev
+  sudo apt-get --yes build-dep python3
+  sudo apt-get --yes install setuptools=70.3.0
 
   # Compile latest OpenSSL
   ls -l ${mypath}/sslinstalls
@@ -105,7 +105,7 @@ $pip install git+https://github.com/pyinstaller/pyinstaller.git@$PYINSTALLER_VER
 cd $mypath
 
 echo "Upgrading pip packages..."
-sudo apt-get -qq --yes install swig libpcsclite-dev libxslt1-dev
+sudo apt-get --yes install swig libpcsclite-dev libxslt1-dev
 $pip install --upgrade pip
 $pip install --upgrade packaging
 $pip list --outdated | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install -U
