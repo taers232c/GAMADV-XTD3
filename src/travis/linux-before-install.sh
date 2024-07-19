@@ -49,7 +49,8 @@ if [ $SSLRESULT -ne 0 ] || [[ "$SSLVER" != "OpenSSL $LINUX_BUILD_OPENSSL_VERSION
   sudo apt-get --yes update
   sudo apt-get --yes install swig libpcsclite-dev
   sudo apt-get --yes build-dep python3
-  sudo apt-get --yes install setuptools=70.3.0
+  sudo apt-get --yes install setuptools
+#  sudo apt-get --yes install setuptools=70.3.0
 
   # Compile latest OpenSSL
   ls -l ${mypath}/sslinstalls
@@ -112,4 +113,4 @@ $pip list --outdated | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 $pip install 
 $pip cache remove lxml
 $pip install --upgrade -r src/requirements.txt
 $pip install wheel
-$pip install --upgrade setuptools==70.3.0 --force-reinstall
+#$pip install --upgrade setuptools==70.3.0 --force-reinstall

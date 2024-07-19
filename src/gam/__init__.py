@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.77.17'
+__version__ = '6.77.18'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -8890,14 +8890,6 @@ def getTodriveOnly(csvPF):
     else:
       unknownArgumentExit()
 
-def getTodriveFJQCOnly(csvPF, FJQC, addTitle=False, noExit=False):
-  while Cmd.ArgumentsRemaining():
-    myarg = getArgument()
-    if csvPF and myarg == 'todrive':
-      csvPF.GetTodriveParameters()
-    else:
-      FJQC.GetFormatJSONQuoteChar(myarg, addTitle, noExit)
-
 DEFAULT_SKIP_OBJECTS = {'kind', 'etag', 'etags', '@type'}
 
 # Clean a JSON object
@@ -15763,18 +15755,33 @@ def _printDomain(domain, csvPF):
 
 DOMAIN_ALIAS_SORT_TITLES = ['domainAliasName', 'parentDomainName', 'creationTime', 'verified']
 
-# gam print domainaliases [todrive <ToDriveAttribute>*] [formatjson [quotechar <Character>]]
-# gam show domainaliases [formatjson]
+# gam print domainaliases [todrive <ToDriveAttribute>*]
+#	[formatjson [quotechar <Character>]]
+#	[showitemcountonly]
+# gam show domainaliases
+#	[formatjson]
+#	[showitemcountonly]
 def doPrintShowDomainAliases():
   cd = buildGAPIObject(API.DIRECTORY)
   csvPF = CSVPrintFile(['domainAliasName'], DOMAIN_ALIAS_SORT_TITLES) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
-  getTodriveFJQCOnly(csvPF, FJQC, True)
+  showItemCountOnly = False
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'showitemcountonly':
+      showItemCountOnly = True
+    else:
+      FJQC.GetFormatJSONQuoteChar(myarg, True)
   try:
     domainAliases = callGAPIitems(cd.domainAliases(), 'list', 'domainAliases',
                                   throwReasons=[GAPI.BAD_REQUEST, GAPI.NOT_FOUND, GAPI.FORBIDDEN],
                                   customer=GC.Values[GC.CUSTOMER_ID])
     count = len(domainAliases)
+    if showItemCountOnly:
+      writeStdout(f'{count}\n')
+      return
     i = 0
     for domainAlias in domainAliases:
       i += 1
