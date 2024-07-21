@@ -4217,6 +4217,18 @@ gam print orgs|ous [todrive <ToDriveAttribute>*]
         [showitemcountonly]
 gam show orgtree [fromparent <OrgUnitItem>] [batchsuborgs [<Boolean>]]
 
+<OrgUnitCheckName> ::=
+        browsers|
+        devices|
+        shareddrives|
+        subous|
+        users
+<OrgUnitCheckNameList> ::= "<OrgUnitCheckName>(,<OrgUnitCheckName>)*"
+
+gam check org|ou <OrgUnitItem> [todrive <ToDriveAttribute>*]
+        [<OrgUnitCheckName>*|(fields <OrgUnitCheckNameList>)]
+        [formatjson [quotechar <Character>]]
+
 # Printers
 
 <PrinterAttribute> ::=
