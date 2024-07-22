@@ -1,3 +1,7 @@
+6.79.00
+
+Updated code to work around a Cryptography library change that caused service account private key creation to fail.
+
 6.78.00
 
 Added command to check if an OU contains items; this is useful when tryng to delete an OU

@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.78.00'
+__version__ = '6.79.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -12348,8 +12348,8 @@ def _generatePrivateKeyAndPublicCert(projectId, clientEmail, name, key_size, b64
     writeStdout(Msg.EXTRACTING_PUBLIC_CERTIFICATE+'\n')
   public_key = private_key.public_key()
   builder = x509.CertificateBuilder()
-  builder = builder.subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
-  builder = builder.issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
+  builder = builder.subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name, _validate=False)]))
+  builder = builder.issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name, _validate=False)]))
   # Gooogle seems to enforce the not before date strictly. Set the not before
   # date to be UTC two minutes ago which should cover any clock skew.
   now = datetime.datetime.utcnow()
