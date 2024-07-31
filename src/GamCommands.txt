@@ -7604,10 +7604,10 @@ gam <UserTypeEntity> check group|groups
         [roles <GroupRoleList>] [includederivedmembership] [csv] <GroupEntity>
 gam <UserTypeEntity> print groups [todrive <ToDriveAttribute>*]
         [(domain <DomainName>)|(customerid <CustomerID>)]
-        [roles <GroupRoleList>] [countsonly|nodetails]
+        [roles <GroupRoleList>] [countsonly|totalonly|nodetails]
 gam <UserTypeEntity> show groups
         [(domain <DomainName>)|(customerid <CustomerID>)]
-        [roles <GroupRoleList>] [countsonly|nodetails]
+        [roles <GroupRoleList>] [countsonly|totalonly|nodetails]
 gam <UserTypeEntity> print grouptree [todrive <ToDriveAttribute>*]
         [(domain <DomainName>)|(customerid <CustomerID>)]
         [roles <GroupRoleList>]
