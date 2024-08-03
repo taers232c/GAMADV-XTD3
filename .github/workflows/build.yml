@@ -433,8 +433,8 @@ jobs:
           fi
           echo "after everything..."
           "${PYTHON}" -m pip list
-          echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-	  ls -l "{$LD_LIBRARY_PATH}/site-packages/googleapiclient/discovery_cache/documents/*.json"
+          echo "Install path: ${PYTHON_INSTALL_PATH}/lib"
+          ls -l "${PYTHON_INSTALL_PATH}/lib/site-packages/googleapiclient/discovery_cache/documents/*.json"
 
       - name: Install PyInstaller
         if: matrix.goal == 'build'
