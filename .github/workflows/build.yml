@@ -397,6 +397,7 @@ jobs:
           "${PYTHON}" -m pip install --upgrade pip
           "${PYTHON}" -m pip install --upgrade wheel
           "${PYTHON}" -m pip install --upgrade setuptools
+#          "${PYTHON}" -m pip install --upgrade setuptools==70.3.0 --force-reinstall
 
       - name: Install pip requirements
         run: |
@@ -433,8 +434,6 @@ jobs:
           fi
           echo "after everything..."
           "${PYTHON}" -m pip list
-          echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-	  ls -l "{$LD_LIBRARY_PATH}/site-packages/googleapiclient/discovery_cache/documents/*.json"
 
       - name: Install PyInstaller
         if: matrix.goal == 'build'
