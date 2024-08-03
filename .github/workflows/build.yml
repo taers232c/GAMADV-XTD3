@@ -434,7 +434,11 @@ jobs:
           echo "after everything..."
           "${PYTHON}" -m pip list
           echo "Install path: ${PYTHON_INSTALL_PATH}/lib"
-          ls -l "${PYTHON_INSTALL_PATH}/lib/site-packages/googleapiclient/discovery_cache/documents/*.json"
+          if [[ "${RUNNER_OS}" != "Windows" ]]; then
+            ls -l "${PYTHON_INSTALL_PATH}/lib/python3.12/site-packages/googleapiclient/discovery_cache/documents/*.json"
+          else
+            ls -l "d:/a/gamadv-xtd3/gamadv-xtd3/src/cpython/lib/site-packages/googleapiclient/discovery_cache/documents/*.json"
+          fi
 
       - name: Install PyInstaller
         if: matrix.goal == 'build'
