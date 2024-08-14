@@ -33,27 +33,27 @@ To run all commands properly, GAMADV-XTD3 requires three things:
 Use these steps if you have never used any version of GAM in your domain. They will create a GAM project
 and all necessary authentications.
 
-| [Downloads] | [Configuration] | [Install] |
+| [Downloads-Installs] | [Configuration] | [Install] |
 |    :---:    |      :---:      |   :---:   |
 
 # Installation - Update Advanced GAM
 Use these steps to update your version of GAMADV-XTD3.
 
-| [Downloads] | [Configuration] | [UpdateAdvanced] |
+| [Downloads-Installs] | [Configuration] | [UpdateAdvanced] |
 |    :---:    |      :---:      |      :---:       |
 
 # Installation - Upgrading from Standard GAM
 Use these steps if you have used any version of Standard GAM in your domain. They will update your GAM project
 and all necessary authentications.
 
-| [Downloads] | [Configuration] | [UpgradeFromStandard] |
+| [Downloads-Installs] | [Configuration] | [UpgradeFromStandard] |
 |    :---:    |      :---:      |         :---:         |
 
 # Installation - Upgrading from a prior version of GAMADV-X or GAMADV-XTD
 Use these steps if you already use GAMADV-X or GAMADV-XTD. The updates may tell you to update your GAM project
 or authentications because new features have been included.
 
-| [Updates]  | [Downloads] | [UpgradeFromAdvanced] |
+| [Updates]  | [Downloads-Installs] | [UpgradeFromAdvanced] |
 |   :---:    |    :---:    |         :---:         |
 
 # Multiple Versions
@@ -64,7 +64,7 @@ You can install multiple versions of GAM and GAMADV-XTD3 in different parallel d
 [GitHub]: https://github.com/taers232c/GAMADV-XTD3/tree/master
 [GitHub GAMADV-XTD3 Wiki]: https://github.com/taers232c/GAMADV-XTD3/wiki
 [Google Groups]: https://groups.google.com/group/google-apps-manager
-[Downloads]: https://github.com/taers232c/GAMADV-XTD3/wiki/Downloads
+[Downloads-Installs]: https://github.com/taers232c/GAMADV-XTD3/wiki/Downloads-Installs
 [Configuration]: https://github.com/taers232c/GAMADV-XTD3/wiki/gam.cfg
 [Install]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Install-Advanced-GAM
 [UpdateAdvanced]: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Update-Advanced-GAM
