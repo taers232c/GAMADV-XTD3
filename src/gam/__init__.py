@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.80.13'
+__version__ = '6.80.14'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -69652,11 +69652,19 @@ def printShowMessagesThreads(users, entityType):
       csvPF.SetTitles(sortTitles)
     else:
       sortTitles = ['User', 'threadId', 'id']
-      csvPF.SetTitles(sortTitles)
       sortTitles.extend(defaultHeaders)
+      if show_size:
+        sortTitles.append('SizeEstimate')
+      if show_labels:
+        sortTitles.extend(['LabelsCount', 'Labels'])
+      if show_snippet:
+        sortTitles.append('Snippet')
+      if show_body:
+        sortTitles.append('Body')
       if addCSVData:
         sortTitles.extend(sorted(addCSVData.keys()))
       _callbacks = {'batch': _callbackPrint, 'process': _printMessage if entityType == Ent.MESSAGE else _printThread}
+    csvPF.SetTitles(sortTitles)
     csvPF.SetSortTitles(sortTitles)
   else:
     if countsOnly:
