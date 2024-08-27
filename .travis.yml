@@ -74,8 +74,8 @@ jobs:
       filter_secrets: false
 
 before_install:
-- yes | gem update --system --force
-- gem install bundler
+#- yes | gem update --system --force
+#- gem install bundler
 - export GAMOS="${TRAVIS_OS_NAME}";
 - export SCRIPT_OS_NAME="${GAMOS}";
   if [ "${TRAVIS_CPU_ARCH}" == "amd64" ]; then
