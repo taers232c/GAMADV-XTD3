@@ -24,12 +24,12 @@ cache:
 jobs:
   fast_finish: true
   include:
-    - os: linux
-      name: "Linux 64-bit Focal"
-      dist: focal
-      language: shell
-      env:
-        - DIST_UPGRADE=true
+#    - os: linux
+#      name: "Linux 64-bit Focal"
+#      dist: focal
+#      language: shell
+#      env:
+#        - DIST_UPGRADE=true
     - os: linux
       name: "Linux 64-bit Bionic"
       dist: bionic
@@ -75,7 +75,7 @@ jobs:
 
 before_install:
 - yes | gem update --system --force
-- gem install bundler -v 2.5.17
+- gem install bundler
 - export GAMOS="${TRAVIS_OS_NAME}";
 - export SCRIPT_OS_NAME="${GAMOS}";
   if [ "${TRAVIS_CPU_ARCH}" == "amd64" ]; then
