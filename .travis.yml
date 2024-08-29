@@ -100,6 +100,9 @@ script:
 - $gam config tls_min_version TLSv1_2 version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]
 
 before_deploy:
+- yes | gem update --system --force
+- gem install bundler
+- gem install uri
 - export TRAVIS_TAG="preview"
 - unset LD_LIBRARY_PATH
 
