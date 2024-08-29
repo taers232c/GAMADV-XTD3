@@ -25,7 +25,7 @@ hiddenimports = [
 
 a = Analysis(
     ['gam/__main__.py'],
-    pathex=['./gam'],
+    pathex=[],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
