@@ -1,13 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 from os import getenv
 from re import search
-from sys import platform,modules
+from sys import platform
 
 from PyInstaller.utils.hooks import copy_metadata
 
 from gam.gamlib.glverlibs import GAM_VER_LIBS
-
-modules['FixTk'] = None
 
 datas = []
 for pkg in GAM_VER_LIBS:
