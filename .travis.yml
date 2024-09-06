@@ -100,10 +100,11 @@ script:
 - $gam config tls_min_version TLSv1_2 version extended location tls-v1-0.badssl.com:1010; [[ $? == 3 ]]
 
 before_deploy:
-- yes | gem update --system --force
-- gem install bundler
-- gem install uri
-- gem install logger
+# Comment out for Linux Xenial and Trusty
+#- yes | gem update --system --force
+#- gem install bundler
+#- gem install uri
+#- gem install logger
 - export TRAVIS_TAG="preview"
 - unset LD_LIBRARY_PATH
 
@@ -115,9 +116,10 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-  edge: true
-#  edge:
-#    branch: v2.0.3-beta.4
+#  edge: true
+# Linux Xenial and Trusty
+  edge:
+    branch: v2.0.3-beta.4
   on:
     repo: taers232c/GAMADV-XTD3
 
