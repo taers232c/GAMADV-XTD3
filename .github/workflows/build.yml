@@ -74,7 +74,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20240829
+          key: gam-${{ matrix.jid }}-20240905
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -299,8 +299,7 @@ jobs:
       - name: Run OpenSSL
         if: matrix.goal == 'build'
         run: |
-          "${OPENSSL_INSTALL_PATH}/bin/openssl" version
-          "${OPENSSL_INSTALL_PATH}/bin/openssl" version -f
+          "${OPENSSL_INSTALL_PATH}/bin/openssl" version -a
           file "${OPENSSL_INSTALL_PATH}/bin/openssl"
 
       - name: Get latest stable Python source
@@ -396,6 +395,7 @@ jobs:
       - name: Run Python
         run: |
           "${PYTHON}" -V
+          "${PYTHON}" -c "import ssl; print(f'Using {ssl.OPENSSL_VERSION}')"
 
       - name: Upgrade pip, wheel, etc
         run: |
@@ -476,6 +476,8 @@ jobs:
           fi
           mkdir -p -v "${gampath}"
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            # brew OpenSSL gets picked up by PyInstaller breaking our self-compiled version
+            brew uninstall --ignore-dependencies openssl
             export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
           elif [[ "${RUNNER_OS}" == "Windows" ]]; then
             # Work around issue where PyInstaller picks up python3.dll from other Python versions
@@ -491,13 +493,18 @@ jobs:
           export distpath="./dist/gamadv-xtd3"
           export gampath="${distpath}"
           "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${distpath}" gam.spec
+          echo "WARNINGS FROM build/gam/warn-gam.txt"
           cat build/gam/warn-gam.txt
+          echo "Analysis FROM build/gam/Analysis-00.toc"
+          cat build/gam/Analysis-00.toc
+          echo "EXE data FROM build/gam/EXE-00.toc"
+          cat build/gam/EXE-00.toc
           if [ -x "$(command -v realpath)" ]; then
-               realpath=realpath
-             else
-               brew install coreutils
-               realpath=grealpath
-             fi
+            realpath=realpath
+          else
+            brew install coreutils
+            realpath=grealpath
+          fi
           export gam=$(realpath "$gam")
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
             export gam=$(cygpath -w "$gam")
