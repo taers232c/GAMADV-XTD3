@@ -44577,8 +44577,10 @@ def _processInboundSSOProfileResult(result, returnNameOnly, kvlist, function):
         entityActionPerformed(kvlist)
     else:
       entityActionFailedWarning(kvlist, result['error']['message'])
-  else:
+  elif not returnNameOnly:
     entityActionPerformedMessage(kvlist, Msg.ACTION_IN_PROGRESS.format(f'{function} inboundssoprofile'))
+  else:
+    writeStdout('inProgress\n')
 
 # gam create inboundssoprofile [name <SSOProfileName>]
 #	[entityid <String>] [loginurl <URL>] [logouturl <URL>] [changepasswordurl <URL>]
