@@ -44741,7 +44741,7 @@ def _showInboundSSOCredentials(credentials, FJQC, i=0, count=0):
   Ind.Decrement()
 
 def _processInboundSSOCredentialsResult(result, kvlist, function):
-  if result['done']:
+  if result.get('done', False):
     if 'error' not in result:
       if 'response' in result:
         _showInboundSSOCredentials(result['response'], None)
