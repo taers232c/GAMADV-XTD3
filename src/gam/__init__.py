@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.81.00'
+__version__ = '6.81.01'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -27143,9 +27143,9 @@ def createMeetSpace(users):
   FJQC = FormatJSONQuoteChar()
   body = {'config': {'accessType': 'TRUSTED',
                      'entryPointAccess': 'ALL',
-                     'moderation': 'OFF',
-                     'moderationRestrictions': {},
-                     'firstJoinerType': 'ANYONE',
+#                     'moderation': 'OFF',
+#                     'moderationRestrictions': {},
+#                     'firstJoinerType': 'ANYONE',
                      }}
   returnIdOnly = False
   updateMask = []
