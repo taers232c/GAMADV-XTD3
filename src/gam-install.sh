@@ -143,16 +143,14 @@ case $gamos in
     gamos="macos"
     case $gamarch in
       x86_64)
-        osversion=$(sw_vers -productVersion)
-        osversion=${osversion:0:2}
+        fullversion=$(sw_vers -productVersion)
+        osversion=${fullversion:0:2}
         case ${osversion:0:2} in
           11|12|13|14)
             gamfile="macos-x86_64.tar.xz";;
           *)
-            gamfile="macos-x86_64-legacy.tar"
-  	    if [ "$gamversion" == "latest" ]; then
- 	      gamversion="6.67.18"
-	    fi
+	    echo_red "Sorry, this version ($fullversion) of MacOS is not supported. Exiting."
+	    exit
             ;;
         esac
         ;;

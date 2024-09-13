@@ -17,7 +17,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-GAMADV-XTD3 is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
+GAM is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
 
 For more information, see:
 https://github.com/taers232c/GAMADV-XTD3
@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '6.81.02'
+__version__ = '7.00.00'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
