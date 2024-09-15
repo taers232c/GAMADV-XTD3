@@ -8244,12 +8244,12 @@ gam <UserTypeEntity> update sheet <DriveFileEntity>
 gam <UserTypeEntity> info|show sheet <DriveFileEntity>
         [fields <SpreadsheetFieldList>] [sheetsfields <SpreadsheetSheetsFieldList>]
         (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
-        [includegriddata [<Boolean>]]
+        [includegriddata [<Boolean>]] [shownames]
         [formatjson]
 gam <UserTypeEntity> print sheet <DriveFileEntity> [todrive <ToDriveAttribute>*]
         [fields <SpreadsheetFieldList>] [sheetsfields <SpreadsheetSheetsFieldList>]
         (range <SpreadsheetRange>)* (rangelist <SpreadsheetRangeList>)*
-        [includegriddata [<Boolean>]]
+        [includegriddata [<Boolean>]] [shownames]
         [formatjson [quotechar <Character>]]
 
 See: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values#ValueRange

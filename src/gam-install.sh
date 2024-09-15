@@ -32,7 +32,7 @@ adminuser=""
 regularuser=""
 gam_x86_64_glibc_vers="2.35 2.31 2.27 2.23 2.19"
 gam_arm64_glibc_vers="2.31 2.27 2.23"
-strip_gamadv_xtd3="--strip-components 0"
+strip_gam="--strip-components 0"
 
 while getopts "hd:a:o:b:lp:u:r:v:s" OPTION
 do
@@ -47,7 +47,7 @@ do
          u) adminuser="$OPTARG";;
          r) regularuser="$OPTARG";;
          v) gamversion="$OPTARG";;
-         s) strip_gamadv_xtd3="--strip-components 1"; target_gam="gam";;
+         s) strip_gam="--strip-components 1"; target_gam="gam";;
          ?) usage; exit;;
      esac
 done
@@ -156,7 +156,6 @@ case $gamos in
         ;;
       arm|arm64|aarch64)
         gamfile="macos-arm64.tar.xz";;
-#        gamfile="macos-universal2.tar.xz";;
       *)
         echo_red "ERROR: this installer currently only supports x86_64 and arm64 MacOS. Looks like you're running on $gamarch. Exiting."
         exit
@@ -273,9 +272,9 @@ mkdir -p "$target_dir"
 
 echo_yellow "Extracting archive to $target_dir"
 if [[ "${name}" == *.tar.xz ]]; then
-  tar $strip_gamadv_xtd3 -xf "$temp_archive_dir"/"$name" -C "$target_dir"
+  tar $strip_gam -xf "$temp_archive_dir"/"$name" -C "$target_dir"
 elif [[ "${name}" == *.tar ]]; then
-  tar $strip_gamadv_xtd3 -xf "$temp_archive_dir"/"$name" -C "$target_dir"
+  tar $strip_gam -xf "$temp_archive_dir"/"$name" -C "$target_dir"
 else
   unzip "${temp_archive_dir}/${name}" -d "${target_dir}"
 fi
