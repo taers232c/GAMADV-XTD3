@@ -101,10 +101,10 @@ script:
 
 before_deploy:
 # Comment out for Linux Xenial and Trusty
-#- yes | gem update --system --force
-#- gem install bundler
-#- gem install uri
-#- gem install logger
+- yes | gem update --system --force
+- gem install bundler
+- gem install uri
+- gem install logger
 - export TRAVIS_TAG="preview"
 - unset LD_LIBRARY_PATH
 
@@ -117,9 +117,9 @@ deploy:
   skip_cleanup: true
   draft: true
   edge:
-#    branch: v2.0.5-beta.1
+    branch: v2.0.5-beta.1
 # Linux Xenial and Trusty
-    branch: v2.0.3-beta.4
+#    branch: v2.0.3-beta.4
   on:
     repo: taers232c/GAMADV-XTD3
 

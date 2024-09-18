@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '7.00.02'
+__version__ = '7.00.03'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -9190,6 +9190,7 @@ MACOS_CODENAMES = {
   12: 'Monterey',
   13: 'Ventura',
   14: 'Sonoma',
+  15: 'Sequoia',
   }
 
 def getOSPlatform():
@@ -9231,7 +9232,7 @@ def doCheckConnection():
       api_hosts.append(host)
   hosts.extend(sorted(api_hosts))
   host_count = len(hosts)
-  httpObj = getHttpObj(timeout=10)
+  httpObj = getHttpObj(timeout=30)
   httpObj.follow_redirects = False
   headers = {'user-agent': GAM_USER_AGENT}
   okay = createGreenText('OK')
@@ -16623,13 +16624,15 @@ def doPrintShowAdmins():
   try:
     admins = callGAPIpages(cd.roleAssignments(), 'list', 'items',
                            pageMessage=getPageMessage(),
-                           throwReasons=[GAPI.INVALID, GAPI.USER_NOT_FOUND, GAPI.BAD_REQUEST,
-                                         GAPI.CUSTOMER_NOT_FOUND, GAPI.FORBIDDEN],
+                           throwReasons=[GAPI.INVALID, GAPI.USER_NOT_FOUND,
+                                         GAPI.FORBIDDEN, GAPI.SERVICE_NOT_AVAILABLE,
+                                         GAPI.BAD_REQUEST, GAPI.CUSTOMER_NOT_FOUND],
+                           retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                            customer=GC.Values[GC.CUSTOMER_ID], fields=fields, **kwargs)
   except (GAPI.invalid, GAPI.userNotFound):
     entityUnknownWarning(Ent.ADMINISTRATOR, userKey)
     return
-  except GAPI.forbidden as e:
+  except (GAPI.forbidden, GAPI.serviceNotAvailable) as e:
     entityActionFailedExit([Ent.ADMINISTRATOR, userKey, Ent.ADMIN_ROLE, roleId], str(e))
   except (GAPI.badRequest, GAPI.customerNotFound):
     accessErrorExit(cd)
@@ -17334,14 +17337,17 @@ def _doDeleteOrgs(entityList):
     try:
       orgUnitPath = makeOrgUnitPathAbsolute(orgUnitPath)
       callGAPI(cd.orgunits(), 'delete',
-               throwReasons=[GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR, GAPI.BAD_REQUEST, GAPI.INVALID_CUSTOMER_ID, GAPI.LOGIN_REQUIRED],
+               throwReasons=[GAPI.CONDITION_NOT_MET, GAPI.INVALID_ORGUNIT, GAPI.ORGUNIT_NOT_FOUND, GAPI.BACKEND_ERROR,
+                             GAPI.INVALID_CUSTOMER_ID, GAPI.SERVICE_NOT_AVAILABLE,
+                             GAPI.BAD_REQUEST,  GAPI.LOGIN_REQUIRED],
+               retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                customerId=GC.Values[GC.CUSTOMER_ID], orgUnitPath=encodeOrgUnitPath(makeOrgUnitPathRelative(orgUnitPath)))
       entityActionPerformed([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], i, count)
     except GAPI.conditionNotMet:
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.HAS_CHILD_ORGS.format(Ent.Plural(Ent.ORGANIZATIONAL_UNIT)), i, count)
     except (GAPI.invalidOrgunit, GAPI.orgunitNotFound, GAPI.backendError):
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath], Msg.DOES_NOT_EXIST, i, count)
-    except GAPI.invalidCustomerId as e:
+    except (GAPI.invalidCustomerId, GAPI.serviceNotAvailable) as e:
 ### Check for my_customer
       entityActionFailedWarning([Ent.ORGANIZATIONAL_UNIT, orgUnitPath, Ent.CUSTOMER_ID, GC.Values[GC.CUSTOMER_ID]], str(e), i, count)
     except (GAPI.badRequest, GAPI.loginRequired):
