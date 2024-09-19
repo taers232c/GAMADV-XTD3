@@ -116,8 +116,9 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-  edge:
-    branch: v2.0.5-beta.1
+  edge: true
+#  edge:
+#    branch: v2.0.5-beta.1
 # Linux Xenial and Trusty
 #    branch: v2.0.3-beta.4
   on:
