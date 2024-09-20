@@ -110,11 +110,11 @@ deploy:
   file: gamadv-xtd3-$GAMVERSION-*
   skip_cleanup: true
   draft: true
-#  edge: true
+  edge: true
 # Linux Xenial and Trusty
-  edge:
+#  edge:
 #    branch: v2.0.3-beta.4
-    branch: v2.0.5-beta.1
+#    branch: v2.0.5-beta.1
   on:
     repo: taers232c/GAMADV-XTD3
 
