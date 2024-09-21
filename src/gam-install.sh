@@ -150,7 +150,7 @@ case $gamos in
         ;;
       arm|arm64|aarch64)
         gamfile="macos-arm64.tar.xz"
-	minimum_version=14
+	minimum_version=13
         ;;
       *)
         echo_red "ERROR: this installer currently only supports x86_64 and arm64 MacOS. Looks like you're running on $gamarch. Exiting."
