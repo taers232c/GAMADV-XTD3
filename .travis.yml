@@ -114,7 +114,7 @@ deploy:
 #  edge: true
 # Linux Xenial and Trusty
   edge:
-    branch: v2.0.5-beta.1
+    branch: v2.0.3-beta.4
   on:
     repo: taers232c/GAMADV-XTD3
 
