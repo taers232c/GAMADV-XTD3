@@ -1,3 +1,7 @@
+7.00.12
+
+Updated support for `Folders with limited access`; this is a work in progress.
+
 7.00.11
 
 Updated to Python 3.12.7 where possible.

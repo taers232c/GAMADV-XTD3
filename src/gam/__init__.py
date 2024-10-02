@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '7.00.11'
+__version__ = '7.00.12'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -4670,8 +4670,7 @@ def getAPIService(api, httpObj):
 
 def getService(api, httpObj):
 ### Drive v3beta
-  if api == API.DRIVE3 and GC.Values[GC.DRIVE_V3_BETA]:
-    api = API.DRIVE3B
+  mapDriveURL = api == API.DRIVE3 and GC.Values[GC.DRIVE_V3_BETA]
   hasLocalJSON = API.hasLocalJSON(api)
   api, version, v2discovery = API.getVersion(api)
   if api in GM.Globals[GM.CURRENT_API_SERVICES] and version in GM.Globals[GM.CURRENT_API_SERVICES][api]:
@@ -4687,6 +4686,9 @@ def getService(api, httpObj):
                                                   discoveryServiceUrl=DISCOVERY_URIS[v2discovery], static_discovery=False)
         GM.Globals[GM.CURRENT_API_SERVICES].setdefault(api, {})
         GM.Globals[GM.CURRENT_API_SERVICES][api][version] = service._rootDesc.copy()
+### Drive v3beta
+        if mapDriveURL:
+          setattr(service, '_baseUrl', getattr(service, '_baseUrl').replace('/v3/', '/v3beta/'))
         if GM.Globals[GM.CACHE_DISCOVERY_ONLY]:
           clearServiceCache(service)
         return service
@@ -53774,12 +53776,12 @@ def showFileInfo(users):
       j += 1
       try:
         result = callGAPI(drive.files(), 'get',
-                          throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                          throwReasons=GAPI.DRIVE_GET_THROW_REASONS+[GAPI.INVALID],
                           fileId=fileId, includeLabels=includeLabels, fields=fields, supportsAllDrives=True)
         if followShortcuts and result['mimeType'] == MIMETYPE_GA_SHORTCUT:
           fileId = result['shortcutDetails']['targetId']
           result = callGAPI(drive.files(), 'get',
-                            throwReasons=GAPI.DRIVE_GET_THROW_REASONS,
+                            throwReasons=GAPI.DRIVE_GET_THROW_REASONS+[GAPI.INVALID],
                             fileId=fileId, includeLabels=includeLabels, fields=fields, supportsAllDrives=True)
         if stripCRsFromName:
           result['name'] = _stripControlCharsFromName(result['name'])
@@ -55649,7 +55651,11 @@ def printFileList(users):
           continue
         extendFileTreeParents(drive, fileTree, fields)
         DLP.GetLocationFileIdsFromTree(fileTree, fileIdEntity)
-      except (GAPI.invalidQuery, GAPI.invalid, GAPI.badRequest):
+      except (GAPI.invalidQuery, GAPI.invalid, GAPI.badRequest) as e:
+        errMsg = str(e)
+        if 'Invalid field selection' in errMsg:
+          entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], errMsg, i, count)
+          break
         entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], invalidQuery(DLP.fileIdEntity['query']), i, count)
         if not continueOnInvalidQuery:
           break
