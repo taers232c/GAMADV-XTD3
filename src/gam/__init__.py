@@ -4734,8 +4734,6 @@ def defaultSvcAcctScopes():
   saScopes[API.DRIVE2] = saScopes[API.DRIVE3]
   saScopes[API.DRIVETD] = saScopes[API.DRIVE3]
   saScopes[API.SHEETSTD] = saScopes[API.SHEETS]
-### Drive v3beta
-  saScopes[API.DRIVE3B] = saScopes[API.DRIVE3]
   return saScopes
 
 def _getSvcAcctData():
@@ -56233,7 +56231,7 @@ def printShowFileCounts(users):
     if showSize or (DLP.minimumFileSize is not None) or (DLP.maximumFileSize is not None):
       fieldsList.append(sizeField)
     if showLastModification:
-      fieldsList.extend(['id,name,modifiedTime,lastModifyingUser(emailAddress)'])
+      fieldsList.extend(['id,name,modifiedTime,lastModifyingUser(me, displayName, emailAddress)'])
     if DLP.filenameMatchPattern:
       fieldsList.append('name')
     if DLP.excludeTrashed:
@@ -56428,7 +56426,8 @@ def printShowFileCounts(users):
               userLastModification['lastModifiedFileId'] = f_file['id']
               userLastModification['lastModifiedFileName'] = _stripControlCharsFromName(f_file['name'])
               userLastModification['lastModifiedTime'] = f_file['modifiedTime']
-              userLastModification['lastModifyingUser'] = f_file['lastModifyingUser'].get('emailAddress', UNKNOWN)
+              userLastModification['lastModifyingUser'] = f_file['lastModifyingUser'].get('emailAddress',
+                                                                                          f_file['lastModifyingUser'].get('displayName', UNKNOWN))
       showMimeTypeInfo(user, mimeTypeInfo, sharedDriveId, sharedDriveName, userLastModification, i, count)
       if showLastModification and userLastModification['lastModifiedTime'] > summaryLastModification['lastModifiedTime']:
         summaryLastModification = userLastModification.copy()
