@@ -1,3 +1,7 @@
+7.00.13
+
+Align version number with GAM7.
+
 7.00.12
 
 Updated option `showlastmodification` to `gam <UserTypeEntity> print|show filecounts` to handle
