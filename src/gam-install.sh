@@ -30,7 +30,7 @@ upgrade_only=false
 gamversion="latest"
 adminuser=""
 regularuser=""
-gam_x86_64_glibc_vers="2.35 2.31 2.27 2.23 2.19"
+gam_x86_64_glibc_vers="2.39 2.35 2.31 2.27 2.23 2.19"
 gam_arm64_glibc_vers="2.31 2.27 2.23"
 strip_gam="--strip-components 0"
 
