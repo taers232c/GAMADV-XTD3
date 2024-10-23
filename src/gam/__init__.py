@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '7.00.26'
+__version__ = '7.00.27'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -54504,7 +54504,7 @@ def extendFileTree(fileTree, feed, DLP, stripCRsFromName):
         if f_file['mimeType'] == MIMETYPE_GA_FOLDER and f_file['name'] == MY_DRIVE:
           f_file['parents'] = []
         else:
-          f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) else [SHARED_WITHME]
+          f_file['parents'] = [ORPHANS] if f_file.get('ownedByMe', False) and 'sharedWithMeTime' not in f_file else [SHARED_WITHME]
       else:
         f_file['parents'] = [SHARED_DRIVES] if 'sharedWithMeTime' not in f_file else [SHARED_WITHME]
     if fileId not in fileTree:
@@ -54524,11 +54524,11 @@ def extendFileTreeParents(drive, fileTree, fields):
                         fileId=fileId, fields=fields, supportsAllDrives=True)
       if not result.get('parents', []):
         if not result.get('driveId'):
-          result['parents'] = [ORPHANS] if result.get('ownedByMe', False) else [SHARED_WITHME]
+          result['parents'] = [ORPHANS] if result.get('ownedByMe', False) and 'sharedWithMeTime' not in result else [SHARED_WITHME]
         else:
           if result['name'] == TEAM_DRIVE:
             result['name'] = _getSharedDriveNameFromId(drive, result['driveId'])
-          result['parents'] = [SHARED_DRIVES] if 'sharedWithMeTime' not in f_file else [SHARED_WITHME]
+          result['parents'] = [SHARED_DRIVES] if 'sharedWithMeTime' not in result else [SHARED_WITHME]
       fileTree[fileId]['info'] = result
       fileTree[fileId]['info']['noDisplay'] = True
       for parentId in result['parents']:
@@ -60723,7 +60723,8 @@ def collectOrphans(users):
                            pageMessage=getPageMessageForWhom(),
                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS,
                            retryReasons=[GAPI.UNKNOWN_ERROR],
-                           q=query, orderBy=OBY.orderBy, fields='nextPageToken,files(id,name,parents,mimeType,capabilities(canMoveItemWithinDrive))',
+                           q=query, orderBy=OBY.orderBy,
+                           fields='nextPageToken,files(id,name,parents,mimeType,sharedWithMeTime,capabilities(canMoveItemWithinDrive))',
                            pageSize=GC.Values[GC.DRIVE_MAX_RESULTS])
       if targetUserFolderPattern:
         trgtUserFolderName = _substituteForUser(targetUserFolderPattern, user, userName)
@@ -60735,7 +60736,7 @@ def collectOrphans(users):
         continue
       orphanDriveFiles = []
       for fileEntry in feed:
-        if not fileEntry.get('parents'):
+        if not fileEntry.get('parents') and 'sharedWithMeTime' not in fileEntry:
           orphanDriveFiles.append(fileEntry)
       jcount = len(orphanDriveFiles)
       entityPerformActionNumItemsModifier([Ent.USER, user], jcount, Ent.DRIVE_ORPHAN_FILE_OR_FOLDER,
