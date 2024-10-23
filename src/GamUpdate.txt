@@ -5,6 +5,15 @@ that a file owned by a user that has no parents is not an orphan if `sharedWithM
 This occurs when user A creates a file in a shared folder owned by user B and user B then removes
 user A's access to the folder.
 
+Added commands to display Cloud Identity policies.
+```
+gam print policies [todrive <ToDriveAttribute>*]
+        (query <String>) [nowarnings]
+        [formatjson [quotechar <Character>]]
+gam show policies (query <String>) [nowarnings]
+        [formatjson]
+```
+
 7.00.26
 
 Updated `drive_dir` in `gam.cfg` to allow the value `.` that causes `redirect csv|stdout|stderr <FileName>`
@@ -1231,7 +1240,7 @@ Batch processing will suspend for `<Integer>` seconds before the next command li
 
 Added the following options to `<PermissionMatch>` that allow more powerful matching.
 ```
-nottype	<DriveFileACLType>
+nottype <DriveFileACLType>
 typelist <DriveFileACLTypeList>
 nottypelist <DriveFileACLTypeList>
 rolelist <DriveFileACLRoleList>
