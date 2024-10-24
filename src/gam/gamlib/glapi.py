@@ -368,8 +368,9 @@ _CLIENT_SCOPES = [
    'scope': 'https://www.googleapis.com/auth/cloud-identity.orgunits'},
   {'name': 'Cloud Identity - Policy',
    'api': CLOUDIDENTITY_POLICY,
-   'subscopes': [],
-   'scope': 'https://www.googleapis.com/auth/cloud-identity.policies.readonly'
+   'subscopes': REDONLY,
+   'roByDefault': True,
+   'scope': 'https://www.googleapis.com/auth/cloud-identity.policies'
   },
   {'name': 'Cloud Identity User Invitations API',
    'api': CLOUDIDENTITY_USERINVITATIONS,
@@ -491,6 +492,7 @@ _CLIENT_SCOPES = [
   {'name': 'Site Verification API',
    'api': SITEVERIFICATION,
    'subscopes': [],
+   'offByDefault': True,
    'scope': 'https://www.googleapis.com/auth/siteverification'},
   {'name': 'Sites API',
    'api': SITES,
