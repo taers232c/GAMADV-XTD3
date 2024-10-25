@@ -2,7 +2,7 @@
 
 Added command to display selected Cloud Identity policies.
 ```
-gam info policies <CIPolicyEntity>
+gam info policies <CIPolicyNameEntity>
         [nowarnings]
         [formatjson]
 ```
