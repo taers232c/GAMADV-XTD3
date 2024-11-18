@@ -95,10 +95,10 @@ script:
 
 before_deploy:
 # Comment out for Linux Xenial and Trusty
-#- yes | gem update --system --force
-#- gem install bundler
-#- gem install uri
-#- gem install logger
+- yes | gem update --system --force
+- gem install bundler
+- gem install uri
+- gem install logger
 - export TRAVIS_TAG="preview"
 - unset LD_LIBRARY_PATH
 
