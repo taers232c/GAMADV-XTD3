@@ -17,6 +17,10 @@ Documentation for GAMADV-XTD3 is hosted in the [GitHub GAMADV-XTD3 Wiki] and in 
 # Mailing List / Discussion group
 The GAM mailing list / discussion group is hosted on [Google Groups].  You can join the list and interact via email, or just post from the web itself.
 
+# Chat Room
+
+There is a public chat room hosted in Google Chat. [Instructions to join](https://github.com/GAM-team/GAM/wiki/GAM-Public-Chat-Room).
+
 # Source Repository
 The official GAMADV-XTD3 source repository is on [GitHub] in the master branch.
 

@@ -185,13 +185,19 @@ fi
 
 if [ -z ${GHCLIENT+x} ]; then
   check_type="unauthenticated"
-  echo_yellow "Checking GitHub URL $release_url for $gamversion GAM release ($check_type)..."
-  release_json=$(curl -s "$release_url" 2>&1 /dev/null)
+  curl_opts=( )
 else
   check_type="authenticated"
-  echo_yellow "Checking GitHub URL $release_url for $gamversion GAM release ($check_type)..."
-  release_json=$(curl -s "$GHCLIENT" "$release_url" 2>&1 /dev/null)
+  curl_opts=( "$GHCLIENT" )
 fi
+echo_yellow "Checking GitHub URL $release_url for $gamversion GAM release ($check_type)..."
+release_json=$(curl \
+	--silent \
+	"${curl_opts[@]}" \
+	-H "Accept: application/vnd.github+json" \
+	-H "X-GitHub-Api-Version: 2022-11-28" \
+	"$release_url" \
+	2>&1 /dev/null)
 
 echo_yellow "Getting file and download URL..."
 # Python is sadly the nearest to universal way to safely handle JSON with Bash
@@ -257,7 +263,6 @@ if [[ ${name:0:5} = "ERROR" ]]; then
   exit
 fi
 # Temp dir for archive
-#temp_archive_dir=$(mktemp -d)
 temp_archive_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
 
 # Clean up after ourselves even if we are killed with CTRL-C
@@ -274,12 +279,13 @@ fi
 mkdir -p "$target_dir"
 
 echo_yellow "Extracting archive to $target_dir"
-if [[ "${name}" == *.tar.xz ]]; then
+if [[ "$name" =~ tar.xz|tar.gz|tar ]]; then
   tar $strip_gam -xf "$temp_archive_dir"/"$name" -C "$target_dir"
-elif [[ "${name}" == *.tar ]]; then
-  tar $strip_gam -xf "$temp_archive_dir"/"$name" -C "$target_dir"
+elif [[ "$name" == *.zip ]]; then
+  unzip -o "${temp_archive_dir}/${name}" -d "${target_dir}"
 else
-  unzip "${temp_archive_dir}/${name}" -d "${target_dir}"
+  echo "I don't know what to do with files like ${name}. Giving up."
+  exit 1
 fi
 rc=$?
 if (( $rc != 0 )); then
