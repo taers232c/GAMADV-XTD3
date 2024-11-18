@@ -97,6 +97,7 @@ before_deploy:
 # Comment out for Linux Xenial and Trusty
 - yes | gem update --system --force
 - gem install bundler
+- gem install faraday-net_http -v '3.3.0' # Fix faraday version
 - gem install uri
 - gem install logger
 - export TRAVIS_TAG="preview"
