@@ -146,7 +146,7 @@ case $gamos in
     case $gamarch in
       x86_64)
         gamfile="macos-x86_64.tar.xz"
-	minimum_version=11
+	minimum_version=13
         ;;
       arm|arm64|aarch64)
         gamfile="macos-arm64.tar.xz"

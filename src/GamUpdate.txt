@@ -1,5 +1,7 @@
 7.00.39
 
+Due to build site changes, GAM will no longer run on MacOS 12 Monterey.
+
 Minor code fixes.
 
 7.00.38
