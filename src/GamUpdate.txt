@@ -1,3 +1,8 @@
+7.01.01
+
+Fixed bug in `gam <UserTypeEntity> print|show filetree` where no error message was generated
+if a user had Drive disabled.
+
 7.01.00
 
 Fixed bug in `gam update chromepolicy` that caused some policy updates to fail.
