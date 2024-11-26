@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '7.01.01'
+__version__ = '7.01.02'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -51919,6 +51919,7 @@ QUERY_SHORTCUTS_MAP = {
   'allshortcuts': f"mimeType = '{MIMETYPE_GA_SHORTCUT}'",
   'all3pshortcuts': f"mimeType = '{MIMETYPE_GA_3P_SHORTCUT}'",
   'allitems': 'allitems',
+  'mycommentableitems': ME_IN_OWNERS_AND+f"(mimeType = '{MIMETYPE_GA_DOCUMENT}' or mimeType = '{MIMETYPE_GA_SPREADSHEET}' or mimeType = '{MIMETYPE_GA_PRESENTATION}')",
   'mydocs': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_DOCUMENT}'",
   'myfiles': ME_IN_OWNERS_AND+f"mimeType != '{MIMETYPE_GA_FOLDER}'",
   'myfolders': ME_IN_OWNERS_AND+f"mimeType = '{MIMETYPE_GA_FOLDER}'",
@@ -56206,14 +56207,14 @@ def _showComment(comment, stripPhotoLinks, timeObjects, i=0, count=0, FJQC=None)
   Ind.Decrement()
 
 # gam <UserTypeEntity> show filecomments <DriveFileEntity>
-#	[showdeleted] [start <Date>|<Time>] [countsonly]
+#	[showdeleted] [start <Date>|<Time>] [countsonly|positivecountsonly]
 #	[fields <CommentsFieldNameList>] [showphotolinks]
 #	[countsonly]
 #	[formatjson]
 # gam <UserTypeEntity> print filecomments <DriveFileEntity> [todrive <ToDriveAttribute>*]
 #	[showdeleted] [start <Date>|<Time>]
 #	[fields <CommentsFieldNameList>] [showphotolinks]
-#	[countsonly]
+#	[countsonly|positivecountsonly]
 #	(addcsvdata <FieldName> <String>)*
 #	[formatjson [quotechar <Character>]]
 def printShowFileComments(users):
@@ -56238,7 +56239,7 @@ def printShowFileComments(users):
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
   fileIdEntity = getDriveFileEntity()
-  countsOnly = False
+  countsOnly = positiveCountsOnly = False
   stripPhotoLinks = True
   kwargs = {}
   addCSVData = {}
@@ -56259,6 +56260,8 @@ def printShowFileComments(users):
       addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
     elif myarg == 'countsonly':
       countsOnly = True
+    elif myarg == 'positivecountsonly':
+      countsOnly = positiveCountsOnly = True
     else:
       FJQC.GetFormatJSONQuoteChar(myarg)
   if csvPF:
@@ -56312,7 +56315,8 @@ def printShowFileComments(users):
           numReplies += len(comment['replies'])
       if not csvPF:
         if countsOnly:
-          printKeyValueList([Ent.Singular(Ent.DRIVE_FILE_ID), fileId, 'comments', kcount, 'replies', numReplies])
+          if not positiveCountsOnly or kcount > 0:
+            printKeyValueList([Ent.Singular(Ent.DRIVE_FILE_ID), fileId, 'comments', kcount, 'replies', numReplies])
         else:
           if not FJQC.formatJSON:
             entityPerformActionNumItems([Ent.DRIVE_FILE_ID, fileId], kcount, Ent.DRIVE_FILE_COMMENT, j, jcount)
@@ -56324,12 +56328,13 @@ def printShowFileComments(users):
               _showComment(comment, stripPhotoLinks, timeObjects, k, kcount, FJQC)
         Ind.Decrement()
       elif countsOnly:
-        row = {'User': user, 'fileId': fileId}
-        if addCSVData:
-          row.update(addCSVData)
-        row['comments'] = kcount
-        row['replies'] = numReplies
-        csvPF.WriteRowTitles(row)
+        if not positiveCountsOnly or kcount > 0:
+          row = {'User': user, 'fileId': fileId}
+          if addCSVData:
+            row.update(addCSVData)
+          row['comments'] = kcount
+          row['replies'] = numReplies
+          csvPF.WriteRowTitles(row)
       elif comments:
         baserow = {'User': user, 'fileId': fileId}
         if addCSVData:
