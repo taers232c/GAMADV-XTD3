@@ -6,8 +6,7 @@ dist: focal
 
 env:
   global:
-#    - BUILD_PYTHON_VERSION=3.12.5
-    - BUILD_PYTHON_VERSION=3.12.8
+    - BUILD_PYTHON_VERSION=3.12.5
     - MIN_PYTHON_VERSION=3.12.5
     - LINUX_BUILD_OPENSSL_VERSION=3.3.1
     - LINUX_MIN_OPENSSL_VERSION=3.3.1
@@ -49,6 +48,7 @@ jobs:
       arch: arm64
       language: shell
       env:
+        - BUILD_PYTHON_VERSION=3.12.8
         - DIST_UPGRADE=false
       filter_secrets: false
     - os: linux
