@@ -23,39 +23,49 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-24.04
+          - os: ubuntu-22.04
             jid: 1
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             jid: 2
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04-arm
             jid: 3
+            goal: build
+            arch: aarch64
+            openssl_archs: linux-aarch64
+          - os: ubuntu-22.04-arm
+            jid: 4
+            goal: build
+            arch: aarch64
+            openssl_archs: linux-aarch64
+          - os: ubuntu-20.04
+            jid: 5
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
           - os: ubuntu-20.04
-            jid: 4
+            jid: 6
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
             staticx: yes
           - os: macos-13
-            jid: 5
+            jid: 7
             goal: build
             arch: x86_64
             openssl_archs: darwin64-x86_64
           - os: macos-14
-            jid: 6
+            jid: 8
             goal: build
             arch: arm64
             openssl_archs: darwin64-arm64
           - os: windows-2022
-            jid: 7
+            jid: 9
             goal: build
             arch: Win64
             openssl_archs: VC-WIN64A
@@ -74,7 +84,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20241203
+          key: gam-${{ matrix.jid }}-20250118
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
