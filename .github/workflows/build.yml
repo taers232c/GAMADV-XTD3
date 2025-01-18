@@ -23,49 +23,55 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             jid: 1
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
-          - os: ubuntu-24.04
+          - os: ubuntu-22.04
             jid: 2
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
-          - os: ubuntu-24.04-arm
-            jid: 3
-            goal: build
-            arch: aarch64
-            openssl_archs: linux-aarch64
-          - os: ubuntu-22.04-arm
-            jid: 4
-            goal: build
-            arch: aarch64
-            openssl_archs: linux-aarch64
           - os: ubuntu-20.04
-            jid: 5
+            jid: 3
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
           - os: ubuntu-20.04
-            jid: 6
+            jid: 4
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
             staticx: yes
-          - os: macos-13
+          - os: ubuntu-24.04-arm
+            jid: 5
+            goal: build
+            arch: aarch64
+            openssl_archs: linux-aarch64
+          - os: ubuntu-22.04-arm
+            jid: 6
+            goal: build
+            arch: aarch64
+            openssl_archs: linux-aarch64
+          - os: ubuntu-22.04-arm
             jid: 7
+            goal: build
+            arch: aarch64
+            openssl_archs: linux-aarch64
+            staticx: yes
+          - os: macos-13
+            jid: 8
             goal: build
             arch: x86_64
             openssl_archs: darwin64-x86_64
           - os: macos-14
-            jid: 8
+            jid: 9
             goal: build
             arch: arm64
             openssl_archs: darwin64-arm64
           - os: windows-2022
-            jid: 9
+            jid: 10
             goal: build
             arch: Win64
             openssl_archs: VC-WIN64A
@@ -138,7 +144,7 @@ jobs:
           echo "GAMOS is: ${GAMOS}"
 
       - name: Install necessary Github-hosted Linux packages
-        if: runner.os == 'Linux' && runner.arch == 'X64'
+        if: runner.os == 'Linux'
         run: |
           echo "RUNNING: apt update..."
           sudo apt-get -qq --yes update
@@ -249,7 +255,8 @@ jobs:
       - name: Rename GNU link on Windows
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
         shell: bash
-        run: mv /usr/bin/link /usr/bin/gnulink
+        run: |
+          mv -v /usr/bin/link /usr/bin/gnulink
 
       - name: Make OpenSSL
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit != 'true'
@@ -267,7 +274,7 @@ jobs:
               cd "${GITHUB_WORKSPACE}/src/openssl-${openssl_arch}"
               # install_sw saves us ages processing man pages :-)
               $MAKE install_sw
-              mv "${OPENSSL_INSTALL_PATH}" "${GITHUB_WORKSPACE}/bin/ssl-${openssl_arch}"
+              mv -v "${OPENSSL_INSTALL_PATH}" "${GITHUB_WORKSPACE}/bin/ssl-${openssl_arch}"
             done
             mkdir -vp "${OPENSSL_INSTALL_PATH}/lib"
             mkdir -vp "${OPENSSL_INSTALL_PATH}/bin"
@@ -339,7 +346,8 @@ jobs:
                       --enable-optimizations \
                       --with-lto \
                       --disable-test-modules \
-                      "${extra_args[@]}"
+                      "${extra_args[@]}" || : # exit 0
+          cat config.log
 
       - name: Windows Get External Python deps
         if: matrix.goal == 'build' && runner.os == 'Windows' && steps.cache-python-ssl.outputs.cache-hit != 'true'
@@ -526,17 +534,20 @@ jobs:
       - name: Copy extra package files
         if: matrix.goal == 'build'
         run: |
-          cp -v cacerts.pem $gampath
-          cp -v LICENSE $gampath
-          cp -v license.rtf $gampath
-          cp -v Gam*.txt $gampath
+          cp -v cacerts.pem "$gampath"
+          cp -v LICENSE "$gampath"
+          cp -v license.rtf "$gampath"
+          cp -v Gam*.txt "$gampath"
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
-              cp -v gam-setup.bat $gampath
+              cp -v gam-setup.bat "$gampath"
           fi
 
       - name: Install StaticX
         if: matrix.staticx == 'yes'
         run: |
+          sudo apt-get -qq --yes update
+          # arm64 needs to build a wheel and needs scons to build
+          sudo apt-get -qq --yes install scons
           "${PYTHON}" -m pip install --upgrade patchelf-wrapper
           "${PYTHON}" -m pip install --upgrade staticx
 
