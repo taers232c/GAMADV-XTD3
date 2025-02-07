@@ -25,7 +25,7 @@ https://github.com/taers232c/GAMADV-XTD3/wiki
 """
 
 __author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '7.03.04'
+__version__ = '7.03.06'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -7355,6 +7355,12 @@ def addFieldToFieldsList(fieldName, fieldsChoiceMap, fieldsList):
 
 def _getFieldsList():
   return getString(Cmd.OB_FIELD_NAME_LIST).lower().replace('_', '').replace(',', ' ').split()
+
+def _getRawFieldsList(requiredField=None):
+  rawFieldsList = getString(Cmd.OB_FIELDS)
+  if requiredField is not None and requiredField not in rawFieldsList:
+    rawFieldsList = f'{requiredField},{rawFieldsList}'
+  return rawFieldsList
 
 def _addInitialField(fieldsList, initialField):
   if isinstance(initialField, list):
@@ -16568,7 +16574,7 @@ def doInfoAdminRole():
       fieldsList.append('rolePrivileges')
     else:
       unknownArgumentExit()
-  fields = ','.join(set(fieldsList))
+  fields = getFieldsFromFieldsList(fieldsList)
   try:
     role = callGAPI(cd.roles(), 'get',
                     throwReasons=[GAPI.NOT_FOUND, GAPI.FORBIDDEN, GAPI.FAILED_PRECONDITION,
@@ -17705,9 +17711,9 @@ def _getOrgUnits(cd, orgUnitPath, fieldsList, listType, showParent, batchSubOrgs
     if 'parentOrgUnitId' not in fieldsList:
       localFieldsList.append('parentOrgUnitId')
       deleteParentOrgUnitId = True
-    fields = ','.join(set(localFieldsList))
+    fields = getFieldsFromFieldsList(localFieldsList)
   else:
-    fields = ','.join(set(fieldsList))
+    fields = getFieldsFromFieldsList(fieldsList)
   listfields = f'organizationUnits({fields})'
   if listType == 'all' and  orgUnitPath == '/':
     printGettingAllAccountEntities(Ent.ORGANIZATIONAL_UNIT)
@@ -22169,8 +22175,7 @@ def printShowUserPeopleContacts(users):
     if not fieldsList:
       ofields = _getPersonFields(PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP, PEOPLE_CONTACTS_DEFAULT_FIELDS, fieldsList, parameters)
     else:
-      fieldsList = [PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP[field.lower()] for field in fieldsList if field.lower() in PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP]
-      ofields = ','.join(set(fieldsList))
+      ofields = getFieldsFromFieldsList([PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP[field.lower()] for field in fieldsList if field.lower() in PEOPLE_OTHER_CONTACTS_FIELDS_CHOICE_MAP])
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1
@@ -24784,7 +24789,7 @@ def doPrintCrOSActivity(entityList=None):
   else:
     sortRows = True
     jcount = len(entityList)
-    fields = ','.join(set(fieldsList))
+    fields = getFieldsFromFieldsList(fieldsList)
     svcargs = dict([('customerId', GC.Values[GC.CUSTOMER_ID]), ('deviceId', None), ('projection', projection), ('fields', fields)]+GM.Globals[GM.EXTRA_ARGS_LIST])
     method = getattr(cd.chromeosdevices(), 'get')
     dbatch = cd.new_batch_http_request(callback=_callbackPrintCrOS)
@@ -25074,7 +25079,7 @@ def _showBrowser(browser, FJQC, i=0, count=0):
     return
   printEntity([Ent.CHROME_BROWSER, browser['deviceId']], i, count)
   Ind.Increment()
-  showJSON(None, browser, timeObjects=BROWSER_TIME_OBJECTS)
+  showJSON(None, browser, timeObjects=BROWSER_TIME_OBJECTS, dictObjectsKey={'machinePolicies': 'name'})
   Ind.Decrement()
 
 BROWSER_FIELDS_CHOICE_MAP = {
@@ -25114,11 +25119,13 @@ BROWSER_FIELDS_CHOICE_MAP = {
   'user': 'annotatedUser',
   'virtualdeviceid': 'virtualDeviceId',
   }
-BROWSER_ANNOTATED_FIELDS_LIST = ['annotatedAssetId', 'annotatedLocation', 'annotatedNotes', 'annotatedUser']
+BROWSER_ANNOTATED_FIELDS_LIST = ['annotatedAssetId', 'annotatedLocation', 'annotatedNotes', 'annotatedUser', 'deviceId']
 BROWSER_FULL_ACCESS_FIELDS = {'browsers', 'lastDeviceUsers', 'lastStatusReportTime', 'machinePolicies'}
 
 # gam info browser <DeviceID>
-#	[basic|full|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+#	(basic|full|annotated |
+#	 (<BrowserFieldName>* [fields <BrowserFieldNameList>]) |
+#	 (rawfields <BrowserFieldNameList>))
 #	[formatjson]
 def doInfoBrowsers():
   cbcm = buildGAPIObject(API.CBCM)
@@ -25126,6 +25133,7 @@ def doInfoBrowsers():
   deviceId = getString(Cmd.OB_DEVICE_ID)
   projection = 'BASIC'
   fieldsList = []
+  rawFieldsList = None
   FJQC = FormatJSONQuoteChar()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
@@ -25137,16 +25145,24 @@ def doInfoBrowsers():
       fieldsList = []
     elif getFieldsList(myarg, BROWSER_FIELDS_CHOICE_MAP, fieldsList, initialField='deviceId'):
       pass
+    elif myarg == 'rawfields':
+      projection = 'FULL'
+      rawFieldsList = _getRawFieldsList('deviceId')
     else:
       FJQC.GetFormatJSON(myarg)
   if projection == 'BASIC' and set(fieldsList).intersection(BROWSER_FULL_ACCESS_FIELDS):
     projection = 'FULL'
-  fields = ','.join(set(fieldsList))
+  if not rawFieldsList:
+    fields = getFieldsFromFieldsList(fieldsList)
+  else:
+    fields = rawFieldsList
   try:
     browser = callGAPI(cbcm.chromebrowsers(), 'get',
-                       throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                       throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
                        customer=customerId, deviceId=deviceId, projection=projection, fields=fields)
     _showBrowser(browser, FJQC)
+  except GAPI.invalidArgument as e:
+    entityActionFailedWarning([Ent.CHROME_BROWSER, deviceId], str(e))
   except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
     checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
 
@@ -25347,7 +25363,7 @@ def doInfoChromeProfile():
       pass
     else:
       FJQC.GetFormatJSON(myarg)
-  fields = ','.join(set(fieldsList))
+  fields = getFieldsFromFieldsList(fieldsList)
   try:
     profile = callGAPI(cm.customers().profiles(), 'get',
                        throwReasons=[GAPI.INVALID_ARGUMENT, GAPI.NOT_FOUND, GAPI.PERMISSION_DENIED],
@@ -25479,13 +25495,19 @@ BROWSER_ORDERBY_CHOICE_MAP = {
 #	([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
 #	[querytime<String> <Time>]
 #	[orderby <BrowserOrderByFieldName> [ascending|descending]]
-#	[basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+#	(basic|full|annotated |
+#	 (<BrowserFieldName>* [fields <BrowserFieldNameList>]) |
+#	 (rawfields <BrowserFieldNameList>))
+#	(<BrowserFieldName>* [fields <BrowserFieldNameList>]|(rawfields <BrowserFieldNameList>)
 #	[formatjson]
 # gam print browsers [todrive <ToDriveAttribute>*]
 #	([ou|org|orgunit|browserou <OrgUnitPath>] [(query <QueryBrowser)|(queries <QueryBrowserList>))|(select <BrowserEntity>))
 #	[querytime<String> <Time>]
 #	[orderby <BrowserOrderByFieldName> [ascending|descending]]
-#	[basic|full|allfields|annotated] <BrowserFieldName>* [fields <BrowserFieldNameList>]
+#	(basic|full|annotated |
+#	 (<BrowserFieldName>* [fields <BrowserFieldNameList>]) |
+#	 (rawfields <BrowserFieldNameList>))
+#	(<BrowserFieldName>* [fields <BrowserFieldNameList>]|(rawfields <BrowserFieldNameList>)
 #	[sortheaders] [formatjson [quotechar <Character>]]
 def doPrintShowBrowsers():
   def _printBrowser(browser):
@@ -25502,6 +25524,7 @@ def doPrintShowBrowsers():
   csvPF = CSVPrintFile(['deviceId']) if Act.csvFormat() else None
   FJQC = FormatJSONQuoteChar(csvPF)
   fieldsList = []
+  rawFieldsList = None
   projection = 'BASIC'
   orderBy = 'id'
   sortOrder = 'ASCENDING'
@@ -25540,22 +25563,28 @@ def doPrintShowBrowsers():
       sortHeaders = True
     elif getFieldsList(myarg, BROWSER_FIELDS_CHOICE_MAP, fieldsList, initialField='deviceId'):
       pass
+    elif myarg == 'rawfields':
+      projection = 'FULL'
+      rawFieldsList = _getRawFieldsList('deviceId')
     else:
       FJQC.GetFormatJSONQuoteChar(myarg, True)
   if projection == 'BASIC' and set(fieldsList).intersection(BROWSER_FULL_ACCESS_FIELDS):
     projection = 'FULL'
-  fields = getItemFieldsFromFieldsList('browsers', fieldsList)
   if FJQC.formatJSON:
     sortHeaders = False
   substituteQueryTimes(queries, queryTimes)
   if entityList is None:
+    if not rawFieldsList:
+      fields = getItemFieldsFromFieldsList('browsers', fieldsList)
+    else:
+      fields = f'nextPageToken,browsers({rawFieldsList})'
     for query in queries:
       printGettingAllAccountEntities(Ent.CHROME_BROWSER, query)
       pageMessage = getPageMessage()
       try:
         feed = yieldGAPIpages(cbcm.chromebrowsers(), 'list', 'browsers',
                               pageMessage=pageMessage, messageAttribute='deviceId',
-                              throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
+                              throwReasons=[GAPI.INVALID_INPUT, GAPI.BAD_REQUEST, GAPI.INVALID_ARGUMENT, GAPI.INVALID_ORGUNIT, GAPI.FORBIDDEN],
                               retryReasons=GAPI.SERVICE_NOT_AVAILABLE_RETRY_REASONS,
                               customer=customerId, orgUnitPath=orgUnitPath, query=query, projection=projection,
                               orderBy=orderBy, sortOrder=sortOrder, fields=fields)
@@ -25579,7 +25608,7 @@ def doPrintShowBrowsers():
         else:
           entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
         return
-      except (GAPI.invalidOrgunit, GAPI.forbidden) as e:
+      except (GAPI.invalidArgument, GAPI.invalidOrgunit, GAPI.forbidden) as e:
         entityActionFailedWarning([Ent.CHROME_BROWSER, None], str(e))
         return
       except (GAPI.badRequest, GAPI.resourceNotFound):
@@ -25587,15 +25616,20 @@ def doPrintShowBrowsers():
   else:
     sortRows = True
     jcount = len(entityList)
-    fields = getFieldsFromFieldsList(fieldsList)
+    if not rawFieldsList:
+      fields = getFieldsFromFieldsList(fieldsList)
+    else:
+      fields = rawFieldsList
     j = 0
     for deviceId in entityList:
       j += 1
       try:
         browser = callGAPI(cbcm.chromebrowsers(), 'get',
-                           throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.FORBIDDEN],
+                           throwReasons=[GAPI.BAD_REQUEST, GAPI.RESOURCE_NOT_FOUND, GAPI.INVALID_ARGUMENT, GAPI.FORBIDDEN],
                            customer=customerId, deviceId=deviceId, projection=projection, fields=fields)
         _printBrowser(browser)
+      except GAPI.invalidArgument as e:
+        entityActionFailedWarning([Ent.CHROME_BROWSER, deviceId], str(e))
       except (GAPI.badRequest, GAPI.resourceNotFound, GAPI.forbidden):
         checkEntityAFDNEorAccessErrorExit(None, Ent.CHROME_BROWSER, deviceId)
   if csvPF:
@@ -48246,7 +48280,7 @@ def doPrintCourseTopics():
       jcount = len(courseTopicIds)
       if jcount == 0:
         continue
-      fields = f'{",".join(set(fieldsList))}'
+      fields = getFieldsFromFieldsList(fieldsList)
       j = 0
       for courseTopicId in courseTopicIds:
         j += 1
@@ -48481,7 +48515,7 @@ def doPrintCourseWM(entityIDType, entityStateType):
       jcount = len(courseWMIds)
       if jcount == 0:
         continue
-      fields = f'{",".join(set(fieldsList))}' if fieldsList else None
+      fields = getFieldsFromFieldsList(fieldsList)
       j = 0
       for courseWMId in courseWMIds:
         j += 1
@@ -65501,7 +65535,7 @@ def infoSharedDrive(users, useDomainAdminAccess=False):
       guiRoles = getBoolean()
     else:
       FJQC.GetFormatJSON(myarg)
-  fields = ','.join(set(fieldsList)) if fieldsList else '*'
+  fields = getFieldsFromFieldsList(fieldsList) if fieldsList else '*'
   i, count, users = getEntityArgument(users)
   for user in users:
     i += 1

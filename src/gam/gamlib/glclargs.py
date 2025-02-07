@@ -924,6 +924,7 @@ class GamCLArgs():
   OB_EXPORT_ITEM = 'ExportItem'
   OB_FIELD_NAME = 'FieldName'
   OB_FIELD_NAME_LIST = "FieldNameList"
+  OB_FIELDS = 'Fields'
   OB_FILE_NAME = 'FileName'
   OB_FILE_NAME_FIELD_NAME = OB_FILE_NAME+'(:'+OB_FIELD_NAME+')+'
   OB_FILE_NAME_OR_URL = 'FileName|URL'
