@@ -8495,14 +8495,18 @@ class CSVPrintFile():
         self.AddTitle(title)
     return RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowFilterMode, self.rowDropFilter, self.rowDropFilterMode)
 
-  def UpdateMimeTypeCounts(self, row, mimeTypeInfo):
+  def UpdateMimeTypeCounts(self, row, mimeTypeInfo, sizeField):
+    saveList = self.titlesList[:]
+    saveSet = set(self.titlesSet)
     for title in row:
       if title not in self.titlesSet:
         self.AddTitle(title)
     if RowFilterMatch(row, self.titlesList, self.rowFilter, self.rowFilterMode, self.rowDropFilter, self.rowDropFilterMode):
       mimeTypeInfo.setdefault(row['mimeType'], {'count': 0, 'size': 0})
       mimeTypeInfo[row['mimeType']]['count'] += 1
-      mimeTypeInfo[row['mimeType']]['size'] += int(row.get('size', '0'))
+      mimeTypeInfo[row['mimeType']]['size'] += int(row.get(sizeField, '0'))
+    self.titlesList = saveList[:]
+    self.titlesSet = set(saveSet)
 
   def SetZeroBlankMimeTypeCounts(self, zeroBlankMimeTypeCounts):
     self.zeroBlankMimeTypeCounts = zeroBlankMimeTypeCounts
@@ -56107,7 +56111,7 @@ def printFileList(users):
     else:
       if not countsRowFilter:
         csvPFco.UpdateMimeTypeCounts(flattenJSON(fileInfo, flattened=row, skipObjects=skipObjects, timeObjects=timeObjects,
-                                                 simpleLists=simpleLists, delimiter=delimiter), mimeTypeInfo)
+                                                 simpleLists=simpleLists, delimiter=delimiter), mimeTypeInfo, sizeField)
       else:
         mimeTypeInfo.setdefault(fileInfo['mimeType'], {'count': 0, 'size': 0})
         mimeTypeInfo[fileInfo['mimeType']]['count'] += 1
@@ -69693,7 +69697,7 @@ def _initMessageThreadParameters(entityType, doIt, maxToProcess):
           'query': '', 'queryTimes': {},
           'entityType': entityType, 'messageEntity': None, 'doIt': doIt, 'quick': True,
           'labelMatchPattern': None, 'senderMatchPattern': None,
-          'maxToProcess': maxToProcess, 'maxItems': 0,
+          'maxToProcess': maxToProcess, 'maxItems': 0, 'maxMessagesPerThread': 0,
           'maxToKeywords': [MESSAGES_MAX_TO_KEYWORDS[Act.Get()], 'maxtoprocess'],
           'listType': listType, 'fields': f'nextPageToken,{listType}(id)'}
 
@@ -69735,6 +69739,8 @@ def _getMessageSelectParameters(myarg, parameters):
     parameters['doIt'] = True
   elif myarg in parameters['maxToKeywords']:
     parameters['maxToProcess'] = getInteger(minVal=0)
+  elif myarg == 'maxmessagesperthread':
+    parameters['maxMessagesPerThread'] = getInteger(minVal=0)
   else:
     return False
   return True
@@ -70874,8 +70880,6 @@ def printShowMessagesThreads(users, entityType):
     return None
 
   def _qualifyMessage(user, result):
-    if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
-      return (False, None)
     if senderMatchPattern:
       sender = _checkSenderMatchCount(result)
       if not sender:
@@ -70903,7 +70907,9 @@ def printShowMessagesThreads(users, entityType):
     except ValueError:
       return headerValue
 
-  def _showMessage(user, result, j, jcount):
+  def _showMessage(user, result, j, jcount, checkMax=True):
+    if checkMax and parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
+      return
     status, messageLabels = _qualifyMessage(user, result)
     if not status:
       return
@@ -70939,7 +70945,8 @@ def printShowMessagesThreads(users, entityType):
     if show_attachments or save_attachments or upload_attachments:
       _showSaveAttachments(result['id'], result['payload'], attachmentNamePattern, j, jcount)
     Ind.Decrement()
-    parameters['messagesProcessed'] += 1
+    if checkMax:
+      parameters['messagesProcessed'] += 1
 
   def _getAttachments(messageId, payload, attachmentNamePattern, attachments):
     for part in payload.get('parts', []):
@@ -70961,7 +70968,9 @@ def printShowMessagesThreads(users, entityType):
       else:
         _getAttachments(messageId, part, attachmentNamePattern, attachments)
 
-  def _printMessage(user, result):
+  def _printMessage(user, result, checkMax=True):
+    if checkMax and parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
+      return
     status, messageLabels = _qualifyMessage(user, result)
     if not status:
       return
@@ -71015,7 +71024,8 @@ def printShowMessagesThreads(users, entityType):
         row[f'Attachments{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{i}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}size'] = attachment[2]
         row[f'Attachments{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}{i}{GC.Values[GC.CSV_OUTPUT_SUBFIELD_DELIMITER]}charset'] = attachment[3]
     csvPF.WriteRowTitles(row)
-    parameters['messagesProcessed'] += 1
+    if checkMax:
+      parameters['messagesProcessed'] += 1
 
   def _countMessageLabels(user, result):
     if senderMatchPattern:
@@ -71045,6 +71055,8 @@ def printShowMessagesThreads(users, entityType):
     messageThreadCounts['size'] += result['sizeEstimate']
 
   def _showThread(user, result, j, jcount):
+    if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
+      return
     if senderMatchPattern:
       for message in result['messages']:
         if _checkSenderMatch(message):
@@ -71060,19 +71072,29 @@ def printShowMessagesThreads(users, entityType):
     k = 0
     for message in result['messages']:
       k += 1
-      _showMessage(user, message, k, kcount)
+      _showMessage(user, message, k, kcount, False)
+      if k == parameters['maxMessagesPerThread']:
+        break
     Ind.Decrement()
+    parameters['messagesProcessed'] += 1
 
   def _printThread(user, result):
+    if parameters['maxToProcess'] and parameters['messagesProcessed'] == parameters['maxToProcess']:
+      return
     if senderMatchPattern:
       for message in result['messages']:
         if _checkSenderMatch(message):
           break
       else:
         return
+    k = 0
     for message in result['messages']:
-      _printMessage(user, message)
+      k += 1
+      _printMessage(user, message, False)
+      if k == parameters['maxMessagesPerThread']:
+        break
     messageThreadCounts['threads'] += 1
+    parameters['messagesProcessed'] += 1
 
   def _countThreadLabels(user, result):
     for message in result['messages']:
@@ -71087,8 +71109,12 @@ def printShowMessagesThreads(users, entityType):
       else:
         return
     else:
+      k = 0
       for message in result['messages']:
+        k += 1
         messageThreadCounts['size'] += message['sizeEstimate']
+        if k == parameters['maxMessagesPerThread']:
+          break
     messageThreadCounts['threads'] += 1
 
   _GMAIL_ERROR_REASON_TO_MESSAGE_MAP = {GAPI.NOT_FOUND: Msg.DOES_NOT_EXIST, GAPI.INVALID_MESSAGE_ID: Msg.INVALID_MESSAGE_ID}
@@ -74670,14 +74696,14 @@ def createNotesACLs(users):
         request['parent'] = name
       try:
         permissions = callGAPI(keep.notes().permissions(), 'batchCreate',
-                               throwReasons=GAPI.KEEP_THROW_REASONS,
+                               throwReasons=GAPI.KEEP_THROW_REASONS+[GAPI.FAILED_PRECONDITION],
                                parent=name, body=rbody)
         entityNumItemsActionPerformed(entityKVList, kcount, Ent.NOTE_ACL, j, jcount)
         if showDetails:
           Ind.Increment()
           _showNotePermissions(permissions['permissions'])
           Ind.Decrement()
-      except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound) as e:
+      except (GAPI.badRequest, GAPI.invalidArgument, GAPI.notFound, GAPI.failedPrecondition) as e:
         entityActionFailedWarning(entityKVList, str(e), i, count)
       except GAPI.authError:
         userKeepServiceNotEnabledWarning(user, i, count)
