@@ -14,6 +14,7 @@ env:
     - PATCHELF_VERSION=0.12
 # PYINSTALLER_VERSION can be full commit hash or version like v4.10
     - PYINSTALLER_VERSION=v6.9.0
+    - DIST_UPGRADE=false
 
 cache:
   directories:
@@ -25,52 +26,42 @@ jobs:
   fast_finish: true
   include:
     - os: linux
-      name: "Linux 64-bit Bionic"
-      dist: bionic
-      language: shell
-      env:
-        - DIST_UPGRADE=true
-    - os: linux
-      name: "Linux 64-bit Xenial"
-      dist: xenial
-      language: shell
-      env:
-        - DIST_UPGRADE=false
-    - os: linux
-      name: "Linux 64-bit Trusty"
-      dist: trusty
-      language: shell
-      env:
-        - DIST_UPGRADE=false
-    - os: linux
       name: "Linux ARM64 Focal"
       dist: focal
       arch: arm64
       language: shell
       env:
         - BUILD_PYTHON_VERSION=3.12.8
-        - DIST_UPGRADE=false
       filter_secrets: false
     - os: linux
       name: "Linux ARM64 Bionic"
       dist: bionic
       arch: arm64
       language: shell
-      env:
-        - DIST_UPGRADE=false
       filter_secrets: false
     - os: linux
       name: "Linux ARM64 Xenial"
       dist: xenial
       arch: arm64
       language: shell
-      env:
-        - DIST_UPGRADE=false
       filter_secrets: false
+    - os: linux
+      name: "Linux 64-bit Focal"
+      dist: focal
+      language: shell
+      env:
+        - BUILD_PYTHON_VERSION=3.12.8
+    - os: linux
+      name: "Linux 64-bit Bionic"
+      dist: bionic
+      language: shell
+    - os: linux
+      name: "Linux 64-bit Xenial"
+      dist: xenial
+      language: shell
+      env:
 
 before_install:
-#- yes | gem update --system --force
-#- gem install bundler
 - export GAMOS="${TRAVIS_OS_NAME}";
 - export SCRIPT_OS_NAME="${GAMOS}";
   if [ "${TRAVIS_CPU_ARCH}" == "amd64" ]; then
@@ -97,10 +88,10 @@ script:
 before_deploy:
 # Comment out for Linux Xenial and Trusty
 #- yes | gem update --system --force
-#- gem install bundler
-#- gem install faraday-net_http -v '3.3.0' # Fix faraday version
-#- gem install uri
-#- gem install logger
+- gem install bundler
+- gem install faraday-net_http -v '3.3.0' # Fix faraday version
+- gem install uri
+- gem install logger
 - export TRAVIS_TAG="preview"
 - unset LD_LIBRARY_PATH
 
@@ -115,8 +106,8 @@ deploy:
 # Linux 64-Bit Bionic and Linux ARM64 Focal and Linux ARM64 Bionic and Linux ARM64 Xenial 
 #  edge: true
 # Linux Xenial and Trusty
-edge:
-    branch: v2.0.3-beta.4
+#edge:
+#    branch: v2.0.3-beta.4
 #    branch: v2.0.5-beta.1
   on:
     repo: taers232c/GAMADV-XTD3
