@@ -35,6 +35,7 @@ jobs:
             openssl_archs: linux-x86_64
           - os: ubuntu-22.04
             jid: 3
+            goal: build
             openssl_archs: linux-x86_64
             staticx: yes
           - os: ubuntu-24.04-arm
