@@ -52,7 +52,7 @@ jobs:
 #          - os: ubuntu-22.04-arm
 #            jid: 6
 #            goal: build
-@            arch: arm64
+#            arch: arm64
 #            openssl_archs: linux-aarch64
 #            staticx: yes
           - os: macos-13
