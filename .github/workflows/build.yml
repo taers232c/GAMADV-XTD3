@@ -33,12 +33,12 @@ jobs:
             goal: build
             arch: x86_64
             openssl_archs: linux-x86_64
-#          - os: ubuntu-22.04
-#            jid: 3
-#            goal: build
-#            arch: x86_64
-#            openssl_archs: linux-x86_64
-#            staticx: yes
+          - os: ubuntu-22.04
+            jid: 3
+            goal: build
+            arch: x86_64
+            openssl_archs: linux-x86_64
+            staticx: yes
           - os: ubuntu-24.04-arm
             jid: 4
             goal: build
@@ -49,12 +49,12 @@ jobs:
             goal: build
             arch: arm64
             openssl_archs: linux-aarch64
-#          - os: ubuntu-22.04-arm
-#            jid: 6
-#            goal: build
-#            arch: arm64
-#            openssl_archs: linux-aarch64
-#            staticx: yes
+          - os: ubuntu-22.04-arm
+            jid: 6
+            goal: build
+            arch: arm64
+            openssl_archs: linux-aarch64
+            staticx: yes
           - os: macos-13
             jid: 7
             goal: build
