@@ -520,6 +520,7 @@ jobs:
 #            brew install coreutils
 #            realpath=grealpath
 #          fi
+          export gam="${gampath}/gamadv-xtd3"
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
             export gam=$(cygpath -w "$gam")
             echo "GAM on Windows at ${gam}"
