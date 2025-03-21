@@ -512,12 +512,12 @@ jobs:
           cat build/gam/Analysis-00.toc
           echo "EXE data FROM build/gam/EXE-00.toc"
           cat build/gam/EXE-00.toc
-          if [ -x "$(command -v realpath)" ]; then
-            realpath=realpath
-          else
-            brew install coreutils
-            realpath=grealpath
-          fi
+#          if [ -x "$(command -v realpath)" ]; then
+#            realpath=realpath
+#          else
+#            brew install coreutils
+#            realpath=grealpath
+#          fi
           export gam=$(realpath "$gam")
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
             export gam=$(cygpath -w "$gam")
