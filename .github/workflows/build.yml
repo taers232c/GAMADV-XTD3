@@ -543,7 +543,7 @@ jobs:
           sudo apt-get -qq --yes update
           # arm64 needs to build a wheel and needs scons to build
           sudo apt-get -qq --yes install scons
-          "${PYTHON}" -m pip install --upgrade patchelf=0.17.2.1
+          "${PYTHON}" -m pip install --upgrade patchelf==0.17.2.1
           "${PYTHON}" -m pip install --upgrade staticx
 
       - name: Make StaticX
