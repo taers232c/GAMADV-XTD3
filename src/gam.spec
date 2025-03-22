@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 from os import getenv
-from re import search
+import re
 from sys import platform
 
 from PyInstaller.utils.hooks import copy_metadata

@@ -85,7 +85,7 @@ jobs:
         with:
           path: |
             cache.tar.xz
-          key: gam-${{ matrix.jid }}-20250318
+          key: gam-${{ matrix.jid }}-20250322
 
       - name: Untar Cache archive
         if: matrix.goal == 'build' && steps.cache-python-ssl.outputs.cache-hit == 'true'
@@ -98,7 +98,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-          #allow-prereleases: true
+          allow-prereleases: true
 
       - name: common variables for all runs
         env:
@@ -153,9 +153,9 @@ jobs:
           bash ./rust.sh -y
           source $HOME/.cargo/env
           # Install needed packages
-          # brew update
-          # brew install gpg
-          brew install swig
+          #brew update
+          #brew install gpg
+          #brew install swig
           #brew install ncurses
 
       - name: Windows Configure VCode
@@ -480,49 +480,47 @@ jobs:
       - name: Build GAM with PyInstaller
         if: matrix.goal != 'test'
         run: |
-          if [[ "${staticx}" == "yes" ]]; then
-            export distpath="./dist/gamadv-xtd3"
-            export gampath="${distpath}"
-          else
-            export distpath="./dist"
-            export gampath="${distpath}/gamadv-xtd3"
-          fi
-          mkdir -p -v "${gampath}"
+          export distpath="./dist/gam"
+          mkdir -p -v "${distpath}"
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            # brew OpenSSL gets picked up by PyInstaller breaking our self-compiled version
+            # Tell our gam.spec to use our code sign certificate
+            # export codesign_identity="Jay Lee"
+            # brew OpenSSL gets picked up by PyInstaller
+            # breaking our self-compiled version
             brew uninstall --ignore-dependencies openssl
-            export gampath=$($PYTHON -c "import os; print(os.path.realpath('$gampath'))")
           elif [[ "${RUNNER_OS}" == "Windows" ]]; then
             # Work around issue where PyInstaller picks up python3.dll from other Python versions
             # https://github.com/pyinstaller/pyinstaller/issues/7102
             export PATH="$(dirname ${PYTHON}):/usr/bin"
-          else
-            export gampath=$(realpath "${gampath}")
           fi
-          export gam="${gampath}/gam"
-          echo "gampath=${gampath}" >> $GITHUB_ENV
-          # TEMP force everything back to one file.
-          export PYINSTALLER_BUILD_ONEFILE="yes"
-          export distpath="./dist/gamadv-xtd3"
-          export gampath="${distpath}"
+          if [[ "$staticx" != "yes" ]]; then
+            export PYINSTALLER_BUILD_ONEDIR=yes
+          fi
           "${PYTHON}" -m PyInstaller --clean --noconfirm --distpath="${distpath}" gam.spec
-          echo "WARNINGS FROM build/gam/warn-gam.txt"
+          if [[ "$PYINSTALLER_BUILD_ONEDIR" == "yes" ]]; then
+            mv -v "${distpath}/gam" "${distpath}/gamadv-xtd3"
+            export gampath="${distpath}/gamadv-xtd3"
+          else
+            mv -v "$distpath" "${distpath}adv-xtd3"
+            export gampath="${distpath}adv-xtd3"
+          fi
+          export gampath=$(realpath "$gampath")
+          echo "gampath ${gampath} results:"
+          ls -alRF "$gampath"
+          echo "---- WARNINGS FROM build/gam/warn-gam.txt"
           cat build/gam/warn-gam.txt
-          echo "Analysis FROM build/gam/Analysis-00.toc"
+          echo "---- Analysis FROM build/gam/Analysis-00.toc"
           cat build/gam/Analysis-00.toc
-          echo "EXE data FROM build/gam/EXE-00.toc"
+          echo "---- EXE data FROM build/gam/EXE-00.toc"
           cat build/gam/EXE-00.toc
-#          if [ -x "$(command -v realpath)" ]; then
-#            realpath=realpath
-#          else
-#            brew install coreutils
-#            realpath=grealpath
-#          fi
-          export gam=$(realpath "$gam")
+          export gam="${gampath}/gam"
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
             export gam=$(cygpath -w "$gam")
             echo "GAM on Windows at ${gam}"
+          else
+            export gam=$(realpath "$gam")
           fi
+          echo "gampath=${gampath}" >> $GITHUB_ENV
           echo "gam=${gam}" >> $GITHUB_ENV
           echo -e "GAM: ${gam}\nGAMPATH: ${gampath}"
 
@@ -531,8 +529,8 @@ jobs:
         run: |
           cp -v cacerts.pem "$gampath"
           cp -v LICENSE "$gampath"
-          cp -v license.rtf "$gampath"
-          cp -v Gam*.txt "$gampath"
+          cp -v GamCommands.txt "$gampath"
+          cp -v GamUpdate.txt "$gampath"
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
               cp -v gam-setup.bat "$gampath"
           fi
@@ -558,14 +556,14 @@ jobs:
               ;;
           esac
           echo "ldlib=${ldlib}"
-          $PYTHON -m staticx -l "${ldlib}" "${gam}" "${gam}-staticx"
-          rm -v "${gam}"
-          mv -v "${gam}-staticx" "${gam}"
+          $PYTHON -m staticx -l "${ldlib}" "$gam" "${gam}-staticx"
+          rm -v "$gam"
+          mv -v "${gam}-staticx" "$gam"
 
       - name: Basic Tests all jobs
         id: basictests
         run: |
-          #$PYTHON -m unittest discover --start-directory ./ --pattern "*_test.py" --buffer || if [ $? != 5 ]; then exit $?; fi # exit 5 is no tests
+          $PYTHON -m unittest discover --start-directory ./ --pattern "*_test.py" --buffer || if [ $? != 5 ]; then exit $?; fi # exit 5 is no tests
           $gam version extended nooffseterror
           export GAMVERSION=$($gam version simple)
           echo "GAM Version ${GAMVERSION}"
@@ -575,28 +573,50 @@ jobs:
         if: runner.os != 'Windows' && matrix.goal == 'build'
         run: |
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
-            GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}.tar.xz"
+              GAM_ARCHIVE="${GITHUB_WORKSPACE}/gamadv-xtd3-${GAMVERSION}-macos${MACOSX_DEPLOYMENT_TARGET}-${arch}.tar.xz"
           elif [[ "${RUNNER_OS}" == "Linux" ]]; then
             if [[ "${staticx}" == "yes" ]]; then
               libver="legacy"
             else
               libver="glibc$(ldd --version | awk '/ldd/{print $NF}')"
             fi
-            GAM_ARCHIVE="gamadv-xtd3-${GAMVERSION}-${GAMOS}-${arch}-${libver}.tar.xz"
+            GAM_ARCHIVE="${GITHUB_WORKSPACE}/gam-${GAMVERSION}-linux-$(arch)-${libver}.tar.xz"
           fi
           echo "GAM Archive ${GAM_ARCHIVE}"
-          tar -C dist/ --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
+          tar -C "${gampath}/.." --create --verbose --exclude-from "${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" --file $GAM_ARCHIVE --xz gamadv-xtd3
 
       - name: Windows package
         if: runner.os == 'Windows' && matrix.goal != 'test'
         run: |
-          cd dist/
-          GAM_ARCHIVE="../gamadv-xtd3-${GAMVERSION}-${GAMOS}-${GAM_ARCHIVE_ARCH}.zip"
-          /c/Program\ Files/7-Zip/7z.exe a -tzip $GAM_ARCHIVE gamadv-xtd3 "-xr@${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" -bb3
-          cd ..
-          /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/candle.exe -arch "${WIX_ARCH}" gam.wxs
-          /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/light.exe -ext /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/WixUIExtension.dll gam.wixobj -o "gamadv-xtd3-${GAMVERSION}-windows-${GAM_ARCHIVE_ARCH}.msi" || true;
+          echo "started in $(pwd)"
+          cd "${gampath}/.."
+          echo "moved to $(pwd)"
+          GAM_ARCHIVE="${GITHUB_WORKSPACE}/gam-${GAMVERSION}-windows-${GAM_ARCHIVE_ARCH}.zip"
+          /c/Program\ Files/7-Zip/7z.exe a -tzip "$GAM_ARCHIVE" gamadv-xtd3 "-xr@${GITHUB_WORKSPACE}/.github/actions/package_exclusions.txt" -bb3
+          cd ../..
+          echo "moved to $(pwd)"
+          export MSI_FILENAME="${GITHUB_WORKSPACE}/gam-${GAMVERSION}-windows-${GAM_ARCHIVE_ARCH}.msi"
+          # auto-generate a lib.wxs based on the files PyInstaller created for the lib/ directory
+          /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/heat.exe dir "${gampath}/lib" -ke -srd -cg Lib -gg -dr lib -directoryid lib -out lib.wxs
+          $PYTHON tools/gen-wix-xml-filelist.py lib.wxs
+          echo "-- begin lib.wxs --"
+          cat lib.wxs
+          echo "-- end lib.wxs --"
+          /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/candle.exe -arch "${WIX_ARCH}" gam.wxs lib.wxs
+          /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/light.exe -ext /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.14/bin/WixUIExtension.dll gam.wixobj lib.wixobj -b "${gampath}/lib" -o "$MSI_FILENAME" || true;
           rm -v -f *.wixpdb
+          rm -v -f *.wixobj
+          echo "MSI_FILENAME=${MSI_FILENAME}" >> $GITHUB_ENV
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && matrix.goal != 'test'
+        with:
+          name: gam-binaries-${{ env.GAMOS }}-${{ env.arch }}-${{ matrix.jid }}
+          path: |
+            gam*.tar.xz
+            gam*.zip
+            gam*.msi
 
       - name: Basic Tests build jobs only
         if: matrix.goal != 'test' && steps.cache-python-ssl.outputs.cache-hit != 'true'
@@ -628,16 +648,6 @@ jobs:
             tar_folders="bin/"
           fi
           tar cJvvf cache.tar.xz $tar_folders
-
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && matrix.goal != 'test'
-        with:
-          name: gam-binaries-${{ env.GAMOS }}-${{ env.arch }}-${{ matrix.jid }}
-          path: |
-            src/gam*.tar.xz
-            src/gam*.zip
-            src/gam*.msi
 
   merge:
     runs-on: ubuntu-latest

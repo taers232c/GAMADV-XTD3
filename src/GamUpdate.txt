@@ -1,3 +1,7 @@
+7.05.13
+
+Updated license product names to match Google.
+
 7.05.12
 
 Fixed bug in `gam update chromepolicy` where `appid` was misinterpreted for `chrome.devices.kiosk` policies
