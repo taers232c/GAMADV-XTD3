@@ -1,15 +1,9 @@
 # Introduction
-GAMADV-XTD3 is a free, open source command line tool for Google Workspace (formerly G Suite) Administrators to manage domain and user settings quickly and easily.
+GAM is a command line tool for Google Workspace admins to manage domain and user settings quickly and easily.
 
-GAMADV-XTD3 is built with Python 3.
+GAMADV-XTD3 has been replaced with GAM7.
 
-This page provides simple instructions for downloading, installing and starting to use GAMADV-XTD3.
-
-GAMADV-XTD3 runs on all versions of Google Workspace; Google Apps Free Edition has limited API support and not all GAM commands work.
-
-GAMADV-XTD3 is a rewrite/extension of Jay Lee's [GAM], without his efforts, this version wouldn't exist.
-
-GAMADV-XTD3 is backwards compatible with [GAM], meaning that if your command works with regular GAM, it will also work with GAMADV-XTD3. There may be differences in output, but the syntax is compatible.
+* [How to Uograde GAMADV-XTD3 to GAM7](How-to-Upgrade-GAMADV-XTD3-to-GAM7)
 
 # Documentation
 Documentation for GAMADV-XTD3 is hosted in the [GitHub Wiki] and in Gam*.txt files.
