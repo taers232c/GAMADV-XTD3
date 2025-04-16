@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# GAMADV-XTD3
+# GAM
 #
 # Copyright 2023, All Rights Reserved.
 #

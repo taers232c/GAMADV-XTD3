@@ -7,6 +7,24 @@ from PyInstaller.utils.hooks import copy_metadata
 
 from gam.gamlib.glverlibs import GAM_VER_LIBS
 
+
+with open("gam/__init__.py") as f:
+    version_file = f.read()
+version = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M).group(1)
+version_list = [int(i) for i in version.split('.')]
+while len(version_list) < 4:
+  version_list.append(0)
+version_tuple = tuple(version_list)
+version_str = str(version_tuple)
+with open("version_info.txt.in") as f:
+    version_info = f.read()
+version_info = version_info.replace("{VERSION}", version).replace(
+    "{VERSION_TUPLE}", version_str
+)
+with open("version_info.txt", "w") as f:
+    f.write(version_info)
+print(version_info)
+
 datas = []
 for pkg in GAM_VER_LIBS:
     datas += copy_metadata(pkg, recursive=True)
@@ -50,6 +68,8 @@ pyz = PYZ(a.pure,
 target_arch = None
 codesign_identity = None
 entitlements_file = None
+manifest = None
+version = 'version_info.txt'
 match platform:
     case "darwin":
         if getenv('arch') == 'universal2':
@@ -62,6 +82,7 @@ match platform:
     case "win32":
         target_arch = None
         strip = False
+        manifest = 'gam.exe.manifest'
     case _:
         target_arch = None
         strip = True
@@ -83,6 +104,7 @@ if getenv('PYINSTALLER_BUILD_ONEDIR') == 'yes':
               debug=debug,
               bootloader_ignore_signals=bootloader_ignore_signals,
               strip=strip,
+              manifest=manifest,
               upx=upx,
               console=console,
               # put most everyting under a lib/ subfolder
@@ -92,6 +114,7 @@ if getenv('PYINSTALLER_BUILD_ONEDIR') == 'yes':
               target_arch=target_arch,
               codesign_identity=codesign_identity,
               entitlements_file=entitlements_file,
+              version=version,
               )
     coll = COLLECT(
         exe,
@@ -115,6 +138,7 @@ else:
               name=name,
               debug=debug,
               bootloader_ignore_signals=bootloader_ignore_signals,
+              manifest=manifest,
               strip=strip,
               upx=upx,
               console=console,
@@ -123,4 +147,6 @@ else:
               target_arch=target_arch,
               codesign_identity=codesign_identity,
               entitlements_file=entitlements_file,
+              version=version,
               )
+

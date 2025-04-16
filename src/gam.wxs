@@ -2,10 +2,10 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" >
   <Product
       Id="*"
-      Name="GAMADV-XTD3"
+      Name="GAM7"
       Language="1033"
       Version="$(env.GAMVERSION)"
-      Manufacturer="Ross Scroggs - ross.scroggs@gmail.com"
+      Manufacturer="GAM Team - google-apps-manager@googlegroups.com"
       UpgradeCode="D86B52B2-EFE9-4F9D-8BA3-9D84B9B2D319">
     <Package
         InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
@@ -22,7 +22,7 @@
 
     <Feature
         Id="gam"
-        Title="GAMADV-XTD3"
+        Title="GAM7"
         Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
@@ -32,8 +32,11 @@
     <SetDirectory Id="WINDOWSVOLUME" Value="[WindowsVolume]"/>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="WINDOWSVOLUME">
-          <Directory Id="INSTALLFOLDER" Name="GAMADV-XTD3" />
-        </Directory>
+        <Directory Id="INSTALLFOLDER" Name="GAM7">
+          <Directory Id="lib" Name="lib">
+	  </Directory>
+	</Directory>
+      </Directory>
     </Directory>
   </Fragment>
 
@@ -42,7 +45,7 @@
     <ComponentGroup
         Id="ProductComponents"
         Directory="INSTALLFOLDER"
-        Source="dist/gamadv-xtd3">
+	Source="dist/gam/gam7">
       <Component Id="gam_exe" Guid="d046ea24-c9f8-40ca-84db-70b0119933ff">
         <File Name="gam.exe" KeyPath="yes" />
         <Environment Id="PATH" Name="PATH" Value="[INSTALLFOLDER]" Permanent="yes" Part="last" Action="set" System="yes" />
@@ -62,6 +65,7 @@
       <Component Id="cacerts_pem" Guid="61fe2b2d-1646-4bed-b844-193965e97727">
         <File Name="cacerts.pem" KeyPath="yes" />
       </Component>
+      <ComponentGroupRef Id="Lib" />
     </ComponentGroup>
   </Fragment>
 

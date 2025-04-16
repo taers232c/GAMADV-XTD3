@@ -1,3 +1,37 @@
+7.06.04
+
+Fixed bug in `gam report <ActivityApplictionName>` where a report with no activities
+was not displaying any output.
+
+7.06.03
+
+Fixed bug in `gam <UserTypeEntity> print|show drivelastmodification` that caused a trap
+when an empty drive was specified.
+
+7.06.02
+
+Updated `gam <UserTypeEntity> print|show filecounts ... showlastmodification` to include
+file mimetype and path information for the last modified file.
+
+Added simple commands to get information about the last modified file on a drive.
+By default, a user's My Drive is processed; optionally, a Shared Drive can be processed.
+```
+gam <UserTypeEntity> print drivelastmodification [todrive <ToDriveAttribute>*]
+        [select <SharedDriveEntity>]
+        [pathdelimiter <Character>]
+        (addcsvdata <FieldName> <String>)*
+gam <UserTypeEntity> show drivelastmodification
+        [select <SharedDriveEntity>]
+        [pathdelimiter <Character>]
+```
+
+7.06.01
+
+Updated `gam <UserTypeEntity> create|update drivefileacl ... expiration <Time>`
+to handle additional API errors.
+
+Updated to Python 3.13.3.
+
 7.06.00
 
 Upgraded to OpenSSL 3.5.0.
@@ -179,7 +213,7 @@ display a link to the Wiki `Set up a Chat Bot` instructions.
 Added options `password prompt` and `password uniqueprompt` to `gam create user <EmailAddress>`
 and `gam update users <UserTypeEntity>` that prompt you to enter a password from stdin.
 
-See [User Passwords](https://github.com/taers232c/GAMADV-XTD3/wiki/Users#passwords)
+See [User Passwords](https://github.com/GAM-team/GAM/wiki/Users#passwords)
 
 7.05.04
 
@@ -318,7 +352,7 @@ gam [<UserTypeEntity>] print siteactivity
 
 Added option `maxmessagesperthread <Number>` to `gam <UserTypeEntity> print|show threads`
 that limits the number of messages displayed per thread. The default is 0, there is no limit.
-For, example this can be used if you only want to see the first message of each thread.
+For example, this can be used if you only want to see the first message of each thread.
 ```
 gam user user@domain.com print|show threads maxmessagesperthread 1
 ```
@@ -329,10 +363,19 @@ were displayed.
 Fixed bug in `gam <UserTypeEntity> print filelist countsonly showsize` where sizes were
 all shown as 0 unless`sizefield size` was specified.
 
-
 7.03.08
 
-Only used in GAM Team version
+Improved pip install.
+
+Yubikey as optional should now be working also. So:
+
+pip install --upgrade gam7
+
+skips Yubikey.
+
+To install with yubikey support (assuming you have installed the necessary swig and libpcsclite-dev packages already) run:
+
+pip install --upgrade gam7[yubikey]
 
 7.03.07
 
@@ -345,18 +388,18 @@ Updated `gam create vaultexport` to include `corpus gemini`.
 Added option `rawfields "<BrowserFieldNameList>"` to `gam info|print|show browsers` that allows
 specification of complex field lists with selected subfields.
 
-* See: https://github.com/taers232c/GAMADV-XTD3/wiki/Chrome-Browser-Cloud-Management#raw-fields
+* See: https://github.com/GAM-team/GAM/wiki/Chrome-Browser-Cloud-Management#raw-fields
 
 7.03.05
 
-Only used in GAM Team version
+Make GAM pip-installable: "pip install gam7"
 
 7.03.04
 
 Added option `security` to `gam create cigroup` that allows creation of a security group
 in a single command.
 
-Updated to Python 3.13.2 where possible.
+Updated to Python 3.13.2.
 
 7.03.03
 
@@ -487,6 +530,12 @@ Improved the error message displayed for user service account access commands wh
 
 7.01.04
 
+Admin role assignments are now in the v1 stable API, use that and remove custom local workaround for the beta. #1724
+
+Remove duplicate local JSON discovery files. #1724
+
+Suppress "UserWarning: Attribute's length must be..." messages on service accounts with long emails. #1725
+
 Added options `internal`, `internaldomains <DomainNameList>` and `external` to these commands
 that expand the options for viewing group members:
 ```
@@ -505,7 +554,7 @@ By default, when listing group members, GAM does not take the domain of the memb
 
 Members without an email address, e.g. `customer`, `chromeosdevice` and `cbcmbrowser` are considered internal.
 
-Updated to Python 3.13.1 where possible.
+Updated to Python 3.13.1.
 
 7.01.03
 
@@ -551,7 +600,7 @@ for `[R] 35)  Meet API (supports readonly)` as it is a special case.
 
 7.00.39
 
-Due to build site changes, GAM will no longer run on MacOS 12 Monterey.
+Supported MacOS versions are now in the download filename.
 
 Minor code fixes.
 
@@ -718,7 +767,7 @@ as files/folders are being identified for processing.
 
 Added option `<JSONData>` to `gam create|update caalevel`.
 
-Updated to Python 3.13.0 where possible.
+Updated to Python 3.13.0.
 
 7.00.15
 
@@ -735,7 +784,7 @@ ERROR: 500: unknownError - Unknown Error.
 
 7.00.13
 
-Align version number with GAM7.
+Version bump in order to confirm MSI installs are operating properly
 
 7.00.12
 
@@ -744,6 +793,9 @@ the case where all users owning files are suspended. In this case the `lastModif
 will show the user's display name as the API doesn't return the user's email address.
 
 Updated support for `Folders with limited access`; this is a work in progress.
+
+Windows builds now use PyInstaller's onedir config for improved performance. You may notice a lib
+folder now exists underneath the GAM install path. GAM commands should start significantly faster.
 
 7.00.11
 

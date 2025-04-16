@@ -20,12 +20,12 @@
 GAM is a command line tool which allows Administrators to control their Google Workspace domain and accounts.
 
 For more information, see:
-https://github.com/taers232c/GAMADV-XTD3
-https://github.com/taers232c/GAMADV-XTD3/wiki
+https://github.com/GAM-team/GAM
+https://github.com/GAM-team/GAM/wiki
 """
 
-__author__ = 'Ross Scroggs <ross.scroggs@gmail.com>'
-__version__ = '7.06.00'
+__author__ = 'GAM Team <google-apps-manager@googlegroups.com>'
+__version__ = '7.06.04'
 __license__ = 'Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)'
 
 #pylint: disable=wrong-import-position
@@ -182,8 +182,8 @@ else:
   GM.Globals[GM.GAM_PATH] = os.path.dirname(os.path.realpath(__file__))
   GM.Globals[GM.GAM_TYPE] = 'pythonsource'
 
-GIT_USER = 'taers232c'
-GAM = 'GAMADV-XTD3'
+GIT_USER = 'GAM-team'
+GAM = 'GAM'
 GAM_URL = f'https://github.com/{GIT_USER}/{GAM}'
 GAM_USER_AGENT = (f'{GAM} {__version__} - {GAM_URL} / '
                   f'{__author__} / '
@@ -14145,6 +14145,7 @@ def doReport():
       startDateTime += oneDay
     csvPF.writeCSVfile(f'Customer Report - {tryDate}')
   else: # activityReports
+    csvPF.SetTitles('name')
     if addCSVData:
       csvPF.AddTitles(sorted(addCSVData.keys()))
     if select:
@@ -14303,8 +14304,7 @@ def doReport():
         row = {'name': 'NoActivities'}
         if addCSVData:
           row.update(addCSVData)
-          csvPF.WriteRowTitles(row)
-      csvPF.SetSortTitles(['name'])
+        csvPF.WriteRowTitles(row)
     else:
       if eventRowFilter:
         csvPF.SetRowFilter([], GC.Values[GC.CSV_OUTPUT_ROW_FILTER_MODE])
@@ -28152,10 +28152,18 @@ CHROME_SCHEMA_TYPE_MESSAGE = {
     {'autoupdatecheckperiodminutesnew':
        {'casedField': 'autoUpdateCheckPeriodMinutesNew',
         'type': 'duration', 'minVal': 1, 'maxVal': 720, 'scale': 60}},
+  'chrome.users.AutoUpdateCheckPeriodNewV2':
+    {'autoupdatecheckperiodminutesnew':
+       {'casedField': 'autoUpdateCheckPeriodMinutesNew',
+        'type': 'duration', 'minVal': 1, 'maxVal': 720, 'scale': 60}},
   'chrome.users.BrowserSwitcherDelayDuration':
     {'browserswitcherdelayduration':
        {'casedField': 'browserSwitcherDelayDuration',
         'type': 'duration', 'minVal': 0, 'maxVal': 30, 'scale': 1}},
+  'chrome.users.CloudReportingUploadFrequencyV2':
+    {'cloudreportinguploadfrequency':
+       {'casedField': 'cloudReportingUploadFrequency',
+        'type': 'count', 'minVal': 3, 'maxVal': 24, 'scale': 1}},
   'chrome.users.FetchKeepaliveDurationSecondsOnShutdown':
     {'fetchkeepalivedurationsecondsonshutdown':
        {'casedField': 'fetchKeepaliveDurationSecondsOnShutdown',
@@ -28172,6 +28180,10 @@ CHROME_SCHEMA_TYPE_MESSAGE = {
     {'printjobhistoryexpirationperioddaysnew':
        {'casedField': 'printJobHistoryExpirationPeriodDaysNew',
         'type': 'duration', 'minVal': -1, 'maxVal': None, 'scale': 86400}},
+  'chrome.users.RelaunchNotificationWithDurationV2':
+    {'relaunchnotificationperiodduration':
+       {'casedField': 'relaunchNotificationPeriodDuration',
+        'type': 'duration', 'minVal': -1, 'maxVal': None, 'scale': 3600}},
   'chrome.users.SecurityTokenSessionSettings':
     {'securitytokensessionnotificationseconds':
        {'casedField': 'securityTokenSessionNotificationSeconds',
@@ -56474,6 +56486,45 @@ def printFileParentTree(users):
         kcount -= 1
   csvPF.writeCSVfile('Drive File Parent Tree')
 
+# Last file modification utilities
+def _initLastModification():
+  return {'lastModifiedFileId': '', 'lastModifiedFileName': '',
+          'lastModifiedFileMimeType': '', 'lastModifiedFilePath': '',
+          'lastModifyingUser': '', 'lastModifiedTime': NEVER_TIME,
+          'fileEntryInfo': {}}
+
+def _checkUpdateLastModifiction(f_file, userLastModification):
+  if f_file.get('modifiedTime', NEVER_TIME) > userLastModification['lastModifiedTime'] and 'lastModifyingUser' in f_file:
+    userLastModification['lastModifiedFileId'] = f_file['id']
+    userLastModification['lastModifiedFileName'] = _stripControlCharsFromName(f_file['name'])
+    userLastModification['lastModifiedFileMimeType'] = f_file['mimeType']
+    userLastModification['lastModifiedTime'] = f_file['modifiedTime']
+    userLastModification['lastModifyingUser'] = f_file['lastModifyingUser'].get('emailAddress',
+                                                                                f_file['lastModifyingUser'].get('displayName', UNKNOWN))
+    userLastModification['fileEntryInfo'] = f_file.copy()
+
+def _getLastModificationPath(drive, userLastModification, pathDelimiter):
+  if userLastModification['fileEntryInfo']:
+    filePathInfo = initFilePathInfo(pathDelimiter)
+    _, paths, _ = getFilePaths(drive, {}, userLastModification['fileEntryInfo'], filePathInfo)
+    userLastModification['lastModifiedFilePath'] = paths[0] if paths else UNKNOWN
+
+def _showLastModification(lastModification):
+  printKeyValueList(['lastModifiedFileId', lastModification['lastModifiedFileId']])
+  printKeyValueList(['lastModifiedFileName', lastModification['lastModifiedFileName']])
+  printKeyValueList(['lastModifiedFileMimeType', lastModification['lastModifiedFileMimeType']])
+  printKeyValueList(['lastModifiedFilePath', lastModification['lastModifiedFilePath']])
+  printKeyValueList(['lastModifyingUser', lastModification['lastModifyingUser']])
+  printKeyValueList(['lastModifiedTime', formatLocalTime(lastModification['lastModifiedTime'])])
+
+def _updateLastModificationRow(row, lastModification):
+  row.update({'lastModifiedFileId': lastModification['lastModifiedFileId'],
+              'lastModifiedFileName': lastModification['lastModifiedFileName'],
+              'lastModifiedFileMimeType': lastModification['lastModifiedFileMimeType'],
+              'lastModifiedFilePath': lastModification['lastModifiedFilePath'],
+              'lastModifyingUser': lastModification['lastModifyingUser'],
+              'lastModifiedTime': formatLocalTime(lastModification['lastModifiedTime'])})
+
 # gam <UserTypeEntity> print filecounts [todrive <ToDriveAttribute>*]
 #	[((query <QueryDriveFile>) | (fullquery <QueryDriveFile>) | <DriveFileQueryShortcut>) (querytime<String> <Time>)*]
 #	[continueoninvalidquery [<Boolean>]]
@@ -56485,7 +56536,8 @@ def printFileParentTree(users):
 #	[filenamematchpattern <REMatchPattern>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed] (addcsvdata <FieldName> <String>)*
-#	[showsize] [showmimetypesize] [showlastmodification]
+#	[showsize] [showmimetypesize]
+#	[showlastmodification] [pathdelimiter <Character>]
 #	(addcsvdata <FieldName> <String>)*
 #	[summary none|only|plus] [summaryuser <String>]
 # gam <UserTypeEntity> show filecounts
@@ -56499,7 +56551,8 @@ def printFileParentTree(users):
 #	[filenamematchpattern <REMatchPattern>]
 #	<PermissionMatch>* [<PermissionMatchMode>] [<PermissionMatchAction>]
 #	[excludetrashed]
-#	[showsize] [showmimetypesize] [showlastmodification]
+#	[showsize] [showmimetypesize]
+#	[showlastmodification] [pathdelimiter <Character>]
 #	[summary none|only|plus] [summaryuser <String>]
 def printShowFileCounts(users):
   def _setSelectionFields():
@@ -56508,7 +56561,7 @@ def printShowFileCounts(users):
     if showSize or (DLP.minimumFileSize is not None) or (DLP.maximumFileSize is not None):
       fieldsList.append(sizeField)
     if showLastModification:
-      fieldsList.extend(['id,name,modifiedTime,lastModifyingUser(me, displayName, emailAddress)'])
+      fieldsList.extend(['id,name,modifiedTime,lastModifyingUser(me, displayName, emailAddress),parents'])
     if DLP.filenameMatchPattern:
       fieldsList.append('name')
     if DLP.excludeTrashed:
@@ -56544,9 +56597,7 @@ def printShowFileCounts(users):
       printEntityKVList(kvList, dataList, i, count)
       Ind.Increment()
       if showLastModification:
-        printKeyValueList(['lastModifiedFile', f"{lastModification['lastModifiedFileName']}({lastModification['lastModifiedFileId']})",
-                           'lastModifyingUser', lastModification['lastModifyingUser'],
-                           'lastModifiedTime', formatLocalTime(lastModification['lastModifiedTime'])])
+        _showLastModification(lastModification)
       for mimeType, mtinfo in sorted(iter(mimeTypeInfo.items())):
         if not showMimeTypeSize:
           printKeyValueList([mimeType, mtinfo['count']])
@@ -56561,10 +56612,7 @@ def printShowFileCounts(users):
       if showSize:
         row['Size'] = sizeTotal
       if showLastModification:
-        row.update({'lastModifiedFileId': lastModification['lastModifiedFileId'],
-                    'lastModifiedFileName': lastModification['lastModifiedFileName'],
-                    'lastModifyingUser': lastModification['lastModifyingUser'],
-                    'lastModifiedTime': formatLocalTime(lastModification['lastModifiedTime'])})
+        _updateLastModificationRow(row, lastModification)
       if addCSVData:
         row.update(addCSVData)
       for mimeType, mtinfo in sorted(iter(mimeTypeInfo.items())):
@@ -56578,6 +56626,7 @@ def printShowFileCounts(users):
     csvPF.SetZeroBlankMimeTypeCounts(True)
   fieldsList = ['mimeType']
   DLP = DriveListParameters({'allowChoose': False, 'allowCorpora': True, 'allowQuery': True, 'mimeTypeInQuery': True})
+  pathDelimiter = '/'
   sharedDriveId = sharedDriveName = ''
   continueOnInvalidQuery = showSize = showLastModification = showMimeTypeSize = False
   sizeField = 'quotaBytesUsed'
@@ -56586,9 +56635,7 @@ def printShowFileCounts(users):
   summaryMimeTypeInfo = {}
   fileIdEntity = {}
   addCSVData = {}
-  summaryLastModification = {
-    'lastModifiedFileId': '', 'lastModifiedFileName': '',
-    'lastModifyingUser': '', 'lastModifiedTime': NEVER_TIME}
+  summaryLastModification = _initLastModification()
   while Cmd.ArgumentsRemaining():
     myarg = getArgument()
     if csvPF and myarg == 'todrive':
@@ -56611,6 +56658,8 @@ def printShowFileCounts(users):
       summary = getChoice(FILECOUNT_SUMMARY_CHOICE_MAP, mapChoice=True)
     elif myarg == 'summaryuser':
       summaryUser = getString(Cmd.OB_STRING)
+    elif myarg == 'pathdelimiter':
+      pathDelimiter = getCharacter()
     elif csvPF and myarg == 'addcsvdata':
       k = getString(Cmd.OB_STRING)
       addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
@@ -56637,7 +56686,9 @@ def printShowFileCounts(users):
     if showSize:
       sortTitles.insert(sortTitles.index('Total')+1, 'Size')
     if showLastModification:
-      sortTitles.extend(['lastModifiedFileId', 'lastModifiedFileName', 'lastModifyingUser', 'lastModifiedTime'])
+      sortTitles.extend(['lastModifiedFileId', 'lastModifiedFileName',
+                         'lastModifiedFileMimeType', 'lastModifiedFilePath',
+                         'lastModifyingUser', 'lastModifiedTime'])
     if addCSVData:
       sortTitles.extend(sorted(addCSVData.keys()))
     csvPF.SetTitles(sortTitles)
@@ -56652,9 +56703,7 @@ def printShowFileCounts(users):
     sharedDriveId = fileIdEntity.get('shareddrive', {}).get('driveId', '')
     sharedDriveName = _getSharedDriveNameFromId(sharedDriveId) if sharedDriveId else ''
     mimeTypeInfo = {}
-    userLastModification = {
-      'lastModifiedFileId': '', 'lastModifiedFileName': '',
-      'lastModifyingUser': '', 'lastModifiedTime': NEVER_TIME}
+    userLastModification = _initLastModification()
     gettingEntity = _getGettingEntity(user, fileIdEntity)
     printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, gettingEntity, i, count, query=DLP.fileIdEntity['query'])
     try:
@@ -56666,7 +56715,7 @@ def printShowFileCounts(users):
                             retryReasons=[GAPI.UNKNOWN_ERROR],
                             q=DLP.fileIdEntity['query'],
                             fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
-      for files in  feed:
+      for files in feed:
         for f_file in files:
           driveId = f_file.get('driveId')
           checkSharedDrivePermissions = getPermissionsForSharedDrives and driveId and 'permissions' not in f_file
@@ -56697,12 +56746,8 @@ def printShowFileCounts(users):
           mimeTypeInfo[f_file['mimeType']]['count'] += 1
           mimeTypeInfo[f_file['mimeType']]['size'] += int(f_file.get(sizeField, '0'))
           if showLastModification:
-            if f_file.get('modifiedTime', NEVER_TIME) > userLastModification['lastModifiedTime'] and 'lastModifyingUser' in f_file:
-              userLastModification['lastModifiedFileId'] = f_file['id']
-              userLastModification['lastModifiedFileName'] = _stripControlCharsFromName(f_file['name'])
-              userLastModification['lastModifiedTime'] = f_file['modifiedTime']
-              userLastModification['lastModifyingUser'] = f_file['lastModifyingUser'].get('emailAddress',
-                                                                                          f_file['lastModifyingUser'].get('displayName', UNKNOWN))
+            _checkUpdateLastModifiction(f_file, userLastModification)
+      _getLastModificationPath(drive, userLastModification, pathDelimiter)
       showMimeTypeInfo(user, mimeTypeInfo, sharedDriveId, sharedDriveName, userLastModification, i, count)
       if showLastModification and userLastModification['lastModifiedTime'] > summaryLastModification['lastModifiedTime']:
         summaryLastModification = userLastModification.copy()
@@ -56725,6 +56770,110 @@ def printShowFileCounts(users):
                      summaryLastModification, 0, 0)
   if csvPF:
     csvPF.writeCSVfile('Drive File Counts')
+
+# gam <UserTypeEntity> print drivelastmodification [todrive <ToDriveAttribute>*]
+#	[select <SharedDriveEntity>]
+#	[pathdelimiter <Character>]
+#	(addcsvdata <FieldName> <String>)*
+# gam <UserTypeEntity> show drivelastmodification
+#	[select <SharedDriveEntity>]
+#	[pathdelimiter <Character>]
+def printShowDrivelastModifications(users):
+  def showLastModificationInfo(user, sharedDriveId, sharedDriveName, lastModification, i, count):
+    if not csvPF:
+      if sharedDriveId:
+        kvList = [Ent.USER, user, Ent.SHAREDDRIVE, f'{sharedDriveName} ({sharedDriveId})']
+      else:
+        kvList = [Ent.USER, user]
+      printEntity(kvList, i, count)
+      Ind.Increment()
+      _showLastModification(lastModification)
+      Ind.Decrement()
+    else:
+      if sharedDriveId:
+        row = {'User': user, 'id': sharedDriveId, 'name': sharedDriveName}
+      else:
+        row = {'User': user}
+      _updateLastModificationRow(row, lastModification)
+      if addCSVData:
+        row.update(addCSVData)
+      csvPF.WriteRowTitles(row)
+
+  csvPF = CSVPrintFile() if Act.csvFormat() else None
+  fieldsList = ['id', 'driveId', 'name', 'mimeType', 'lastModifyingUser', 'modifiedTime', 'parents']
+  DLP = DriveListParameters({'allowChoose': False, 'allowCorpora': False, 'allowQuery': False, 'mimeTypeInQuery': True})
+  pathDelimiter = '/'
+  sharedDriveId = sharedDriveName = ''
+  fileIdEntity = {}
+  addCSVData = {}
+  while Cmd.ArgumentsRemaining():
+    myarg = getArgument()
+    if csvPF and myarg == 'todrive':
+      csvPF.GetTodriveParameters()
+    elif myarg == 'select':
+      if fileIdEntity:
+        usageErrorExit(Msg.CAN_NOT_BE_SPECIFIED_MORE_THAN_ONCE.format('select'))
+      fileIdEntity = getSharedDriveEntity()
+    elif myarg == 'pathdelimiter':
+      pathDelimiter = getCharacter()
+    elif csvPF and myarg == 'addcsvdata':
+      k = getString(Cmd.OB_STRING)
+      addCSVData[k] = getString(Cmd.OB_STRING, minLen=0)
+    else:
+      unknownArgumentExit()
+  if not fileIdEntity:
+    fileIdEntity = DLP.GetFileIdEntity()
+  if not fileIdEntity.get('shareddrive'):
+    btkwargs = DLP.kwargs
+  else:
+    btkwargs = fileIdEntity['shareddrive']
+    fieldsList.append('driveId')
+  DLP.Finalize(fileIdEntity)
+  if csvPF:
+    sortTitles = ['User', 'id', 'name'] if fileIdEntity.get('shareddrive') else ['User']
+    sortTitles.extend(['lastModifiedFileId', 'lastModifiedFileName',
+                       'lastModifiedFileMimeType', 'lastModifiedFilePath',
+                       'lastModifyingUser', 'lastModifiedTime'])
+    if addCSVData:
+      sortTitles.extend(sorted(addCSVData.keys()))
+    csvPF.SetTitles(sortTitles)
+    csvPF.SetSortAllTitles()
+  pagesFields = getItemFieldsFromFieldsList('files', fieldsList)
+  i, count, users = getEntityArgument(users)
+  for user in users:
+    i += 1
+    user, drive = _validateUserSharedDrive(user, i, count, fileIdEntity)
+    if not drive:
+      continue
+    sharedDriveId = fileIdEntity.get('shareddrive', {}).get('driveId', '')
+    sharedDriveName = _getSharedDriveNameFromId(sharedDriveId) if sharedDriveId else ''
+    userLastModification = _initLastModification()
+    gettingEntity = _getGettingEntity(user, fileIdEntity)
+    printGettingAllEntityItemsForWhom(Ent.DRIVE_FILE_OR_FOLDER, gettingEntity, i, count)
+    try:
+      feed = yieldGAPIpages(drive.files(), 'list', 'files',
+                            pageMessage=getPageMessageForWhom(),
+                            throwReasons=GAPI.DRIVE_USER_THROW_REASONS+[GAPI.INVALID, GAPI.BAD_REQUEST, GAPI.FILE_NOT_FOUND,
+                                                                        GAPI.NOT_FOUND, GAPI.TEAMDRIVE_MEMBERSHIP_REQUIRED],
+                            retryReasons=[GAPI.UNKNOWN_ERROR],
+                            fields=pagesFields, pageSize=GC.Values[GC.DRIVE_MAX_RESULTS], **btkwargs)
+      for files in feed:
+        for f_file in files:
+          _checkUpdateLastModifiction(f_file, userLastModification)
+      _getLastModificationPath(drive, userLastModification, pathDelimiter)
+      showLastModificationInfo(user, sharedDriveId, sharedDriveName, userLastModification, i, count)
+    except (GAPI.invalid, GAPI.badRequest) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.DRIVE_FILE_OR_FOLDER, None], str(e), i, count)
+      continue
+    except GAPI.fileNotFound:
+      printGotEntityItemsForWhom(0)
+    except (GAPI.notFound, GAPI.teamDriveMembershipRequired) as e:
+      entityActionFailedWarning([Ent.USER, user, Ent.SHAREDDRIVE_ID, sharedDriveId], str(e), i, count)
+    except (GAPI.serviceNotAvailable, GAPI.authError, GAPI.domainPolicy) as e:
+      userDriveServiceNotEnabledWarning(user, str(e), i, count)
+      continue
+  if csvPF:
+    csvPF.writeCSVfile('Drive File Last Modification')
 
 DISKUSAGE_SHOW_CHOICES = {'all', 'summary', 'summaryandtrash'}
 
@@ -63090,7 +63239,8 @@ def createDriveFileACL(users, useDomainAdminAccess=False):
           if showDetails:
             _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
-              GAPI.cannotSetExpiration, GAPI.expirationDateNotAllowedForSharedDriveMembers,
+              GAPI.cannotSetExpiration, GAPI.cannotSetExpirationOnAnyoneOrDomain,
+              GAPI.expirationDateNotAllowedForSharedDriveMembers, GAPI.expirationDatesMustBeInTheFuture,
               GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.targetUserRoleLimitedByLicenseRestriction, GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
@@ -63225,7 +63375,8 @@ def updateDriveFileACLs(users, useDomainAdminAccess=False):
           if showDetails:
             _showDriveFilePermission(permission, printKeys, timeObjects)
       except (GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError, GAPI.insufficientFilePermissions, GAPI.unknownError,
-              GAPI.cannotSetExpiration, GAPI.expirationDateNotAllowedForSharedDriveMembers,
+              GAPI.cannotSetExpiration, GAPI.cannotSetExpirationOnAnyoneOrDomain,
+              GAPI.expirationDateNotAllowedForSharedDriveMembers, GAPI.expirationDatesMustBeInTheFuture,
               GAPI.badRequest, GAPI.invalidOwnershipTransfer, GAPI.cannotRemoveOwner,
               GAPI.fileNeverWritable, GAPI.ownershipChangeAcrossDomainNotPermitted, GAPI.sharingRateLimitExceeded,
               GAPI.targetUserRoleLimitedByLicenseRestriction, GAPI.insufficientAdministratorPrivileges,
@@ -63325,7 +63476,8 @@ def createDriveFilePermissions(users, useDomainAdminAccess=False):
                  body=_makePermissionBody(ri[RI_ITEM]), fields='', supportsAllDrives=True)
         entityActionPerformed([Ent.DRIVE_FILE_OR_FOLDER_ID, ri[RI_ENTITY], Ent.PERMITTEE, ri[RI_ITEM]], int(ri[RI_J]), int(ri[RI_JCOUNT]))
       except (GAPI.badRequest, GAPI.invalid, GAPI.fileNotFound, GAPI.forbidden, GAPI.internalError,
-              GAPI.cannotSetExpiration, GAPI.expirationDateNotAllowedForSharedDriveMembers,
+              GAPI.cannotSetExpiration, GAPI.cannotSetExpirationOnAnyoneOrDomain,
+              GAPI.expirationDateNotAllowedForSharedDriveMembers, GAPI.expirationDatesMustBeInTheFuture,
               GAPI.insufficientFilePermissions, GAPI.unknownError, GAPI.ownershipChangeAcrossDomainNotPermitted,
               GAPI.teamDriveDomainUsersOnlyRestriction, GAPI.teamDriveTeamMembersOnlyRestriction,
               GAPI.targetUserRoleLimitedByLicenseRestriction, GAPI.insufficientAdministratorPrivileges, GAPI.sharingRateLimitExceeded,
@@ -76540,6 +76692,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEFILEACL:	printShowDriveFileACLs,
       Cmd.ARG_DRIVELABEL:	printShowDriveLabels,
       Cmd.ARG_DRIVELABELPERMISSION:	printShowDriveLabelPermissions,
+      Cmd.ARG_DRIVELASTMODIFICATION:	printShowDrivelastModifications,
       Cmd.ARG_DRIVESETTINGS:	printShowDriveSettings,
       Cmd.ARG_EMPTYDRIVEFOLDERS:	printEmptyDriveFolders,
       Cmd.ARG_EVENT:		printShowCalendarEvents,
@@ -76647,6 +76800,7 @@ USER_COMMANDS_WITH_OBJECTS = {
       Cmd.ARG_DRIVEFILEACL:	printShowDriveFileACLs,
       Cmd.ARG_DRIVELABEL:	printShowDriveLabels,
       Cmd.ARG_DRIVELABELPERMISSION:	printShowDriveLabelPermissions,
+      Cmd.ARG_DRIVELASTMODIFICATION:	printShowDrivelastModifications,
       Cmd.ARG_DRIVESETTINGS:	printShowDriveSettings,
       Cmd.ARG_EVENT:		printShowCalendarEvents,
       Cmd.ARG_FILECOMMENT:	printShowFileComments,
@@ -76871,13 +77025,14 @@ USER_COMMANDS_OBJ_ALIASES = {
   Cmd.ARG_DOMAINCONTACT:	Cmd.ARG_PEOPLECONTACT,
   Cmd.ARG_DOMAINCONTACTS:	Cmd.ARG_PEOPLECONTACT,
   Cmd.ARG_DRIVEFILEACLS:	Cmd.ARG_DRIVEFILEACL,
-  Cmd.ARG_FILEDRIVELABELS:	Cmd.ARG_FILEDRIVELABEL,
   Cmd.ARG_DRIVEFILESHORTCUTS:	Cmd.ARG_DRIVEFILESHORTCUT,
   Cmd.ARG_DRIVELABELS:		Cmd.ARG_DRIVELABEL,
   Cmd.ARG_DRIVELABELPERMISSIONS:	Cmd.ARG_DRIVELABELPERMISSION,
+  Cmd.ARG_DRIVELASTMODIFICATIONS:	Cmd.ARG_DRIVELASTMODIFICATION,
   Cmd.ARG_EVENTS:		Cmd.ARG_EVENT,
   Cmd.ARG_FILECOMMENTS:		Cmd.ARG_FILECOMMENT,
   Cmd.ARG_FILECOUNTS:		Cmd.ARG_FILECOUNT,
+  Cmd.ARG_FILEDRIVELABELS:	Cmd.ARG_FILEDRIVELABEL,
   Cmd.ARG_FILEPATHS:		Cmd.ARG_FILEPATH,
   Cmd.ARG_FILEREVISIONS:	Cmd.ARG_FILEREVISION,
   Cmd.ARG_FILESHARECOUNTS:	Cmd.ARG_FILESHARECOUNT,

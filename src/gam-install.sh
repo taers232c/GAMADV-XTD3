@@ -21,7 +21,7 @@ EOF
 }
 
 target_dir="$HOME/bin"
-target_folder="$target_dir/gamadv-xtd3"
+target_folder="$target_dir/gam7"
 gamarch=$(uname -m)
 gamos=$(uname -s)
 osversion=""
@@ -30,13 +30,13 @@ upgrade_only=false
 gamversion="latest"
 adminuser=""
 regularuser=""
-strip_gam="--strip-components 1"
+strip_gam="--strip-components 0"
 
 while getopts "hd:a:o:b:lp:u:r:v:s" OPTION
 do
      case $OPTION in
          h) usage; exit;;
-         d) target_dir="${OPTARG%/}"; target_folder="$target_dir/gamadv-xtd3";;
+         d) target_dir="${OPTARG%/}"; target_folder="$target_dir/gam7";;
          a) gamarch="$OPTARG";;
          o) gamos="$OPTARG";;
          b) osversion="$OPTARG";;
@@ -330,11 +330,11 @@ mkdir -p "$target_folder"
 echo_yellow "Deleting contents of $target_folder/lib"
 rm -frv "$target_folder/lib"
 
-echo_yellow "Extracting archive to $target_folder"
+echo_yellow "Extracting archive to $target_dir"
 if [[ "$name" =~ tar.xz|tar.gz|tar ]]; then
-  tar $strip_gam -xf "$temp_archive_dir"/"$name" -C "$target_folder"
+  tar $strip_gam -xf "$temp_archive_dir"/"$name" -C "$target_dir"
 elif [[ "$name" == *.zip ]]; then
-  unzip -o "${temp_archive_dir}/${name}" -d "${target_folder}"
+  unzip -o "${temp_archive_dir}/${name}" -d "${target_dir}"
 else
   echo "I don't know what to do with files like ${name}. Giving up."
   exit 1
