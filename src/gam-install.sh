@@ -8,7 +8,7 @@ GAM installation script.
 OPTIONS:
    -h      show help.
    -d      Directory where gam folder will be installed. Default is \$HOME/bin/
-   -a      Architecture to install (i386, x86_64, x86_64_legacy, arm, arm64). Default is to detect your arch with "uname -m".
+   -a      Architecture to install (x86_64, arm64). Default is to detect your arch with "uname -m".
    -o      OS we are running (linux, macos). Default is to detect your OS with "uname -s".
    -b      OS version. Default is to detect on MacOS and Linux.
    -l      Just upgrade GAM to latest version. Skips project creation and auth.
@@ -21,7 +21,7 @@ EOF
 }
 
 target_dir="$HOME/bin"
-target_folder="$target_dir/gam7"
+target_folder="$target_dir/gamadv-xtd3"
 gamarch=$(uname -m)
 gamos=$(uname -s)
 osversion=""
@@ -30,13 +30,13 @@ upgrade_only=false
 gamversion="latest"
 adminuser=""
 regularuser=""
-strip_gam="--strip-components 0"
+strip_gam="--strip-components 1"
 
 while getopts "hd:a:o:b:lp:u:r:v:s" OPTION
 do
      case $OPTION in
          h) usage; exit;;
-         d) target_dir="${OPTARG%/}"; target_folder="$target_dir/gam7";;
+         d) target_dir="${OPTARG%/}"; target_folder="$target_dir/gamadv-xtd3";;
          a) gamarch="$OPTARG";;
          o) gamos="$OPTARG";;
          b) osversion="$OPTARG";;
@@ -194,7 +194,7 @@ fi
 case $gamos in
   [lL]inux)
     gamos="linux"
-    download_urls=$(echo -e "$download_urls" | grep "\-linux-")
+    download_urls=$(echo -e "$download_urls" | grep -e "-linux-")
     if [ "$osversion" == "" ]; then
       this_glibc_ver=$(ldd --version | awk '/ldd/{print $NF}')
     else
@@ -203,7 +203,7 @@ case $gamos in
     echo "This Linux distribution uses glibc $this_glibc_ver"
     case $gamarch in
       x86_64)
-	download_urls=$(echo -e "$download_urls" | grep "\-x86_64-")
+	download_urls=$(echo -e "$download_urls" | grep -e "-x86_64-")
 	gam_x86_64_glibc_vers=$(echo -e "$download_urls" | \
 		grep --only-matching 'glibc[0-9\.]*\.tar\.xz$' \
 	        | cut -c 6-9 )
@@ -218,7 +218,7 @@ case $gamos in
         download_url=$(echo -e "$download_urls" | grep "$useglibc")
 	;;
       arm|arm64|aarch64)
-        download_urls=$(echo -e "$download_urls" | grep "\-aarch64-")
+        download_urls=$(echo -e "$download_urls" | grep -e "-arm64-\|-aarch64-")
         gam_arm64_glibc_vers=$(echo -e "$download_urls" | \
                 grep --only-matching 'glibc[0-9\.]*\.tar\.xz$' | \
                 cut -c 6-9)
@@ -243,13 +243,13 @@ case $gamos in
     # override osversion only if it wasn't set by cli arguments
     osversion=${osversion:-${currentversion}}
     # override osversion only if it wasn't set by cli arguments
-    download_urls=$(echo -e "$download_urls" | grep "\-macos")
+    download_urls=$(echo -e "$download_urls" | grep -e "-macos")
     case $gamarch in
       x86_64)
-        archgrep="\-x86_64"
+        archgrep="-x86_64"
 	;;
       arm|arm64|aarch64)
-        archgrep="\-aarch64"
+        archgrep="-arm64\|-aarch64"
         ;;
       *)
         echo_red "ERROR: this installer currently only supports x86_64 and arm64 MacOS. Looks like you're running on ${gamarch}. Exiting."
@@ -257,13 +257,13 @@ case $gamos in
 	;;
     esac
     gam_macos_urls=$(echo -e "$download_urls" | \
-                     grep "$archgrep")
+                     grep -e $archgrep)
     versionless_urls=$(echo -e "$gam_macos_urls" | \
-                       grep "\-macos-")
+                       grep -e "-macos-")
     if [ "$versionless_urls" == "" ]; then
         # versions after 7.00.38 include MacOS version info
         gam_macos_vers=$(echo -e "$gam_macos_urls" | \
-                         grep --only-matching '\-macos[0-9\.]*' | \
+                         grep --only-matching -e '-macos[0-9\.]*' | \
                          cut -c 7-10)
         for gam_mac_ver in $gam_macos_vers; do
             if version_gt $currentversion $gam_mac_ver; then
@@ -281,13 +281,12 @@ case $gamos in
         case $gamarch in
             x86_64)
 	        minimum_version=13
-                download_url=$(echo -e "$download_urls" | grep "\-x86_64")
                 ;;
             arm|arm64|aarch64)
-                download_url=$(echo -e "$download_urls" | grep "\-aarch64")
 	        minimum_version=14
                 ;;
         esac
+        download_url=$(echo -e "$download_urls" | grep -e $archgrep)
         if version_gt "$osversion" "$minimum_version"; then
             echo_green "You are running MacOS ${osversion}, good. Downloading GAM from ${download_url}."
         else
@@ -304,7 +303,7 @@ case $gamos in
     gamos="windows"
     echo "You are running Windows"
     download_url=$(echo -e "$download_urls" | \
-                   grep "\-windows-" | \
+                   grep -e "-windows-" | \
                    grep ".zip")
     ;;
   *)
@@ -330,11 +329,11 @@ mkdir -p "$target_folder"
 echo_yellow "Deleting contents of $target_folder/lib"
 rm -frv "$target_folder/lib"
 
-echo_yellow "Extracting archive to $target_dir"
+echo_yellow "Extracting archive to $target_folder"
 if [[ "$name" =~ tar.xz|tar.gz|tar ]]; then
-  tar $strip_gam -xf "$temp_archive_dir"/"$name" -C "$target_dir"
+  tar $strip_gam -xf "$temp_archive_dir"/"$name" -C "$target_folder"
 elif [[ "$name" == *.zip ]]; then
-  unzip -o "${temp_archive_dir}/${name}" -d "${target_dir}"
+  unzip -o "${temp_archive_dir}/${name}" -d "${target_folder}"
 else
   echo "I don't know what to do with files like ${name}. Giving up."
   exit 1
