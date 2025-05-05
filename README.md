@@ -3,7 +3,7 @@ GAM is a command line tool for Google Workspace admins to manage domain and user
 
 GAMADV-XTD3 has been replaced with GAM7.
 
-* [How to Uograde GAMADV-XTD3 to GAM7](How-to-Upgrade-GAMADV-XTD3-to-GAM7)
+* [How to Upgrade GAMADV-XTD3 to GAM7](https://github.com/GAM-team/GAM/wiki/How-to-Upgrade-GAMADV-XTD3-to-GAM7)
 
 # Documentation
 Documentation for GAMADV-XTD3 is hosted in the [GitHub Wiki] and in Gam*.txt files.
